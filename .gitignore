@@ -1,0 +1,9 @@
+# Huwag isama ang Python virtual environment
+backend/venv/
+
+# Huwag isama ang mga temporary cache files ng Python
+__pycache__/
+*.pyc
+
+# Huwag isama ang environment variables (para sa passwords mamaya)
+.env
