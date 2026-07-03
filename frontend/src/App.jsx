@@ -1,62 +1,86 @@
 /**
  * App.jsx
- * This is the main file that connects all the pages together.
+ * Connects all pages together with React Router.
  *
  * HOW ROUTING WORKS:
- * - When the URL is /login     → shows the Login page
- * - When the URL is /register  → shows the Register page
- * - When the URL is /          → automatically goes to /login
+ * - / → goes to /login automatically
+ * - /login → Login page
+ * - /register → Register page
+ * - /dashboard/student → Student Dashboard
+ * - /assignments → Assignments page
+ * - /analytics → Analytics page
+ * - /submissions → Submissions list
+ * - /submissions/:id → Single submission report (TODO)
+ * - /workspace → Student IDE (placeholder for now)
+ * - /settings → Settings page
  *
- * PageTransition wraps each page so switching between them
- * has a smooth Apple-style fade instead of a flash.
+ * AnimatedRoutes handles the smooth fade transition between pages.
+ * The background stays #0f1117 during transitions so there's no white flash.
  *
- * TODO (Frontend): add more routes here as you build more pages:
- *   <Route path="/ide"       element={<PageTransition><StudentIDE /></PageTransition>} />
- *   <Route path="/dashboard" element={<PageTransition><InstructorDashboard /></PageTransition>} />
+ * TODO (Frontend): add instructor routes when Kenneth's pages are ready
+ * TODO (Frontend): add AuthGuard to protect /dashboard, /assignments, etc.
+ *   Example: if (!sessionStorage.getItem("token")) navigate("/login")
  */
 
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import StudentDashboard from "./pages/StudentDashboard";
+import Assignments from "./pages/Assignments";
+import Analytics from "./pages/Analytics";
+import Submissions from "./pages/Submissions";
+import Settings from "./pages/Settings";
+import Workspace from "./pages/Workspace";
 
-// Smooth fade transition between pages
+// Smooth fade transition between pages — no white flash
 function AnimatedRoutes() {
   const location = useLocation();
   const [displayLocation, setDisplayLocation] = useState(location);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    // Fade out first
     setVisible(false);
     const t = setTimeout(() => {
-      setDisplayLocation(location); // swap the page
-      setVisible(true);             // fade back in
-    }, 180);
+      setDisplayLocation(location);
+      setVisible(true);
+    }, 150);
     return () => clearTimeout(t);
   }, [location]);
 
   return (
     <div
       style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(6px)",
-        transition: "opacity 0.3s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)",
+        opacity: visible ? 1 : 0.01, // never fully transparent — prevents white flash
+        transform: visible ? "translateY(0)" : "translateY(5px)",
+        transition: "opacity 0.28s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)",
+        background: "#0f1117",
+        minHeight: "100vh",
+        willChange: "opacity, transform", // tells browser to composite this layer
       }}
     >
       <Routes location={displayLocation}>
-        {/* Default — goes to /login */}
+        {/* Default → login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Auth pages */}
-        <Route path="/login" element={<Login />} />
+        {/* Auth */}
+        <Route path="/login"    element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* TODO (Frontend): add these when the pages are ready */}
-        {/* <Route path="/ide" element={<StudentIDE />} /> */}
-        {/* <Route path="/dashboard" element={<InstructorDashboard />} /> */}
+        {/* Student pages */}
+        <Route path="/dashboard/student" element={<StudentDashboard />} />
+        <Route path="/assignments"       element={<Assignments />} />
+        <Route path="/analytics"         element={<Analytics />} />
+        <Route path="/submissions"       element={<Submissions />} />
+        <Route path="/submissions/:id"   element={<Submissions />} />
+        <Route path="/workspace"         element={<Workspace />} />
+        <Route path="/settings"          element={<Settings />} />
 
-        {/* Any unknown URL goes back to login */}
+        {/* TODO (Frontend): add instructor pages when ready */}
+        {/* <Route path="/dashboard/instructor" element={<InstructorDashboard />} /> */}
+
+        {/* Unknown URL → login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
