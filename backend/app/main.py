@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import execution, instructor
+from app.routers import execution, instructor, logs
 
 
 app = FastAPI(
@@ -12,6 +12,7 @@ app = FastAPI(
 
 app.include_router(instructor.router)
 app.include_router(execution.router)
+app.include_router(logs.router)
 
 
 @app.get("/")
