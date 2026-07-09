@@ -12,8 +12,8 @@ router = APIRouter(
 
 
 @router.post(
-    "/submissions",
-    response_model=SubmissionCreate,
+    "/submissions/",
+    response_model=SubmissionResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_submission(

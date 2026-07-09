@@ -16,7 +16,7 @@ class SubmissionResponse(SubmissionBase):
     student_id: int
     task_id: int
     jaccard_score: Optional[float] = None
-    ast_pass_fail: Optional[bool] = False
+    ast_pass_fail: Optional[bool] = None
 
     model_config = ConfigDict(from_attributes=True)
 

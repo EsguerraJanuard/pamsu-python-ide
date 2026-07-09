@@ -42,7 +42,7 @@ def create_behavioral_log(
 
     new_log = BehavioralLog(
         sub_id=log_data.sub_id,
-        tab_switchs_count=log_data.tab_switches_count,
+        tab_switches_count=log_data.tab_switches_count,
     )
 
     db.add(new_log)
@@ -69,7 +69,7 @@ def get_behavioral_log(
             status_code=status.HTTP_404_NOT_FOUND, detail="Behavioral log not found."
         )
 
-    return get_behavioral_log
+    return behavioral_log
 
 
 @router.get(

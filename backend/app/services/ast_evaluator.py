@@ -87,7 +87,7 @@ solve()
 
     sample_rules = {
         "require_for_loop": True,
-        "require_while_loop": True,
+        "require_while_loop": False,
         "require_function_def": True,
     }
 
