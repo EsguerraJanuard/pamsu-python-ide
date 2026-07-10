@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import auth, execution, instructor, logs
+from app.routers import auth, evaluation, execution, instructor, logs
 
 
 app = FastAPI(
@@ -14,6 +14,7 @@ app.include_router(auth.router)
 app.include_router(instructor.router)
 app.include_router(execution.router)
 app.include_router(logs.router)
+app.include_router(evaluation.router)
 
 
 @app.get("/")
