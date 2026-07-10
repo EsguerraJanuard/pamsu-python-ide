@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_student, get_current_user
 from app.models.domain_models import Submission, Task, User
 from app.schemas.submission_schema import SubmissionCreate, SubmissionResponse
+
 
 router = APIRouter(
     prefix="/execution",
@@ -19,20 +21,12 @@ router = APIRouter(
 def create_submission(
     submission_data: SubmissionCreate,
     db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
 ):
-    student = (
-        db.query(User)
-        .filter(
-            User.user_id == submission_data.student_id,
-            User.role == "student",
-        )
-        .first()
-    )
-
-    if student is None:
+    if submission_data.student_id != current_student.user_id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student not found.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only create submissions using your own student ID.",
         )
 
     task = db.query(Task).filter(Task.task_id == submission_data.task_id).first()
@@ -44,7 +38,7 @@ def create_submission(
         )
 
     new_submission = Submission(
-        student_id=submission_data.student_id,
+        student_id=current_student.user_id,
         task_id=submission_data.task_id,
         raw_code=submission_data.raw_code,
         jaccard_score=None,
@@ -65,6 +59,7 @@ def create_submission(
 def get_submission(
     sub_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
 
@@ -73,4 +68,28 @@ def get_submission(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Submission not found.",
         )
-    return submission
+
+    if current_user.role == "student":
+        if submission.student_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only access your own submissions.",
+            )
+
+        return submission
+
+    if current_user.role == "instructor":
+        task = db.query(Task).filter(Task.task_id == submission.task_id).first()
+
+        if task is None or task.instructor_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only access submissions for your own tasks.",
+            )
+
+        return submission
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access denied.",
+    )
