@@ -1,36 +1,72 @@
-/**
- * StatusBar.jsx
- * The fixed bottom bar shown on all student pages.
- *
- * HOW TO USE:
- *   <StatusBar />
- *
- * TODO (Backend): get real session status from GET /api/student/session
- * TODO (Frontend): if session is expired, show red dot instead of green
- */
-
-const MOCK_STUDENT = {
-  name: "Juan, Miguel D.",
-  course: "CCS101",
-  courseName: "Introduction to Programming",
+const STATUS_CONFIG = {
+  active: {
+    label: "Session active",
+    dotClass: "bg-[#22c55e]",
+    textClass: "text-[#22c55e]",
+  },
+  expired: {
+    label: "Session expired",
+    dotClass: "bg-[#ef4444]",
+    textClass: "text-[#ef4444]",
+  },
+  disconnected: {
+    label: "Server disconnected",
+    dotClass: "bg-[#ef4444]",
+    textClass: "text-[#ef4444]",
+  },
+  connecting: {
+    label: "Connecting",
+    dotClass: "bg-[#f59e0b] animate-pulse",
+    textClass: "text-[#f59e0b]",
+  },
+  unknown: {
+    label: "Session status unavailable",
+    dotClass: "bg-white/30",
+    textClass: "text-white/40",
+  },
 };
 
-export default function StatusBar() {
+export default function Statusbar({
+  sessionStatus = "unknown",
+  courseCode = "",
+  courseName = "",
+  studentName = "",
+  pythonVersion = "Python 3",
+}) {
+  const status =
+    STATUS_CONFIG[sessionStatus] ?? STATUS_CONFIG.unknown;
+
+  const courseLabel = [courseCode, courseName]
+    .filter(Boolean)
+    .join(" — ");
+
   return (
-    <div
-      className="fixed bottom-0 left-0 right-0 h-9 flex items-center justify-between px-4 border-t border-white/[0.06] z-50"
-      style={{ background: "#0d0f18" }}
+    <footer
+      className="flex h-9 shrink-0 items-center justify-between gap-4 border-t border-white/[0.06] bg-[#0d0f18] px-4"
+      aria-label="Workspace status"
     >
-      <div className="flex items-center gap-2">
-        {/* Green dot = session active. TODO: turn red if session expires */}
-        <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-        <span className="text-[10px] text-[#22c55e] font-mono select-none">
-          Session active · {MOCK_STUDENT.course} — {MOCK_STUDENT.courseName}
+      <div
+        className="flex min-w-0 items-center gap-2"
+        role="status"
+        aria-live="polite"
+      >
+        <span
+          className={`h-1.5 w-1.5 shrink-0 rounded-full ${status.dotClass}`}
+          aria-hidden="true"
+        />
+
+        <span
+          className={`truncate font-mono text-[10px] ${status.textClass}`}
+        >
+          {status.label}
+          {courseLabel ? ` · ${courseLabel}` : ""}
         </span>
       </div>
-      <span className="text-[10px] text-white/25 font-mono select-none">
-        Python 3.12 · {MOCK_STUDENT.name}
+
+      <span className="shrink-0 select-none font-mono text-[10px] text-white/25">
+        {pythonVersion}
+        {studentName ? ` · ${studentName}` : ""}
       </span>
-    </div>
+    </footer>
   );
 }

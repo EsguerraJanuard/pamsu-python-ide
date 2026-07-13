@@ -1,286 +1,552 @@
-/**
- * Settings.jsx
- * Student account settings page.
- *
- * TODO (Backend): GET /api/student/profile — load current settings
- * TODO (Backend): PUT /api/student/profile — save updated settings
- * TODO (Backend): PUT /api/student/password — change password (bcrypt hash server-side)
- * TODO (Frontend): replace MOCK_STUDENT with real data from API
- * TODO (Frontend): wire up save buttons to API calls
- */
+import { useState } from "react";
 
-import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
-import StatusBar from "../components/StatusBar";
+import Statusbar from "../components/Statusbar";
 
-const MOCK_STUDENT = {
-  firstName: "Juan Miguel",
-  lastName: "David",
-  institutionalId: "2024-00001",
-  email: "mjuan@student.edu.ph",
-  course: "CCS101",
-  section: "CS-3A",
+const PREVIEW_PROFILE = {
+  fullName: "Student Account",
+  schoolId: "0000000000",
+  email: "student@pampangastateu.edu.ph",
+  courseCode: "No active class",
+  section: "Not assigned",
 };
 
+function getStoredProfile() {
+  try {
+    const storedUser = sessionStorage.getItem("user");
+
+    if (!storedUser) {
+      return PREVIEW_PROFILE;
+    }
+
+    const user = JSON.parse(storedUser);
+
+    return {
+      fullName:
+        user.fullName ||
+        user.full_name ||
+        user.name ||
+        PREVIEW_PROFILE.fullName,
+      schoolId:
+        user.schoolId ||
+        user.school_id ||
+        user.institutionalId ||
+        user.institutional_id ||
+        PREVIEW_PROFILE.schoolId,
+      email: user.email || PREVIEW_PROFILE.email,
+      courseCode:
+        user.courseCode ||
+        user.course_code ||
+        user.course ||
+        PREVIEW_PROFILE.courseCode,
+      section: user.section || PREVIEW_PROFILE.section,
+    };
+  } catch {
+    return PREVIEW_PROFILE;
+  }
+}
+
 export default function Settings() {
-  const [mounted, setMounted] = useState(false);
-  const [profile, setProfile] = useState(MOCK_STUDENT);
-  const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
+  const [profile, setProfile] = useState(getStoredProfile);
+  const [passwords, setPasswords] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
   const [showPasswords, setShowPasswords] = useState(false);
-  const [profileSaved, setProfileSaved] = useState(false);
-  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordMessageType, setPasswordMessageType] =
+    useState("error");
 
-  // TODO (Frontend): add error states
-  // const [profileError, setProfileError] = useState(null);
-  // const [passwordError, setPasswordError] = useState(null);
+  const inputWrap =
+    "flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#0f1117] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const inputClass =
+    "flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20";
 
-  // Save profile — TODO (Frontend): connect to PUT /api/student/profile
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    console.log("Save profile:", profile); // remove when API is ready
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2500);
+  const readonlyInputClass =
+    "flex-1 cursor-not-allowed bg-transparent text-sm text-white/40 outline-none";
+
+  const updateProfileName = (value) => {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      fullName: value,
+    }));
+
+    setProfileMessage("");
   };
 
-  // Change password — TODO (Frontend): connect to PUT /api/student/password
-  const handleChangePassword = (e) => {
-    e.preventDefault();
-    if (passwords.newPass !== passwords.confirm) {
-      alert("New passwords don't match."); // TODO: replace with inline error
+  const updatePasswordField = (field, value) => {
+    setPasswords((currentPasswords) => ({
+      ...currentPasswords,
+      [field]: value,
+    }));
+
+    setPasswordMessage("");
+  };
+
+  const handleSaveProfile = (event) => {
+    event.preventDefault();
+
+    if (profile.fullName.trim().length < 3) {
+      setProfileMessage("Enter your complete name.");
       return;
     }
-    console.log("Change password"); // remove when API is ready
-    setPasswordSaved(true);
-    setPasswords({ current: "", newPass: "", confirm: "" });
-    setTimeout(() => setPasswordSaved(false), 2500);
+
+    /*
+     * Backend integration will be added after the authenticated
+     * profile API contract and centralized API client are finalized.
+     *
+     * Only editable profile fields should be sent.
+     * Verified school ID and email must not be changed here.
+     */
+    setProfileMessage(
+      "Profile editing is ready, but saving is not connected to the backend yet.",
+    );
   };
 
-  const inputWrap = "flex items-center gap-2.5 bg-[#0f1117] border border-white/[0.08] rounded-lg px-3 py-2.5 focus-within:border-[#3b82f6]/60 transition-colors duration-200";
-  const inputClass = "flex-1 bg-transparent text-sm text-white outline-none select-text cursor-text placeholder-white/20";
+  const handleChangePassword = (event) => {
+    event.preventDefault();
+
+    if (!passwords.currentPassword) {
+      setPasswordMessageType("error");
+      setPasswordMessage("Enter your current password.");
+      return;
+    }
+
+    if (passwords.newPassword.length < 8) {
+      setPasswordMessageType("error");
+      setPasswordMessage(
+        "The new password must contain at least 8 characters.",
+      );
+      return;
+    }
+
+    if (
+      passwords.newPassword !== passwords.confirmPassword
+    ) {
+      setPasswordMessageType("error");
+      setPasswordMessage("The new passwords do not match.");
+      return;
+    }
+
+    if (
+      passwords.currentPassword === passwords.newPassword
+    ) {
+      setPasswordMessageType("error");
+      setPasswordMessage(
+        "The new password must be different from the current password.",
+      );
+      return;
+    }
+
+    /*
+     * The backend must:
+     * 1. Verify the current password.
+     * 2. Validate the new password.
+     * 3. Hash the new password securely.
+     * 4. Revoke old sessions when required.
+     */
+    setPasswordMessageType("info");
+    setPasswordMessage(
+      "Password validation is ready, but password updating is not connected to the backend yet.",
+    );
+  };
 
   return (
-    <div
-      className="flex min-h-screen bg-[#0f1117] text-white select-none cursor-default"
-      style={{ opacity: mounted ? 1 : 0, transition: "opacity 0.4s ease" }}
-    >
-      <Sidebar activePage="Settings" />
+    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+      <Sidebar />
 
-      <main className="flex-1 overflow-y-auto px-8 py-6 pb-12">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main className="settings-page flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+          <style>
+            {`
+              @keyframes settingsFadeUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(10px);
+                }
 
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Settings</h1>
-          <p className="text-sm text-white/40 mt-1">Manage your account information.</p>
-        </div>
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
 
-        <div className="max-w-xl space-y-6">
+              .settings-page {
+                animation:
+                  settingsFadeUp 450ms
+                  cubic-bezier(0.25, 0.46, 0.45, 0.94)
+                  both;
+              }
 
-          {/* ── Profile section ── */}
-          <div className="bg-[#1a1d27] border border-white/[0.06] rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Profile Information</h2>
-            <form onSubmit={handleSaveProfile} className="space-y-4">
+              @media (prefers-reduced-motion: reduce) {
+                .settings-page {
+                  animation: none;
+                }
+              }
+            `}
+          </style>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-white/60 mb-1.5">First name</label>
-                  <div className={inputWrap}>
-                    <input
-                      type="text"
-                      value={profile.firstName}
-                      onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                      className={inputClass}
-                      style={{ caretColor: "#3b82f6" }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-white/60 mb-1.5">Last name</label>
-                  <div className={inputWrap}>
-                    <input
-                      type="text"
-                      value={profile.lastName}
-                      onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                      className={inputClass}
-                      style={{ caretColor: "#3b82f6" }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Institutional ID — read only, students can't change this */}
+          <div className="mx-auto max-w-2xl">
+            <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">
-                  Institutional ID <span className="text-white/25">(cannot be changed)</span>
-                </label>
-                <div className={inputWrap} style={{ opacity: 0.5 }}>
-                  <input
-                    type="text"
-                    value={profile.institutionalId}
-                    disabled
-                    className={inputClass}
-                    style={{ caretColor: "#3b82f6" }}
-                  />
+                <h1 className="text-2xl font-bold">
+                  Account Settings
+                </h1>
+
+                <p className="mt-1 text-sm text-white/40">
+                  Manage your profile and account security.
+                </p>
+              </div>
+
+              <span className="w-fit rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
+                Preview account data
+              </span>
+            </header>
+
+            <div className="space-y-6">
+              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
+                <div className="mb-4">
+                  <h2 className="text-sm font-semibold">
+                    Profile Information
+                  </h2>
+
+                  <p className="mt-1 text-[11px] text-white/30">
+                    Verified identity details cannot be changed from
+                    this page.
+                  </p>
                 </div>
-              </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">Institutional Email</label>
-                <div className={inputWrap}>
-                  <input
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className={inputClass}
-                    style={{ caretColor: "#3b82f6" }}
-                  />
-                </div>
-              </div>
-
-              {/* Save button */}
-              <div className="flex items-center justify-between pt-1">
-                {profileSaved && (
-                  <span className="text-xs text-[#22c55e]">Profile saved successfully.</span>
-                )}
-                <button
-                  type="submit"
-                  className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer"
-                  style={{
-                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                    transition: "opacity 0.15s ease, transform 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = "0.88";
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = "1";
-                    e.currentTarget.style.transform = "translateY(0)";
-                  }}
-                >
-                  Save changes
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* ── Change password section ──
-              TODO (Backend): PUT /api/student/password
-              Body: { current_password, new_password }
-              Always hash new password with bcrypt server-side before saving.
-          ── */}
-          <div className="bg-[#1a1d27] border border-white/[0.06] rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Change Password</h2>
-            <form onSubmit={handleChangePassword} className="space-y-4">
-
-              {[
-                { label: "Current password",  key: "current",  placeholder: "Enter current password" },
-                { label: "New password",       key: "newPass",  placeholder: "At least 8 characters" },
-                { label: "Confirm new password", key: "confirm", placeholder: "Repeat new password" },
-              ].map((field) => (
-                <div key={field.key}>
-                  <label className="block text-xs font-medium text-white/60 mb-1.5">{field.label}</label>
-                  <div className={inputWrap}>
-                    <input
-                      type={showPasswords ? "text" : "password"}
-                      placeholder={field.placeholder}
-                      value={passwords[field.key]}
-                      onChange={(e) => setPasswords({ ...passwords, [field.key]: e.target.value })}
-                      minLength={field.key !== "current" ? 8 : undefined}
-                      required
-                      className={inputClass}
-                      style={{ caretColor: "#3b82f6" }}
-                    />
+                {profileMessage && (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-300"
+                  >
+                    {profileMessage}
                   </div>
-                </div>
-              ))}
-
-              {/* Show passwords toggle */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <div
-                  className="w-4 h-4 rounded border transition-all duration-150 flex items-center justify-center"
-                  style={{
-                    background: showPasswords ? "#3b82f6" : "transparent",
-                    borderColor: showPasswords ? "#3b82f6" : "rgba(255,255,255,0.2)",
-                  }}
-                  onClick={() => setShowPasswords(!showPasswords)}
-                >
-                  {showPasswords && (
-                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
-                      <path d="M3 8l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-                <span
-                  className="text-xs text-white/40 cursor-pointer select-text"
-                  onClick={() => setShowPasswords(!showPasswords)}
-                >
-                  Show passwords
-                </span>
-              </label>
-
-              <div className="flex items-center justify-between pt-1">
-                {passwordSaved && (
-                  <span className="text-xs text-[#22c55e]">Password changed successfully.</span>
                 )}
-                <button
-                  type="submit"
-                  className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer"
-                  style={{
-                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                    transition: "opacity 0.15s ease, transform 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = "0.88";
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = "1";
-                    e.currentTarget.style.transform = "translateY(0)";
-                  }}
+
+                <form
+                  onSubmit={handleSaveProfile}
+                  className="space-y-4"
                 >
-                  Update password
-                </button>
-              </div>
-            </form>
-          </div>
+                  <div>
+                    <label
+                      htmlFor="settings-full-name"
+                      className="mb-1.5 block text-xs font-medium text-white/60"
+                    >
+                      Complete name
+                    </label>
 
-          {/* ── Danger zone ── */}
-          <div className="bg-[#1a1d27] border border-red-500/20 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-red-400 mb-1">Danger Zone</h2>
-            <p className="text-[11px] text-white/30 mb-4">
-              These actions are permanent and cannot be undone.
-            </p>
-            <button
-              type="button"
-              className="px-4 py-2 rounded-lg text-sm font-semibold text-red-400 border border-red-500/30 cursor-pointer"
-              style={{
-                background: "rgba(239,68,68,0.08)",
-                transition: "background 0.2s ease, transform 0.15s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(239,68,68,0.15)";
-                e.currentTarget.style.transform = "translateY(-1px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(239,68,68,0.08)";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
-              // TODO (Frontend): show a confirmation modal before deleting
-              // TODO (Backend): DELETE /api/student/account
-              onClick={() => console.log("Delete account — not connected yet")}
-            >
-              Delete account
-            </button>
-          </div>
-        </div>
-      </main>
+                    <div className={inputWrap}>
+                      <input
+                        id="settings-full-name"
+                        type="text"
+                        value={profile.fullName}
+                        onChange={(event) =>
+                          updateProfileName(event.target.value)
+                        }
+                        autoComplete="name"
+                        required
+                        className={inputClass}
+                        style={{ caretColor: "#3b82f6" }}
+                      />
+                    </div>
+                  </div>
 
-      <StatusBar />
+                  <div>
+                    <label
+                      htmlFor="settings-school-id"
+                      className="mb-1.5 block text-xs font-medium text-white/60"
+                    >
+                      School ID
+                    </label>
+
+                    <div className={`${inputWrap} opacity-70`}>
+                      <input
+                        id="settings-school-id"
+                        type="text"
+                        value={profile.schoolId}
+                        disabled
+                        className={readonlyInputClass}
+                      />
+
+                      <span className="shrink-0 text-[10px] text-white/30">
+                        Verified
+                      </span>
+                    </div>
+
+                    <p className="mt-1.5 text-[11px] text-white/30">
+                      Contact an authorized administrator to correct
+                      an invalid school ID.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="settings-email"
+                      className="mb-1.5 block text-xs font-medium text-white/60"
+                    >
+                      University email
+                    </label>
+
+                    <div className={`${inputWrap} opacity-70`}>
+                      <input
+                        id="settings-email"
+                        type="email"
+                        value={profile.email}
+                        disabled
+                        className={readonlyInputClass}
+                      />
+
+                      <span className="shrink-0 text-[10px] text-white/30">
+                        OTP verified
+                      </span>
+                    </div>
+
+                    <p className="mt-1.5 text-[11px] text-white/30">
+                      Changing the verified email will require a
+                      separate OTP verification process.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="settings-course"
+                        className="mb-1.5 block text-xs font-medium text-white/60"
+                      >
+                        Active class
+                      </label>
+
+                      <div className={`${inputWrap} opacity-70`}>
+                        <input
+                          id="settings-course"
+                          type="text"
+                          value={profile.courseCode}
+                          disabled
+                          className={readonlyInputClass}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="settings-section"
+                        className="mb-1.5 block text-xs font-medium text-white/60"
+                      >
+                        Section
+                      </label>
+
+                      <div className={`${inputWrap} opacity-70`}>
+                        <input
+                          id="settings-section"
+                          type="text"
+                          value={profile.section}
+                          disabled
+                          className={readonlyInputClass}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                    >
+                      Save profile
+                    </button>
+                  </div>
+                </form>
+              </section>
+
+              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
+                <div className="mb-4">
+                  <h2 className="text-sm font-semibold">
+                    Change Password
+                  </h2>
+
+                  <p className="mt-1 text-[11px] text-white/30">
+                    Your current password must be verified by the
+                    server.
+                  </p>
+                </div>
+
+                {passwordMessage && (
+                  <div
+                    role={
+                      passwordMessageType === "error"
+                        ? "alert"
+                        : "status"
+                    }
+                    aria-live="polite"
+                    className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+                      passwordMessageType === "error"
+                        ? "border-red-500/20 bg-red-500/10 text-red-300"
+                        : "border-blue-500/20 bg-blue-500/10 text-blue-300"
+                    }`}
+                  >
+                    {passwordMessage}
+                  </div>
+                )}
+
+                <form
+                  onSubmit={handleChangePassword}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label
+                      htmlFor="current-password"
+                      className="mb-1.5 block text-xs font-medium text-white/60"
+                    >
+                      Current password
+                    </label>
+
+                    <div className={inputWrap}>
+                      <input
+                        id="current-password"
+                        type={
+                          showPasswords ? "text" : "password"
+                        }
+                        value={passwords.currentPassword}
+                        onChange={(event) =>
+                          updatePasswordField(
+                            "currentPassword",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Enter your current password"
+                        autoComplete="current-password"
+                        required
+                        className={inputClass}
+                        style={{ caretColor: "#3b82f6" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="new-password"
+                      className="mb-1.5 block text-xs font-medium text-white/60"
+                    >
+                      New password
+                    </label>
+
+                    <div className={inputWrap}>
+                      <input
+                        id="new-password"
+                        type={
+                          showPasswords ? "text" : "password"
+                        }
+                        value={passwords.newPassword}
+                        onChange={(event) =>
+                          updatePasswordField(
+                            "newPassword",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="At least 8 characters"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        className={inputClass}
+                        style={{ caretColor: "#3b82f6" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirm-new-password"
+                      className="mb-1.5 block text-xs font-medium text-white/60"
+                    >
+                      Confirm new password
+                    </label>
+
+                    <div className={inputWrap}>
+                      <input
+                        id="confirm-new-password"
+                        type={
+                          showPasswords ? "text" : "password"
+                        }
+                        value={passwords.confirmPassword}
+                        onChange={(event) =>
+                          updatePasswordField(
+                            "confirmPassword",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Enter the new password again"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        className={inputClass}
+                        style={{ caretColor: "#3b82f6" }}
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={showPasswords}
+                      onChange={(event) =>
+                        setShowPasswords(event.target.checked)
+                      }
+                      className="h-4 w-4 accent-[#3b82f6]"
+                    />
+
+                    <span className="text-xs text-white/40">
+                      Show passwords
+                    </span>
+                  </label>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                    >
+                      Update password
+                    </button>
+                  </div>
+                </form>
+              </section>
+
+              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
+                <h2 className="text-sm font-semibold">
+                  Privacy and Session Security
+                </h2>
+
+                <ul className="mt-3 list-inside list-disc space-y-2 text-[11px] leading-relaxed text-white/40">
+                  <li>
+                    The browser-stored profile is used only for
+                    interface display.
+                  </li>
+                  <li>
+                    The backend must validate every protected request
+                    using the authenticated token.
+                  </li>
+                  <li>
+                    Passwords must never be stored or logged by the
+                    frontend.
+                  </li>
+                  <li>
+                    Signing out removes local session information from
+                    this browser.
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </main>
+
+        <Statusbar />
+      </div>
     </div>
   );
 }

@@ -1,86 +1,105 @@
 /**
  * App.jsx
- * Connects all pages together with React Router.
  *
- * HOW ROUTING WORKS:
- * - / → goes to /login automatically
- * - /login → Login page
- * - /register → Register page
- * - /dashboard/student → Student Dashboard
- * - /assignments → Assignments page
- * - /analytics → Analytics page
- * - /submissions → Submissions list
- * - /submissions/:id → Single submission report (TODO)
- * - /workspace → Student IDE (placeholder for now)
- * - /settings → Settings page
+ * Connects the current frontend pages using React Router.
  *
- * AnimatedRoutes handles the smooth fade transition between pages.
- * The background stays #0f1117 during transitions so there's no white flash.
+ * Current routes:
+ * - / redirects to /login
+ * - /login displays the login page
+ * - /register displays the registration page
+ * - /dashboard/student displays the student dashboard
+ * - /assignments displays assigned activities
+ * - /analytics displays student analytics
+ * - /submissions displays the submission list
+ * - /submissions/:id temporarily displays the submission list
+ * - /workspace displays the student coding workspace
+ * - /settings displays account settings
  *
- * TODO (Frontend): add instructor routes when Kenneth's pages are ready
- * TODO (Frontend): add AuthGuard to protect /dashboard, /assignments, etc.
- *   Example: if (!sessionStorage.getItem("token")) navigate("/login")
+ * Important future work:
+ * - Add authentication and role-based route protection.
+ * - Connect the instructor dashboard.
+ * - Create a dedicated submission-detail page.
+ * - Confirm whether Workspace.jsx or CodingWorkspace.jsx is the official IDE.
  */
 
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 
+import Analytics from "./pages/Analytics";
+import Assignments from "./pages/Assignments";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import StudentDashboard from "./pages/StudentDashboard";
-import Assignments from "./pages/Assignments";
-import Analytics from "./pages/Analytics";
-import Submissions from "./pages/Submissions";
 import Settings from "./pages/Settings";
+import StudentDashboard from "./pages/StudentDashboard";
+import Submissions from "./pages/Submissions";
 import Workspace from "./pages/Workspace";
 
-// Smooth fade transition between pages — no white flash
 function AnimatedRoutes() {
   const location = useLocation();
-  const [displayLocation, setDisplayLocation] = useState(location);
-  const [visible, setVisible] = useState(true);
+  const pageContainerRef = useRef(null);
 
   useEffect(() => {
-    setVisible(false);
-    const t = setTimeout(() => {
-      setDisplayLocation(location);
-      setVisible(true);
-    }, 150);
-    return () => clearTimeout(t);
-  }, [location]);
+    const pageContainer = pageContainerRef.current;
+
+    if (!pageContainer) {
+      return undefined;
+    }
+
+    const animation = pageContainer.animate(
+      [
+        {
+          opacity: 0.01,
+          transform: "translateY(5px)",
+        },
+        {
+          opacity: 1,
+          transform: "translateY(0)",
+        },
+      ],
+      {
+        duration: 280,
+        easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        fill: "both",
+      },
+    );
+
+    return () => {
+      animation.cancel();
+    };
+  }, [location.key]);
 
   return (
     <div
+      ref={pageContainerRef}
       style={{
-        opacity: visible ? 1 : 0.01, // never fully transparent — prevents white flash
-        transform: visible ? "translateY(0)" : "translateY(5px)",
-        transition: "opacity 0.28s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)",
         background: "#0f1117",
         minHeight: "100vh",
-        willChange: "opacity, transform", // tells browser to composite this layer
+        willChange: "opacity, transform",
       }}
     >
-      <Routes location={displayLocation}>
-        {/* Default → login */}
+      <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Auth */}
-        <Route path="/login"    element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Student pages */}
-        <Route path="/dashboard/student" element={<StudentDashboard />} />
-        <Route path="/assignments"       element={<Assignments />} />
-        <Route path="/analytics"         element={<Analytics />} />
-        <Route path="/submissions"       element={<Submissions />} />
-        <Route path="/submissions/:id"   element={<Submissions />} />
-        <Route path="/workspace"         element={<Workspace />} />
-        <Route path="/settings"          element={<Settings />} />
+        <Route
+          path="/dashboard/student"
+          element={<StudentDashboard />}
+        />
+        <Route path="/assignments" element={<Assignments />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/submissions" element={<Submissions />} />
+        <Route path="/submissions/:id" element={<Submissions />} />
+        <Route path="/workspace" element={<Workspace />} />
+        <Route path="/settings" element={<Settings />} />
 
-        {/* TODO (Frontend): add instructor pages when ready */}
-        {/* <Route path="/dashboard/instructor" element={<InstructorDashboard />} /> */}
-
-        {/* Unknown URL → login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
