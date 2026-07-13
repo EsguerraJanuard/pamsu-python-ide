@@ -1,280 +1,471 @@
-/**
- * Assignments.jsx
- * Shows all assignments for the student — active, submitted, and upcoming.
- *
- * TODO (Backend): GET /api/student/assignments
- * Response: [{ id, title, due, tags, feedback, progress, status, action, astScore, behaviorScore, finalScore, submittedDate }]
- * TODO (Frontend): replace MOCK_ASSIGNMENTS with real API data
- * TODO (Frontend): add filter buttons (All, Active, Submitted) that filter the list
- */
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import StatusBar from "../components/StatusBar";
 
-const MOCK_ASSIGNMENTS = [
+import Sidebar from "../components/Sidebar";
+import Statusbar from "../components/Statusbar";
+
+const PREVIEW_ACTIVITIES = [
   {
     id: 1,
     title: "Lab Activity 3 — Fibonacci Sequence",
-    due: "Jan 15, 11:59 PM",
-    tags: ["Python", "Loops", "Functions"],
-    feedback: "Missing while loop variant — task requires both for and while implementations",
-    progress: 70,
+    activityType: "Laboratory",
+    courseCode: "CCS101",
+    dueLabel: "Due today, 11:59 PM",
+    tags: ["Loops", "Functions"],
     status: "due_today",
-    action: "Continue",
+    progress: 70,
+    note: "A draft is available. Continue working before the deadline.",
+    actionLabel: "Continue",
+    latestSubmission: null,
+    instructorGrade: null,
   },
   {
     id: 2,
-    title: "Lab Activity 4 — List Comprehensions & File I/O",
-    due: "Jan 18, 11:59 PM",
-    tags: ["Python", "Lists", "File I/O"],
-    feedback: "Good structure — add exception handling for file operations",
-    progress: 30,
+    title: "Homework 2 — Lists and File Processing",
+    activityType: "Homework",
+    courseCode: "CCS101",
+    dueLabel: "Due Jan 18, 11:59 PM",
+    tags: ["Lists", "File I/O"],
     status: "in_progress",
-    action: "Open",
+    progress: 30,
+    note: "Draft saved. No official submission has been recorded.",
+    actionLabel: "Open",
+    latestSubmission: null,
+    instructorGrade: null,
   },
   {
     id: 3,
-    title: "Lab Activity 2 — Control Flow & Functions",
-    due: "Jan 10",
-    tags: [],
-    feedback: "All structural requirements met. Excellent behavioral consistency throughout the session.",
-    progress: 100,
+    title: "Lab Activity 2 — Control Flow and Functions",
+    activityType: "Laboratory",
+    courseCode: "CCS101",
+    dueLabel: "Due Jan 10",
+    tags: ["Conditionals", "Functions"],
     status: "submitted",
-    action: "View report",
-    submittedDate: "Jan 10",
-    astScore: 85,
-    behaviorScore: 94,
-    finalScore: 88,
+    progress: 100,
+    note: "Latest official submission is awaiting instructor review.",
+    actionLabel: "View submission",
+    latestSubmission: {
+      attemptNumber: 2,
+      submittedLabel: "Submitted Jan 10",
+      isOfficial: true,
+    },
+    instructorGrade: null,
   },
   {
     id: 4,
-    title: "Lab Activity 1 — Variables & Data Types",
-    due: "Jan 5",
-    tags: [],
-    feedback: "All requirements met. Good use of type conversion.",
+    title: "Lab Activity 1 — Variables and Data Types",
+    activityType: "Laboratory",
+    courseCode: "CCS101",
+    dueLabel: "Due Jan 5",
+    tags: ["Variables", "Data Types"],
+    status: "graded",
     progress: 100,
-    status: "submitted",
-    action: "View report",
-    submittedDate: "Jan 5",
-    astScore: 90,
-    behaviorScore: 96,
-    finalScore: 92,
+    note: "The latest official submission has been graded by the instructor.",
+    actionLabel: "View result",
+    latestSubmission: {
+      attemptNumber: 1,
+      submittedLabel: "Submitted Jan 5",
+      isOfficial: true,
+    },
+    instructorGrade: {
+      score: 92,
+      maximum: 100,
+    },
   },
 ];
 
-const FILTERS = ["All", "Active", "Submitted"];
+const FILTERS = [
+  {
+    label: "All",
+    value: "all",
+  },
+  {
+    label: "Active",
+    value: "active",
+  },
+  {
+    label: "Submitted",
+    value: "submitted",
+  },
+];
 
-function getBadge(status) {
-  if (status === "due_today")  return { label: "Due today",   bg: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "rgba(245,158,11,0.3)" };
-  if (status === "in_progress") return { label: "In progress", bg: "rgba(59,130,246,0.15)", color: "#3b82f6", border: "rgba(59,130,246,0.3)" };
-  if (status === "submitted")  return { label: "Submitted",   bg: "rgba(34,197,94,0.15)",  color: "#22c55e", border: "rgba(34,197,94,0.3)" };
-}
-
-function getActionStyle(status) {
-  if (status === "due_today")  return { bg: "#f59e0b",     color: "#0f1117" };
-  if (status === "in_progress") return { bg: "#3b82f6",    color: "#ffffff" };
-  if (status === "submitted")  return { bg: "transparent", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.4)" };
-}
+const STATUS_CONFIG = {
+  due_today: {
+    label: "Due today",
+    badgeClass:
+      "border-amber-500/30 bg-amber-500/10 text-amber-400",
+    accentClass: "border-l-amber-500",
+    progressClass: "bg-amber-500",
+    buttonClass:
+      "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
+  },
+  in_progress: {
+    label: "In progress",
+    badgeClass:
+      "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    accentClass: "border-l-blue-500",
+    progressClass: "bg-blue-500",
+    buttonClass:
+      "bg-blue-600 text-white hover:bg-blue-500",
+  },
+  submitted: {
+    label: "Submitted",
+    badgeClass:
+      "border-green-500/30 bg-green-500/10 text-green-400",
+    accentClass: "border-l-green-500",
+    progressClass: "bg-green-500",
+    buttonClass:
+      "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
+  },
+  graded: {
+    label: "Graded",
+    badgeClass:
+      "border-violet-500/30 bg-violet-500/10 text-violet-400",
+    accentClass: "border-l-violet-500",
+    progressClass: "bg-violet-500",
+    buttonClass:
+      "border border-violet-500/40 bg-transparent text-violet-400 hover:bg-violet-500/10",
+  },
+};
 
 function ClockIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M8 5v3.5l2 1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+      <path
+        d="M8 5v3.5l2 1.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function TagIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-      <path d="M2 2h5.5l6.5 6.5-5.5 5.5L2 7.5V2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-      <circle cx="5" cy="5" r="1" fill="currentColor"/>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M2 2h5.5l6.5 6.5-5.5 5.5L2 7.5V2z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <circle cx="5" cy="5" r="1" fill="currentColor" />
     </svg>
   );
 }
 
-function CheckIcon() {
+function SubmissionIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-      <path d="M3 8l4 4 6-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 8l4 4 6-7"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
+  );
+}
+
+function isSubmittedActivity(activity) {
+  return (
+    activity.status === "submitted" ||
+    activity.status === "graded"
   );
 }
 
 export default function Assignments() {
-  const [mounted, setMounted] = useState(false);
-  const [filter, setFilter] = useState("All");
   const navigate = useNavigate();
+  const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const activeCount = PREVIEW_ACTIVITIES.filter(
+    (activity) => !isSubmittedActivity(activity),
+  ).length;
 
-  // Filter assignments based on selected tab
-  const filtered = MOCK_ASSIGNMENTS.filter((a) => {
-    if (filter === "Active") return a.status !== "submitted";
-    if (filter === "Submitted") return a.status === "submitted";
-    return true;
-  });
+  const submittedCount = PREVIEW_ACTIVITIES.filter(
+    isSubmittedActivity,
+  ).length;
+
+  const filteredActivities = PREVIEW_ACTIVITIES.filter(
+    (activity) => {
+      if (filter === "active") {
+        return !isSubmittedActivity(activity);
+      }
+
+      if (filter === "submitted") {
+        return isSubmittedActivity(activity);
+      }
+
+      return true;
+    },
+  );
+
+  const handleOpenActivity = (activity) => {
+    if (isSubmittedActivity(activity)) {
+      navigate(`/submissions/${activity.id}`);
+      return;
+    }
+
+    navigate(`/workspace?activity=${activity.id}`);
+  };
 
   return (
-    <div
-      className="flex min-h-screen bg-[#0f1117] text-white select-none cursor-default"
-      style={{ opacity: mounted ? 1 : 0, transition: "opacity 0.4s ease" }}
-    >
-      <Sidebar activePage="Assignments" />
+    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+      <Sidebar assignmentCount={activeCount} />
 
-      <main className="flex-1 overflow-y-auto px-8 py-6 pb-12">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main className="assignments-page flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+          <style>
+            {`
+              @keyframes assignmentsFadeUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(10px);
+                }
 
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Assignments</h1>
-          <p className="text-sm text-white/40 mt-1">
-            {MOCK_ASSIGNMENTS.filter(a => a.status !== "submitted").length} active · {MOCK_ASSIGNMENTS.filter(a => a.status === "submitted").length} submitted
-          </p>
-        </div>
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
 
-        {/* Filter tabs
-            TODO (Frontend): wire filter to real API query param when backend is ready
-        */}
-        <div className="flex gap-1 mb-6 bg-[#1a1d27] p-1 rounded-lg border border-white/[0.06] w-fit">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setFilter(f)}
-              className="px-4 py-1.5 rounded-md text-sm font-medium"
-              style={{
-                background: filter === f ? "#ffffff" : "transparent",
-                color: filter === f ? "#0f1117" : "rgba(255,255,255,0.4)",
-                transition: "background 0.2s ease, color 0.2s ease",
-              }}
+              .assignments-page {
+                animation:
+                  assignmentsFadeUp 450ms
+                  cubic-bezier(0.25, 0.46, 0.45, 0.94)
+                  both;
+              }
+
+              @media (prefers-reduced-motion: reduce) {
+                .assignments-page,
+                .assignment-card {
+                  animation: none !important;
+                }
+              }
+            `}
+          </style>
+
+          <div className="mx-auto max-w-5xl">
+            <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">
+                  Activities
+                </h1>
+
+                <p className="mt-1 text-sm text-white/40">
+                  {activeCount} active · {submittedCount} submitted
+                </p>
+              </div>
+
+              <span className="w-fit rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
+                Preview data
+              </span>
+            </header>
+
+            <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
+              <p className="text-xs leading-relaxed text-blue-200/80">
+                You may submit an activity more than once while
+                submissions remain open. The latest accepted submission
+                becomes the official version for instructor review.
+              </p>
+            </section>
+
+            <div
+              className="mb-6 flex w-fit gap-1 rounded-lg border border-white/[0.06] bg-[#1a1d27] p-1"
+              role="tablist"
+              aria-label="Activity filters"
             >
-              {f}
-            </button>
-          ))}
-        </div>
+              {FILTERS.map((filterOption) => {
+                const isSelected =
+                  filter === filterOption.value;
 
-        {/* Assignment list */}
-        <div className="space-y-3 max-w-3xl">
-          {filtered.map((assignment, i) => {
-            const badge = getBadge(assignment.status);
-            const actionStyle = getActionStyle(assignment.status);
-            return (
-              <div
-                key={assignment.id}
-                className="bg-[#1a1d27] border border-white/[0.06] rounded-xl p-4"
-                style={{
-                  borderLeft: assignment.status === "due_today" ? "3px solid #f59e0b"
-                    : assignment.status === "submitted" ? "3px solid #22c55e"
-                    : "3px solid #3b82f6",
-                  opacity: mounted ? 1 : 0,
-                  transform: mounted ? "translateY(0)" : "translateY(8px)",
-                  transition: `opacity 0.4s ease ${i * 0.07}s, transform 0.4s ease ${i * 0.07}s`,
-                }}
-              >
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="text-sm font-semibold text-white">{assignment.title}</h3>
-                      <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
-                        style={{ background: badge.bg, color: badge.color, borderColor: badge.border }}
+                return (
+                  <button
+                    key={filterOption.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    onClick={() =>
+                      setFilter(filterOption.value)
+                    }
+                    className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                      isSelected
+                        ? "bg-white text-[#0f1117]"
+                        : "text-white/40 hover:bg-white/[0.04] hover:text-white/80"
+                    }`}
+                  >
+                    {filterOption.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <section
+              className="space-y-3"
+              aria-label="Activity list"
+            >
+              {filteredActivities.map((activity, index) => {
+                const status =
+                  STATUS_CONFIG[activity.status] ??
+                  STATUS_CONFIG.in_progress;
+
+                return (
+                  <article
+                    key={activity.id}
+                    className={`assignment-card rounded-xl border border-l-[3px] border-white/[0.06] bg-[#1a1d27] p-4 ${status.accentClass}`}
+                    style={{
+                      animation: `assignmentsFadeUp 400ms ease ${
+                        index * 70
+                      }ms both`,
+                    }}
+                  >
+                    <div className="mb-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <h2 className="text-sm font-semibold">
+                            {activity.title}
+                          </h2>
+
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.badgeClass}`}
+                          >
+                            {status.label}
+                          </span>
+
+                          <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/40">
+                            {activity.activityType}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-white/35">
+                          <span>{activity.courseCode}</span>
+
+                          <span className="flex items-center gap-1">
+                            <ClockIcon />
+                            {activity.dueLabel}
+                          </span>
+
+                          {activity.tags.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <TagIcon />
+                              {activity.tags.join(" · ")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleOpenActivity(activity)
+                        }
+                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] ${status.buttonClass}`}
                       >
-                        {badge.label}
-                      </span>
+                        {activity.actionLabel}
+                      </button>
                     </div>
-                    <div className="flex items-center gap-3 text-[11px] text-white/35 flex-wrap">
-                      <span className="flex items-center gap-1"><ClockIcon />Due: {assignment.due}</span>
-                      {assignment.tags.length > 0 && (
-                        <span className="flex items-center gap-1"><TagIcon />{assignment.tags.join(" · ")}</span>
-                      )}
-                      {assignment.status === "submitted" && (
+
+                    {activity.latestSubmission && (
+                      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-green-300/80">
                         <span className="flex items-center gap-1">
-                          <CheckIcon />
-                          Submitted {assignment.submittedDate} · AST: {assignment.astScore}/100 · Behavior: {assignment.behaviorScore}/100
+                          <SubmissionIcon />
+                          Attempt{" "}
+                          {activity.latestSubmission.attemptNumber}
+                        </span>
+
+                        <span>
+                          {
+                            activity.latestSubmission
+                              .submittedLabel
+                          }
+                        </span>
+
+                        {activity.latestSubmission.isOfficial && (
+                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400">
+                            Latest official submission
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mb-3 rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-white/45">
+                      <span className="text-white/25">
+                        Activity status:{" "}
+                      </span>
+                      {activity.note}
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <span className="shrink-0 text-[10px] text-white/30">
+                        Activity progress
+                      </span>
+
+                      <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div
+                          className={`h-full rounded-full ${status.progressClass}`}
+                          style={{
+                            width: `${activity.progress}%`,
+                          }}
+                        />
+                      </div>
+
+                      <span className="shrink-0 text-[10px] text-white/40">
+                        {activity.progress}%
+                      </span>
+
+                      {activity.instructorGrade && (
+                        <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-semibold text-violet-300">
+                          Instructor grade:{" "}
+                          {activity.instructorGrade.score} /{" "}
+                          {activity.instructorGrade.maximum}
                         </span>
                       )}
                     </div>
-                  </div>
+                  </article>
+                );
+              })}
 
-                  <button
-                    type="button"
-                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                    style={{
-                      background: actionStyle.bg,
-                      color: actionStyle.color,
-                      border: actionStyle.border || "none",
-                      transition: "opacity 0.15s ease, transform 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = "0.8";
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = "1";
-                      e.currentTarget.style.transform = "translateY(0)";
-                    }}
-                    onClick={() => {
-                      if (assignment.status === "submitted") navigate(`/submissions/${assignment.id}`);
-                      else navigate(`/workspace?task=${assignment.id}`);
-                    }}
-                  >
-                    {assignment.action}
-                  </button>
+              {filteredActivities.length === 0 && (
+                <div className="rounded-xl border border-dashed border-white/[0.08] py-16 text-center">
+                  <p className="text-sm text-white/30">
+                    No activities found for this filter.
+                  </p>
                 </div>
+              )}
+            </section>
+          </div>
+        </main>
 
-                {/* Feedback */}
-                <div
-                  className="text-[11px] font-mono px-3 py-2 rounded-lg mb-3"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    borderLeft: "2px solid rgba(255,255,255,0.08)",
-                    color: "rgba(255,255,255,0.45)",
-                  }}
-                >
-                  <span className="text-white/25">Last feedback: </span>
-                  {assignment.feedback}
-                </div>
-
-                {/* Progress */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-white/30 flex-shrink-0">
-                    {assignment.status === "submitted" ? "Final score" : "Progress"}
-                  </span>
-                  <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${assignment.progress}%`,
-                        background: assignment.status === "due_today" ? "#f59e0b"
-                          : assignment.status === "submitted" ? "#22c55e"
-                          : "#3b82f6",
-                        transition: "width 0.8s cubic-bezier(0.25,0.46,0.45,0.94)",
-                      }}
-                    />
-                  </div>
-                  {assignment.status === "submitted"
-                    ? <span className="text-[10px] font-semibold text-[#22c55e] flex-shrink-0">{assignment.finalScore} / 100</span>
-                    : <span className="text-[10px] text-white/30 flex-shrink-0">{assignment.progress}%</span>
-                  }
-                </div>
-              </div>
-            );
-          })}
-
-          {filtered.length === 0 && (
-            <div className="text-center py-16 text-white/25 text-sm">
-              No {filter.toLowerCase()} assignments.
-            </div>
-          )}
-        </div>
-      </main>
-
-      <StatusBar />
+        <Statusbar />
+      </div>
     </div>
   );
 }
