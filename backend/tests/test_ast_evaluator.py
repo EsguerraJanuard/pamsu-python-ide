@@ -54,4 +54,6 @@ def test_ast_handles_syntax_error():
 
     assert result["passed"] is False
     assert result["syntax_error"] is not None
-    assert "SyntaxError" in result["syntax_error"]
+    assert result["syntax_error"]["message"] == "invalid syntax"
+    assert result["syntax_error"]["line"] == 1
+    assert result["syntax_error"]["column"] == 11
