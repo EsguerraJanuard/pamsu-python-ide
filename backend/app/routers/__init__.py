@@ -1,5 +1,6 @@
 from app.routers import (
     auth,
+    classrooms,
     evaluation,
     execution,
     instructor,
@@ -9,6 +10,7 @@ from app.routers import (
 
 __all__ = [
     "auth",
+    "classrooms",
     "evaluation",
     "execution",
     "instructor",

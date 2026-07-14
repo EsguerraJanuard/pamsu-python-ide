@@ -78,6 +78,7 @@ def test_openapi_metadata_and_tags():
         "System",
         "Authentication",
         "Registration",
+        "Classrooms",
         "Instructor",
         "Execution",
         "Behavioral Logs",

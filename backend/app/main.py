@@ -2,6 +2,7 @@ from fastapi import FastAPI, status
 
 from app.routers import (
     auth,
+    classrooms,
     evaluation,
     execution,
     instructor,
@@ -11,22 +12,29 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.4.0"
 
 OPENAPI_TAGS = [
     {
         "name": "System",
-        "description": "Application availability and service information.",
+        "description": ("Application availability and service information."),
     },
     {
         "name": "Authentication",
-        "description": "Verified-user login and access-token operations.",
+        "description": ("Verified-user login and access-token operations."),
     },
     {
         "name": "Registration",
         "description": (
             "University-email registration and OTP verification. "
             "Client applications cannot assign account roles."
+        ),
+    },
+    {
+        "name": "Classrooms",
+        "description": (
+            "Instructor-owned classroom management, backend-generated "
+            "class codes, and student enrollment operations."
         ),
     },
     {
@@ -39,22 +47,24 @@ OPENAPI_TAGS = [
         "name": "Execution",
         "description": (
             "Submission records and execution-request operations. "
-            "Student code must run only through the isolated sandbox service."
+            "Student code must run only through the isolated sandbox "
+            "service."
         ),
     },
     {
         "name": "Behavioral Logs",
         "description": (
-            "Privacy-conscious session indicators without clipboard contents, "
-            "screen capture, webcam, microphone, browsing history, or "
-            "individual keystroke collection."
+            "Privacy-conscious session indicators without clipboard "
+            "contents, screen capture, webcam, microphone, browsing "
+            "history, or individual keystroke collection."
         ),
     },
     {
         "name": "Evaluation",
         "description": (
-            "AST and similarity indicators intended only for instructor review. "
-            "These indicators do not automatically assign grades."
+            "AST and similarity indicators intended only for "
+            "instructor review. These indicators do not automatically "
+            "assign grades."
         ),
     },
 ]
@@ -63,10 +73,11 @@ OPENAPI_TAGS = [
 app = FastAPI(
     title=APP_TITLE,
     description=(
-        "Backend API for the PAMSU Web-Based Python IDE with university-email "
-        "authentication, OTP registration, submission management, isolated "
-        "execution integration boundaries, automated structural analytics, "
-        "and privacy-conscious session indicators."
+        "Backend API for the PAMSU Web-Based Python IDE with "
+        "university-email authentication, OTP registration, classroom "
+        "and enrollment management, submission management, isolated "
+        "execution integration boundaries, automated structural "
+        "analytics, and privacy-conscious session indicators."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -78,6 +89,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(registration.router)
+app.include_router(classrooms.router)
 app.include_router(instructor.router)
 app.include_router(execution.router)
 app.include_router(logs.router)
