@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -25,7 +25,7 @@ router = APIRouter(
 class AuthenticatedUserResponse(BaseModel):
     user_id: int
     name: str
-    school_id: str | None
+    school_id: str
     email: str
     role: Literal["student", "instructor"]
     email_verified: bool
@@ -34,9 +34,14 @@ class AuthenticatedUserResponse(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int
+    access_token: str = Field(
+        description="JWT bearer access token.",
+    )
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int = Field(
+        gt=0,
+        description="Token lifetime in seconds.",
+    )
     user: AuthenticatedUserResponse
 
 
@@ -44,24 +49,53 @@ def invalid_credentials_exception() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid email or password.",
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={
+            "WWW-Authenticate": "Bearer",
+        },
     )
+
+
+def get_user_by_email(
+    db: Session,
+    email: str,
+) -> User | None:
+    return db.query(User).filter(func.lower(User.email) == email).first()
 
 
 @router.post(
     "/login",
     response_model=TokenResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Log in using a verified university email",
+    description=(
+        "The OAuth2 `username` form field must contain the user's "
+        "PAMSU university email address. Account roles are read only "
+        "from the backend-controlled user record."
+    ),
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid email or password.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The account is inactive, unverified, or has an invalid backend role."
+            ),
+        },
+    },
 )
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
-):
+) -> TokenResponse:
     normalized_email = form_data.username.strip().lower()
 
     if not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN):
         raise invalid_credentials_exception()
 
-    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
+    user = get_user_by_email(
+        db=db,
+        email=normalized_email,
+    )
 
     if user is None:
         raise invalid_credentials_exception()
@@ -81,13 +115,16 @@ def login(
     if not user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="University email verification is required.",
+            detail=("University email verification is required."),
         )
 
-    if user.role not in {"student", "instructor"}:
+    if user.role not in {
+        "student",
+        "instructor",
+    }:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This account does not have a valid system role.",
+            detail=("This account does not have a valid system role."),
         )
 
     access_token_expires = timedelta(
@@ -112,6 +149,6 @@ def login(
 
 
 # SECURITY BOUNDARY:
-# Login uses the verified university email as the account identifier.
-# The client does not provide or select a role. The role included in the JWT
-# comes exclusively from the persisted backend-controlled User record.
+# The OAuth2 username field contains the verified university email.
+# The client cannot select or modify its account role.
+# JWT identity and role claims come only from the persisted User record.
