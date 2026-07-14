@@ -28,10 +28,10 @@ __all__ = [
     "InstructorAllowlist",
     "InstructorGrade",
     "OTPChallenge",
+    "PendingRegistration",
     "SimilarityResult",
     "Submission",
     "Task",
     "TaskTestCase",
     "User",
-    "PendingRegistration",
 ]

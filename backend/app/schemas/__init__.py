@@ -4,6 +4,15 @@ from app.schemas.log_schema import (
     BehavioralLogResponse,
     BehavioralLogUpdate,
 )
+from app.schemas.otp_schema import (
+    OTPChallengeResponse,
+    OTPPurpose,
+    OTPResendRequest,
+    OTPVerificationRequest,
+    OTPVerificationResponse,
+    RegistrationCompleteResponse,
+    RegistrationStartRequest,
+)
 from app.schemas.submission_schema import (
     SubmissionBase,
     SubmissionCreate,
@@ -32,7 +41,14 @@ __all__ = [
     "BehavioralLogCreate",
     "BehavioralLogResponse",
     "BehavioralLogUpdate",
+    "OTPChallengeResponse",
+    "OTPPurpose",
+    "OTPResendRequest",
+    "OTPVerificationRequest",
+    "OTPVerificationResponse",
     "PastePolicy",
+    "RegistrationCompleteResponse",
+    "RegistrationStartRequest",
     "SubmissionBase",
     "SubmissionCreate",
     "SubmissionResponse",

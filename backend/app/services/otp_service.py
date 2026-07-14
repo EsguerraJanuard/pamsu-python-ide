@@ -28,6 +28,7 @@ from app.schemas.user_schema import (
     UserResponse,
 )
 
+from uuid import uuid4
 
 OTP_CODE_LENGTH = 6
 
@@ -321,7 +322,7 @@ def start_registration(
     password_hash = get_password_hash(registration_data.password)
 
     current_time = utc_now()
-    challenge_id = str(secrets.token_hex(16))
+    challenge_id = str(uuid4())
     otp_code = generate_otp_code()
 
     challenge = OTPChallenge(
