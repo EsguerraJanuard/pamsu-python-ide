@@ -9,6 +9,7 @@ from app.models.domain_models import (
     InstructorAllowlist,
     InstructorGrade,
     OTPChallenge,
+    PendingRegistration,
     SimilarityResult,
     Submission,
     Task,
@@ -32,4 +33,5 @@ __all__ = [
     "Task",
     "TaskTestCase",
     "User",
+    "PendingRegistration",
 ]
