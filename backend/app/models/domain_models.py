@@ -28,15 +28,15 @@ class User(Base):
             name="ck_users_role",
         ),
         CheckConstraint(
-            "school_id IS NULL OR length(school_id) = 10",
+            "length(school_id) = 10",
             name="ck_users_school_id_length",
         ),
     )
 
     user_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False)
-    school_id = Column(String(10), unique=True, index=True, nullable=True)
-    email = Column(String(255), unique=True, index=True, nullable=True)
+    school_id = Column(String(10), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False)
     role = Column(String(20), nullable=False, default="student")
     password_hash = Column(String(255), nullable=False)
     email_verified = Column(Boolean, nullable=False, default=False)
@@ -117,6 +117,14 @@ class OTPChallenge(Base):
             "max_attempts > 0",
             name="ck_otp_max_attempts",
         ),
+        CheckConstraint(
+            "resend_count >= 0",
+            name="ck_otp_resend_count",
+        ),
+        CheckConstraint(
+            "purpose IN ('registration', 'email_change')",
+            name="ck_otp_purpose",
+        ),
     )
 
     challenge_id = Column(
@@ -124,27 +132,145 @@ class OTPChallenge(Base):
         primary_key=True,
         default=lambda: str(uuid4()),
     )
-    email = Column(String(255), nullable=False, index=True)
+    email = Column(
+        String(255),
+        nullable=False,
+        index=True,
+    )
     purpose = Column(
         String(50),
         nullable=False,
         default="registration",
     )
-    otp_hash = Column(String(255), nullable=False)
-    attempt_count = Column(Integer, nullable=False, default=0)
-    max_attempts = Column(Integer, nullable=False, default=5)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    consumed_at = Column(DateTime(timezone=True), nullable=True)
+    otp_hash = Column(
+        String(255),
+        nullable=False,
+    )
+    attempt_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    max_attempts = Column(
+        Integer,
+        nullable=False,
+        default=5,
+    )
+    resend_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    last_sent_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    consumed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    pending_registration = relationship(
+        "PendingRegistration",
+        back_populates="challenge",
+        uselist=False,
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
 
     # PARTNER INTEGRATION:
-    # The backend domain owns OTP generation, hashing, expiration, attempt
-    # limits, and verification. The partner-owned adapter only delivers the
-    # temporary plaintext code to the university email address.
+    # The backend owns OTP generation, hashing, expiration, attempt limits,
+    # resend limits, and verification. The partner-owned email adapter only
+    # delivers the temporary plaintext OTP to the university email address.
+
+
+class PendingRegistration(Base):
+    __tablename__ = "pending_registrations"
+    __table_args__ = (
+        CheckConstraint(
+            "length(school_id) = 10",
+            name="ck_pending_registrations_school_id_length",
+        ),
+    )
+
+    registration_id = Column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    challenge_id = Column(
+        String(36),
+        ForeignKey(
+            "otp_challenges.challenge_id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    name = Column(
+        String(150),
+        nullable=False,
+    )
+    school_id = Column(
+        String(10),
+        nullable=False,
+        index=True,
+    )
+    email = Column(
+        String(255),
+        nullable=False,
+        index=True,
+    )
+    password_hash = Column(
+        String(255),
+        nullable=False,
+    )
+    data_collection_acknowledged = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    challenge = relationship(
+        "OTPChallenge",
+        back_populates="pending_registration",
+    )
+
+    # SECURITY BOUNDARY:
+    # This temporary record stores only a password hash, never the plaintext
+    # password. It must not contain or accept a client-selected role.
+    #
+    # REGISTRATION FLOW:
+    # Convert this record into a User only after the related OTP challenge is
+    # successfully verified and consumed.
 
 
 class Classroom(Base):
@@ -800,7 +926,7 @@ class ASTAnalysis(Base):
         index=True,
     )
     overall_pass = Column(Boolean, nullable=True)
-    syntax_error = Column(Text, nullable=True)
+    syntax_error = Column(JSON, nullable=True)
     details = Column(JSON, nullable=False, default=dict)
     created_at = Column(
         DateTime(timezone=True),
