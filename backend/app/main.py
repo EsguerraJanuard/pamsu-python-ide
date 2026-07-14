@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 
 from app.routers import (
     auth,
@@ -10,14 +10,69 @@ from app.routers import (
 )
 
 
+APP_TITLE = "PAMSU Python IDE Backend"
+APP_VERSION = "0.3.0"
+
+OPENAPI_TAGS = [
+    {
+        "name": "System",
+        "description": "Application availability and service information.",
+    },
+    {
+        "name": "Authentication",
+        "description": "Verified-user login and access-token operations.",
+    },
+    {
+        "name": "Registration",
+        "description": (
+            "University-email registration and OTP verification. "
+            "Client applications cannot assign account roles."
+        ),
+    },
+    {
+        "name": "Instructor",
+        "description": (
+            "Instructor-authorized task and academic-management operations."
+        ),
+    },
+    {
+        "name": "Execution",
+        "description": (
+            "Submission records and execution-request operations. "
+            "Student code must run only through the isolated sandbox service."
+        ),
+    },
+    {
+        "name": "Behavioral Logs",
+        "description": (
+            "Privacy-conscious session indicators without clipboard contents, "
+            "screen capture, webcam, microphone, browsing history, or "
+            "individual keystroke collection."
+        ),
+    },
+    {
+        "name": "Evaluation",
+        "description": (
+            "AST and similarity indicators intended only for instructor review. "
+            "These indicators do not automatically assign grades."
+        ),
+    },
+]
+
+
 app = FastAPI(
-    title="PAMSU Python IDE Backend",
+    title=APP_TITLE,
     description=(
-        "Backend API for the PAMSU Web-Based Python IDE with "
-        "authentication, OTP registration, structural analytics, "
-        "submission management, and privacy-conscious session indicators."
+        "Backend API for the PAMSU Web-Based Python IDE with university-email "
+        "authentication, OTP registration, submission management, isolated "
+        "execution integration boundaries, automated structural analytics, "
+        "and privacy-conscious session indicators."
     ),
-    version="0.2.0",
+    version=APP_VERSION,
+    openapi_tags=OPENAPI_TAGS,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 
@@ -31,20 +86,29 @@ app.include_router(evaluation.router)
 
 @app.get(
     "/",
+    response_model=dict[str, str],
+    status_code=status.HTTP_200_OK,
     tags=["System"],
+    summary="Read API information",
 )
 def read_root() -> dict[str, str]:
     return {
-        "message": "PAMSU Python IDE Backend is running.",
-        "version": app.version,
+        "message": f"{APP_TITLE} is running.",
+        "version": APP_VERSION,
+        "documentation": "/docs",
     }
 
 
 @app.get(
     "/health",
+    response_model=dict[str, str],
+    status_code=status.HTTP_200_OK,
     tags=["System"],
+    summary="Check service health",
 )
 def health_check() -> dict[str, str]:
     return {
         "status": "healthy",
+        "service": APP_TITLE,
+        "version": APP_VERSION,
     }
