@@ -47,7 +47,13 @@ def get_schema_properties(
             document,
             nested_schema,
         )
-        properties.update(resolved_schema.get("properties", {}))
+
+        properties.update(
+            resolved_schema.get(
+                "properties",
+                {},
+            )
+        )
 
     return properties
 
@@ -72,7 +78,7 @@ def test_classroom_api_version():
     document = get_openapi_document()
 
     assert document["info"]["version"] == APP_VERSION
-    assert APP_VERSION == "0.5.0"
+    assert APP_VERSION == "0.6.0"
 
 
 def test_classroom_routes_exist():
@@ -170,7 +176,12 @@ def test_enrollment_status_contract_matches_database():
         properties["status"],
     )
 
-    allowed_values = set(status_schema.get("enum", []))
+    allowed_values = set(
+        status_schema.get(
+            "enum",
+            [],
+        )
+    )
 
     assert allowed_values == {
         "active",

@@ -9,11 +9,12 @@ from app.routers import (
     instructor,
     logs,
     registration,
+    submissions,
 )
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.5.0"
+APP_VERSION = "0.6.0"
 
 OPENAPI_TAGS = [
     {
@@ -41,8 +42,8 @@ OPENAPI_TAGS = [
     {
         "name": "Instructor",
         "description": (
-            "Instructor-authorized activity, test-case, and academic "
-            "management operations."
+            "Instructor-authorized activity, test-case, submission-review, "
+            "and academic management operations."
         ),
     },
     {
@@ -50,6 +51,14 @@ OPENAPI_TAGS = [
         "description": (
             "Student-safe access to published laboratory and homework "
             "activities from active classroom enrollments."
+        ),
+    },
+    {
+        "name": "Submissions",
+        "description": (
+            "Student-owned immutable submission attempts. Student identity, "
+            "attempt numbering, official-attempt state, status, and "
+            "timestamps are controlled by the backend."
         ),
     },
     {
@@ -84,9 +93,9 @@ app = FastAPI(
         "Backend API for the PAMSU Web-Based Python IDE with "
         "university-email authentication, OTP registration, classroom "
         "and enrollment management, activity and test-case management, "
-        "submission management, isolated execution integration boundaries, "
-        "automated structural analytics, and privacy-conscious session "
-        "indicators."
+        "immutable submission-attempt workflows, isolated execution "
+        "integration boundaries, automated structural analytics, and "
+        "privacy-conscious session indicators."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -101,6 +110,7 @@ app.include_router(registration.router)
 app.include_router(classrooms.router)
 app.include_router(instructor.router)
 app.include_router(activities.router)
+app.include_router(submissions.router)
 app.include_router(execution.router)
 app.include_router(logs.router)
 app.include_router(evaluation.router)

@@ -7,6 +7,7 @@ from app.routers import (
     instructor,
     logs,
     registration,
+    submissions,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "instructor",
     "logs",
     "registration",
+    "submissions",
 ]

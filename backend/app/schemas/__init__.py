@@ -29,9 +29,12 @@ from app.schemas.otp_schema import (
     RegistrationStartRequest,
 )
 from app.schemas.submission_schema import (
+    InstructorSubmissionResponse,
+    StudentSubmissionResponse,
     SubmissionBase,
     SubmissionCreate,
     SubmissionResponse,
+    SubmissionResponseBase,
     SubmissionStatus,
 )
 from app.schemas.task_schema import (
@@ -42,6 +45,7 @@ from app.schemas.task_schema import (
     TaskCreate,
     TaskPublishRequest,
     TaskResponse,
+    TaskResponseBase,
     TaskUpdate,
 )
 from app.schemas.task_test_case_schema import (
@@ -57,6 +61,7 @@ from app.schemas.user_schema import (
     UserCreate,
     UserResponse,
 )
+
 
 __all__ = [
     "ActivityType",
@@ -74,6 +79,7 @@ __all__ = [
     "EnrollmentResponse",
     "EnrollmentStatus",
     "EnrollmentStatusUpdate",
+    "InstructorSubmissionResponse",
     "InstructorTaskTestCaseResponse",
     "OTPChallengeResponse",
     "OTPPurpose",
@@ -85,15 +91,18 @@ __all__ = [
     "RegistrationStartRequest",
     "StudentClassroomResponse",
     "StudentSampleTestCaseResponse",
+    "StudentSubmissionResponse",
     "StudentTaskResponse",
     "SubmissionBase",
     "SubmissionCreate",
     "SubmissionResponse",
+    "SubmissionResponseBase",
     "SubmissionStatus",
     "TaskBase",
     "TaskCreate",
     "TaskPublishRequest",
     "TaskResponse",
+    "TaskResponseBase",
     "TaskTestCaseBase",
     "TaskTestCaseCreate",
     "TaskTestCaseUpdate",
