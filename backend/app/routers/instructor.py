@@ -1,16 +1,54 @@
-from datetime import datetime, timezone
+from typing import NoReturn
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Response,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_instructor
-from app.models.domain_models import Classroom, Task, User
+from app.models.domain_models import (
+    Task,
+    TaskTestCase,
+    User,
+)
 from app.schemas.task_schema import (
+    ActivityType,
     TaskCreate,
     TaskPublishRequest,
     TaskResponse,
     TaskUpdate,
+)
+from app.schemas.task_test_case_schema import (
+    InstructorTaskTestCaseResponse,
+    TaskTestCaseCreate,
+    TaskTestCaseUpdate,
+)
+from app.services.task_service import (
+    TaskAccessDeniedError,
+    TaskClassAccessDeniedError,
+    TaskClassInactiveError,
+    TaskClassNotFoundError,
+    TaskNotFoundError,
+    TaskPublicationError,
+    TaskTestCaseNotFoundError,
+    TaskUpdateEmptyError,
+    create_task as create_task_service,
+    create_task_test_case,
+    delete_task_test_case,
+    get_instructor_task,
+    get_instructor_test_case,
+    list_instructor_tasks,
+    list_instructor_test_cases,
+    set_task_publication,
+    update_task as update_task_service,
+    update_task_test_case,
 )
 
 
@@ -20,112 +58,53 @@ router = APIRouter(
 )
 
 
-def get_utc_now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def normalize_utc_datetime(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-
-    return value.astimezone(timezone.utc)
-
-
-def get_owned_classroom(
-    *,
-    db: Session,
-    class_id: int,
-    instructor_id: int,
-) -> Classroom:
-    classroom = db.query(Classroom).filter(Classroom.class_id == class_id).first()
-
-    if classroom is None:
+def raise_task_service_http_exception(
+    exc: Exception,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        (
+            TaskNotFoundError,
+            TaskClassNotFoundError,
+            TaskTestCaseNotFoundError,
+        ),
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Class not found.",
-        )
+            detail=str(exc),
+        ) from exc
 
-    if classroom.instructor_id != instructor_id:
+    if isinstance(
+        exc,
+        (
+            TaskAccessDeniedError,
+            TaskClassAccessDeniedError,
+        ),
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=("You can only manage activities in your own classes."),
-        )
+            detail=str(exc),
+        ) from exc
 
-    if not classroom.is_active:
+    if isinstance(exc, TaskUpdateEmptyError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        (
+            TaskClassInactiveError,
+            TaskPublicationError,
+        ),
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=("Activities cannot be managed in an inactive class."),
-        )
+            detail=str(exc),
+        ) from exc
 
-    return classroom
-
-
-def get_owned_task(
-    *,
-    db: Session,
-    task_id: int,
-    instructor_id: int,
-) -> Task:
-    task = db.query(Task).filter(Task.task_id == task_id).first()
-
-    if task is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found.",
-        )
-
-    if task.instructor_id != instructor_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only manage your own tasks.",
-        )
-
-    return task
-
-
-def validate_task_for_publication(
-    *,
-    db: Session,
-    class_id: int | None,
-    instructor_id: int,
-    due_at: datetime | None,
-) -> None:
-    if class_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A task must belong to a class before publication.",
-        )
-
-    get_owned_classroom(
-        db=db,
-        class_id=class_id,
-        instructor_id=instructor_id,
-    )
-
-    if due_at is None:
-        return
-
-    normalized_due_at = normalize_utc_datetime(due_at)
-
-    if normalized_due_at <= get_utc_now():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="The task due date must be in the future.",
-        )
-
-
-def commit_task(
-    *,
-    db: Session,
-    task: Task,
-) -> Task:
-    try:
-        db.commit()
-        db.refresh(task)
-        return task
-    except Exception:
-        db.rollback()
-        raise
+    raise exc
 
 
 @router.post(
@@ -133,57 +112,41 @@ def commit_task(
     response_model=TaskResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="create_instructor_task",
-    summary="Create a task",
+    summary="Create an activity",
     description=(
-        "Creates a draft laboratory or homework activity inside a class "
-        "owned by the authenticated instructor. The instructor identity "
-        "is taken from the access token and cannot be supplied by the client."
+        "Creates a draft laboratory or homework activity inside an active "
+        "classroom owned by the authenticated instructor. Instructor identity, "
+        "publication state, and publication timestamp are backend-controlled."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
-            "description": "The class belongs to another instructor.",
+            "description": "The classroom belongs to another instructor.",
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The selected class does not exist.",
+            "description": "The classroom does not exist.",
         },
         status.HTTP_409_CONFLICT: {
-            "description": "The selected class is inactive.",
+            "description": "The classroom is inactive.",
         },
     },
 )
-def create_task(
+def create_task_endpoint(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> Task:
-    get_owned_classroom(
-        db=db,
-        class_id=task_data.class_id,
-        instructor_id=current_instructor.user_id,
-    )
-
-    new_task = Task(
-        class_id=task_data.class_id,
-        instructor_id=current_instructor.user_id,
-        title=task_data.title,
-        description=task_data.description,
-        instructions=task_data.instructions,
-        activity_type=task_data.activity_type,
-        required_ast_rules=task_data.required_ast_rules,
-        starter_code=task_data.starter_code,
-        paste_policy=task_data.paste_policy,
-        is_graded=task_data.is_graded,
-        is_published=False,
-        due_at=task_data.due_at,
-        published_at=None,
-    )
-
-    db.add(new_task)
-
-    return commit_task(
-        db=db,
-        task=new_task,
-    )
+    try:
+        return create_task_service(
+            db=db,
+            instructor_id=current_instructor.user_id,
+            task_data=task_data,
+        )
+    except (
+        TaskClassNotFoundError,
+        TaskClassAccessDeniedError,
+        TaskClassInactiveError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
 
 
 @router.get(
@@ -191,22 +154,49 @@ def create_task(
     response_model=list[TaskResponse],
     status_code=status.HTTP_200_OK,
     operation_id="list_instructor_tasks",
-    summary="List instructor tasks",
+    summary="List instructor activities",
     description=(
-        "Returns tasks created by the authenticated instructor, ordered "
-        "from newest to oldest."
+        "Returns activities owned by the authenticated instructor. "
+        "Results may optionally be filtered by an owned classroom."
     ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "The selected classroom belongs to another instructor.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "The selected classroom does not exist.",
+        },
+    },
 )
-def list_tasks(
+def list_tasks_endpoint(
+    class_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional classroom filter.",
+    ),
+    activity_type: ActivityType | None = Query(
+        default=None,
+        description="Optional activity-type filter.",
+    ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> list[Task]:
-    return (
-        db.query(Task)
-        .filter(Task.instructor_id == current_instructor.user_id)
-        .order_by(Task.created_at.desc())
-        .all()
-    )
+    try:
+        tasks = list_instructor_tasks(
+            db=db,
+            instructor_id=current_instructor.user_id,
+            class_id=class_id,
+        )
+    except (
+        TaskClassNotFoundError,
+        TaskClassAccessDeniedError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
+
+    if activity_type is None:
+        return tasks
+
+    return [task for task in tasks if task.activity_type == activity_type]
 
 
 @router.get(
@@ -214,30 +204,39 @@ def list_tasks(
     response_model=TaskResponse,
     status_code=status.HTTP_200_OK,
     operation_id="get_instructor_task",
-    summary="Get an instructor task",
+    summary="Get an instructor activity",
+    description=(
+        "Returns an activity only when it belongs to the authenticated instructor."
+    ),
     responses={
         status.HTTP_403_FORBIDDEN: {
-            "description": "The task belongs to another instructor.",
+            "description": "The activity belongs to another instructor.",
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The task does not exist.",
+            "description": "The activity does not exist.",
         },
     },
 )
-def get_task(
+def get_task_endpoint(
     task_id: int = Path(
         ...,
         gt=0,
-        description="Task identifier.",
+        description="Activity identifier.",
     ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> Task:
-    return get_owned_task(
-        db=db,
-        task_id=task_id,
-        instructor_id=current_instructor.user_id,
-    )
+    try:
+        return get_instructor_task(
+            db=db,
+            task_id=task_id,
+            instructor_id=current_instructor.user_id,
+        )
+    except (
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
 
 
 @router.patch(
@@ -245,95 +244,59 @@ def get_task(
     response_model=TaskResponse,
     status_code=status.HTTP_200_OK,
     operation_id="update_instructor_task",
-    summary="Update an instructor task",
+    summary="Update an instructor activity",
     description=(
-        "Updates selected task fields. Moving a task to another class is "
-        "allowed only when the destination class belongs to the authenticated "
-        "instructor and remains active."
+        "Updates selected activity fields. Moving an activity to another "
+        "classroom is permitted only when that classroom is active and owned "
+        "by the authenticated instructor."
     ),
     responses={
         status.HTTP_400_BAD_REQUEST: {
-            "description": "No task fields were supplied.",
+            "description": "No activity fields were supplied.",
         },
         status.HTTP_403_FORBIDDEN: {
             "description": (
-                "The task or selected class belongs to another instructor."
+                "The activity or destination classroom belongs to another instructor."
             ),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The task or selected class does not exist.",
+            "description": ("The activity or destination classroom does not exist."),
         },
         status.HTTP_409_CONFLICT: {
             "description": (
-                "The selected class is inactive or the published task "
-                "would become invalid."
+                "The destination classroom is inactive or the update would "
+                "invalidate a published activity."
             ),
         },
     },
 )
-def update_task(
+def update_task_endpoint(
     task_data: TaskUpdate,
     task_id: int = Path(
         ...,
         gt=0,
-        description="Task identifier.",
+        description="Activity identifier.",
     ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> Task:
-    task = get_owned_task(
-        db=db,
-        task_id=task_id,
-        instructor_id=current_instructor.user_id,
-    )
-
-    update_data = task_data.model_dump(
-        exclude_unset=True,
-    )
-
-    if not update_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No task fields were provided for update.",
-        )
-
-    candidate_class_id = update_data.get(
-        "class_id",
-        task.class_id,
-    )
-    candidate_due_at = update_data.get(
-        "due_at",
-        task.due_at,
-    )
-
-    if "class_id" in update_data:
-        if candidate_class_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="A task must belong to a class.",
-            )
-
-        get_owned_classroom(
+    try:
+        return update_task_service(
             db=db,
-            class_id=candidate_class_id,
+            task_id=task_id,
             instructor_id=current_instructor.user_id,
+            task_data=task_data,
         )
-
-    if task.is_published:
-        validate_task_for_publication(
-            db=db,
-            class_id=candidate_class_id,
-            instructor_id=current_instructor.user_id,
-            due_at=candidate_due_at,
-        )
-
-    for field_name, value in update_data.items():
-        setattr(task, field_name, value)
-
-    return commit_task(
-        db=db,
-        task=task,
-    )
+    except (
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+        TaskClassNotFoundError,
+        TaskClassAccessDeniedError,
+        TaskClassInactiveError,
+        TaskUpdateEmptyError,
+        TaskPublicationError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
 
 
 @router.patch(
@@ -341,65 +304,286 @@ def update_task(
     response_model=TaskResponse,
     status_code=status.HTTP_200_OK,
     operation_id="update_task_publication",
-    summary="Publish or unpublish a task",
+    summary="Publish or unpublish an activity",
     description=(
-        "Publishes a valid task or returns it to draft status. Publishing "
-        "requires an active instructor-owned class and a future due date "
-        "when a due date is provided."
+        "Publishes a valid activity or returns it to draft status. Publishing "
+        "requires an active instructor-owned classroom and a future deadline "
+        "when a deadline is configured."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
-            "description": ("The task or its class belongs to another instructor."),
+            "description": ("The activity or classroom belongs to another instructor."),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The task or class does not exist.",
+            "description": "The activity or classroom does not exist.",
         },
         status.HTTP_409_CONFLICT: {
             "description": (
-                "The task cannot be published because its class or due date is invalid."
+                "The activity cannot be published because its classroom or "
+                "deadline is invalid."
             ),
         },
     },
 )
-def update_task_publication(
+def update_task_publication_endpoint(
     publication_data: TaskPublishRequest,
     task_id: int = Path(
         ...,
         gt=0,
-        description="Task identifier.",
+        description="Activity identifier.",
     ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> Task:
-    task = get_owned_task(
-        db=db,
-        task_id=task_id,
-        instructor_id=current_instructor.user_id,
-    )
-
-    if publication_data.is_published:
-        validate_task_for_publication(
+    try:
+        return set_task_publication(
             db=db,
-            class_id=task.class_id,
+            task_id=task_id,
             instructor_id=current_instructor.user_id,
-            due_at=task.due_at,
+            is_published=publication_data.is_published,
         )
+    except (
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+        TaskClassNotFoundError,
+        TaskClassAccessDeniedError,
+        TaskClassInactiveError,
+        TaskPublicationError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
 
-        if not task.is_published:
-            task.published_at = get_utc_now()
 
-        task.is_published = True
-    else:
-        task.is_published = False
-        task.published_at = None
+@router.post(
+    "/tasks/{task_id}/test-cases",
+    response_model=InstructorTaskTestCaseResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="create_task_test_case",
+    summary="Create an activity test case",
+    description=(
+        "Creates a public sample or hidden test case for an activity owned "
+        "by the authenticated instructor. Hidden inputs and expected outputs "
+        "remain instructor-only."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "The activity belongs to another instructor.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "The activity does not exist.",
+        },
+    },
+)
+def create_task_test_case_endpoint(
+    test_case_data: TaskTestCaseCreate,
+    task_id: int = Path(
+        ...,
+        gt=0,
+        description="Activity identifier.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> TaskTestCase:
+    try:
+        return create_task_test_case(
+            db=db,
+            task_id=task_id,
+            instructor_id=current_instructor.user_id,
+            test_case_data=test_case_data,
+        )
+    except (
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
 
-    return commit_task(
-        db=db,
-        task=task,
-    )
+
+@router.get(
+    "/tasks/{task_id}/test-cases",
+    response_model=list[InstructorTaskTestCaseResponse],
+    status_code=status.HTTP_200_OK,
+    operation_id="list_instructor_task_test_cases",
+    summary="List all activity test cases",
+    description=(
+        "Returns public and hidden test cases for an activity owned by the "
+        "authenticated instructor."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "The activity belongs to another instructor.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "The activity does not exist.",
+        },
+    },
+)
+def list_task_test_cases_endpoint(
+    task_id: int = Path(
+        ...,
+        gt=0,
+        description="Activity identifier.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> list[TaskTestCase]:
+    try:
+        return list_instructor_test_cases(
+            db=db,
+            task_id=task_id,
+            instructor_id=current_instructor.user_id,
+        )
+    except (
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
+
+
+@router.get(
+    "/test-cases/{test_case_id}",
+    response_model=InstructorTaskTestCaseResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="get_instructor_task_test_case",
+    summary="Get an activity test case",
+    description=(
+        "Returns a test case only when its activity belongs to the "
+        "authenticated instructor."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "The test case belongs to another instructor.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "The test case or activity does not exist.",
+        },
+    },
+)
+def get_task_test_case_endpoint(
+    test_case_id: int = Path(
+        ...,
+        gt=0,
+        description="Test-case identifier.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> TaskTestCase:
+    try:
+        return get_instructor_test_case(
+            db=db,
+            test_case_id=test_case_id,
+            instructor_id=current_instructor.user_id,
+        )
+    except (
+        TaskTestCaseNotFoundError,
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
+
+
+@router.patch(
+    "/test-cases/{test_case_id}",
+    response_model=InstructorTaskTestCaseResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="update_task_test_case",
+    summary="Update an activity test case",
+    description=(
+        "Updates a public or hidden test case belonging to an activity owned "
+        "by the authenticated instructor."
+    ),
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "No test-case fields were supplied.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": "The test case belongs to another instructor.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "The test case or activity does not exist.",
+        },
+    },
+)
+def update_task_test_case_endpoint(
+    test_case_data: TaskTestCaseUpdate,
+    test_case_id: int = Path(
+        ...,
+        gt=0,
+        description="Test-case identifier.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> TaskTestCase:
+    try:
+        return update_task_test_case(
+            db=db,
+            test_case_id=test_case_id,
+            instructor_id=current_instructor.user_id,
+            test_case_data=test_case_data,
+        )
+    except (
+        TaskTestCaseNotFoundError,
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+        TaskUpdateEmptyError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
+
+
+@router.delete(
+    "/test-cases/{test_case_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="delete_task_test_case",
+    summary="Delete an activity test case",
+    description=(
+        "Deletes a test case only when its activity belongs to the "
+        "authenticated instructor."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "The test case belongs to another instructor.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "The test case or activity does not exist.",
+        },
+    },
+)
+def delete_task_test_case_endpoint(
+    test_case_id: int = Path(
+        ...,
+        gt=0,
+        description="Test-case identifier.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> Response:
+    try:
+        delete_task_test_case(
+            db=db,
+            test_case_id=test_case_id,
+            instructor_id=current_instructor.user_id,
+        )
+    except (
+        TaskTestCaseNotFoundError,
+        TaskNotFoundError,
+        TaskAccessDeniedError,
+    ) as exc:
+        raise_task_service_http_exception(exc)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # SECURITY BOUNDARY:
 # instructor_id always comes from the authenticated instructor.
-# Clients cannot create or update tasks on behalf of another instructor.
-# Task ownership and class ownership are checked independently.
+# Clients cannot create or modify activities or test cases for another user.
+
+# TEST-CASE PRIVACY BOUNDARY:
+# This instructor router may expose public and hidden test cases only to the
+# instructor who owns the associated activity. Student-facing routes must use
+# a separate response that excludes all hidden records.
+
+# PUBLICATION BOUNDARY:
+# Publication state and published_at are controlled by the backend.
+# Clients cannot directly assign publication timestamps.
+
+# REVIEW BOUNDARY:
+# Test cases and automated execution results support instructor review.
+# They do not independently determine the official academic grade.

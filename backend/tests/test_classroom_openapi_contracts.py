@@ -72,7 +72,7 @@ def test_classroom_api_version():
     document = get_openapi_document()
 
     assert document["info"]["version"] == APP_VERSION
-    assert APP_VERSION == "0.4.0"
+    assert APP_VERSION == "0.5.0"
 
 
 def test_classroom_routes_exist():

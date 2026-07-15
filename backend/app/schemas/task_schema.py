@@ -1,38 +1,164 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+)
 
 
-ActivityType = Literal["laboratory", "homework"]
-PastePolicy = Literal["internal_only", "disabled"]
+ActivityType = Literal[
+    "laboratory",
+    "homework",
+]
+
+PastePolicy = Literal[
+    "internal_only",
+    "disabled",
+]
+
+
+def normalize_title(value: str) -> str:
+    normalized_value = " ".join(value.strip().split())
+
+    if not normalized_value:
+        raise ValueError("Task title is required.")
+
+    return normalized_value
+
+
+def normalize_optional_text(
+    value: str | None,
+) -> str | None:
+    if value is None:
+        return None
+
+    normalized_value = value.strip()
+
+    return normalized_value or None
+
+
+def validate_request_due_at(
+    value: datetime | None,
+) -> datetime | None:
+    if value is None:
+        return None
+
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("Task due date must include a timezone.")
+
+    return value.astimezone(timezone.utc)
+
+
+def normalize_response_datetime(
+    value: Any,
+) -> Any:
+    if value is None:
+        return None
+
+    # Non-datetime inputs are left for Pydantic to parse.
+    if not isinstance(value, datetime):
+        return value
+
+    # SQLite may return DateTime(timezone=True) values without tzinfo.
+    # Persisted task datetimes are interpreted as UTC.
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=timezone.utc)
+
+    return value.astimezone(timezone.utc)
+
+
+def validate_ast_rules(
+    value: dict[str, Any],
+) -> dict[str, Any]:
+    if len(value) > 50:
+        raise ValueError("A task may contain at most 50 AST rules.")
+
+    for rule_name in value:
+        if not isinstance(rule_name, str):
+            raise ValueError("Each AST rule must use a string key.")
+
+        if not rule_name.strip():
+            raise ValueError("Each AST rule must have a non-empty key.")
+
+        if rule_name != rule_name.strip():
+            raise ValueError("AST rule keys cannot begin or end with whitespace.")
+
+    return value
 
 
 class TaskBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200)
-    description: str | None = None
-    instructions: str | None = None
-    activity_type: ActivityType = "laboratory"
-    required_ast_rules: dict[str, Any] = Field(default_factory=dict)
-    starter_code: str = ""
-    paste_policy: PastePolicy = "internal_only"
-    is_graded: bool = True
-    due_at: datetime | None = None
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Activity title.",
+        examples=["Loops and Functions Laboratory"],
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=5000,
+        description="Optional activity overview.",
+    )
+    instructions: str | None = Field(
+        default=None,
+        max_length=10000,
+        description="Detailed student instructions.",
+    )
+    activity_type: ActivityType = Field(
+        default="laboratory",
+        description="Laboratory or homework activity.",
+    )
+    required_ast_rules: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Optional structural-analysis rules. An empty dictionary is allowed."
+        ),
+    )
+    starter_code: str = Field(
+        default="",
+        max_length=50000,
+        description=(
+            "Initial Python source shown to students. "
+            "Whitespace and indentation are preserved."
+        ),
+    )
+    paste_policy: PastePolicy = Field(
+        default="internal_only",
+        description=(
+            "`internal_only` permits internal editor paste. "
+            "`disabled` blocks paste operations."
+        ),
+    )
+    is_graded: bool = Field(
+        default=True,
+        description=("Whether the activity accepts official graded submissions."),
+    )
 
     model_config = ConfigDict(
         extra="forbid",
-        str_strip_whitespace=True,
     )
 
     @field_validator("title")
     @classmethod
-    def validate_title(cls, value: str) -> str:
-        normalized_title = " ".join(value.split())
+    def validate_title(
+        cls,
+        value: str,
+    ) -> str:
+        return normalize_title(value)
 
-        if not normalized_title:
-            raise ValueError("Task title is required.")
-
-        return normalized_title
+    @field_validator(
+        "description",
+        "instructions",
+    )
+    @classmethod
+    def validate_optional_text_fields(
+        cls,
+        value: str | None,
+    ) -> str | None:
+        return normalize_optional_text(value)
 
     @field_validator("required_ast_rules")
     @classmethod
@@ -40,49 +166,89 @@ class TaskBase(BaseModel):
         cls,
         value: dict[str, Any],
     ) -> dict[str, Any]:
-        for rule_name in value:
-            if not isinstance(rule_name, str) or not rule_name.strip():
-                raise ValueError("Each AST rule must have a non-empty string key.")
-
-        return value
+        return validate_ast_rules(value)
 
 
 class TaskCreate(TaskBase):
-    class_id: int = Field(..., gt=0)
+    class_id: int = Field(
+        ...,
+        gt=0,
+        description=("Classroom owned by the authenticated instructor."),
+    )
+    due_at: datetime | None = Field(
+        default=None,
+        description=("Optional timezone-aware deadline normalized to UTC."),
+    )
 
-    # SECURITY BOUNDARY:
-    # instructor_id is intentionally excluded. The backend must obtain the
-    # instructor identity from the authenticated JWT user, not the client.
+    @field_validator("due_at")
+    @classmethod
+    def validate_due_at(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        return validate_request_due_at(value)
+
+    # Backend-controlled fields intentionally excluded:
+    # instructor_id, is_published, and published_at.
 
 
 class TaskUpdate(BaseModel):
-    title: str | None = Field(None, min_length=1, max_length=200)
-    description: str | None = None
-    instructions: str | None = None
+    class_id: int | None = Field(
+        default=None,
+        gt=0,
+        description="Optional destination classroom.",
+    )
+    title: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
+    instructions: str | None = Field(
+        default=None,
+        max_length=10000,
+    )
     activity_type: ActivityType | None = None
     required_ast_rules: dict[str, Any] | None = None
-    starter_code: str | None = None
+    starter_code: str | None = Field(
+        default=None,
+        max_length=50000,
+    )
     paste_policy: PastePolicy | None = None
     is_graded: bool | None = None
-    due_at: datetime | None = None
+    due_at: datetime | None = Field(
+        default=None,
+        description=("Optional timezone-aware deadline normalized to UTC."),
+    )
 
     model_config = ConfigDict(
         extra="forbid",
-        str_strip_whitespace=True,
     )
 
     @field_validator("title")
     @classmethod
-    def validate_title(cls, value: str | None) -> str | None:
+    def validate_title(
+        cls,
+        value: str | None,
+    ) -> str | None:
         if value is None:
             return None
 
-        normalized_title = " ".join(value.split())
+        return normalize_title(value)
 
-        if not normalized_title:
-            raise ValueError("Task title cannot be empty.")
-
-        return normalized_title
+    @field_validator(
+        "description",
+        "instructions",
+    )
+    @classmethod
+    def validate_optional_text_fields(
+        cls,
+        value: str | None,
+    ) -> str | None:
+        return normalize_optional_text(value)
 
     @field_validator("required_ast_rules")
     @classmethod
@@ -93,25 +259,63 @@ class TaskUpdate(BaseModel):
         if value is None:
             return None
 
-        for rule_name in value:
-            if not isinstance(rule_name, str) or not rule_name.strip():
-                raise ValueError("Each AST rule must have a non-empty string key.")
+        return validate_ast_rules(value)
 
-        return value
+    @field_validator("due_at")
+    @classmethod
+    def validate_due_at(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        return validate_request_due_at(value)
 
 
 class TaskPublishRequest(BaseModel):
+    is_published: bool = Field(
+        ...,
+        description=("Publish or return the activity to draft status."),
+    )
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+
+class TaskResponseBase(BaseModel):
+    task_id: int = Field(
+        ...,
+        gt=0,
+    )
+    class_id: int | None = Field(
+        default=None,
+        gt=0,
+    )
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
+    instructions: str | None = Field(
+        default=None,
+        max_length=10000,
+    )
+    activity_type: ActivityType
+    required_ast_rules: dict[str, Any] = Field(
+        default_factory=dict,
+    )
+    starter_code: str = Field(
+        default="",
+        max_length=50000,
+    )
+    paste_policy: PastePolicy
+    is_graded: bool
+    due_at: datetime | None = None
     is_published: bool
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class TaskResponse(TaskBase):
-    task_id: int
-    class_id: int | None
-    instructor_id: int
-    is_published: bool
-    published_at: datetime | None
+    published_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -119,3 +323,35 @@ class TaskResponse(TaskBase):
         from_attributes=True,
         extra="forbid",
     )
+
+    @field_validator(
+        "due_at",
+        "published_at",
+        "created_at",
+        "updated_at",
+        mode="before",
+    )
+    @classmethod
+    def normalize_database_datetime(
+        cls,
+        value: Any,
+    ) -> Any:
+        return normalize_response_datetime(value)
+
+
+class TaskResponse(TaskResponseBase):
+    instructor_id: int = Field(
+        ...,
+        gt=0,
+    )
+
+
+class StudentTaskResponse(TaskResponseBase):
+    class_id: int = Field(
+        ...,
+        gt=0,
+    )
+    published_at: datetime
+
+    # Student-safe boundary:
+    # instructor_id and task-test-case records are excluded.
