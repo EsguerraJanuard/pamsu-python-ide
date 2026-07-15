@@ -84,7 +84,7 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
-    assert APP_VERSION == "0.7.0"
+    assert APP_VERSION == "0.8.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
@@ -131,9 +131,15 @@ def test_required_api_paths_and_status_codes():
         "/instructors/submissions/{submission_id}",
         "/instructors/tasks/{task_id}/execution-requests",
         "/instructors/execution-requests/{execution_id}",
+        "/instructors/tasks/{task_id}/coding-sessions",
+        "/instructors/coding-sessions/{session_id}",
         "/activities/",
         "/activities/{task_id}",
         "/activities/{task_id}/sample-test-cases",
+        "/activities/coding-sessions/",
+        "/activities/coding-sessions/{session_id}",
+        "/activities/coding-sessions/{session_id}/activity",
+        "/activities/coding-sessions/{session_id}/end",
         "/submissions/",
         "/submissions/official/{task_id}",
         "/submissions/{submission_id}",
@@ -160,6 +166,27 @@ def test_required_api_paths_and_status_codes():
     assert "201" in paths["/execution/requests/"]["post"]["responses"]
 
     assert "200" in paths["/execution/requests/"]["get"]["responses"]
+
+    assert "201" in paths["/activities/coding-sessions/"]["post"]["responses"]
+
+    assert "200" in paths["/activities/coding-sessions/"]["get"]["responses"]
+
+    assert (
+        "200"
+        in paths["/activities/coding-sessions/{session_id}/activity"]["patch"][
+            "responses"
+        ]
+    )
+
+    assert (
+        "200"
+        in paths["/activities/coding-sessions/{session_id}/end"]["post"]["responses"]
+    )
+
+    assert (
+        "200"
+        in paths["/instructors/tasks/{task_id}/coding-sessions"]["get"]["responses"]
+    )
 
     assert (
         "200"
@@ -278,7 +305,7 @@ def test_otp_challenge_response_never_exposes_plaintext_code():
     assert "password_hash" not in properties
 
 
-def test_task_submission_and_execution_identity_comes_from_token():
+def test_identity_and_server_controlled_fields_come_from_token():
     document = get_openapi_document()
 
     task_properties = get_schema_properties(
@@ -294,6 +321,16 @@ def test_task_submission_and_execution_identity_comes_from_token():
     execution_properties = get_schema_properties(
         document,
         "ExecutionRequestCreate",
+    )
+
+    session_start_properties = get_schema_properties(
+        document,
+        "CodingSessionStartRequest",
+    )
+
+    session_activity_properties = get_schema_properties(
+        document,
+        "CodingSessionActivityUpdate",
     )
 
     assert "instructor_id" not in task_properties
@@ -317,6 +354,32 @@ def test_task_submission_and_execution_identity_comes_from_token():
     assert "queued_at" not in execution_properties
     assert "started_at" not in execution_properties
     assert "completed_at" not in execution_properties
+
+    assert set(session_start_properties) == {
+        "task_id",
+    }
+
+    assert set(session_activity_properties) == {
+        "tab_switch_increment",
+        "blocked_paste_increment",
+        "idle_duration_increment_seconds",
+    }
+
+    session_backend_fields = {
+        "student_id",
+        "session_id",
+        "task_id",
+        "run_attempt_count",
+        "tab_switch_count",
+        "blocked_paste_count",
+        "idle_duration_seconds",
+        "started_at",
+        "ended_at",
+        "last_activity_at",
+        "last_blocked_paste_at",
+    }
+
+    assert session_backend_fields.isdisjoint(session_activity_properties)
 
     assert "class_id" in task_properties
 
@@ -399,6 +462,86 @@ def test_student_execution_response_hides_internal_worker_identity():
         "misconduct_verdict",
         "plagiarism_verdict",
         "behavior_score",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+
+def test_student_coding_session_response_respects_privacy_boundary():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "StudentCodingSessionResponse",
+    )
+
+    assert {
+        "session_id",
+        "task_id",
+        "started_at",
+        "ended_at",
+        "last_activity_at",
+        "tab_switch_count",
+        "blocked_paste_count",
+        "run_attempt_count",
+        "idle_duration_seconds",
+        "last_blocked_paste_at",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "student_id",
+        "clipboard_content",
+        "pasted_text",
+        "paste_content",
+        "keystrokes",
+        "browsing_history",
+        "screen_recording",
+        "webcam",
+        "microphone",
+        "behavior_score",
+        "automatic_grade",
+        "misconduct_verdict",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+
+def test_instructor_coding_session_response_is_review_only():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "InstructorCodingSessionResponse",
+    )
+
+    assert {
+        "session_id",
+        "student_id",
+        "task_id",
+        "started_at",
+        "ended_at",
+        "last_activity_at",
+        "tab_switch_count",
+        "blocked_paste_count",
+        "run_attempt_count",
+        "idle_duration_seconds",
+        "last_blocked_paste_at",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "clipboard_content",
+        "pasted_text",
+        "paste_content",
+        "keystrokes",
+        "browsing_history",
+        "screen_recording",
+        "webcam",
+        "microphone",
+        "behavior_score",
+        "automatic_grade",
+        "official_grade",
+        "cheating_verdict",
+        "misconduct_verdict",
     }
 
     assert prohibited_fields.isdisjoint(properties)

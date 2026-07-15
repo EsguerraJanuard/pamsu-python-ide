@@ -19,6 +19,9 @@ from app.models.domain_models import (
     TaskTestCase,
     User,
 )
+from app.schemas.coding_session_schema import (
+    InstructorCodingSessionResponse,
+)
 from app.schemas.execution_schema import (
     ExecutionRequestKind,
     ExecutionStatus,
@@ -39,6 +42,14 @@ from app.schemas.task_test_case_schema import (
     InstructorTaskTestCaseResponse,
     TaskTestCaseCreate,
     TaskTestCaseUpdate,
+)
+from app.services.coding_session_service import (
+    CodingSessionAccessDeniedError,
+    CodingSessionNotFoundError,
+    CodingSessionPersistenceError,
+    CodingSessionServiceError,
+    get_instructor_coding_session as get_instructor_coding_session_service,
+    list_instructor_task_coding_sessions,
 )
 from app.services.execution_service import (
     ExecutionAccessDeniedError,
@@ -169,6 +180,42 @@ def raise_submission_service_http_exception(
     raise HTTPException(
         status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
         detail=("The submission review operation could not be completed."),
+    ) from exc
+
+
+def raise_coding_session_service_http_exception(
+    exc: CodingSessionServiceError,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        CodingSessionNotFoundError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        CodingSessionAccessDeniedError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        CodingSessionPersistenceError,
+    ):
+        raise HTTPException(
+            status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+            detail=str(exc),
+        ) from exc
+
+    raise HTTPException(
+        status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+        detail=("The coding-session review operation could not be completed."),
     ) from exc
 
 
@@ -776,6 +823,104 @@ def get_submission_endpoint(
 
 
 @router.get(
+    "/tasks/{task_id}/coding-sessions",
+    response_model=list[InstructorCodingSessionResponse],
+    status_code=status.HTTP_200_OK,
+    operation_id="list_instructor_task_coding_sessions",
+    summary="List coding sessions for an activity",
+    description=(
+        "Returns privacy-safe coding-session indicators only for an "
+        "activity belonging to the authenticated instructor. Results "
+        "may be filtered by student or active-session state. Session "
+        "indicators remain review-only and do not assign grades or "
+        "misconduct verdicts."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": ("The activity belongs to another instructor."),
+        },
+    },
+)
+def list_task_coding_sessions_endpoint(
+    task_id: int = Path(
+        ...,
+        gt=0,
+        description="Activity identifier.",
+    ),
+    student_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional student identifier filter.",
+    ),
+    active_only: bool = Query(
+        default=False,
+        description=("Return only coding sessions that have not ended."),
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> list[InstructorCodingSessionResponse]:
+    try:
+        coding_sessions = list_instructor_task_coding_sessions(
+            db,
+            instructor_id=current_instructor.user_id,
+            task_id=task_id,
+            student_id=student_id,
+            active_only=active_only,
+        )
+    except CodingSessionServiceError as exc:
+        raise_coding_session_service_http_exception(exc)
+
+    return [
+        InstructorCodingSessionResponse.model_validate(coding_session)
+        for coding_session in coding_sessions
+    ]
+
+
+@router.get(
+    "/coding-sessions/{session_id}",
+    response_model=InstructorCodingSessionResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="get_instructor_coding_session",
+    summary="Get a coding session for review",
+    description=(
+        "Returns aggregate coding-session indicators only when the "
+        "session belongs to an activity owned by the authenticated "
+        "instructor. Clipboard contents, pasted text, browsing history, "
+        "individual keystrokes, screen recordings, webcam data, and "
+        "microphone data are never included."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The coding session belongs to another instructor's activity."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "The coding session does not exist.",
+        },
+    },
+)
+def get_coding_session_endpoint(
+    session_id: UUID = Path(
+        ...,
+        description="Coding-session UUID.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> InstructorCodingSessionResponse:
+    try:
+        coding_session = get_instructor_coding_session_service(
+            db,
+            instructor_id=current_instructor.user_id,
+            session_id=str(session_id),
+        )
+    except CodingSessionServiceError as exc:
+        raise_coding_session_service_http_exception(exc)
+
+    return InstructorCodingSessionResponse.model_validate(coding_session)
+
+
+@router.get(
     "/tasks/{task_id}/execution-requests",
     response_model=list[InstructorExecutionResponse],
     status_code=status.HTTP_200_OK,
@@ -880,6 +1025,7 @@ def get_execution_request_endpoint(
 # instructor_id always comes from the authenticated instructor.
 # Clients cannot create or modify activities, test cases, submissions,
 # or execution requests belonging to another user.
+# Coding-session review is read-only and restricted to owned activities.
 
 # TEST-CASE PRIVACY BOUNDARY:
 # This instructor router may expose public and hidden test cases only
@@ -891,6 +1037,12 @@ def get_execution_request_endpoint(
 # SUBMISSION IMMUTABILITY BOUNDARY:
 # Instructor routes are read-only for submission source, ownership,
 # attempt number, and timestamps.
+
+# CODING-SESSION PRIVACY BOUNDARY:
+# Instructor coding-session routes expose aggregate counters and lifecycle
+# timestamps only. They never expose clipboard contents, pasted text,
+# browsing history, individual keystrokes, screen recordings, webcam data,
+# or microphone data.
 
 # EXECUTION BOUNDARY:
 # Instructor execution routes are read-only. They do not execute code,

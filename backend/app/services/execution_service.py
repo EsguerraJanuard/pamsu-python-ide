@@ -18,6 +18,13 @@ from app.schemas.execution_schema import (
     ExecutionWorkerUpdate,
     TERMINAL_EXECUTION_STATUSES,
 )
+from app.services.coding_session_service import (
+    CodingSessionCounterOverflowError,
+    CodingSessionEndedError,
+    CodingSessionNotFoundError,
+    CodingSessionServiceError,
+    increment_coding_session_run_attempt,
+)
 
 
 class ExecutionServiceError(Exception):
@@ -69,7 +76,7 @@ class ExecutionWorkerUpdateInvalidError(
 class ExecutionPersistenceConflictError(
     ExecutionServiceError,
 ):
-    """Raised when unique execution data conflicts."""
+    """Raised when execution data conflicts."""
 
 
 class ExecutionPersistenceError(
@@ -107,8 +114,8 @@ def _commit_execution_transaction(
         db.rollback()
 
         raise ExecutionPersistenceConflictError(
-            "The execution request could not be saved because "
-            "its identifier conflicts with an existing record."
+            "The execution-request operation conflicted "
+            "with another database operation."
         ) from error
     except SQLAlchemyError as error:
         db.rollback()
@@ -127,8 +134,8 @@ def _get_student_execution_task(
     """
     Resolve a published task accessible through an active enrollment.
 
-    The generic unavailable response prevents students from discovering
-    unpublished tasks or classrooms in which they are not enrolled.
+    A generic unavailable response prevents students from discovering
+    unpublished activities or classrooms they cannot access.
     """
 
     task = (
@@ -167,19 +174,28 @@ def _get_student_submission(
     task_id: int,
     submission_id: int,
 ) -> Submission:
+    """
+    Resolve the student's latest accepted official submission.
+
+    A submit execution request cannot reference an obsolete,
+    unofficial, rejected, or unaccepted attempt.
+    """
+
     submission = (
         db.query(Submission)
         .filter(
             Submission.sub_id == submission_id,
             Submission.student_id == student_id,
             Submission.task_id == task_id,
+            Submission.is_official.is_(True),
+            Submission.accepted_at.is_not(None),
         )
         .first()
     )
 
     if submission is None:
         raise ExecutionSubmissionUnavailableError(
-            "The submission is unavailable for this activity."
+            "The official submission is unavailable for this activity."
         )
 
     return submission
@@ -191,16 +207,20 @@ def _get_student_coding_session(
     student_id: int,
     task_id: int,
     coding_session_id: str,
+    require_active: bool,
 ) -> CodingSession:
-    coding_session = (
-        db.query(CodingSession)
-        .filter(
-            CodingSession.session_id == coding_session_id,
-            CodingSession.student_id == student_id,
-            CodingSession.task_id == task_id,
-        )
-        .first()
+    query = db.query(CodingSession).filter(
+        CodingSession.session_id == coding_session_id,
+        CodingSession.student_id == student_id,
+        CodingSession.task_id == task_id,
     )
+
+    if require_active:
+        query = query.filter(
+            CodingSession.ended_at.is_(None),
+        )
+
+    coding_session = query.first()
 
     if coding_session is None:
         raise ExecutionCodingSessionUnavailableError(
@@ -225,9 +245,9 @@ def _resolve_execution_snapshot(
     """
     Resolve the immutable source and input snapshot.
 
-    Run and check requests use the submitted request body. Submit
-    requests use the source and standard input stored in the linked
-    immutable submission attempt.
+    Run and check requests use the source supplied in the request.
+    Submit requests use the immutable source and standard input stored
+    in the latest accepted official submission attempt.
     """
 
     if payload.request_kind in {
@@ -245,6 +265,7 @@ def _resolve_execution_snapshot(
                 student_id=student_id,
                 task_id=task.task_id,
                 coding_session_id=(payload.coding_session_id),
+                require_active=True,
             )
 
         return (
@@ -256,7 +277,7 @@ def _resolve_execution_snapshot(
 
     if payload.submission_id is None:
         raise ExecutionSubmissionUnavailableError(
-            "Submit requests require a submission."
+            "Submit requests require an official submission."
         )
 
     submission = _get_student_submission(
@@ -270,29 +291,78 @@ def _resolve_execution_snapshot(
 
     if (
         payload.coding_session_id is not None
-        and submission_session_id is not None
         and payload.coding_session_id != submission_session_id
     ):
         raise ExecutionCodingSessionUnavailableError(
-            "The coding session does not match the submission."
+            "The coding session does not match the official submission."
         )
 
-    effective_session_id = submission_session_id or payload.coding_session_id
-
-    if effective_session_id is not None:
+    if submission_session_id is not None:
         _get_student_coding_session(
             db,
             student_id=student_id,
             task_id=task.task_id,
-            coding_session_id=effective_session_id,
+            coding_session_id=(submission_session_id),
+            require_active=False,
         )
 
     return (
         submission.raw_code,
         submission.standard_input,
         submission.sub_id,
-        effective_session_id,
+        submission_session_id,
     )
+
+
+def _increment_linked_session_attempt(
+    db: Session,
+    *,
+    student_id: int,
+    task_id: int,
+    coding_session_id: str | None,
+    request_kind: ExecutionRequestKind,
+) -> None:
+    """
+    Increment the server-controlled run-attempt counter.
+
+    The update participates in the execution-request transaction.
+    A failed execution-request insert therefore does not leave behind
+    an incorrect counter increment.
+    """
+
+    if coding_session_id is None:
+        return
+
+    try:
+        increment_coding_session_run_attempt(
+            db,
+            student_id=student_id,
+            task_id=task_id,
+            session_id=coding_session_id,
+            require_active=(request_kind != "submit"),
+            commit=False,
+        )
+    except (
+        CodingSessionNotFoundError,
+        CodingSessionEndedError,
+    ) as error:
+        db.rollback()
+
+        raise ExecutionCodingSessionUnavailableError(
+            "The coding session is unavailable for this execution request."
+        ) from error
+    except CodingSessionCounterOverflowError as error:
+        db.rollback()
+
+        raise ExecutionPersistenceConflictError(
+            "The coding session run-attempt counter cannot accept another increment."
+        ) from error
+    except CodingSessionServiceError as error:
+        db.rollback()
+
+        raise ExecutionPersistenceError(
+            "The coding-session attempt counter could not be updated."
+        ) from error
 
 
 def create_student_execution_request(
@@ -304,8 +374,11 @@ def create_student_execution_request(
     """
     Persist a queued execution request without executing Python code.
 
-    The execution ID is the only value that should later be handed to
-    the partner-owned Celery/Redis worker adapter.
+    When the request references a coding session, its server-controlled
+    run-attempt counter is incremented in the same transaction.
+
+    The resulting execution ID may later be handed to the partner-owned
+    Celery/Redis worker adapter.
     """
 
     task = _get_student_execution_task(
@@ -324,6 +397,14 @@ def create_student_execution_request(
         student_id=student_id,
         task=task,
         payload=payload,
+    )
+
+    _increment_linked_session_attempt(
+        db,
+        student_id=student_id,
+        task_id=task.task_id,
+        coding_session_id=coding_session_id,
+        request_kind=payload.request_kind,
     )
 
     execution_request = ExecutionRequest(
@@ -569,6 +650,7 @@ def _validate_worker_timestamps(
     )
 
     started_at = _normalize_database_datetime(started_at)
+
     completed_at = _normalize_database_datetime(completed_at)
 
     if completed_at is not None and target_status not in TERMINAL_EXECUTION_STATUSES:
@@ -595,9 +677,9 @@ def update_execution_from_worker(
     """
     Apply a trusted worker lifecycle/result update.
 
-    This function does not expose a public student or instructor write
-    endpoint. The partner-owned adapter should call this boundary after
-    authenticating through an internal integration mechanism.
+    This function is not exposed through a public student or instructor
+    write endpoint. The partner-owned adapter should call this boundary
+    after authenticating through an internal integration mechanism.
     """
 
     execution_request = get_internal_execution_request(
@@ -633,6 +715,11 @@ def update_execution_from_worker(
 
     if target_status in TERMINAL_EXECUTION_STATUSES:
         values.setdefault(
+            "started_at",
+            execution_request.started_at or _utc_now(),
+        )
+
+        values.setdefault(
             "completed_at",
             execution_request.completed_at or _utc_now(),
         )
@@ -664,8 +751,8 @@ def assign_worker_task_id(
     worker_task_id: str,
 ) -> ExecutionRequest:
     """
-    Attach the partner worker's task identifier without changing the
-    execution request's ownership or source snapshot.
+    Attach the partner worker's identifier without changing ownership,
+    source snapshots, results, or academic review fields.
     """
 
     execution_request = get_internal_execution_request(
@@ -699,3 +786,21 @@ def assign_worker_task_id(
     db.refresh(execution_request)
 
     return execution_request
+
+
+# EXECUTION BOUNDARY:
+# This service persists and authorizes execution requests only. It never
+# executes student Python inside FastAPI or the host operating system.
+
+# TELEMETRY BOUNDARY:
+# run_attempt_count is incremented only after backend validation and in
+# the same transaction as the execution request. The client cannot submit
+# or overwrite the counter directly.
+
+# IMMUTABILITY BOUNDARY:
+# Execution source, standard input, ownership, task, submission, and
+# coding-session references are immutable after request creation.
+
+# REVIEW BOUNDARY:
+# Worker output and resource-limit results support instructor review only.
+# They never automatically assign grades or misconduct verdicts.
