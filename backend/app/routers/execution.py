@@ -1,6 +1,15 @@
 from datetime import datetime, timezone
+from typing import NoReturn
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    status,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,9 +25,27 @@ from app.models.domain_models import (
     Task,
     User,
 )
+from app.schemas.execution_schema import (
+    ExecutionRequestCreate,
+    ExecutionRequestKind,
+    ExecutionStatus,
+    StudentExecutionResponse,
+)
 from app.schemas.submission_schema import (
     SubmissionCreate,
     SubmissionResponse,
+)
+from app.services.execution_service import (
+    ExecutionCodingSessionUnavailableError,
+    ExecutionPersistenceConflictError,
+    ExecutionPersistenceError,
+    ExecutionRequestNotFoundError,
+    ExecutionServiceError,
+    ExecutionSubmissionUnavailableError,
+    ExecutionTaskUnavailableError,
+    create_student_execution_request,
+    get_student_execution_request,
+    list_student_execution_requests,
 )
 
 
@@ -32,14 +59,22 @@ def get_utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def normalize_utc_datetime(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
+def normalize_utc_datetime(
+    value: datetime,
+) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(
+            tzinfo=timezone.utc,
+        )
 
-    return value.astimezone(timezone.utc)
+    return value.astimezone(
+        timezone.utc,
+    )
 
 
-def is_past_due(due_at: datetime | None) -> bool:
+def is_past_due(
+    due_at: datetime | None,
+) -> bool:
     if due_at is None:
         return False
 
@@ -51,7 +86,13 @@ def get_task_or_404(
     db: Session,
     task_id: int,
 ) -> Task:
-    task = db.query(Task).filter(Task.task_id == task_id).first()
+    task = (
+        db.query(Task)
+        .filter(
+            Task.task_id == task_id,
+        )
+        .first()
+    )
 
     if task is None:
         raise HTTPException(
@@ -67,7 +108,13 @@ def get_submission_or_404(
     db: Session,
     sub_id: int,
 ) -> Submission:
-    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
+    submission = (
+        db.query(Submission)
+        .filter(
+            Submission.sub_id == sub_id,
+        )
+        .first()
+    )
 
     if submission is None:
         raise HTTPException(
@@ -87,7 +134,7 @@ def verify_student_task_access(
     if not task.is_published:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This activity is not available for submission.",
+            detail=("This activity is not available for submission."),
         )
 
     if not task.is_graded:
@@ -103,7 +150,7 @@ def verify_student_task_access(
         )
 
     # Transitional compatibility for records created before classroom
-    # ownership was introduced. Newly created tasks must belong to a class.
+    # ownership was introduced. New tasks must belong to a classroom.
     if task.class_id is None:
         return
 
@@ -126,7 +173,7 @@ def verify_student_task_access(
     if enrollment is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You must be actively enrolled in the class.",
+            detail=("You must be actively enrolled in the class."),
         )
 
 
@@ -142,7 +189,9 @@ def verify_coding_session(
 
     coding_session = (
         db.query(CodingSession)
-        .filter(CodingSession.session_id == coding_session_id)
+        .filter(
+            CodingSession.session_id == coding_session_id,
+        )
         .first()
     )
 
@@ -177,7 +226,7 @@ def verify_submission_access(
         if submission.student_id != current_user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only access your own submissions.",
+                detail=("You can only access your own submissions."),
             )
 
         return
@@ -202,16 +251,66 @@ def verify_submission_access(
     )
 
 
+def raise_execution_service_http_exception(
+    exc: ExecutionServiceError,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        (
+            ExecutionTaskUnavailableError,
+            ExecutionSubmissionUnavailableError,
+            ExecutionCodingSessionUnavailableError,
+            ExecutionRequestNotFoundError,
+        ),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ExecutionPersistenceConflictError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ExecutionPersistenceError,
+    ):
+        raise HTTPException(
+            status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+            detail=str(exc),
+        ) from exc
+
+    raise HTTPException(
+        status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+        detail=("The execution request operation could not be completed."),
+    ) from exc
+
+
+# ------------------------------------------------------------------
+# Legacy submission routes
+# ------------------------------------------------------------------
+#
+# These endpoints are retained for backward compatibility with the
+# existing API and test suite. New client integrations should use the
+# dedicated /submissions router introduced in Pillar 6.
+
+
 @router.post(
     "/submissions/",
     response_model=SubmissionResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="create_student_submission",
-    summary="Create a submission attempt",
+    summary="Create a legacy submission attempt",
     description=(
         "Creates a new immutable code-submission attempt for the "
-        "authenticated student. Previous attempts remain stored, while "
-        "the newest accepted attempt becomes the official submission. "
+        "authenticated student. Previous attempts remain stored, "
+        "while the newest accepted attempt becomes official. "
         "This endpoint does not execute student code."
     ),
     responses={
@@ -253,7 +352,7 @@ def create_submission(
 
     verify_coding_session(
         db=db,
-        coding_session_id=submission_data.coding_session_id,
+        coding_session_id=(submission_data.coding_session_id),
         student_id=current_student.user_id,
         task_id=task.task_id,
     )
@@ -284,7 +383,7 @@ def create_submission(
             coding_session_id=(submission_data.coding_session_id),
             attempt_number=next_attempt_number,
             raw_code=submission_data.raw_code,
-            standard_input=submission_data.standard_input,
+            standard_input=(submission_data.standard_input),
             status="awaiting_review",
             is_official=True,
             accepted_at=get_utc_now(),
@@ -304,8 +403,9 @@ def create_submission(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "A submission attempt was created at the same time. "
-                "Please retry the submission."
+                "A submission attempt was created "
+                "at the same time. Please retry "
+                "the submission."
             ),
         ) from exc
 
@@ -319,16 +419,17 @@ def create_submission(
     response_model=SubmissionResponse,
     status_code=status.HTTP_200_OK,
     operation_id="get_submission",
-    summary="Get an authorized submission",
+    summary="Get an authorized legacy submission",
     description=(
-        "Students may retrieve only their own submissions. Instructors "
-        "may retrieve submissions only for tasks that they own."
+        "Students may retrieve only their own submissions. "
+        "Instructors may retrieve submissions only for tasks "
+        "that they own."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
             "description": (
-                "The authenticated user does not own or manage the "
-                "requested submission."
+                "The authenticated user does not own or manage "
+                "the requested submission."
             ),
         },
         status.HTTP_404_NOT_FOUND: {
@@ -359,17 +460,156 @@ def get_submission(
     return submission
 
 
+# ------------------------------------------------------------------
+# Pillar 7 student execution-request routes
+# ------------------------------------------------------------------
+
+
+@router.post(
+    "/requests/",
+    response_model=StudentExecutionResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="create_student_execution_request",
+    summary="Queue an execution request",
+    description=(
+        "Persists a queued run, check, or submit execution request. "
+        "The endpoint does not execute Python code and does not call "
+        "the host operating system. The execution ID may later be "
+        "forwarded to the partner-owned isolated worker adapter."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": (
+                "The activity, submission, or coding session "
+                "is unavailable to the authenticated student."
+            ),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "The execution request could not be persisted "
+                "because of a conflicting record."
+            ),
+        },
+    },
+)
+def create_execution_request_endpoint(
+    execution_data: ExecutionRequestCreate,
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+) -> StudentExecutionResponse:
+    try:
+        execution_request = create_student_execution_request(
+            db,
+            student_id=(current_student.user_id),
+            payload=execution_data,
+        )
+    except ExecutionServiceError as exc:
+        raise_execution_service_http_exception(exc)
+
+    return StudentExecutionResponse.model_validate(execution_request)
+
+
+@router.get(
+    "/requests/",
+    response_model=list[StudentExecutionResponse],
+    status_code=status.HTTP_200_OK,
+    operation_id="list_student_execution_requests",
+    summary="List my execution requests",
+    description=(
+        "Returns only execution requests belonging to the "
+        "authenticated student. Results may be filtered by activity, "
+        "request kind, or lifecycle status."
+    ),
+)
+def list_execution_requests_endpoint(
+    task_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional activity filter.",
+    ),
+    request_kind: ExecutionRequestKind | None = Query(
+        default=None,
+        description=("Optional run, check, or submit filter."),
+    ),
+    execution_status: ExecutionStatus | None = Query(
+        default=None,
+        alias="status",
+        description=("Optional execution lifecycle-status filter."),
+    ),
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+) -> list[StudentExecutionResponse]:
+    execution_requests = list_student_execution_requests(
+        db,
+        student_id=current_student.user_id,
+        task_id=task_id,
+        request_kind=request_kind,
+        status=execution_status,
+    )
+
+    return [
+        StudentExecutionResponse.model_validate(execution_request)
+        for execution_request in execution_requests
+    ]
+
+
+@router.get(
+    "/requests/{execution_id}",
+    response_model=StudentExecutionResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="get_student_execution_request",
+    summary="Get one of my execution requests",
+    description=(
+        "Returns an execution request only when it belongs "
+        "to the authenticated student. Internal worker task "
+        "identifiers are not exposed."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": (
+                "The execution request was not found for the authenticated student."
+            ),
+        },
+    },
+)
+def get_execution_request_endpoint(
+    execution_id: UUID = Path(
+        ...,
+        description="Execution-request UUID.",
+    ),
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+) -> StudentExecutionResponse:
+    try:
+        execution_request = get_student_execution_request(
+            db,
+            student_id=(current_student.user_id),
+            execution_id=str(execution_id),
+        )
+    except ExecutionServiceError as exc:
+        raise_execution_service_http_exception(exc)
+
+    return StudentExecutionResponse.model_validate(execution_request)
+
+
 # SECURITY BOUNDARY:
-# student_id always comes from the authenticated student.
-# Clients cannot create submissions on behalf of another student.
+# student_id always comes from the authenticated student. Clients cannot
+# create a submission or execution request for another student.
 
 # EXECUTION BOUNDARY:
-# This router stores code and submission metadata only. Student code must
-# never execute inside FastAPI, the React client, or the host operating
-# system. Execution requests must be handled by the isolated sandbox
-# integration owned by the execution-service partner.
+# This router validates authorization and stores source snapshots and
+# execution-request metadata only. It must never execute student Python
+# inside FastAPI, React, or the host operating system.
+
+# WORKER BOUNDARY:
+# No public route in this module may assign worker_task_id or update
+# lifecycle/result fields. The partner-owned adapter must use a trusted
+# internal integration boundary.
 
 # IMMUTABILITY BOUNDARY:
-# A resubmission creates a new Submission record. Existing source code and
-# attempt numbers are not overwritten. Only the official-attempt marker is
-# transferred to the latest accepted attempt.
+# Every execution request stores its own source and standard-input
+# snapshot. Submit requests use the immutable linked submission snapshot.
+
+# REVIEW BOUNDARY:
+# Execution output, errors, and resource-limit results support instructor
+# review. They do not automatically assign a grade or misconduct verdict.
