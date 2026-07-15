@@ -40,7 +40,7 @@ def normalize_optional_text(
     return normalized_value or None
 
 
-def normalize_due_at(
+def validate_request_due_at(
     value: datetime | None,
 ) -> datetime | None:
     if value is None:
@@ -48,6 +48,24 @@ def normalize_due_at(
 
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("Task due date must include a timezone.")
+
+    return value.astimezone(timezone.utc)
+
+
+def normalize_response_datetime(
+    value: Any,
+) -> Any:
+    if value is None:
+        return None
+
+    # Non-datetime inputs are left for Pydantic to parse.
+    if not isinstance(value, datetime):
+        return value
+
+    # SQLite may return DateTime(timezone=True) values without tzinfo.
+    # Persisted task datetimes are interpreted as UTC.
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=timezone.utc)
 
     return value.astimezone(timezone.utc)
 
@@ -110,17 +128,13 @@ class TaskBase(BaseModel):
     paste_policy: PastePolicy = Field(
         default="internal_only",
         description=(
-            "`internal_only` permits copying inside the editor while "
-            "blocking external paste. `disabled` blocks paste operations."
+            "`internal_only` permits internal editor paste. "
+            "`disabled` blocks paste operations."
         ),
     )
     is_graded: bool = Field(
         default=True,
         description=("Whether the activity accepts official graded submissions."),
-    )
-    due_at: datetime | None = Field(
-        default=None,
-        description=("Optional timezone-aware deadline normalized to UTC."),
     )
 
     model_config = ConfigDict(
@@ -140,7 +154,7 @@ class TaskBase(BaseModel):
         "instructions",
     )
     @classmethod
-    def validate_optional_text(
+    def validate_optional_text_fields(
         cls,
         value: str | None,
     ) -> str | None:
@@ -154,14 +168,6 @@ class TaskBase(BaseModel):
     ) -> dict[str, Any]:
         return validate_ast_rules(value)
 
-    @field_validator("due_at")
-    @classmethod
-    def validate_due_at(
-        cls,
-        value: datetime | None,
-    ) -> datetime | None:
-        return normalize_due_at(value)
-
 
 class TaskCreate(TaskBase):
     class_id: int = Field(
@@ -169,10 +175,21 @@ class TaskCreate(TaskBase):
         gt=0,
         description=("Classroom owned by the authenticated instructor."),
     )
+    due_at: datetime | None = Field(
+        default=None,
+        description=("Optional timezone-aware deadline normalized to UTC."),
+    )
 
-    # SECURITY BOUNDARY:
-    # instructor_id, is_published, and published_at are intentionally
-    # excluded. These values are controlled by the backend.
+    @field_validator("due_at")
+    @classmethod
+    def validate_due_at(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        return validate_request_due_at(value)
+
+    # Backend-controlled fields intentionally excluded:
+    # instructor_id, is_published, and published_at.
 
 
 class TaskUpdate(BaseModel):
@@ -202,7 +219,10 @@ class TaskUpdate(BaseModel):
     )
     paste_policy: PastePolicy | None = None
     is_graded: bool | None = None
-    due_at: datetime | None = None
+    due_at: datetime | None = Field(
+        default=None,
+        description=("Optional timezone-aware deadline normalized to UTC."),
+    )
 
     model_config = ConfigDict(
         extra="forbid",
@@ -224,7 +244,7 @@ class TaskUpdate(BaseModel):
         "instructions",
     )
     @classmethod
-    def validate_optional_text(
+    def validate_optional_text_fields(
         cls,
         value: str | None,
     ) -> str | None:
@@ -247,13 +267,13 @@ class TaskUpdate(BaseModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        return normalize_due_at(value)
+        return validate_request_due_at(value)
 
 
 class TaskPublishRequest(BaseModel):
     is_published: bool = Field(
         ...,
-        description="Publish or return the activity to draft status.",
+        description=("Publish or return the activity to draft status."),
     )
 
     model_config = ConfigDict(
@@ -261,7 +281,7 @@ class TaskPublishRequest(BaseModel):
     )
 
 
-class TaskResponse(TaskBase):
+class TaskResponseBase(BaseModel):
     task_id: int = Field(
         ...,
         gt=0,
@@ -270,41 +290,68 @@ class TaskResponse(TaskBase):
         default=None,
         gt=0,
     )
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
+    instructions: str | None = Field(
+        default=None,
+        max_length=10000,
+    )
+    activity_type: ActivityType
+    required_ast_rules: dict[str, Any] = Field(
+        default_factory=dict,
+    )
+    starter_code: str = Field(
+        default="",
+        max_length=50000,
+    )
+    paste_policy: PastePolicy
+    is_graded: bool
+    due_at: datetime | None = None
+    is_published: bool
+    published_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
+
+    @field_validator(
+        "due_at",
+        "published_at",
+        "created_at",
+        "updated_at",
+        mode="before",
+    )
+    @classmethod
+    def normalize_database_datetime(
+        cls,
+        value: Any,
+    ) -> Any:
+        return normalize_response_datetime(value)
+
+
+class TaskResponse(TaskResponseBase):
     instructor_id: int = Field(
         ...,
         gt=0,
     )
-    is_published: bool
-    published_at: datetime | None
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="forbid",
-    )
 
 
-class StudentTaskResponse(TaskBase):
-    task_id: int = Field(
-        ...,
-        gt=0,
-    )
+class StudentTaskResponse(TaskResponseBase):
     class_id: int = Field(
         ...,
         gt=0,
     )
-    is_published: bool
     published_at: datetime
-    created_at: datetime
-    updated_at: datetime
 
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="forbid",
-    )
-
-    # STUDENT-SAFE BOUNDARY:
-    # This response excludes instructor ownership internals and all
-    # task-test-case records. Hidden expected outputs must never be
-    # included in student activity responses.
+    # Student-safe boundary:
+    # instructor_id and task-test-case records are excluded.

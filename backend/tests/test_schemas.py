@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from pydantic import ValidationError
 
 from app.schemas.log_schema import BehavioralLogCreate
 from app.schemas.submission_schema import SubmissionResponse
-from app.schemas.task_schema import TaskCreate
+from app.schemas.task_schema import TaskCreate, TaskResponse
 from app.schemas.user_schema import UserCreate
 
 
@@ -14,6 +16,20 @@ VALID_USER_DATA = {
     "password": "SecurePass123!",
     "confirm_password": "SecurePass123!",
     "data_collection_acknowledged": True,
+}
+
+
+VALID_TASK_DATA = {
+    "class_id": 1,
+    "title": "Task Without AST Rules",
+    "description": "Schema validation test.",
+    "instructions": "Complete the programming task.",
+    "activity_type": "laboratory",
+    "required_ast_rules": {},
+    "starter_code": "def solve():\n    pass\n",
+    "paste_policy": "internal_only",
+    "is_graded": True,
+    "due_at": None,
 }
 
 
@@ -60,7 +76,7 @@ def test_user_cannot_supply_password_hash():
     ],
 )
 def test_school_id_must_be_exactly_ten_digits(
-    school_id,
+    school_id: str,
 ):
     with pytest.raises(ValidationError):
         UserCreate(
@@ -80,7 +96,9 @@ def test_school_id_must_be_exactly_ten_digits(
         "invalid-email",
     ],
 )
-def test_user_requires_university_email(email):
+def test_user_requires_university_email(
+    email: str,
+):
     with pytest.raises(ValidationError):
         UserCreate(
             **{
@@ -111,20 +129,140 @@ def test_data_collection_acknowledgment_is_required():
 
 
 def test_task_allows_empty_ast_rules():
-    task = TaskCreate(
-        class_id=1,
-        title="Task Without AST Rules",
-        description="Schema validation test.",
-        instructions="Complete the programming task.",
-        activity_type="laboratory",
-        required_ast_rules={},
-        starter_code="",
-        paste_policy="internal_only",
-        is_graded=True,
-        due_at=None,
-    )
+    task = TaskCreate(**VALID_TASK_DATA)
 
     assert task.required_ast_rules == {}
+
+
+def test_task_preserves_starter_code_indentation():
+    starter_code = "def solve():\n    for number in range(3):\n        print(number)\n"
+
+    task = TaskCreate(
+        **{
+            **VALID_TASK_DATA,
+            "starter_code": starter_code,
+        }
+    )
+
+    assert task.starter_code == starter_code
+
+
+def test_task_accepts_timezone_aware_due_date():
+    philippine_timezone = timezone(timedelta(hours=8))
+
+    task = TaskCreate(
+        **{
+            **VALID_TASK_DATA,
+            "due_at": datetime(
+                2026,
+                7,
+                22,
+                10,
+                0,
+                tzinfo=philippine_timezone,
+            ),
+        }
+    )
+
+    assert task.due_at is not None
+    assert task.due_at.utcoffset() == timedelta(0)
+    assert task.due_at.hour == 2
+
+
+def test_task_rejects_timezone_naive_due_date():
+    with pytest.raises(ValidationError) as error:
+        TaskCreate(
+            **{
+                **VALID_TASK_DATA,
+                "due_at": datetime(
+                    2026,
+                    7,
+                    22,
+                    10,
+                    0,
+                ),
+            }
+        )
+
+    error_locations = {item["loc"] for item in error.value.errors()}
+
+    assert ("due_at",) in error_locations
+
+
+@pytest.mark.parametrize(
+    ("field_name", "field_value"),
+    [
+        ("instructor_id", 1),
+        ("is_published", True),
+        (
+            "published_at",
+            datetime.now(timezone.utc),
+        ),
+    ],
+)
+def test_task_create_rejects_backend_controlled_fields(
+    field_name: str,
+    field_value,
+):
+    with pytest.raises(ValidationError) as error:
+        TaskCreate(
+            **{
+                **VALID_TASK_DATA,
+                field_name: field_value,
+            }
+        )
+
+    error_locations = {item["loc"] for item in error.value.errors()}
+
+    assert (field_name,) in error_locations
+
+
+def test_task_response_treats_naive_database_datetimes_as_utc():
+    naive_due_at = datetime(
+        2026,
+        7,
+        22,
+        2,
+        0,
+    )
+    naive_created_at = datetime(
+        2026,
+        7,
+        15,
+        1,
+        0,
+    )
+    naive_updated_at = datetime(
+        2026,
+        7,
+        15,
+        2,
+        0,
+    )
+
+    task = TaskResponse(
+        task_id=1,
+        class_id=1,
+        instructor_id=1,
+        title="Timezone Response Test",
+        description="Database datetime normalization test.",
+        instructions="Complete the task.",
+        activity_type="homework",
+        required_ast_rules={},
+        starter_code="print('Hello')\n",
+        paste_policy="internal_only",
+        is_graded=True,
+        due_at=naive_due_at,
+        is_published=False,
+        published_at=None,
+        created_at=naive_created_at,
+        updated_at=naive_updated_at,
+    )
+
+    assert task.due_at is not None
+    assert task.due_at.utcoffset() == timedelta(0)
+    assert task.created_at.utcoffset() == timedelta(0)
+    assert task.updated_at.utcoffset() == timedelta(0)
 
 
 def test_behavioral_log_rejects_negative_count():
