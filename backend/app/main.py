@@ -14,7 +14,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.7.0"
+APP_VERSION = "0.8.0"
 
 OPENAPI_TAGS = [
     {
@@ -42,23 +42,25 @@ OPENAPI_TAGS = [
     {
         "name": "Instructor",
         "description": (
-            "Instructor-authorized activity, test-case, submission-review, "
-            "execution-review, and academic management operations."
+            "Instructor-authorized activity, test-case, submission, "
+            "execution-request, and coding-session review operations. "
+            "Automated indicators remain review-only."
         ),
     },
     {
         "name": "Activities",
         "description": (
             "Student-safe access to published laboratory and homework "
-            "activities from active classroom enrollments."
+            "activities, public sample test cases, and student-owned "
+            "coding-session lifecycle operations."
         ),
     },
     {
         "name": "Submissions",
         "description": (
-            "Student-owned immutable submission attempts. Student identity, "
-            "attempt numbering, official-attempt state, status, and "
-            "timestamps are controlled by the backend."
+            "Student-owned immutable submission attempts. Student "
+            "identity, attempt numbering, official-attempt state, "
+            "status, and timestamps are controlled by the backend."
         ),
     },
     {
@@ -73,9 +75,10 @@ OPENAPI_TAGS = [
     {
         "name": "Behavioral Logs",
         "description": (
-            "Privacy-conscious session indicators without clipboard "
-            "contents, screen capture, webcam, microphone, browsing "
-            "history, or individual keystroke collection."
+            "Privacy-conscious aggregate session indicators without "
+            "clipboard contents, pasted text, individual keystrokes, "
+            "browsing history, screen recording, webcam, or microphone "
+            "collection."
         ),
     },
     {
@@ -95,9 +98,11 @@ app = FastAPI(
         "Backend API for the PAMSU Web-Based Python IDE with "
         "university-email authentication, OTP registration, classroom "
         "and enrollment management, activity and test-case management, "
-        "immutable submission attempts, queued execution-request "
-        "lifecycles, isolated worker integration boundaries, automated "
-        "structural analytics, and privacy-conscious session indicators."
+        "student-owned coding sessions, privacy-safe aggregate session "
+        "telemetry, immutable submission attempts, queued execution "
+        "requests, backend-controlled execution-attempt counters, "
+        "isolated worker integration boundaries, automated structural "
+        "analytics, and instructor review workflows."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
