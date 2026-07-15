@@ -43,6 +43,7 @@ def resolve_schema(
 ) -> dict[str, Any]:
     if "$ref" in schema:
         schema_name = schema["$ref"].split("/")[-1]
+
         return document["components"]["schemas"][schema_name]
 
     return schema
@@ -53,15 +54,29 @@ def get_schema_properties(
     schema_name: str,
 ) -> dict[str, Any]:
     schema = document["components"]["schemas"][schema_name]
-    properties = dict(schema.get("properties", {}))
 
-    for nested_schema in schema.get("allOf", []):
+    properties = dict(
+        schema.get(
+            "properties",
+            {},
+        )
+    )
+
+    for nested_schema in schema.get(
+        "allOf",
+        [],
+    ):
         resolved_schema = resolve_schema(
             document,
             nested_schema,
         )
 
-        properties.update(resolved_schema.get("properties", {}))
+        properties.update(
+            resolved_schema.get(
+                "properties",
+                {},
+            )
+        )
 
     return properties
 
@@ -69,10 +84,17 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
+    assert APP_VERSION == "0.6.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
-    declared_tags = {tag["name"] for tag in document.get("tags", [])}
+    declared_tags = {
+        tag["name"]
+        for tag in document.get(
+            "tags",
+            [],
+        )
+    }
 
     assert declared_tags == {
         "System",
@@ -81,6 +103,7 @@ def test_openapi_metadata_and_tags():
         "Classrooms",
         "Instructor",
         "Activities",
+        "Submissions",
         "Execution",
         "Behavioral Logs",
         "Evaluation",
@@ -101,6 +124,14 @@ def test_required_api_paths_and_status_codes():
         "/instructors/tasks/",
         "/instructors/tasks/{task_id}",
         "/instructors/tasks/{task_id}/publication",
+        "/instructors/tasks/{task_id}/submissions",
+        "/instructors/submissions/{submission_id}",
+        "/activities/",
+        "/activities/{task_id}",
+        "/activities/{task_id}/sample-test-cases",
+        "/submissions/",
+        "/submissions/official/{task_id}",
+        "/submissions/{submission_id}",
         "/execution/submissions/",
         "/execution/submissions/{sub_id}",
         "/evaluation/submissions/{sub_id}",
@@ -116,6 +147,16 @@ def test_required_api_paths_and_status_codes():
     assert "200" in paths["/registration/verify"]["post"]["responses"]
 
     assert "201" in paths["/instructors/tasks/"]["post"]["responses"]
+
+    assert "201" in paths["/submissions/"]["post"]["responses"]
+
+    assert "200" in paths["/submissions/"]["get"]["responses"]
+
+    assert "200" in paths["/submissions/official/{task_id}"]["get"]["responses"]
+
+    assert (
+        "200" in paths["/instructors/tasks/{task_id}/submissions"]["get"]["responses"]
+    )
 
     assert "201" in paths["/execution/submissions/"]["post"]["responses"]
 
@@ -146,10 +187,15 @@ def test_oauth2_password_flow_uses_login_endpoint():
     password_flows = [
         scheme["flows"]["password"]
         for scheme in oauth2_schemes
-        if "password" in scheme.get("flows", {})
+        if "password"
+        in scheme.get(
+            "flows",
+            {},
+        )
     ]
 
     assert password_flows
+
     assert any(flow["tokenUrl"] == "/login" for flow in password_flows)
 
 
@@ -157,8 +203,15 @@ def test_public_and_protected_route_boundaries():
     document = get_openapi_document()
 
     for method, path, operation in iter_operations(document):
-        route_key = (method, path)
-        security = operation.get("security", [])
+        route_key = (
+            method,
+            path,
+        )
+
+        security = operation.get(
+            "security",
+            [],
+        )
 
         if route_key in PUBLIC_OPERATIONS:
             assert security == [], f"{method.upper()} {path} should be public."
@@ -232,10 +285,50 @@ def test_task_and_submission_identity_comes_from_token():
 
     assert "instructor_id" not in task_properties
     assert "student_id" not in submission_properties
+    assert "attempt_number" not in submission_properties
+    assert "status" not in submission_properties
+    assert "is_official" not in submission_properties
+    assert "submitted_at" not in submission_properties
+    assert "accepted_at" not in submission_properties
 
     assert "class_id" in task_properties
     assert "task_id" in submission_properties
     assert "raw_code" in submission_properties
+
+
+def test_student_submission_response_respects_review_boundary():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "StudentSubmissionResponse",
+    )
+
+    assert {
+        "sub_id",
+        "task_id",
+        "coding_session_id",
+        "attempt_number",
+        "raw_code",
+        "standard_input",
+        "status",
+        "is_official",
+        "submitted_at",
+        "accepted_at",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "student_id",
+        "jaccard_score",
+        "ast_pass_fail",
+        "official_grade",
+        "automatic_grade",
+        "misconduct_verdict",
+        "plagiarism_verdict",
+        "behavior_score",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
 
 
 def test_behavioral_log_contract_respects_privacy_boundary():
