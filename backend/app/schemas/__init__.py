@@ -1,3 +1,18 @@
+from app.schemas.classroom_schema import (
+    ClassroomBase,
+    ClassroomCodeResponse,
+    ClassroomCreate,
+    ClassroomResponse,
+    ClassroomUpdate,
+)
+from app.schemas.enrollment_schema import (
+    ClassMemberResponse,
+    EnrollmentJoinRequest,
+    EnrollmentResponse,
+    EnrollmentStatus,
+    EnrollmentStatusUpdate,
+    StudentClassroomResponse,
+)
 from app.schemas.log_schema import (
     BehavioralLogBase,
     BehavioralLogCreate,
@@ -41,6 +56,16 @@ __all__ = [
     "BehavioralLogCreate",
     "BehavioralLogResponse",
     "BehavioralLogUpdate",
+    "ClassMemberResponse",
+    "ClassroomBase",
+    "ClassroomCodeResponse",
+    "ClassroomCreate",
+    "ClassroomResponse",
+    "ClassroomUpdate",
+    "EnrollmentJoinRequest",
+    "EnrollmentResponse",
+    "EnrollmentStatus",
+    "EnrollmentStatusUpdate",
     "OTPChallengeResponse",
     "OTPPurpose",
     "OTPResendRequest",
@@ -49,6 +74,7 @@ __all__ = [
     "PastePolicy",
     "RegistrationCompleteResponse",
     "RegistrationStartRequest",
+    "StudentClassroomResponse",
     "SubmissionBase",
     "SubmissionCreate",
     "SubmissionResponse",
