@@ -37,11 +37,19 @@ from app.schemas.submission_schema import (
 from app.schemas.task_schema import (
     ActivityType,
     PastePolicy,
+    StudentTaskResponse,
     TaskBase,
     TaskCreate,
     TaskPublishRequest,
     TaskResponse,
     TaskUpdate,
+)
+from app.schemas.task_test_case_schema import (
+    InstructorTaskTestCaseResponse,
+    StudentSampleTestCaseResponse,
+    TaskTestCaseBase,
+    TaskTestCaseCreate,
+    TaskTestCaseUpdate,
 )
 from app.schemas.user_schema import (
     UNIVERSITY_EMAIL_DOMAIN,
@@ -66,6 +74,7 @@ __all__ = [
     "EnrollmentResponse",
     "EnrollmentStatus",
     "EnrollmentStatusUpdate",
+    "InstructorTaskTestCaseResponse",
     "OTPChallengeResponse",
     "OTPPurpose",
     "OTPResendRequest",
@@ -75,6 +84,8 @@ __all__ = [
     "RegistrationCompleteResponse",
     "RegistrationStartRequest",
     "StudentClassroomResponse",
+    "StudentSampleTestCaseResponse",
+    "StudentTaskResponse",
     "SubmissionBase",
     "SubmissionCreate",
     "SubmissionResponse",
@@ -83,6 +94,9 @@ __all__ = [
     "TaskCreate",
     "TaskPublishRequest",
     "TaskResponse",
+    "TaskTestCaseBase",
+    "TaskTestCaseCreate",
+    "TaskTestCaseUpdate",
     "TaskUpdate",
     "UNIVERSITY_EMAIL_DOMAIN",
     "UserBase",

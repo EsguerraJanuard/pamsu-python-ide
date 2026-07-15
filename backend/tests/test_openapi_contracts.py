@@ -80,6 +80,7 @@ def test_openapi_metadata_and_tags():
         "Registration",
         "Classrooms",
         "Instructor",
+        "Activities",
         "Execution",
         "Behavioral Logs",
         "Evaluation",

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status
 
 from app.routers import (
+    activities,
     auth,
     classrooms,
     evaluation,
@@ -12,7 +13,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.5.0"
 
 OPENAPI_TAGS = [
     {
@@ -40,7 +41,15 @@ OPENAPI_TAGS = [
     {
         "name": "Instructor",
         "description": (
-            "Instructor-authorized task and academic-management operations."
+            "Instructor-authorized activity, test-case, and academic "
+            "management operations."
+        ),
+    },
+    {
+        "name": "Activities",
+        "description": (
+            "Student-safe access to published laboratory and homework "
+            "activities from active classroom enrollments."
         ),
     },
     {
@@ -62,9 +71,8 @@ OPENAPI_TAGS = [
     {
         "name": "Evaluation",
         "description": (
-            "AST and similarity indicators intended only for "
-            "instructor review. These indicators do not automatically "
-            "assign grades."
+            "AST and similarity indicators intended only for instructor "
+            "review. These indicators do not automatically assign grades."
         ),
     },
 ]
@@ -75,9 +83,10 @@ app = FastAPI(
     description=(
         "Backend API for the PAMSU Web-Based Python IDE with "
         "university-email authentication, OTP registration, classroom "
-        "and enrollment management, submission management, isolated "
-        "execution integration boundaries, automated structural "
-        "analytics, and privacy-conscious session indicators."
+        "and enrollment management, activity and test-case management, "
+        "submission management, isolated execution integration boundaries, "
+        "automated structural analytics, and privacy-conscious session "
+        "indicators."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -91,6 +100,7 @@ app.include_router(auth.router)
 app.include_router(registration.router)
 app.include_router(classrooms.router)
 app.include_router(instructor.router)
+app.include_router(activities.router)
 app.include_router(execution.router)
 app.include_router(logs.router)
 app.include_router(evaluation.router)
