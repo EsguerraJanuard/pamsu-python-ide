@@ -14,7 +14,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.6.0"
+APP_VERSION = "0.7.0"
 
 OPENAPI_TAGS = [
     {
@@ -43,7 +43,7 @@ OPENAPI_TAGS = [
         "name": "Instructor",
         "description": (
             "Instructor-authorized activity, test-case, submission-review, "
-            "and academic management operations."
+            "execution-review, and academic management operations."
         ),
     },
     {
@@ -64,9 +64,10 @@ OPENAPI_TAGS = [
     {
         "name": "Execution",
         "description": (
-            "Submission records and execution-request operations. "
-            "Student code must run only through the isolated sandbox "
-            "service."
+            "Student-owned run, check, and submit execution-request "
+            "snapshots. FastAPI persists and authorizes requests only. "
+            "Student Python code must execute exclusively through the "
+            "partner-owned isolated sandbox worker."
         ),
     },
     {
@@ -81,7 +82,8 @@ OPENAPI_TAGS = [
         "name": "Evaluation",
         "description": (
             "AST and similarity indicators intended only for instructor "
-            "review. These indicators do not automatically assign grades."
+            "review. These indicators do not automatically assign grades "
+            "or misconduct verdicts."
         ),
     },
 ]
@@ -93,9 +95,9 @@ app = FastAPI(
         "Backend API for the PAMSU Web-Based Python IDE with "
         "university-email authentication, OTP registration, classroom "
         "and enrollment management, activity and test-case management, "
-        "immutable submission-attempt workflows, isolated execution "
-        "integration boundaries, automated structural analytics, and "
-        "privacy-conscious session indicators."
+        "immutable submission attempts, queued execution-request "
+        "lifecycles, isolated worker integration boundaries, automated "
+        "structural analytics, and privacy-conscious session indicators."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,

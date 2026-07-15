@@ -1,4 +1,5 @@
 from typing import NoReturn
+from uuid import UUID
 
 from fastapi import (
     APIRouter,
@@ -18,6 +19,11 @@ from app.models.domain_models import (
     TaskTestCase,
     User,
 )
+from app.schemas.execution_schema import (
+    ExecutionRequestKind,
+    ExecutionStatus,
+    InstructorExecutionResponse,
+)
 from app.schemas.submission_schema import (
     InstructorSubmissionResponse,
     SubmissionStatus,
@@ -33,6 +39,14 @@ from app.schemas.task_test_case_schema import (
     InstructorTaskTestCaseResponse,
     TaskTestCaseCreate,
     TaskTestCaseUpdate,
+)
+from app.services.execution_service import (
+    ExecutionAccessDeniedError,
+    ExecutionPersistenceError,
+    ExecutionRequestNotFoundError,
+    ExecutionServiceError,
+    get_instructor_execution_request as get_instructor_execution_request_service,
+    list_instructor_task_execution_requests,
 )
 from app.services.submission_service import (
     SubmissionAccessDeniedError,
@@ -148,13 +162,49 @@ def raise_submission_service_http_exception(
         SubmissionPersistenceError,
     ):
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
             detail=str(exc),
         ) from exc
 
     raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
         detail=("The submission review operation could not be completed."),
+    ) from exc
+
+
+def raise_execution_service_http_exception(
+    exc: ExecutionServiceError,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        ExecutionRequestNotFoundError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ExecutionAccessDeniedError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ExecutionPersistenceError,
+    ):
+        raise HTTPException(
+            status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+            detail=str(exc),
+        ) from exc
+
+    raise HTTPException(
+        status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+        detail=("The execution review operation could not be completed."),
     ) from exc
 
 
@@ -165,9 +215,10 @@ def raise_submission_service_http_exception(
     operation_id="create_instructor_task",
     summary="Create an activity",
     description=(
-        "Creates a draft laboratory or homework activity inside an active "
-        "classroom owned by the authenticated instructor. Instructor identity, "
-        "publication state, and publication timestamp are backend-controlled."
+        "Creates a draft laboratory or homework activity inside an "
+        "active classroom owned by the authenticated instructor. "
+        "Instructor identity, publication state, and publication "
+        "timestamp are backend-controlled."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -297,9 +348,9 @@ def get_task_endpoint(
     operation_id="update_instructor_task",
     summary="Update an instructor activity",
     description=(
-        "Updates selected activity fields. Moving an activity to another "
-        "classroom is permitted only when that classroom is active and owned "
-        "by the authenticated instructor."
+        "Updates selected activity fields. Moving an activity to "
+        "another classroom is permitted only when that classroom "
+        "is active and owned by the authenticated instructor."
     ),
     responses={
         status.HTTP_400_BAD_REQUEST: {
@@ -315,8 +366,8 @@ def get_task_endpoint(
         },
         status.HTTP_409_CONFLICT: {
             "description": (
-                "The destination classroom is inactive or the update "
-                "would invalidate a published activity."
+                "The destination classroom is inactive or the "
+                "update would invalidate a published activity."
             ),
         },
     },
@@ -411,9 +462,9 @@ def update_task_publication_endpoint(
     operation_id="create_task_test_case",
     summary="Create an activity test case",
     description=(
-        "Creates a public sample or hidden test case for an activity owned "
-        "by the authenticated instructor. Hidden inputs and expected outputs "
-        "remain instructor-only."
+        "Creates a public sample or hidden test case for an activity "
+        "owned by the authenticated instructor. Hidden inputs and "
+        "expected outputs remain instructor-only."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -538,8 +589,8 @@ def get_task_test_case_endpoint(
     operation_id="update_task_test_case",
     summary="Update an activity test case",
     description=(
-        "Updates a public or hidden test case belonging to an activity "
-        "owned by the authenticated instructor."
+        "Updates a public or hidden test case belonging to an "
+        "activity owned by the authenticated instructor."
     ),
     responses={
         status.HTTP_400_BAD_REQUEST: {
@@ -629,9 +680,9 @@ def delete_task_test_case_endpoint(
     operation_id="list_instructor_task_submissions",
     summary="List submissions for an activity",
     description=(
-        "Returns submission attempts only for an activity belonging to "
-        "the authenticated instructor. Results may be filtered by student, "
-        "workflow status, or official-attempt state."
+        "Returns submission attempts only for an activity belonging "
+        "to the authenticated instructor. Results may be filtered by "
+        "student, workflow status, or official-attempt state."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -694,12 +745,12 @@ def list_task_submissions_endpoint(
     responses={
         status.HTTP_403_FORBIDDEN: {
             "description": (
-                "The submission belongs to another instructor's activity "
-                "or is unavailable."
+                "The submission belongs to another instructor's "
+                "activity or is unavailable."
             ),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The submission does not exist.",
+            "description": ("The submission does not exist."),
         },
     },
 )
@@ -724,23 +775,126 @@ def get_submission_endpoint(
     return InstructorSubmissionResponse.model_validate(submission)
 
 
+@router.get(
+    "/tasks/{task_id}/execution-requests",
+    response_model=list[InstructorExecutionResponse],
+    status_code=status.HTTP_200_OK,
+    operation_id="list_instructor_task_execution_requests",
+    summary="List execution requests for an activity",
+    description=(
+        "Returns execution requests only for an activity belonging "
+        "to the authenticated instructor. Results may be filtered by "
+        "student, request kind, or lifecycle status."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": ("The activity belongs to another instructor."),
+        },
+    },
+)
+def list_task_execution_requests_endpoint(
+    task_id: int = Path(
+        ...,
+        gt=0,
+        description="Activity identifier.",
+    ),
+    student_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional student identifier filter.",
+    ),
+    request_kind: ExecutionRequestKind | None = Query(
+        default=None,
+        description=("Optional run, check, or submit filter."),
+    ),
+    execution_status: ExecutionStatus | None = Query(
+        default=None,
+        alias="status",
+        description=("Optional execution lifecycle-status filter."),
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> list[InstructorExecutionResponse]:
+    try:
+        execution_requests = list_instructor_task_execution_requests(
+            db,
+            instructor_id=(current_instructor.user_id),
+            task_id=task_id,
+            student_id=student_id,
+            request_kind=request_kind,
+            status=execution_status,
+        )
+    except ExecutionServiceError as exc:
+        raise_execution_service_http_exception(exc)
+
+    return [
+        InstructorExecutionResponse.model_validate(execution_request)
+        for execution_request in execution_requests
+    ]
+
+
+@router.get(
+    "/execution-requests/{execution_id}",
+    response_model=InstructorExecutionResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="get_instructor_execution_request",
+    summary="Get an execution request for review",
+    description=(
+        "Returns an execution request only when its activity belongs "
+        "to the authenticated instructor. Worker task identifiers are "
+        "not exposed through this instructor-facing response."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The execution request belongs to another "
+                "instructor's activity or is unavailable."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("The execution request does not exist."),
+        },
+    },
+)
+def get_execution_request_endpoint(
+    execution_id: UUID = Path(
+        ...,
+        description="Execution-request UUID.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> InstructorExecutionResponse:
+    try:
+        execution_request = get_instructor_execution_request_service(
+            db,
+            instructor_id=(current_instructor.user_id),
+            execution_id=str(execution_id),
+        )
+    except ExecutionServiceError as exc:
+        raise_execution_service_http_exception(exc)
+
+    return InstructorExecutionResponse.model_validate(execution_request)
+
+
 # SECURITY BOUNDARY:
 # instructor_id always comes from the authenticated instructor.
-# Clients cannot create or modify activities, test cases, or review
-# submissions belonging to another user.
+# Clients cannot create or modify activities, test cases, submissions,
+# or execution requests belonging to another user.
 
 # TEST-CASE PRIVACY BOUNDARY:
 # This instructor router may expose public and hidden test cases only
-# to the instructor who owns the associated activity. Student-facing
-# routes must use a separate response that excludes all hidden records.
+# to the instructor who owns the associated activity.
 
 # PUBLICATION BOUNDARY:
 # Publication state and published_at are controlled by the backend.
-# Clients cannot directly assign publication timestamps.
 
 # SUBMISSION IMMUTABILITY BOUNDARY:
-# Instructor routes in this module are read-only for submission source,
-# student ownership, task ownership, attempt number, and timestamps.
+# Instructor routes are read-only for submission source, ownership,
+# attempt number, and timestamps.
+
+# EXECUTION BOUNDARY:
+# Instructor execution routes are read-only. They do not execute code,
+# queue worker tasks, or update worker lifecycle/result fields.
 
 # REVIEW BOUNDARY:
 # Test cases, AST results, similarity indicators, execution results,

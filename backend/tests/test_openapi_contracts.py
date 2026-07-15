@@ -84,7 +84,7 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
-    assert APP_VERSION == "0.6.0"
+    assert APP_VERSION == "0.7.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
@@ -121,11 +121,16 @@ def test_required_api_paths_and_status_codes():
         "/registration/start",
         "/registration/verify",
         "/registration/resend",
+        "/classrooms/",
+        "/classrooms/join",
+        "/classrooms/mine",
         "/instructors/tasks/",
         "/instructors/tasks/{task_id}",
         "/instructors/tasks/{task_id}/publication",
         "/instructors/tasks/{task_id}/submissions",
         "/instructors/submissions/{submission_id}",
+        "/instructors/tasks/{task_id}/execution-requests",
+        "/instructors/execution-requests/{execution_id}",
         "/activities/",
         "/activities/{task_id}",
         "/activities/{task_id}/sample-test-cases",
@@ -134,6 +139,8 @@ def test_required_api_paths_and_status_codes():
         "/submissions/{submission_id}",
         "/execution/submissions/",
         "/execution/submissions/{sub_id}",
+        "/execution/requests/",
+        "/execution/requests/{execution_id}",
         "/evaluation/submissions/{sub_id}",
         "/logs/behavioral/",
         "/logs/behavioral/{log_id}",
@@ -150,12 +157,13 @@ def test_required_api_paths_and_status_codes():
 
     assert "201" in paths["/submissions/"]["post"]["responses"]
 
-    assert "200" in paths["/submissions/"]["get"]["responses"]
+    assert "201" in paths["/execution/requests/"]["post"]["responses"]
 
-    assert "200" in paths["/submissions/official/{task_id}"]["get"]["responses"]
+    assert "200" in paths["/execution/requests/"]["get"]["responses"]
 
     assert (
-        "200" in paths["/instructors/tasks/{task_id}/submissions"]["get"]["responses"]
+        "200"
+        in paths["/instructors/tasks/{task_id}/execution-requests"]["get"]["responses"]
     )
 
     assert "201" in paths["/execution/submissions/"]["post"]["responses"]
@@ -270,7 +278,7 @@ def test_otp_challenge_response_never_exposes_plaintext_code():
     assert "password_hash" not in properties
 
 
-def test_task_and_submission_identity_comes_from_token():
+def test_task_submission_and_execution_identity_comes_from_token():
     document = get_openapi_document()
 
     task_properties = get_schema_properties(
@@ -283,7 +291,13 @@ def test_task_and_submission_identity_comes_from_token():
         "SubmissionCreate",
     )
 
+    execution_properties = get_schema_properties(
+        document,
+        "ExecutionRequestCreate",
+    )
+
     assert "instructor_id" not in task_properties
+
     assert "student_id" not in submission_properties
     assert "attempt_number" not in submission_properties
     assert "status" not in submission_properties
@@ -291,9 +305,28 @@ def test_task_and_submission_identity_comes_from_token():
     assert "submitted_at" not in submission_properties
     assert "accepted_at" not in submission_properties
 
+    assert "student_id" not in execution_properties
+    assert "execution_id" not in execution_properties
+    assert "status" not in execution_properties
+    assert "stdout" not in execution_properties
+    assert "stderr" not in execution_properties
+    assert "exit_code" not in execution_properties
+    assert "execution_time_ms" not in execution_properties
+    assert "limit_reason" not in execution_properties
+    assert "worker_task_id" not in execution_properties
+    assert "queued_at" not in execution_properties
+    assert "started_at" not in execution_properties
+    assert "completed_at" not in execution_properties
+
     assert "class_id" in task_properties
+
     assert "task_id" in submission_properties
     assert "raw_code" in submission_properties
+
+    assert "request_kind" in execution_properties
+    assert "task_id" in execution_properties
+    assert "source_code" in execution_properties
+    assert "standard_input" in execution_properties
 
 
 def test_student_submission_response_respects_review_boundary():
@@ -321,6 +354,46 @@ def test_student_submission_response_respects_review_boundary():
         "student_id",
         "jaccard_score",
         "ast_pass_fail",
+        "official_grade",
+        "automatic_grade",
+        "misconduct_verdict",
+        "plagiarism_verdict",
+        "behavior_score",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+
+def test_student_execution_response_hides_internal_worker_identity():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "StudentExecutionResponse",
+    )
+
+    assert {
+        "execution_id",
+        "task_id",
+        "submission_id",
+        "coding_session_id",
+        "request_kind",
+        "status",
+        "source_code",
+        "standard_input",
+        "stdout",
+        "stderr",
+        "exit_code",
+        "execution_time_ms",
+        "limit_reason",
+        "queued_at",
+        "started_at",
+        "completed_at",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "student_id",
+        "worker_task_id",
         "official_grade",
         "automatic_grade",
         "misconduct_verdict",
