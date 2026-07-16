@@ -23,6 +23,9 @@ from app.schemas.coding_session_schema import (
     CodingSessionStartRequest,
     StudentCodingSessionResponse,
 )
+from app.schemas.gradebook_schema import (
+    StudentReleasedGradeListResponse,
+)
 from app.schemas.task_schema import (
     ActivityType,
     StudentTaskResponse,
@@ -44,6 +47,11 @@ from app.services.coding_session_service import (
     list_student_coding_sessions as list_student_coding_sessions_service,
     start_or_resume_student_coding_session,
     update_student_coding_session_activity as update_student_coding_session_activity_service,
+)
+from app.services.gradebook_service import (
+    GradebookPaginationError,
+    GradebookServiceError,
+    list_student_released_grades,
 )
 from app.services.task_service import (
     StudentTaskUnavailableError,
@@ -128,6 +136,24 @@ def raise_coding_session_http_exception(
     ) from exc
 
 
+def raise_student_gradebook_http_exception(
+    exc: GradebookServiceError,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        GradebookPaginationError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=("The released-grade list could not be loaded."),
+    ) from exc
+
+
 @router.get(
     "/",
     response_model=list[StudentTaskResponse],
@@ -160,6 +186,66 @@ def list_student_activities_endpoint(
         class_id=class_id,
         activity_type=activity_type,
     )
+
+
+@router.get(
+    "/released-grades",
+    response_model=StudentReleasedGradeListResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="list_student_released_grades",
+    summary="List my released grades",
+    description=(
+        "Returns only manually assigned grades that have been released "
+        "for official submissions belonging to the authenticated "
+        "student. Unreleased grades, instructor identity, internal "
+        "grade identifiers, source code, AST details, similarity "
+        "records, execution output, and session telemetry are excluded."
+    ),
+)
+def list_released_grades_endpoint(
+    page: int = Query(
+        default=1,
+        ge=1,
+        description="One-based page number.",
+    ),
+    page_size: int = Query(
+        default=25,
+        ge=1,
+        le=100,
+        description=("Number of released-grade records per page."),
+    ),
+    class_id: int | None = Query(
+        default=None,
+        gt=0,
+        description=(
+            "Optional classroom filter applied only to "
+            "the student's own released grades."
+        ),
+    ),
+    task_id: int | None = Query(
+        default=None,
+        gt=0,
+        description=(
+            "Optional activity filter applied only to "
+            "the student's own released grades."
+        ),
+    ),
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+) -> StudentReleasedGradeListResponse:
+    try:
+        result = list_student_released_grades(
+            db,
+            student_id=current_student.user_id,
+            page=page,
+            page_size=page_size,
+            class_id=class_id,
+            task_id=task_id,
+        )
+    except GradebookServiceError as exc:
+        raise_student_gradebook_http_exception(exc)
+
+    return StudentReleasedGradeListResponse.model_validate(result)
 
 
 # ------------------------------------------------------------------
@@ -483,6 +569,12 @@ def get_student_activity_endpoint(
 # EXECUTION BOUNDARY:
 # These routes never execute starter code, test cases, or student Python.
 # Code execution remains exclusive to the isolated worker integration.
+
+# RELEASED-GRADE VISIBILITY BOUNDARY:
+# Students receive only their own released manual grades for official
+# submissions. Unreleased grades, instructor identity, internal grade
+# identifiers, source code, AST and similarity details, execution output,
+# hidden test cases, and session telemetry are excluded.
 
 # REVIEW BOUNDARY:
 # Session counters and timestamps are review indicators only. They do not
