@@ -14,7 +14,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.9.0"
+APP_VERSION = "0.10.0"
 
 OPENAPI_TAGS = [
     {
@@ -43,16 +43,19 @@ OPENAPI_TAGS = [
         "name": "Instructor",
         "description": (
             "Instructor-authorized activity, test-case, submission, "
-            "execution-request, coding-session, evaluation, and manual "
-            "grading operations. Automated indicators remain review-only."
+            "execution-request, coding-session, evaluation, review-queue, "
+            "gradebook, and manual grading operations. Review and gradebook "
+            "summaries exclude source code and sensitive analytics. "
+            "Automated indicators remain review-only."
         ),
     },
     {
         "name": "Activities",
         "description": (
             "Student-safe access to published laboratory and homework "
-            "activities, public sample test cases, and student-owned "
-            "coding-session lifecycle operations."
+            "activities, public sample test cases, student-owned "
+            "coding-session lifecycle operations, and the authenticated "
+            "student's own released manual grades."
         ),
     },
     {
@@ -104,9 +107,10 @@ app = FastAPI(
         "telemetry, immutable submission attempts, queued execution "
         "requests, backend-controlled execution-attempt counters, "
         "isolated worker integration boundaries, static structural and "
-        "source-similarity analytics, student-safe released-grade "
-        "visibility, explicit evaluation-status control, and manual "
-        "instructor grading workflows."
+        "source-similarity analytics, instructor-owned paginated review "
+        "queues, privacy-safe gradebook summaries, student-safe released "
+        "manual-grade lists, explicit evaluation-status control, and "
+        "manual instructor grading workflows."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,

@@ -27,6 +27,16 @@ from app.schemas.execution_schema import (
     ExecutionStatus,
     InstructorExecutionResponse,
 )
+from app.schemas.gradebook_schema import (
+    GradebookSortDirection,
+    GradebookSortField,
+    InstructorGradebookResponse,
+)
+from app.schemas.review_queue_schema import (
+    InstructorReviewQueueResponse,
+    ReviewQueueSortField,
+    SortDirection,
+)
 from app.schemas.submission_schema import (
     InstructorSubmissionResponse,
     SubmissionStatus,
@@ -58,6 +68,24 @@ from app.services.execution_service import (
     ExecutionServiceError,
     get_instructor_execution_request as get_instructor_execution_request_service,
     list_instructor_task_execution_requests,
+)
+from app.services.gradebook_service import (
+    GradebookAccessDeniedError,
+    GradebookClassNotFoundError,
+    GradebookFilterConflictError,
+    GradebookPaginationError,
+    GradebookServiceError,
+    GradebookTaskNotFoundError,
+    list_instructor_gradebook,
+)
+from app.services.review_queue_service import (
+    ReviewQueueAccessDeniedError,
+    ReviewQueueClassNotFoundError,
+    ReviewQueueFilterConflictError,
+    ReviewQueuePaginationError,
+    ReviewQueueServiceError,
+    ReviewQueueTaskNotFoundError,
+    list_instructor_review_queue,
 )
 from app.services.submission_service import (
     SubmissionAccessDeniedError,
@@ -253,6 +281,316 @@ def raise_execution_service_http_exception(
         status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
         detail=("The execution review operation could not be completed."),
     ) from exc
+
+
+def raise_review_queue_service_http_exception(
+    exc: ReviewQueueServiceError,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        (
+            ReviewQueueClassNotFoundError,
+            ReviewQueueTaskNotFoundError,
+        ),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ReviewQueueAccessDeniedError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ReviewQueueFilterConflictError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ReviewQueuePaginationError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=("The instructor review queue could not be loaded."),
+    ) from exc
+
+
+def raise_gradebook_service_http_exception(
+    exc: GradebookServiceError,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        (
+            GradebookClassNotFoundError,
+            GradebookTaskNotFoundError,
+        ),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        GradebookAccessDeniedError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        GradebookFilterConflictError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        GradebookPaginationError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=("The instructor gradebook could not be loaded."),
+    ) from exc
+
+
+@router.get(
+    "/review-queue",
+    response_model=InstructorReviewQueueResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="list_instructor_review_queue",
+    summary="List the instructor review queue",
+    description=(
+        "Returns a paginated summary of submissions belonging only "
+        "to classrooms and activities owned by the authenticated "
+        "instructor. Summary rows exclude raw source code, standard "
+        "input, full AST findings, similarity comparison details, "
+        "execution output, and coding-session telemetry."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "A selected classroom or activity belongs to another instructor."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("A selected classroom or activity does not exist."),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "The selected classroom and activity filters "
+                "do not refer to the same resource hierarchy."
+            ),
+        },
+    },
+)
+def list_review_queue_endpoint(
+    page: int = Query(
+        default=1,
+        ge=1,
+        description="One-based page number.",
+    ),
+    page_size: int = Query(
+        default=25,
+        ge=1,
+        le=100,
+        description=("Number of review-queue rows per page."),
+    ),
+    class_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional owned-classroom filter.",
+    ),
+    task_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional owned-activity filter.",
+    ),
+    student_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional student filter.",
+    ),
+    submission_status: SubmissionStatus | None = Query(
+        default=None,
+        alias="status",
+        description="Optional submission-status filter.",
+    ),
+    official: bool | None = Query(
+        default=None,
+        description=("Optional official or historical-attempt filter."),
+    ),
+    grade_released: bool | None = Query(
+        default=None,
+        description=(
+            "When supplied, return submissions with an existing "
+            "manual grade matching the requested release state."
+        ),
+    ),
+    sort_by: ReviewQueueSortField = Query(
+        default="submitted_at",
+        description="Review-queue sort field.",
+    ),
+    sort_direction: SortDirection = Query(
+        default="desc",
+        description="Ascending or descending sort direction.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> InstructorReviewQueueResponse:
+    try:
+        result = list_instructor_review_queue(
+            db,
+            instructor_id=current_instructor.user_id,
+            page=page,
+            page_size=page_size,
+            class_id=class_id,
+            task_id=task_id,
+            student_id=student_id,
+            submission_status=submission_status,
+            official=official,
+            grade_released=grade_released,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+        )
+    except ReviewQueueServiceError as exc:
+        raise_review_queue_service_http_exception(exc)
+
+    return InstructorReviewQueueResponse.model_validate(result)
+
+
+@router.get(
+    "/gradebook",
+    response_model=InstructorGradebookResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="list_instructor_gradebook",
+    summary="List the instructor gradebook",
+    description=(
+        "Returns a paginated manual-grade summary for submissions "
+        "belonging only to classrooms and activities owned by the "
+        "authenticated instructor. Automated AST, similarity, "
+        "execution, and session indicators never populate grades."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "A selected classroom or activity belongs to another instructor."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("A selected classroom or activity does not exist."),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": ("The supplied filters conflict with each other."),
+        },
+    },
+)
+def list_gradebook_endpoint(
+    page: int = Query(
+        default=1,
+        ge=1,
+        description="One-based page number.",
+    ),
+    page_size: int = Query(
+        default=25,
+        ge=1,
+        le=100,
+        description="Number of gradebook rows per page.",
+    ),
+    class_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional owned-classroom filter.",
+    ),
+    task_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional owned-activity filter.",
+    ),
+    student_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Optional student filter.",
+    ),
+    submission_status: SubmissionStatus | None = Query(
+        default=None,
+        alias="status",
+        description="Optional submission-status filter.",
+    ),
+    official: bool | None = Query(
+        default=True,
+        description=(
+            "Defaults to official attempts. Set to false for "
+            "historical attempts or omit with an explicit null-capable "
+            "client to include both states."
+        ),
+    ),
+    has_manual_grade: bool | None = Query(
+        default=None,
+        description=(
+            "Optional filter for rows with or without a manual instructor grade."
+        ),
+    ),
+    grade_released: bool | None = Query(
+        default=None,
+        description=("Optional manual-grade release-state filter."),
+    ),
+    sort_by: GradebookSortField = Query(
+        default="student_name",
+        description="Gradebook sort field.",
+    ),
+    sort_direction: GradebookSortDirection = Query(
+        default="asc",
+        description="Ascending or descending sort direction.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> InstructorGradebookResponse:
+    try:
+        result = list_instructor_gradebook(
+            db,
+            instructor_id=current_instructor.user_id,
+            page=page,
+            page_size=page_size,
+            class_id=class_id,
+            task_id=task_id,
+            student_id=student_id,
+            submission_status=submission_status,
+            official=official,
+            has_manual_grade=has_manual_grade,
+            grade_released=grade_released,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+        )
+    except GradebookServiceError as exc:
+        raise_gradebook_service_http_exception(exc)
+
+    return InstructorGradebookResponse.model_validate(result)
 
 
 @router.post(
@@ -1047,6 +1385,12 @@ def get_execution_request_endpoint(
 # EXECUTION BOUNDARY:
 # Instructor execution routes are read-only. They do not execute code,
 # queue worker tasks, or update worker lifecycle/result fields.
+
+# REVIEW-QUEUE AND GRADEBOOK PRIVACY BOUNDARY:
+# Summary endpoints exclude raw source code, standard input, hidden test
+# cases, full AST findings, similarity comparison records, execution
+# output, coding-session telemetry, and surveillance data. Gradebook
+# values come only from manually created instructor-grade records.
 
 # REVIEW BOUNDARY:
 # Test cases, AST results, similarity indicators, execution results,
