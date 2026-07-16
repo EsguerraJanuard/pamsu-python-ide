@@ -14,7 +14,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.8.0"
+APP_VERSION = "0.9.0"
 
 OPENAPI_TAGS = [
     {
@@ -43,8 +43,8 @@ OPENAPI_TAGS = [
         "name": "Instructor",
         "description": (
             "Instructor-authorized activity, test-case, submission, "
-            "execution-request, and coding-session review operations. "
-            "Automated indicators remain review-only."
+            "execution-request, coding-session, evaluation, and manual "
+            "grading operations. Automated indicators remain review-only."
         ),
     },
     {
@@ -84,9 +84,11 @@ OPENAPI_TAGS = [
     {
         "name": "Evaluation",
         "description": (
-            "AST and similarity indicators intended only for instructor "
-            "review. These indicators do not automatically assign grades "
-            "or misconduct verdicts."
+            "Static AST and source-similarity indicators for authorized "
+            "instructor review, student-safe released-grade viewing, "
+            "explicit review-status updates, and manual instructor "
+            "grading. Automated indicators never assign official grades "
+            "or determine plagiarism, cheating, copying, or misconduct."
         ),
     },
 ]
@@ -101,8 +103,10 @@ app = FastAPI(
         "student-owned coding sessions, privacy-safe aggregate session "
         "telemetry, immutable submission attempts, queued execution "
         "requests, backend-controlled execution-attempt counters, "
-        "isolated worker integration boundaries, automated structural "
-        "analytics, and instructor review workflows."
+        "isolated worker integration boundaries, static structural and "
+        "source-similarity analytics, student-safe released-grade "
+        "visibility, explicit evaluation-status control, and manual "
+        "instructor grading workflows."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
