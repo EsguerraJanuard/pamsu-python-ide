@@ -15,86 +15,150 @@ These repository files are the authoritative source of truth.
 
 ## Current Repository State
 
-Current local working branch: `review/backend-p10-review-queue-gradebook`
+Current local working branch: `review/backend-p11-notification-workflow`
 
 Backend version: `0.10.0`
 
-Completed pillars:
-
-- Pillar 1 — Core security and domain foundations
-- Pillar 2 — OTP registration workflow
-- Pillar 3 — API and OpenAPI contracts
-- Pillar 4 — Classrooms and enrollment
-- Pillar 5 — Activities and test cases
-- Pillar 6 — Immutable submissions
-- Pillar 7 — Execution requests
-- Pillar 8 — Coding sessions and privacy-safe telemetry
-- Pillar 9 — Structural evaluation review and manual grading
-
-Current implementation:
+Last completed pillar:
 
 - Pillar 10 — Instructor Review Queue and Gradebook APIs
 
-Implemented endpoints:
+Current work in progress:
 
-- `GET /instructors/review-queue`
-- `GET /instructors/gradebook`
-- `GET /activities/released-grades`
+- Pillar 11 — In-App Notification and Academic Event Workflow
+- Target backend version: `0.11.0`
 
-Pillar 10 includes:
+The current review branch must remain local.
 
-- instructor-owned review queues;
-- instructor-owned gradebook summaries;
-- bounded pagination;
-- filtering and deterministic sorting;
-- student access to their own released manual grades;
-- no raw source code in summary endpoints;
-- no unreleased grade exposure to students;
-- no automatic grading, plagiarism, cheating, or misconduct verdicts.
+Do not merge into `dev` and do not push until Pillar 11 is complete and fully verified.
 
-Final backend verification must report:
+---
 
-- `220 passed`
+## Pillar 11 Implemented So Far
 
-Branch policy:
+Implemented database models:
 
-- Review, feature, and fix branches stay local.
-- Never push the review branch.
-- Merge locally into `dev`.
-- Push only `dev`.
+- `AcademicEvent`
+- `Notification`
+- unique academic-event key
+- unique event-recipient notification pair
+- recipient-owned read state
+- immutable academic-event records
+
+Implemented notification schemas:
+
+- internal academic-event creation contract
+- internal notification creation contract
+- recipient-safe notification response
+- paginated notification list
+- unread-count response
+- mark-all-read response
+
+Implemented notification service operations:
+
+- idempotent academic-event creation
+- duplicate-safe recipient notification creation
+- notification listing and pagination
+- unread and read filtering
+- unread-count calculation
+- get one recipient-owned notification
+- mark one notification as read
+- mark all recipient notifications as read
+
+Implemented notification endpoints:
+
+- `GET /notifications/`
+- `GET /notifications/unread-count`
+- `GET /notifications/{notification_id}`
+- `PATCH /notifications/{notification_id}/read`
+- `PATCH /notifications/read-all`
+
+Implemented approved academic-event templates:
+
+- activity published
+- submission created
+- grade released
+- classroom archived
+
+Implemented domain integration so far:
+
+- successful activity publication triggers the approved activity-published notification workflow
+- repeated publication requests reuse the same academic-event key
+- notification failure does not undo a successfully committed publication
+
+Implemented tests:
+
+- notification model constraints
+- duplicate academic-event prevention
+- duplicate event-recipient prevention
+- recipient ownership
+- notification pagination
+- read and unread filters
+- unread counts
+- mark-one-read idempotency
+- mark-all-read ownership
+- academic-event notification idempotency
+- inactive-recipient rejection
+- notification privacy contracts
+
+Latest expected regression before this WIP commit:
+
+- `247 passed`
+
+---
+
+## Pillar 11 Remaining Work
+
+- map `TaskNotificationWorkflowError` in the instructor router
+- integrate submission-created notifications into the submission workflow
+- integrate grade-released notifications into the manual grading workflow
+- integrate classroom-archived notifications into the classroom workflow
+- add approved event workflow integration tests
+- add complete privacy and OpenAPI contract tests
+- bump backend version from `0.10.0` to `0.11.0`
+- run final full regression
+- update this handoff with the completed Pillar 11 state
+- commit final Pillar 11 changes
+- merge locally into `dev`
+- push only `dev`
 
 ---
 
 ## Non-Negotiable Rules
 
-- Registration accepts only `@pampangastateu.edu.ph`.
-- School IDs contain exactly 10 digits and are stored as strings.
-- Clients cannot select account roles.
-- Instructor accounts are controlled by the backend allowlist.
-- Registration requires OTP verification.
-- Submission attempts are immutable.
-- The latest accepted attempt is the official attempt.
-- Official grades are entered manually by authorized instructors.
-- AST, similarity, execution, and session indicators are review-only.
+- Clients cannot create academic events or notifications.
+- Clients cannot choose notification recipients.
+- Notification ownership comes from the authenticated database user.
+- Notification content comes only from trusted backend templates.
+- Academic events and notifications never contain source code.
+- Academic events and notifications never contain standard input.
+- Hidden test cases and expected outputs are never included.
+- AST and similarity details are never included.
+- Execution output and session telemetry are never included.
+- Clipboard contents and pasted text are never stored.
+- Unreleased scores and feedback are never included.
+- Grade-release notifications are created only for manually released grades.
 - Automated indicators never assign grades.
 - Automated indicators never determine plagiarism, cheating, copying, or misconduct.
-- Students never receive unreleased grades.
-- Review queue and gradebook summaries never expose raw source code.
-- Paste policy remains `internal_only` or `disabled`.
-- Blocked external-paste telemetry stores count and timestamp only.
-- Clipboard contents and pasted text are never stored.
-- Browsing history, screen recordings, webcam data, microphone data, and every keystroke are never collected.
-- Student Python code never executes in React or FastAPI.
+- Pillar 11 provides in-app notifications only.
+- Email, SMS, and push delivery remain outside Pillar 11.
+- Student Python code never executes inside React or FastAPI.
 - Student code executes only through the partner-owned isolated sandbox worker.
 
 ---
 
-## Next Planned Pillar
+## Resume Point
 
-Pillar 11 — In-App Notification and Academic Event Workflow
+Continue with:
 
-Target backend version: `0.11.0`
+```text
+backend/app/routers/instructor.py
+```
 
-Planned local branch: `review/backend-p11-notification-workflow`
+Add controlled HTTP exception mapping for:
 
-Do not begin Pillar 11 until Pillar 10 passes the full backend suite, is merged locally into `dev`, and `dev` is pushed successfully.
+```text
+TaskNotificationWorkflowError
+```
+
+After completing all Pillar 11 integrations and tests, update the backend version to `0.11.0`.

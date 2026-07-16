@@ -107,6 +107,7 @@ def test_openapi_metadata_and_tags():
         "Execution",
         "Behavioral Logs",
         "Evaluation",
+        "Notifications",
     }
 
 

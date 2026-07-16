@@ -8,6 +8,7 @@ from app.routers import (
     execution,
     instructor,
     logs,
+    notifications,
     registration,
     submissions,
 )
@@ -94,6 +95,15 @@ OPENAPI_TAGS = [
             "or determine plagiarism, cheating, copying, or misconduct."
         ),
     },
+    {
+        "name": "Notifications",
+        "description": (
+            "Authenticated student and instructor access to their own "
+            "backend-generated in-app notifications, unread counts, "
+            "and read-state operations. Notification creation remains "
+            "exclusive to trusted academic workflows."
+        ),
+    },
 ]
 
 
@@ -109,8 +119,9 @@ app = FastAPI(
         "isolated worker integration boundaries, static structural and "
         "source-similarity analytics, instructor-owned paginated review "
         "queues, privacy-safe gradebook summaries, student-safe released "
-        "manual-grade lists, explicit evaluation-status control, and "
-        "manual instructor grading workflows."
+        "manual-grade lists, explicit evaluation-status control, "
+        "manual instructor grading workflows, immutable academic "
+        "events, and recipient-owned in-app notifications."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -129,6 +140,7 @@ app.include_router(submissions.router)
 app.include_router(execution.router)
 app.include_router(logs.router)
 app.include_router(evaluation.router)
+app.include_router(notifications.router)
 
 
 @app.get(
