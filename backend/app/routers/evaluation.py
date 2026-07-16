@@ -5,12 +5,23 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import get_current_instructor
+from app.core.security import get_current_instructor, get_current_user
 from app.models.domain_models import Submission, Task, User
+from app.schemas.evaluation_schema import (
+    EvaluationStatusUpdate,
+    InstructorGradeCreate,
+    InstructorGradeResponse,
+    InstructorGradeUpdate,
+    SubmissionEvaluationResponse,
+)
 from app.services.evaluation_service import (
     SubmissionNotFoundError,
     TaskNotFoundError,
+    create_or_update_grade,
     evaluate_submission_by_id,
+    get_evaluation_details,
+    patch_grade,
+    update_submission_status,
 )
 
 
@@ -200,6 +211,79 @@ def evaluate_submission(
         ) from exc
 
     return EvaluationResponse.model_validate(evaluation_result)
+
+
+@router.get(
+    "/submissions/{sub_id}",
+    response_model=SubmissionEvaluationResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="get_submission_evaluation",
+    summary="Get evaluation details",
+    description="Fetches submission details, auto-evaluation indicators, and manual grades.",
+)
+def get_submission_evaluation(
+    sub_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    return get_evaluation_details(db=db, sub_id=sub_id, current_user=current_user)
+
+
+@router.patch(
+    "/submissions/{sub_id}/status",
+    response_model=SubmissionEvaluationResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="update_evaluation_status",
+    summary="Update submission review status",
+)
+def update_eval_status(
+    status_update: EvaluationStatusUpdate,
+    sub_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> Any:
+    return update_submission_status(
+        db=db,
+        sub_id=sub_id,
+        status_update=status_update,
+        current_user=current_instructor,
+    )
+
+
+@router.put(
+    "/submissions/{sub_id}/grade",
+    response_model=InstructorGradeResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="set_instructor_grade",
+    summary="Set official instructor grade",
+)
+def set_grade(
+    grade_in: InstructorGradeCreate,
+    sub_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> Any:
+    return create_or_update_grade(
+        db=db, sub_id=sub_id, grade_in=grade_in, current_user=current_instructor
+    )
+
+
+@router.patch(
+    "/submissions/{sub_id}/grade",
+    response_model=InstructorGradeResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="patch_instructor_grade",
+    summary="Patch official instructor grade",
+)
+def patch_eval_grade(
+    grade_update: InstructorGradeUpdate,
+    sub_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> Any:
+    return patch_grade(
+        db=db, sub_id=sub_id, grade_update=grade_update, current_user=current_instructor
+    )
 
 
 # AUTHORIZATION BOUNDARY:

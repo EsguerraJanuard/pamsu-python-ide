@@ -1,12 +1,20 @@
 from typing import Any
 
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.domain_models import (
     ASTAnalysis,
+    InstructorGrade,
     SimilarityResult,
     Submission,
     Task,
+    User,
+)
+from app.schemas.evaluation_schema import (
+    EvaluationStatusUpdate,
+    InstructorGradeCreate,
+    InstructorGradeUpdate,
 )
 from app.services.ast_evaluator import evaluate_ast_details
 from app.services.jaccard import find_highest_similarity
@@ -146,6 +154,159 @@ def evaluate_submission_by_id(
         "ast_details": ast_details,
         "jaccard_details": jaccard_details,
     }
+
+
+def _verify_evaluator_permission(submission: Submission, user: User) -> None:
+    """
+    SECURITY BOUNDARY:
+    Only the instructor who owns the task can evaluate its submissions.
+    """
+    if user.role != "instructor":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only instructors can evaluate submissions.",
+        )
+
+    if not submission.task or submission.task.instructor_id != user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to evaluate this submission.",
+        )
+
+
+def get_evaluation_details(db: Session, sub_id: int, current_user: User) -> Submission:
+    """
+    Fetches the submission and its related review data (AST, Similarity, Grade).
+    Enforces student and instructor boundaries.
+    """
+    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Submission not found.",
+        )
+
+    if current_user.role == "student":
+        # Student boundary: can only access their own submissions
+        if submission.student_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view this submission.",
+            )
+    else:
+        # Instructor boundary: can only access submissions for their own tasks
+        _verify_evaluator_permission(submission, current_user)
+
+    return submission
+
+
+def update_submission_status(
+    db: Session, sub_id: int, status_update: EvaluationStatusUpdate, current_user: User
+) -> Submission:
+    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Submission not found.",
+        )
+
+    _verify_evaluator_permission(submission, current_user)
+
+    submission.status = status_update.status
+    db.commit()
+    db.refresh(submission)
+    return submission
+
+
+def create_or_update_grade(
+    db: Session, sub_id: int, grade_in: InstructorGradeCreate, current_user: User
+) -> InstructorGrade:
+    """
+    GRADING BOUNDARY:
+    Explicitly assigns a manual instructor grade without relying on auto-grading.
+    """
+    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Submission not found.",
+        )
+
+    _verify_evaluator_permission(submission, current_user)
+
+    grade = (
+        db.query(InstructorGrade)
+        .filter(InstructorGrade.submission_id == sub_id)
+        .first()
+    )
+
+    if grade:
+        # Update existing
+        grade.score = grade_in.score
+        grade.max_score = grade_in.max_score
+        grade.feedback = grade_in.feedback
+        grade.is_released = grade_in.is_released
+    else:
+        # Create new
+        grade = InstructorGrade(
+            submission_id=sub_id,
+            instructor_id=current_user.user_id,
+            score=grade_in.score,
+            max_score=grade_in.max_score,
+            feedback=grade_in.feedback,
+            is_released=grade_in.is_released,
+        )
+        db.add(grade)
+
+    # Automatically transition submission to graded
+    if submission.status != "graded":
+        submission.status = "graded"
+
+    db.commit()
+    db.refresh(grade)
+    return grade
+
+
+def patch_grade(
+    db: Session, sub_id: int, grade_update: InstructorGradeUpdate, current_user: User
+) -> InstructorGrade:
+    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Submission not found.",
+        )
+
+    _verify_evaluator_permission(submission, current_user)
+
+    grade = (
+        db.query(InstructorGrade)
+        .filter(InstructorGrade.submission_id == sub_id)
+        .first()
+    )
+    if not grade:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Grade not found for this submission.",
+        )
+
+    update_data = grade_update.model_dump(exclude_unset=True)
+
+    # Prevent score > max_score logically during a patch update
+    new_score = update_data.get("score", grade.score)
+    new_max = update_data.get("max_score", grade.max_score)
+    if new_score > new_max:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="score cannot be greater than max_score",
+        )
+
+    for key, value in update_data.items():
+        setattr(grade, key, value)
+
+    db.commit()
+    db.refresh(grade)
+    return grade
 
 
 # REVIEW BOUNDARY:
