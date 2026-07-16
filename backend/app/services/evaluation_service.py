@@ -1,7 +1,7 @@
 from typing import Any
 
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.domain_models import (
     ASTAnalysis,
@@ -20,19 +20,219 @@ from app.services.ast_evaluator import evaluate_ast_details
 from app.services.jaccard import find_highest_similarity
 
 
-class SubmissionNotFoundError(Exception):
-    pass
+class EvaluationServiceError(Exception):
+    """Base exception for evaluation and grading workflow errors."""
 
 
-class TaskNotFoundError(Exception):
-    pass
+class SubmissionNotFoundError(
+    EvaluationServiceError,
+):
+    """Raised when the requested submission does not exist."""
 
 
-class InvalidEvaluationResultError(Exception):
-    pass
+class TaskNotFoundError(
+    EvaluationServiceError,
+):
+    """Raised when the submission's activity does not exist."""
 
 
-def _validate_similarity_score(value: Any) -> float:
+class EvaluationAccessDeniedError(
+    EvaluationServiceError,
+):
+    """Raised when a user cannot access an evaluation operation."""
+
+
+class OfficialSubmissionRequiredError(
+    EvaluationServiceError,
+):
+    """Raised when a manual grade targets an unofficial attempt."""
+
+
+class GradeUnavailableError(
+    EvaluationServiceError,
+):
+    """Raised when an activity does not accept an official grade."""
+
+
+class GradeNotFoundError(
+    EvaluationServiceError,
+):
+    """Raised when a manual instructor grade does not exist."""
+
+
+class GradeValidationError(
+    EvaluationServiceError,
+):
+    """Raised when final grade values violate the grading contract."""
+
+
+class EvaluationStateConflictError(
+    EvaluationServiceError,
+):
+    """Raised when a requested review-state change is inconsistent."""
+
+
+class InvalidEvaluationResultError(
+    EvaluationServiceError,
+):
+    """Raised when an automated evaluator returns invalid data."""
+
+
+class EvaluationPersistenceConflictError(
+    EvaluationServiceError,
+):
+    """Raised when evaluation data conflicts with another transaction."""
+
+
+class EvaluationPersistenceError(
+    EvaluationServiceError,
+):
+    """Raised when evaluation data cannot be persisted."""
+
+
+def _commit_evaluation_transaction(
+    db: Session,
+) -> None:
+    try:
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+
+        raise EvaluationPersistenceConflictError(
+            "The evaluation operation conflicted with another database operation."
+        ) from error
+    except SQLAlchemyError as error:
+        db.rollback()
+
+        raise EvaluationPersistenceError(
+            "The evaluation operation could not be saved."
+        ) from error
+
+
+def _get_submission(
+    db: Session,
+    *,
+    sub_id: int,
+    lock_for_update: bool = False,
+) -> Submission:
+    query = db.query(Submission).filter(
+        Submission.sub_id == sub_id,
+    )
+
+    if lock_for_update:
+        query = query.with_for_update()
+
+    submission = query.first()
+
+    if submission is None:
+        raise SubmissionNotFoundError("Submission not found.")
+
+    return submission
+
+
+def _get_submission_with_review_data(
+    db: Session,
+    *,
+    sub_id: int,
+) -> Submission:
+    submission = (
+        db.query(Submission)
+        .options(
+            selectinload(Submission.ast_analyses).selectinload(ASTAnalysis.findings),
+            selectinload(Submission.similarity_results_as_source),
+            selectinload(Submission.instructor_grade),
+            selectinload(Submission.task),
+        )
+        .filter(
+            Submission.sub_id == sub_id,
+        )
+        .first()
+    )
+
+    if submission is None:
+        raise SubmissionNotFoundError("Submission not found.")
+
+    return submission
+
+
+def _get_task(
+    db: Session,
+    *,
+    task_id: int,
+) -> Task:
+    task = (
+        db.query(Task)
+        .filter(
+            Task.task_id == task_id,
+        )
+        .first()
+    )
+
+    if task is None:
+        raise TaskNotFoundError("Task not found for this submission.")
+
+    return task
+
+
+def _verify_instructor_owns_submission(
+    *,
+    submission: Submission,
+    instructor_id: int,
+) -> Task:
+    task = submission.task
+
+    if task is None:
+        raise TaskNotFoundError("Task not found for this submission.")
+
+    if task.instructor_id != instructor_id:
+        raise EvaluationAccessDeniedError(
+            "You can only review submissions for activities that you own."
+        )
+
+    return task
+
+
+def _verify_instructor_user(
+    *,
+    submission: Submission,
+    current_user: User,
+) -> Task:
+    if current_user.role != "instructor":
+        raise EvaluationAccessDeniedError(
+            "Only instructors may perform this evaluation operation."
+        )
+
+    return _verify_instructor_owns_submission(
+        submission=submission,
+        instructor_id=current_user.user_id,
+    )
+
+
+def _require_gradable_official_submission(
+    *,
+    submission: Submission,
+    task: Task,
+) -> None:
+    if not task.is_graded:
+        raise GradeUnavailableError(
+            "This activity does not accept an official instructor grade."
+        )
+
+    if not submission.is_official or submission.accepted_at is None:
+        raise OfficialSubmissionRequiredError(
+            "Official grades may be assigned only "
+            "to the latest accepted official submission."
+        )
+
+    if submission.status == "rejected":
+        raise EvaluationStateConflictError(
+            "A rejected submission cannot receive an official instructor grade."
+        )
+
+
+def _validate_similarity_score(
+    value: Any,
+) -> float:
     try:
         score = float(value)
     except (TypeError, ValueError) as exc:
@@ -48,29 +248,86 @@ def _validate_similarity_score(value: Any) -> float:
     return score
 
 
+def _validate_highest_match_submission_id(
+    *,
+    value: Any,
+    comparison_submissions: dict[int, str],
+) -> int | None:
+    if value is None:
+        return None
+
+    if isinstance(value, bool):
+        raise InvalidEvaluationResultError(
+            "The similarity evaluator returned an invalid matched submission."
+        )
+
+    try:
+        matched_submission_id = int(value)
+    except (TypeError, ValueError) as exc:
+        raise InvalidEvaluationResultError(
+            "The similarity evaluator returned an invalid matched submission."
+        ) from exc
+
+    if matched_submission_id not in comparison_submissions:
+        raise InvalidEvaluationResultError(
+            "The similarity evaluator returned an unknown submission."
+        )
+
+    return matched_submission_id
+
+
 def evaluate_submission_by_id(
     db: Session,
     sub_id: int,
+    *,
+    instructor_id: int | None = None,
 ) -> dict[str, Any]:
-    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
+    """
+    Perform static AST and source-similarity analysis.
 
-    if submission is None:
-        raise SubmissionNotFoundError("Submission not found.")
+    When instructor_id is supplied, ownership is verified inside the
+    service. The function does not execute student Python and does not
+    create or modify an official instructor grade.
+    """
 
-    task = db.query(Task).filter(Task.task_id == submission.task_id).first()
+    submission = _get_submission_with_review_data(
+        db,
+        sub_id=sub_id,
+    )
+
+    task = submission.task
 
     if task is None:
-        raise TaskNotFoundError("Task not found for this submission.")
+        task = _get_task(
+            db,
+            task_id=submission.task_id,
+        )
+
+    if instructor_id is not None:
+        _verify_instructor_owns_submission(
+            submission=submission,
+            instructor_id=instructor_id,
+        )
 
     ast_details = evaluate_ast_details(
         raw_code=submission.raw_code,
         rules=task.required_ast_rules,
     )
 
-    ast_pass_fail = bool(ast_details.get("passed", False))
+    if not isinstance(ast_details, dict):
+        raise InvalidEvaluationResultError(
+            "The AST evaluator returned an invalid result."
+        )
 
-    # Compare only against another student's latest official attempt.
-    # A student's previous attempts must not inflate the similarity result.
+    ast_pass_fail = bool(
+        ast_details.get(
+            "passed",
+            False,
+        )
+    )
+
+    # Compare only against another student's current official attempt.
+    # Previous attempts from the same student must not inflate similarity.
     other_submissions = (
         db.query(Submission)
         .filter(
@@ -90,28 +347,30 @@ def evaluate_submission_by_id(
     )
 
     comparison_submissions = {
-        other_submission.sub_id: other_submission.raw_code
-        for other_submission in other_submissions
+        candidate.sub_id: candidate.raw_code for candidate in other_submissions
     }
 
     jaccard_details = find_highest_similarity(
         target_code=submission.raw_code,
-        comparison_submissions=comparison_submissions,
+        comparison_submissions=(comparison_submissions),
     )
+
+    if not isinstance(jaccard_details, dict):
+        raise InvalidEvaluationResultError(
+            "The similarity evaluator returned an invalid result."
+        )
 
     highest_jaccard_score = _validate_similarity_score(
-        jaccard_details.get("highest_score", 0.0)
+        jaccard_details.get(
+            "highest_score",
+            0.0,
+        )
     )
 
-    highest_match_sub_id = jaccard_details.get("highest_match_sub_id")
-
-    if (
-        highest_match_sub_id is not None
-        and highest_match_sub_id not in comparison_submissions
-    ):
-        raise InvalidEvaluationResultError(
-            "The similarity evaluator returned an unknown submission."
-        )
+    highest_match_sub_id = _validate_highest_match_submission_id(
+        value=jaccard_details.get("highest_match_sub_id"),
+        comparison_submissions=(comparison_submissions),
+    )
 
     ast_analysis = ASTAnalysis(
         submission_id=submission.sub_id,
@@ -124,197 +383,373 @@ def evaluate_submission_by_id(
     submission.ast_pass_fail = ast_pass_fail
     submission.jaccard_score = highest_jaccard_score
 
-    try:
-        db.add(ast_analysis)
-        db.add(submission)
+    db.add(ast_analysis)
 
-        if highest_match_sub_id is not None:
-            similarity_result = SimilarityResult(
-                source_submission_id=submission.sub_id,
-                compared_submission_id=highest_match_sub_id,
-                score=highest_jaccard_score,
-                algorithm="jaccard",
-            )
-            db.add(similarity_result)
+    if highest_match_sub_id is not None:
+        similarity_result = SimilarityResult(
+            source_submission_id=(submission.sub_id),
+            compared_submission_id=(highest_match_sub_id),
+            score=highest_jaccard_score,
+            algorithm="jaccard",
+        )
 
-        db.commit()
-        db.refresh(submission)
+        db.add(similarity_result)
 
-    except Exception:
-        db.rollback()
-        raise
+    _commit_evaluation_transaction(db)
+
+    db.refresh(submission)
 
     return {
         "sub_id": submission.sub_id,
         "student_id": submission.student_id,
         "task_id": submission.task_id,
-        "ast_pass_fail": submission.ast_pass_fail,
-        "jaccard_score": submission.jaccard_score,
-        "highest_match_sub_id": highest_match_sub_id,
+        "ast_pass_fail": (submission.ast_pass_fail),
+        "jaccard_score": (submission.jaccard_score),
+        "highest_match_sub_id": (highest_match_sub_id),
         "ast_details": ast_details,
         "jaccard_details": jaccard_details,
     }
 
 
-def _verify_evaluator_permission(submission: Submission, user: User) -> None:
+def get_student_evaluation_details(
+    db: Session,
+    *,
+    sub_id: int,
+    student_id: int,
+) -> dict[str, Any]:
     """
-    SECURITY BOUNDARY:
-    Only the instructor who owns the task can evaluate its submissions.
+    Return a student-safe evaluation view.
+
+    Full AST findings, similarity comparison records, comparison IDs,
+    instructor identity, and unreleased grade information are excluded.
     """
-    if user.role != "instructor":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only instructors can evaluate submissions.",
+
+    submission = (
+        db.query(Submission)
+        .options(
+            selectinload(Submission.instructor_grade),
+        )
+        .filter(
+            Submission.sub_id == sub_id,
+        )
+        .first()
+    )
+
+    if submission is None:
+        raise SubmissionNotFoundError("Submission not found.")
+
+    if submission.student_id != student_id:
+        raise EvaluationAccessDeniedError(
+            "You can only view evaluation information for your own submissions."
         )
 
-    if not submission.task or submission.task.instructor_id != user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to evaluate this submission.",
-        )
+    released_grade: dict[str, Any] | None = None
+
+    grade = submission.instructor_grade
+
+    if grade is not None and grade.is_released:
+        released_grade = {
+            "score": grade.score,
+            "max_score": grade.max_score,
+            "feedback": grade.feedback,
+            "is_released": True,
+            "released_at": grade.updated_at,
+        }
+
+    return {
+        "sub_id": submission.sub_id,
+        "task_id": submission.task_id,
+        "status": submission.status,
+        "is_official": submission.is_official,
+        "submitted_at": submission.submitted_at,
+        "accepted_at": submission.accepted_at,
+        "instructor_grade": released_grade,
+    }
 
 
-def get_evaluation_details(db: Session, sub_id: int, current_user: User) -> Submission:
+def get_instructor_evaluation_details(
+    db: Session,
+    *,
+    sub_id: int,
+    instructor_id: int,
+) -> Submission:
     """
-    Fetches the submission and its related review data (AST, Similarity, Grade).
-    Enforces student and instructor boundaries.
+    Return the complete review view only to the activity owner.
     """
-    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission not found.",
-        )
 
-    if current_user.role == "student":
-        # Student boundary: can only access their own submissions
-        if submission.student_id != current_user.user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to view this submission.",
-            )
-    else:
-        # Instructor boundary: can only access submissions for their own tasks
-        _verify_evaluator_permission(submission, current_user)
+    submission = _get_submission_with_review_data(
+        db,
+        sub_id=sub_id,
+    )
+
+    _verify_instructor_owns_submission(
+        submission=submission,
+        instructor_id=instructor_id,
+    )
 
     return submission
 
 
-def update_submission_status(
-    db: Session, sub_id: int, status_update: EvaluationStatusUpdate, current_user: User
-) -> Submission:
-    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission not found.",
+def get_evaluation_details(
+    db: Session,
+    sub_id: int,
+    current_user: User,
+) -> Submission | dict[str, Any]:
+    """
+    Compatibility dispatcher for older router imports.
+
+    New routes should call the role-specific student or instructor
+    functions directly so their response schemas remain separate.
+    """
+
+    if current_user.role == "student":
+        return get_student_evaluation_details(
+            db,
+            sub_id=sub_id,
+            student_id=current_user.user_id,
         )
 
-    _verify_evaluator_permission(submission, current_user)
+    if current_user.role == "instructor":
+        return get_instructor_evaluation_details(
+            db,
+            sub_id=sub_id,
+            instructor_id=current_user.user_id,
+        )
+
+    raise EvaluationAccessDeniedError(
+        "Evaluation access is unavailable for this account."
+    )
+
+
+def update_submission_status(
+    db: Session,
+    sub_id: int,
+    status_update: EvaluationStatusUpdate,
+    current_user: User,
+) -> Submission:
+    """
+    Apply an explicit instructor-controlled review-status update.
+
+    Manual grade creation and modification do not silently change the
+    submission status.
+    """
+
+    submission = _get_submission(
+        db,
+        sub_id=sub_id,
+        lock_for_update=True,
+    )
+
+    task = _verify_instructor_user(
+        submission=submission,
+        current_user=current_user,
+    )
+
+    if status_update.status == "graded":
+        grade = (
+            db.query(InstructorGrade)
+            .filter(
+                InstructorGrade.submission_id == submission.sub_id,
+            )
+            .first()
+        )
+
+        if grade is None:
+            db.rollback()
+
+            raise EvaluationStateConflictError(
+                "A manual instructor grade must be set "
+                "before marking the submission as graded."
+            )
+
+        _require_gradable_official_submission(
+            submission=submission,
+            task=task,
+        )
 
     submission.status = status_update.status
-    db.commit()
+
+    _commit_evaluation_transaction(db)
+
     db.refresh(submission)
+
     return submission
 
 
 def create_or_update_grade(
-    db: Session, sub_id: int, grade_in: InstructorGradeCreate, current_user: User
+    db: Session,
+    sub_id: int,
+    grade_in: InstructorGradeCreate,
+    current_user: User,
 ) -> InstructorGrade:
     """
-    GRADING BOUNDARY:
-    Explicitly assigns a manual instructor grade without relying on auto-grading.
-    """
-    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission not found.",
-        )
+    Create or fully replace a manual instructor grade.
 
-    _verify_evaluator_permission(submission, current_user)
+    Automated AST, similarity, execution, and session indicators are
+    never used to populate the manual grade.
+    """
+
+    submission = _get_submission(
+        db,
+        sub_id=sub_id,
+        lock_for_update=True,
+    )
+
+    task = _verify_instructor_user(
+        submission=submission,
+        current_user=current_user,
+    )
+
+    _require_gradable_official_submission(
+        submission=submission,
+        task=task,
+    )
 
     grade = (
         db.query(InstructorGrade)
-        .filter(InstructorGrade.submission_id == sub_id)
+        .filter(
+            InstructorGrade.submission_id == submission.sub_id,
+        )
+        .with_for_update()
         .first()
     )
 
-    if grade:
-        # Update existing
-        grade.score = grade_in.score
-        grade.max_score = grade_in.max_score
-        grade.feedback = grade_in.feedback
-        grade.is_released = grade_in.is_released
-    else:
-        # Create new
+    if grade is None:
         grade = InstructorGrade(
-            submission_id=sub_id,
+            submission_id=submission.sub_id,
             instructor_id=current_user.user_id,
             score=grade_in.score,
             max_score=grade_in.max_score,
             feedback=grade_in.feedback,
             is_released=grade_in.is_released,
         )
+
         db.add(grade)
+    else:
+        if grade.instructor_id != current_user.user_id:
+            db.rollback()
 
-    # Automatically transition submission to graded
-    if submission.status != "graded":
-        submission.status = "graded"
+            raise EvaluationAccessDeniedError(
+                "The existing grade belongs to another instructor."
+            )
 
-    db.commit()
+        grade.score = grade_in.score
+        grade.max_score = grade_in.max_score
+        grade.feedback = grade_in.feedback
+        grade.is_released = grade_in.is_released
+
+    # Intentionally do not change submission.status here.
+    _commit_evaluation_transaction(db)
+
     db.refresh(grade)
+
     return grade
 
 
 def patch_grade(
-    db: Session, sub_id: int, grade_update: InstructorGradeUpdate, current_user: User
+    db: Session,
+    sub_id: int,
+    grade_update: InstructorGradeUpdate,
+    current_user: User,
 ) -> InstructorGrade:
-    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission not found.",
-        )
+    """
+    Partially modify an existing manual instructor grade.
 
-    _verify_evaluator_permission(submission, current_user)
+    The service validates the final score and maximum after combining
+    supplied fields with the current database values.
+    """
+
+    submission = _get_submission(
+        db,
+        sub_id=sub_id,
+        lock_for_update=True,
+    )
+
+    task = _verify_instructor_user(
+        submission=submission,
+        current_user=current_user,
+    )
+
+    _require_gradable_official_submission(
+        submission=submission,
+        task=task,
+    )
 
     grade = (
         db.query(InstructorGrade)
-        .filter(InstructorGrade.submission_id == sub_id)
+        .filter(
+            InstructorGrade.submission_id == submission.sub_id,
+        )
+        .with_for_update()
         .first()
     )
-    if not grade:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Grade not found for this submission.",
+
+    if grade is None:
+        db.rollback()
+
+        raise GradeNotFoundError("Grade not found for this submission.")
+
+    if grade.instructor_id != current_user.user_id:
+        db.rollback()
+
+        raise EvaluationAccessDeniedError(
+            "The existing grade belongs to another instructor."
         )
 
-    update_data = grade_update.model_dump(exclude_unset=True)
+    update_data = grade_update.model_dump(
+        exclude_unset=True,
+    )
 
-    # Prevent score > max_score logically during a patch update
-    new_score = update_data.get("score", grade.score)
-    new_max = update_data.get("max_score", grade.max_score)
-    if new_score > new_max:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="score cannot be greater than max_score",
+    if not update_data:
+        db.rollback()
+
+        raise GradeValidationError("At least one grade field must be supplied.")
+
+    new_score = update_data.get(
+        "score",
+        grade.score,
+    )
+
+    new_max_score = update_data.get(
+        "max_score",
+        grade.max_score,
+    )
+
+    if new_score > new_max_score:
+        db.rollback()
+
+        raise GradeValidationError("score cannot be greater than max_score")
+
+    for field_name, value in update_data.items():
+        setattr(
+            grade,
+            field_name,
+            value,
         )
 
-    for key, value in update_data.items():
-        setattr(grade, key, value)
+    # Intentionally do not change submission.status here.
+    _commit_evaluation_transaction(db)
 
-    db.commit()
     db.refresh(grade)
+
     return grade
 
 
-# REVIEW BOUNDARY:
-# AST and similarity results are automated review indicators only.
-# They must never assign the official grade or automatically declare
-# plagiarism, copying, cheating, or academic misconduct.
+# SECURITY BOUNDARY:
+# Students may view only their own student-safe evaluation response.
+# Full AST findings, similarity comparisons, and unreleased grades remain
+# restricted to the instructor who owns the associated activity.
 
-# PARTNER INTEGRATION:
-# This service performs static AST and similarity analysis only. It must not
-# execute submitted Python source code. The partner-owned isolated worker
-# remains responsible for actual Python execution and resource enforcement.
+# GRADING BOUNDARY:
+# Only an authorized instructor may create or modify a manual grade for
+# the latest accepted official submission of a graded activity. Manual
+# grading does not silently change the submission's review status.
+
+# REVIEW BOUNDARY:
+# AST and source-similarity results are automated review indicators only.
+# They never assign the official grade or automatically declare copying,
+# plagiarism, cheating, or academic misconduct.
+
+# EXECUTION BOUNDARY:
+# This service performs static AST parsing and token-based similarity
+# analysis only. It never executes submitted Python source code.

@@ -84,7 +84,7 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
-    assert APP_VERSION == "0.8.0"
+    assert APP_VERSION == "0.9.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
@@ -599,3 +599,4 @@ def test_evaluation_contract_has_no_automatic_grade_verdict():
     }
 
     assert prohibited_fields.isdisjoint(properties)
+

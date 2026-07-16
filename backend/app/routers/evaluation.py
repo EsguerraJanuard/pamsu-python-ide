@@ -1,25 +1,51 @@
-from typing import Any
+from typing import Any, NoReturn
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Path,
+    status,
+)
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+)
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import get_current_instructor, get_current_user
-from app.models.domain_models import Submission, Task, User
+from app.core.security import (
+    get_current_instructor,
+    get_current_user,
+)
+from app.models.domain_models import User
 from app.schemas.evaluation_schema import (
     EvaluationStatusUpdate,
     InstructorGradeCreate,
     InstructorGradeResponse,
     InstructorGradeUpdate,
-    SubmissionEvaluationResponse,
+    InstructorSubmissionEvaluationResponse,
+    StudentSubmissionEvaluationResponse,
 )
 from app.services.evaluation_service import (
+    EvaluationAccessDeniedError,
+    EvaluationPersistenceConflictError,
+    EvaluationPersistenceError,
+    EvaluationServiceError,
+    EvaluationStateConflictError,
+    GradeNotFoundError,
+    GradeUnavailableError,
+    GradeValidationError,
+    InvalidEvaluationResultError,
+    OfficialSubmissionRequiredError,
     SubmissionNotFoundError,
     TaskNotFoundError,
     create_or_update_grade,
     evaluate_submission_by_id,
-    get_evaluation_details,
+    get_instructor_evaluation_details,
+    get_student_evaluation_details,
     patch_grade,
     update_submission_status,
 )
@@ -39,33 +65,50 @@ REVIEW_NOTICE = (
 
 
 class EvaluationResponse(BaseModel):
+    """
+    Instructor-only result of a newly performed static evaluation.
+
+    This response contains review indicators only. It does not contain
+    or create an official grade, plagiarism verdict, or misconduct
+    decision.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
     sub_id: int = Field(
         ...,
         gt=0,
         description="Evaluated submission identifier.",
     )
+
     student_id: int = Field(
         ...,
         gt=0,
         description="Owner of the evaluated submission.",
     )
+
     task_id: int = Field(
         ...,
         gt=0,
-        description="Associated task identifier.",
+        description="Associated activity identifier.",
     )
+
     ast_pass_fail: bool | None = Field(
         default=None,
         description=(
-            "Whether the submission satisfied the configured structural AST rules."
+            "Whether the source satisfied the configured structural AST rules."
         ),
     )
+
     jaccard_score: float | None = Field(
         default=None,
         ge=0,
         le=100,
         description=("Highest source-code similarity score expressed as a percentage."),
     )
+
     highest_match_sub_id: int | None = Field(
         default=None,
         gt=0,
@@ -74,21 +117,22 @@ class EvaluationResponse(BaseModel):
             "score, when a comparison exists."
         ),
     )
+
     ast_details: dict[str, Any] = Field(
         default_factory=dict,
-        description="Detailed structural-analysis findings.",
+        description=("Detailed static structural-analysis findings."),
     )
+
     jaccard_details: dict[str, Any] = Field(
         default_factory=dict,
-        description="Detailed similarity-review information.",
+        description=("Detailed source-similarity review information."),
     )
+
     review_notice: str = REVIEW_NOTICE
 
-    model_config = ConfigDict(
-        extra="forbid",
+    @field_validator(
+        "jaccard_score",
     )
-
-    @field_validator("jaccard_score")
     @classmethod
     def validate_jaccard_score(
         cls,
@@ -100,51 +144,75 @@ class EvaluationResponse(BaseModel):
         return value
 
 
-def get_submission_or_404(
-    *,
-    db: Session,
-    sub_id: int,
-) -> Submission:
-    submission = db.query(Submission).filter(Submission.sub_id == sub_id).first()
+EvaluationDetailsResponse = (
+    StudentSubmissionEvaluationResponse | InstructorSubmissionEvaluationResponse
+)
 
-    if submission is None:
+
+def raise_evaluation_service_http_exception(
+    exc: EvaluationServiceError,
+) -> NoReturn:
+    if isinstance(
+        exc,
+        (
+            SubmissionNotFoundError,
+            TaskNotFoundError,
+            GradeNotFoundError,
+        ),
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission not found.",
-        )
+            detail=str(exc),
+        ) from exc
 
-    return submission
-
-
-def get_task_or_404(
-    *,
-    db: Session,
-    task_id: int,
-) -> Task:
-    task = db.query(Task).filter(Task.task_id == task_id).first()
-
-    if task is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found for this submission.",
-        )
-
-    return task
-
-
-def verify_instructor_owns_submission_task(
-    *,
-    task: Task,
-    instructor_id: int,
-) -> None:
-    if task.instructor_id != instructor_id:
+    if isinstance(
+        exc,
+        EvaluationAccessDeniedError,
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "You can only evaluate submissions belonging "
-                "to activities that you own."
-            ),
-        )
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        GradeValidationError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        (
+            OfficialSubmissionRequiredError,
+            GradeUnavailableError,
+            EvaluationStateConflictError,
+            EvaluationPersistenceConflictError,
+        ),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        (
+            InvalidEvaluationResultError,
+            EvaluationPersistenceError,
+        ),
+    ):
+        raise HTTPException(
+            status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+            detail=str(exc),
+        ) from exc
+
+    raise HTTPException(
+        status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+        detail=("The evaluation operation could not be completed."),
+    ) from exc
 
 
 @router.post(
@@ -154,19 +222,26 @@ def verify_instructor_owns_submission_task(
     operation_id="evaluate_submission",
     summary="Evaluate a submission",
     description=(
-        "Runs configured AST checks and source-code similarity analysis "
-        "for a submission owned by the authenticated instructor. Results "
-        "are stored and returned only as review indicators. This endpoint "
-        "does not execute student code and does not assign an official grade."
+        "Runs static AST checks and source-code similarity analysis "
+        "for a submission belonging to an activity owned by the "
+        "authenticated instructor. Results are stored and returned "
+        "only as review indicators. Student code is never executed, "
+        "and no official grade or misconduct verdict is generated."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
             "description": (
-                "The submission belongs to a task owned by another instructor."
+                "The submission belongs to an activity owned by another instructor."
             ),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": ("The submission or its associated task does not exist."),
+            "description": ("The submission or associated activity does not exist."),
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": (
+                "The static evaluator returned invalid data or "
+                "the evaluation could not be persisted."
+            ),
         },
     },
 )
@@ -179,75 +254,140 @@ def evaluate_submission(
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> EvaluationResponse:
-    submission = get_submission_or_404(
-        db=db,
-        sub_id=sub_id,
-    )
-
-    task = get_task_or_404(
-        db=db,
-        task_id=submission.task_id,
-    )
-
-    verify_instructor_owns_submission_task(
-        task=task,
-        instructor_id=current_instructor.user_id,
-    )
-
     try:
         evaluation_result = evaluate_submission_by_id(
             db=db,
             sub_id=sub_id,
+            instructor_id=current_instructor.user_id,
         )
-    except SubmissionNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission not found.",
-        ) from exc
-    except TaskNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found for this submission.",
-        ) from exc
+    except EvaluationServiceError as exc:
+        raise_evaluation_service_http_exception(exc)
 
     return EvaluationResponse.model_validate(evaluation_result)
 
 
 @router.get(
     "/submissions/{sub_id}",
-    response_model=SubmissionEvaluationResponse,
+    response_model=EvaluationDetailsResponse,
     status_code=status.HTTP_200_OK,
     operation_id="get_submission_evaluation",
-    summary="Get evaluation details",
-    description="Fetches submission details, auto-evaluation indicators, and manual grades.",
+    summary="Get authorized evaluation details",
+    description=(
+        "Students may view only their own student-safe evaluation "
+        "record. Unreleased grades, instructor identity, full AST "
+        "findings, similarity comparison records, and comparison "
+        "submission identifiers are excluded from student responses. "
+        "Instructors may view full review details only for activities "
+        "that they own."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The authenticated user does not own or manage "
+                "the requested submission."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("The submission does not exist."),
+        },
+    },
 )
 def get_submission_evaluation(
-    sub_id: int = Path(..., gt=0),
+    sub_id: int = Path(
+        ...,
+        gt=0,
+        description="Submission identifier.",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> Any:
-    return get_evaluation_details(db=db, sub_id=sub_id, current_user=current_user)
+) -> EvaluationDetailsResponse:
+    try:
+        if current_user.role == "student":
+            evaluation_details = get_student_evaluation_details(
+                db,
+                sub_id=sub_id,
+                student_id=current_user.user_id,
+            )
+
+            return StudentSubmissionEvaluationResponse.model_validate(
+                evaluation_details
+            )
+
+        if current_user.role == "instructor":
+            evaluation_details = get_instructor_evaluation_details(
+                db,
+                sub_id=sub_id,
+                instructor_id=current_user.user_id,
+            )
+
+            return InstructorSubmissionEvaluationResponse.model_validate(
+                evaluation_details
+            )
+
+        raise EvaluationAccessDeniedError(
+            "Evaluation access is unavailable for this account."
+        )
+
+    except EvaluationServiceError as exc:
+        raise_evaluation_service_http_exception(exc)
 
 
 @router.patch(
     "/submissions/{sub_id}/status",
-    response_model=SubmissionEvaluationResponse,
+    response_model=InstructorSubmissionEvaluationResponse,
     status_code=status.HTTP_200_OK,
     operation_id="update_evaluation_status",
     summary="Update submission review status",
+    description=(
+        "Explicitly updates the review status of a submission "
+        "belonging to an activity owned by the authenticated "
+        "instructor. Marking a submission as graded requires an "
+        "existing manual grade. Grade creation itself does not "
+        "silently change submission status."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": ("The submission belongs to another instructor."),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("The submission does not exist."),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "The requested review status is inconsistent "
+                "with the submission or manual-grade state."
+            ),
+        },
+    },
 )
 def update_eval_status(
     status_update: EvaluationStatusUpdate,
-    sub_id: int = Path(..., gt=0),
+    sub_id: int = Path(
+        ...,
+        gt=0,
+        description="Submission identifier.",
+    ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
-) -> Any:
-    return update_submission_status(
-        db=db,
-        sub_id=sub_id,
-        status_update=status_update,
-        current_user=current_instructor,
-    )
+) -> InstructorSubmissionEvaluationResponse:
+    try:
+        update_submission_status(
+            db=db,
+            sub_id=sub_id,
+            status_update=status_update,
+            current_user=current_instructor,
+        )
+
+        updated_submission = get_instructor_evaluation_details(
+            db,
+            sub_id=sub_id,
+            instructor_id=current_instructor.user_id,
+        )
+
+    except EvaluationServiceError as exc:
+        raise_evaluation_service_http_exception(exc)
+
+    return InstructorSubmissionEvaluationResponse.model_validate(updated_submission)
 
 
 @router.put(
@@ -255,17 +395,54 @@ def update_eval_status(
     response_model=InstructorGradeResponse,
     status_code=status.HTTP_200_OK,
     operation_id="set_instructor_grade",
-    summary="Set official instructor grade",
+    summary="Set an official manual instructor grade",
+    description=(
+        "Creates or fully replaces a manual grade for the latest "
+        "accepted official submission of a graded activity owned by "
+        "the authenticated instructor. Automated AST, similarity, "
+        "execution, and session indicators are never used to populate "
+        "the grade. This operation does not change submission status."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": ("The submission belongs to another instructor."),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("The submission does not exist."),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "The activity is not graded, the submission is "
+                "unofficial, unaccepted, rejected, or a concurrent "
+                "grade operation conflicted."
+            ),
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": ("The grade values violate the manual-grade contract."),
+        },
+    },
 )
 def set_grade(
     grade_in: InstructorGradeCreate,
-    sub_id: int = Path(..., gt=0),
+    sub_id: int = Path(
+        ...,
+        gt=0,
+        description="Submission identifier.",
+    ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
-) -> Any:
-    return create_or_update_grade(
-        db=db, sub_id=sub_id, grade_in=grade_in, current_user=current_instructor
-    )
+) -> InstructorGradeResponse:
+    try:
+        grade = create_or_update_grade(
+            db=db,
+            sub_id=sub_id,
+            grade_in=grade_in,
+            current_user=current_instructor,
+        )
+    except EvaluationServiceError as exc:
+        raise_evaluation_service_http_exception(exc)
+
+    return InstructorGradeResponse.model_validate(grade)
 
 
 @router.patch(
@@ -273,29 +450,78 @@ def set_grade(
     response_model=InstructorGradeResponse,
     status_code=status.HTTP_200_OK,
     operation_id="patch_instructor_grade",
-    summary="Patch official instructor grade",
+    summary="Patch an official manual instructor grade",
+    description=(
+        "Updates selected fields of an existing manual instructor "
+        "grade. At least one field is required, and the final score "
+        "cannot exceed the final maximum score. This operation does "
+        "not change submission status."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The submission or existing grade belongs to another instructor."
+            ),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("The submission or manual grade does not exist."),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "The activity or submission is unavailable for official grading."
+            ),
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": (
+                "No grade fields were supplied or the final "
+                "score exceeds the final maximum score."
+            ),
+        },
+    },
 )
 def patch_eval_grade(
     grade_update: InstructorGradeUpdate,
-    sub_id: int = Path(..., gt=0),
+    sub_id: int = Path(
+        ...,
+        gt=0,
+        description="Submission identifier.",
+    ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
-) -> Any:
-    return patch_grade(
-        db=db, sub_id=sub_id, grade_update=grade_update, current_user=current_instructor
-    )
+) -> InstructorGradeResponse:
+    try:
+        grade = patch_grade(
+            db=db,
+            sub_id=sub_id,
+            grade_update=grade_update,
+            current_user=current_instructor,
+        )
+    except EvaluationServiceError as exc:
+        raise_evaluation_service_http_exception(exc)
+
+    return InstructorGradeResponse.model_validate(grade)
 
 
 # AUTHORIZATION BOUNDARY:
-# Full similarity comparison details are restricted to the instructor who
-# owns the activity. Students must not receive another student's source code
-# or detailed comparison information.
+# Students may view only their own student-safe evaluation response.
+# Instructors may evaluate, review, grade, and update status only for
+# submissions belonging to activities that they own.
+
+# STUDENT VISIBILITY BOUNDARY:
+# Student responses exclude full AST findings, similarity comparison
+# records, compared-submission identifiers, instructor identity, and
+# all unreleased manual-grade information.
 
 # EXECUTION BOUNDARY:
-# This endpoint performs static structural and similarity analysis only.
-# Student code must never execute inside this router or the FastAPI process.
+# Evaluation performs static structural and source-similarity analysis
+# only. Student Python must never execute inside FastAPI.
+
+# GRADING BOUNDARY:
+# Official grades are manually created or updated by an authorized
+# instructor for the latest accepted official submission. Grade changes
+# do not silently change the submission review status.
 
 # REVIEW BOUNDARY:
-# AST findings and Jaccard similarity results provide review information only.
-# They must never automatically assign an official grade, declare plagiarism,
-# or determine misconduct.
+# AST findings and Jaccard similarity values support instructor review
+# only. They never independently determine plagiarism, misconduct,
+# cheating, copying, or the official academic grade.
