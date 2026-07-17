@@ -34,6 +34,7 @@ from app.schemas.enrollment_schema import (
 )
 from app.services.classroom_service import (
     ClassroomAccessDeniedError,
+    ClassroomAuditWorkflowError,
     ClassroomCodeGenerationError,
     ClassroomInactiveError,
     ClassroomNotFoundError,
@@ -103,6 +104,7 @@ def raise_classroom_service_http_exception(
         (
             ClassroomCodeGenerationError,
             ClassroomNotificationWorkflowError,
+            ClassroomAuditWorkflowError,
         ),
     ):
         raise HTTPException(
@@ -121,11 +123,15 @@ def raise_classroom_service_http_exception(
     summary="Create a classroom",
     description=(
         "Creates a classroom owned by the authenticated instructor. "
-        "The backend generates the unique class code."
+        "The backend generates the unique class code and records a "
+        "privacy-safe immutable audit entry for the accountable action."
     ),
     responses={
         status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": ("A unique class code could not be generated."),
+            "description": (
+                "A unique class code could not be generated, or the "
+                "required accountability record could not be saved."
+            ),
         },
     },
 )
@@ -140,7 +146,10 @@ def create_classroom_endpoint(
             instructor_id=current_instructor.user_id,
             classroom_data=classroom_data,
         )
-    except ClassroomCodeGenerationError as exc:
+    except (
+        ClassroomCodeGenerationError,
+        ClassroomAuditWorkflowError,
+    ) as exc:
         raise_classroom_service_http_exception(exc)
 
 
@@ -170,7 +179,9 @@ def list_instructor_classrooms_endpoint(
     summary="Join a classroom",
     description=(
         "Enrolls the authenticated student using a backend-generated "
-        "class code. Students cannot supply a student ID or class ID."
+        "class code. Students cannot supply a student ID or class ID. "
+        "A privacy-safe immutable audit record is created with the "
+        "enrollment in the same transaction."
     ),
     responses={
         status.HTTP_404_NOT_FOUND: {
@@ -179,6 +190,12 @@ def list_instructor_classrooms_endpoint(
         status.HTTP_409_CONFLICT: {
             "description": (
                 "The classroom is inactive or the student is already enrolled."
+            ),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The enrollment and its required accountability record "
+                "could not be completed."
             ),
         },
     },
@@ -198,6 +215,7 @@ def join_classroom_endpoint(
         ClassroomNotFoundError,
         ClassroomInactiveError,
         EnrollmentConflictError,
+        ClassroomAuditWorkflowError,
     ) as exc:
         raise_classroom_service_http_exception(exc)
 
@@ -230,7 +248,9 @@ def list_student_classrooms_endpoint(
     operation_id="update_enrollment_status",
     summary="Update enrollment status",
     description=(
-        "Allows the owning instructor to activate or deactivate a student enrollment."
+        "Allows the owning instructor to activate, disable, or remove "
+        "a student enrollment. A meaningful status transition and its "
+        "privacy-safe immutable audit record are committed together."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -238,6 +258,12 @@ def list_student_classrooms_endpoint(
         },
         status.HTTP_404_NOT_FOUND: {
             "description": ("The enrollment or classroom does not exist."),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The enrollment status transition and its required "
+                "accountability record could not be completed."
+            ),
         },
     },
 )
@@ -262,6 +288,7 @@ def update_enrollment_status_endpoint(
         EnrollmentNotFoundError,
         ClassroomNotFoundError,
         EnrollmentAccessDeniedError,
+        ClassroomAuditWorkflowError,
     ) as exc:
         raise_classroom_service_http_exception(exc)
 
@@ -314,7 +341,10 @@ def list_class_members_endpoint(
     operation_id="regenerate_classroom_code",
     summary="Regenerate a classroom code",
     description=(
-        "Replaces the classroom's existing join code with a new backend-generated code."
+        "Replaces the classroom's existing join code with a new "
+        "backend-generated code. The new code is never written to the "
+        "audit metadata; only the accountable regeneration action is "
+        "recorded."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -324,7 +354,10 @@ def list_class_members_endpoint(
             "description": ("The classroom does not exist."),
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": ("A unique replacement code could not be generated."),
+            "description": (
+                "A unique replacement code could not be generated, or "
+                "the required accountability record could not be saved."
+            ),
         },
     },
 )
@@ -347,6 +380,7 @@ def regenerate_class_code_endpoint(
         ClassroomNotFoundError,
         ClassroomAccessDeniedError,
         ClassroomCodeGenerationError,
+        ClassroomAuditWorkflowError,
     ) as exc:
         raise_classroom_service_http_exception(exc)
 
@@ -397,9 +431,10 @@ def get_classroom_endpoint(
     summary="Update a classroom",
     description=(
         "Updates classroom details or active status. The class code "
-        "cannot be directly modified by the client. Changing the "
-        "classroom from active to inactive creates privacy-safe in-app "
-        "notifications for active enrolled students."
+        "cannot be directly modified by the client. Meaningful changes "
+        "create a privacy-safe immutable audit record. Changing the "
+        "classroom from active to inactive also creates privacy-safe "
+        "in-app notifications for eligible active enrolled students."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -410,9 +445,9 @@ def get_classroom_endpoint(
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": (
-                "The classroom archive and its required in-app "
-                "notification workflow could not be completed. "
-                "The classroom remains active."
+                "The classroom change, required accountability record, "
+                "or required archive-notification workflow could not be "
+                "completed. The transaction is rolled back."
             ),
         },
     },
@@ -438,6 +473,7 @@ def update_classroom_endpoint(
         ClassroomNotFoundError,
         ClassroomAccessDeniedError,
         ClassroomNotificationWorkflowError,
+        ClassroomAuditWorkflowError,
     ) as exc:
         raise_classroom_service_http_exception(exc)
 
@@ -449,6 +485,7 @@ def update_classroom_endpoint(
 # CLASS-CODE BOUNDARY:
 # Class codes are generated and regenerated only by the backend.
 # Clients may submit a code to join but cannot assign a classroom code.
+# Generated class-code values are never stored in audit metadata.
 
 # AUTHORIZATION BOUNDARY:
 # Only the classroom owner can view members, update the classroom,
@@ -457,10 +494,18 @@ def update_classroom_endpoint(
 # NOTIFICATION WORKFLOW BOUNDARY:
 # Classroom archive notifications are created only when an owned
 # classroom changes from active to inactive. A workflow failure maps to
-# HTTP 503 and leaves the classroom active so the instructor can retry.
+# HTTP 503 and rolls back the archive transaction so the instructor may
+# retry safely.
 
-# NOTIFICATION PRIVACY BOUNDARY:
-# Classroom archive notifications exclude class codes, source code,
-# grades, feedback, AST findings, similarity records, hidden tests,
-# execution output, coding-session telemetry, clipboard contents,
-# pasted text, and automated misconduct conclusions.
+# AUDIT WORKFLOW BOUNDARY:
+# Classroom creation, meaningful classroom updates, code regeneration,
+# archive/reactivation transitions, student enrollment, and enrollment
+# status transitions create immutable audit records. Audit workflow
+# failures map to HTTP 503 and roll back the originating domain action.
+
+# PRIVACY BOUNDARY:
+# Classroom, enrollment, notification, and audit responses exclude class
+# codes from audit payloads, source code, grades, feedback, AST findings,
+# similarity records, hidden tests, execution output, coding-session
+# telemetry, clipboard contents, pasted text, surveillance data, and
+# automated misconduct conclusions.

@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.models.domain_models import (
@@ -19,6 +20,10 @@ from app.schemas.submission_schema import (
 from app.services.academic_event_service import (
     AcademicEventWorkflowError,
     notify_submission_created,
+)
+from app.services.audit_service import (
+    AuditServiceError,
+    create_audit_record,
 )
 from app.services.notification_service import (
     NotificationServiceError,
@@ -80,6 +85,15 @@ class SubmissionNotificationWorkflowError(
     """
 
 
+class SubmissionAuditWorkflowError(
+    SubmissionServiceError,
+):
+    """
+    Raised when the submission and its required accountability
+    record cannot be saved as one transaction.
+    """
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -88,11 +102,12 @@ def _flush_submission_transaction(
     db: Session,
 ) -> None:
     """
-    Flush the immutable submission before creating its academic event.
+    Flush the immutable submission before creating its audit record
+    and approved academic event.
 
-    The notification service performs the final commit so the
-    submission, academic event, and recipient notification are saved
-    atomically.
+    The notification workflow performs the final commit so the
+    submission, audit record, academic event, and recipient
+    notification are saved atomically.
     """
 
     try:
@@ -279,8 +294,8 @@ def create_student_submission(
     Only the is_official flag of an older attempt may be changed so
     that the latest accepted attempt becomes the official attempt.
 
-    The new submission, academic event, and instructor notification
-    are committed as one transaction.
+    The new submission, immutable audit record, academic event, and
+    instructor notification are committed as one transaction.
     """
 
     task = _get_student_submission_task(
@@ -338,6 +353,42 @@ def create_student_submission(
     _flush_submission_transaction(db)
 
     try:
+        create_audit_record(
+            db,
+            {
+                "audit_key": (
+                    f"audit:submission_created:submission:{submission.sub_id}"
+                ),
+                "actor_user_id": student_id,
+                "action_type": "submission_created",
+                "resource_type": "submission",
+                "resource_id": str(submission.sub_id),
+                "outcome": "succeeded",
+                "audit_data": {
+                    "task_id": task.task_id,
+                    "class_id": task.class_id,
+                    "attempt_number": submission.attempt_number,
+                    "submission_status": submission.status,
+                    "is_official": bool(submission.is_official),
+                },
+                "occurred_at": accepted_at,
+            },
+            commit=False,
+        )
+    except (
+        AuditServiceError,
+        ValidationError,
+        SQLAlchemyError,
+    ) as error:
+        db.rollback()
+
+        raise SubmissionAuditWorkflowError(
+            "The submission and its required accountability record "
+            "could not be saved. No submission attempt was created. "
+            "Please submit again."
+        ) from error
+
+    try:
         notify_submission_created(
             db,
             student_id=student_id,
@@ -346,6 +397,7 @@ def create_student_submission(
     except (
         AcademicEventWorkflowError,
         NotificationServiceError,
+        SQLAlchemyError,
     ) as error:
         db.rollback()
 
@@ -355,8 +407,8 @@ def create_student_submission(
             "Please submit again."
         ) from error
 
-    # The notification workflow commits the submission, academic event,
-    # and instructor notification as one transaction.
+    # The notification workflow commits the submission, audit record,
+    # academic event, and instructor notification as one transaction.
     db.refresh(submission)
 
     return submission
@@ -556,11 +608,25 @@ def get_instructor_submission(
 # session ownership, and attempt number are fixed when an attempt is
 # created. Only official-attempt metadata may change for older attempts.
 
+# AUDIT WORKFLOW BOUNDARY:
+# A new immutable submission and its immutable accountability record
+# are saved in the same transaction. Audit failure rolls back the new
+# attempt and restores the previous official-attempt state so the next
+# successful retry receives the correct attempt number.
+
+# AUDIT PRIVACY BOUNDARY:
+# Submission audit metadata contains only the submission identifier,
+# task and classroom identifiers, attempt number, workflow status, and
+# official-attempt state. It excludes source code, standard input,
+# coding-session telemetry, execution output, test data, AST findings,
+# similarity details, grades, feedback, clipboard or paste contents,
+# surveillance data, and misconduct conclusions.
+
 # NOTIFICATION WORKFLOW BOUNDARY:
-# A new immutable submission, its academic event, and the instructor's
-# in-app notification are saved in one transaction. A notification
-# workflow failure rolls back the new attempt and restores the previous
-# official-attempt state, making a client retry safe.
+# A new immutable submission, its audit record, academic event, and the
+# instructor's in-app notification are saved in one transaction. A
+# notification workflow failure rolls back all four records and restores
+# the previous official-attempt state, making a client retry safe.
 
 # NOTIFICATION PRIVACY BOUNDARY:
 # Submission-created notifications exclude source code, standard input,

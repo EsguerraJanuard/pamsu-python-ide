@@ -86,7 +86,7 @@ def test_openapi_metadata_and_tags():
 
     # Pillar 12 remains a work in progress until all audit-trail
     # integrations and regressions are complete.
-    assert APP_VERSION == "0.11.0"
+    assert APP_VERSION == "0.12.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
@@ -128,6 +128,8 @@ def test_required_api_paths_and_status_codes():
         "/classrooms/",
         "/classrooms/join",
         "/classrooms/mine",
+        "/classrooms/enrollments/{enrollment_id}/status",
+        "/classrooms/{class_id}/regenerate-code",
         "/classrooms/{class_id}",
         "/instructors/tasks/",
         "/instructors/tasks/{task_id}",
@@ -163,6 +165,8 @@ def test_required_api_paths_and_status_codes():
         "/notifications/read-all",
         "/notifications/{notification_id}",
         "/notifications/{notification_id}/read",
+        "/audit-records/",
+        "/audit-records/{audit_id}",
     }
 
     assert required_paths.issubset(paths.keys())
@@ -236,6 +240,12 @@ def test_required_api_paths_and_status_codes():
     assert "200" in paths["/notifications/{notification_id}/read"]["patch"]["responses"]
 
     assert "200" in paths["/notifications/read-all"]["patch"]["responses"]
+
+    assert "200" in paths["/audit-records/"]["get"]["responses"]
+
+    assert "200" in paths["/audit-records/{audit_id}"]["get"]["responses"]
+
+    assert "404" in paths["/audit-records/{audit_id}"]["get"]["responses"]
 
 
 def test_all_operation_ids_are_unique():
@@ -641,6 +651,149 @@ def test_evaluation_contract_has_no_automatic_grade_verdict():
     assert prohibited_fields.isdisjoint(properties)
 
 
+def test_audit_routes_are_read_only_and_actor_scoped():
+    document = get_openapi_document()
+    paths = document["paths"]
+
+    assert set(
+        method for method in paths["/audit-records/"] if method.lower() in HTTP_METHODS
+    ) == {
+        "get",
+    }
+
+    assert set(
+        method
+        for method in paths["/audit-records/{audit_id}"]
+        if method.lower() in HTTP_METHODS
+    ) == {
+        "get",
+    }
+
+    audit_operations = [
+        operation
+        for _, path, operation in iter_operations(document)
+        if path.startswith("/audit-records")
+    ]
+
+    assert all(operation.get("requestBody") is None for operation in audit_operations)
+
+    list_parameter_names = {
+        parameter["name"]
+        for parameter in paths["/audit-records/"]["get"].get(
+            "parameters",
+            [],
+        )
+    }
+
+    assert {
+        "page",
+        "page_size",
+        "action_type",
+        "resource_type",
+        "resource_id",
+        "outcome",
+    }.issubset(list_parameter_names)
+
+    assert {
+        "actor_user_id",
+        "user_id",
+        "school_id",
+        "email",
+        "audit_key",
+    }.isdisjoint(list_parameter_names)
+
+
+def test_audit_record_response_respects_privacy_boundary():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "AuditRecordResponse",
+    )
+
+    assert {
+        "audit_id",
+        "actor_user_id",
+        "action_type",
+        "resource_type",
+        "resource_id",
+        "outcome",
+        "audit_data",
+        "occurred_at",
+        "created_at",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "audit_key",
+        "password",
+        "password_hash",
+        "otp",
+        "otp_code",
+        "raw_code",
+        "source_code",
+        "starter_code",
+        "standard_input",
+        "expected_output",
+        "hidden_test_cases",
+        "required_ast_rules",
+        "ast_details",
+        "ast_findings",
+        "similarity_score",
+        "similarity_details",
+        "stdout",
+        "stderr",
+        "execution_output",
+        "worker_task_id",
+        "clipboard_content",
+        "paste_content",
+        "pasted_text",
+        "keystrokes",
+        "browsing_history",
+        "screen_recording",
+        "webcam",
+        "microphone",
+        "score",
+        "max_score",
+        "feedback",
+        "automatic_grade",
+        "risk_score",
+        "plagiarism_verdict",
+        "cheating_verdict",
+        "misconduct_verdict",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+
+def test_audit_list_contract_is_actor_safe():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "AuditRecordListResponse",
+    )
+
+    assert {
+        "items",
+        "page",
+        "page_size",
+        "total",
+        "total_pages",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "actor_filter",
+        "actor_user_id",
+        "user_id",
+        "school_id",
+        "email",
+        "audit_key",
+        "system_wide_records",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+
 def test_notification_routes_are_read_state_only():
     document = get_openapi_document()
     paths = document["paths"]
@@ -833,11 +986,39 @@ def test_notification_create_contract_is_not_exposed_by_routes():
     assert request_bodies == []
 
 
-def test_notification_domain_failure_responses_are_documented():
+def test_accountability_workflow_failure_responses_are_documented():
     document = get_openapi_document()
     paths = document["paths"]
 
     protected_operations = {
+        (
+            "post",
+            "/classrooms/",
+        ),
+        (
+            "post",
+            "/classrooms/join",
+        ),
+        (
+            "patch",
+            "/classrooms/enrollments/{enrollment_id}/status",
+        ),
+        (
+            "post",
+            "/classrooms/{class_id}/regenerate-code",
+        ),
+        (
+            "patch",
+            "/classrooms/{class_id}",
+        ),
+        (
+            "post",
+            "/instructors/tasks/",
+        ),
+        (
+            "patch",
+            "/instructors/tasks/{task_id}",
+        ),
         (
             "patch",
             "/instructors/tasks/{task_id}/publication",
@@ -853,10 +1034,6 @@ def test_notification_domain_failure_responses_are_documented():
         (
             "patch",
             "/evaluation/submissions/{sub_id}/grade",
-        ),
-        (
-            "patch",
-            "/classrooms/{class_id}",
         ),
     }
 

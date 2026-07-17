@@ -18,169 +18,376 @@ These repository files are the authoritative source of truth.
 Current local working branch:
 
 ```text
-review/backend-p11-notification-workflow
+review/backend-p12-audit-trail
 ```
 
 Backend version:
 
 ```text
-0.11.0
+0.12.0
 ```
 
-Latest completed pillar:
+Latest completed implementation scope:
 
-- Pillar 11 — In-App Notification and Academic Event Workflow
+- Pillar 12 — Audit Trail and Academic Accountability
 
-Latest verified backend regression:
+Current verification status:
 
 ```text
-255 passed
+Latest observed full regression: 380 passed, 1 failed
 ```
 
-The Pillar 11 review branch must remain local.
+The remaining observed failure was a stale version assertion in:
+
+```text
+backend/tests/test_classroom_openapi_contracts.py
+```
+
+Required assertion:
+
+```python
+assert APP_VERSION == "0.12.0"
+```
+
+A final green full-regression rerun was not yet supplied when this handoff was updated.
+
+The Pillar 12 review branch must remain local.
 
 Do not push the review branch.
 
-Merge it locally into `dev`, run the full regression again on `dev`, and push only `dev`.
+After the final full regression passes, merge it locally into `dev`, rerun the full regression on `dev`, and push only `dev`.
 
 ---
 
-## Completed Pillar 11 Scope
+## Completed Pillar 12 Scope
 
-Pillar 11 provides backend-owned in-app notifications created only by approved academic workflows.
+Pillar 12 provides backend-owned, immutable, privacy-safe audit records for accountable academic actions.
 
-Implemented database models:
+Implemented database model:
 
-- `AcademicEvent`
-- `Notification`
-- immutable academic-event records
-- unique backend-generated academic-event keys
-- unique event-recipient notification pairs
-- recipient-owned unread and read state
-- read timestamps
-- deterministic notification timestamps and ordering
+- `AuditRecord`
+- UUID audit identifier
+- unique backend-generated audit key
+- authenticated actor identity
+- action type
+- resource type
+- resource identifier
+- outcome
+- privacy-safe structured metadata
+- occurrence timestamp
+- creation timestamp
+- actor, action, and resource indexes
 
-Implemented notification schemas:
+Implemented audit action types:
 
-- internal academic-event creation contract
-- internal notification creation contract
-- recipient-safe notification response
-- paginated notification list response
-- unread-count response
-- mark-all-read response
-- strict schema validation
-- prohibited sensitive event-data keys
-- backend-controlled event and recipient fields
+- `user_registered`
+- `login_succeeded`
+- `login_failed`
+- `classroom_created`
+- `classroom_updated`
+- `classroom_archived`
+- `classroom_reactivated`
+- `student_enrolled`
+- `enrollment_status_changed`
+- `activity_created`
+- `activity_updated`
+- `activity_published`
+- `activity_unpublished`
+- `submission_created`
+- `submission_status_changed`
+- `grade_created`
+- `grade_updated`
+- `grade_released`
+- `notification_marked_read`
+- `notifications_marked_read`
 
-Implemented notification service operations:
+The current Pillar 12 domain integrations cover classroom, enrollment, activity, submission, and manual-grade accountability workflows.
 
-- idempotent academic-event creation
-- duplicate-safe recipient notification creation
-- event-key conflict detection
-- active and verified recipient validation
-- recipient-owned notification listing
+Authentication and notification read-state action types remain reserved for trusted future integration unless explicitly implemented and tested.
+
+Implemented resource types:
+
+- `user`
+- `classroom`
+- `enrollment`
+- `task`
+- `submission`
+- `grade`
+- `notification`
+
+Implemented outcomes:
+
+- `succeeded`
+- `denied`
+- `failed`
+
+---
+
+## Audit Schemas and Validation
+
+Implemented audit schemas:
+
+- `AuditActionType`
+- `AuditResourceType`
+- `AuditOutcome`
+- `AuditRecordCreateInternal`
+- `AuditRecordResponse`
+- `AuditRecordListResponse`
+
+Schema behavior:
+
+- strict Pydantic validation
+- extra fields are forbidden
+- audit creation is internal-only
+- public responses exclude the internal audit key
+- recursive metadata privacy validation
+- metadata size limit
+- actor identity is backend-controlled
+- occurrence timestamp is backend-controlled
+- resource identity is backend-controlled by trusted workflows
+
+Prohibited audit metadata includes:
+
+- passwords
+- password hashes
+- OTP values
+- source code
+- starter code
+- standard input
+- hidden test data
+- expected output
+- AST rules or findings
+- similarity details
+- execution output
+- worker identifiers
+- coding-session telemetry details
+- clipboard contents
+- pasted text
+- browsing history
+- individual keystrokes
+- screen recordings
+- webcam data
+- microphone data
+- score values
+- maximum-score values
+- feedback text
+- automated plagiarism verdicts
+- automated cheating verdicts
+- automated misconduct conclusions
+
+---
+
+## Audit Service
+
+Implemented service operations:
+
+- idempotent audit creation by unique `audit_key`
+- internal atomic mode using `commit=False`
+- metadata-size enforcement
+- audit-key conflict handling
+- actor-owned audit retrieval
+- actor-owned audit listing
+- action-type filtering
+- resource-type filtering
+- outcome filtering
 - deterministic pagination
-- read and unread filtering
-- unread-count calculation
-- get one recipient-owned notification
-- idempotent mark-one-read operation
-- owner-scoped mark-all-read operation
+- owner-scoped authorization
 
-Implemented notification endpoints:
+Audit records are append-only through the application API.
 
-- `GET /notifications/`
-- `GET /notifications/unread-count`
-- `GET /notifications/{notification_id}`
-- `PATCH /notifications/{notification_id}/read`
-- `PATCH /notifications/read-all`
-
-Notification routes are read-state and retrieval operations only.
-
-There is no client-facing notification-creation endpoint.
+There are no client-facing create, update, patch, or delete operations.
 
 ---
 
-## Approved Academic Event Workflows
+## Audit Endpoints
 
-Implemented trusted academic-event templates:
+Implemented endpoints:
 
-- activity published
-- submission created
-- grade released
-- classroom archived
+- `GET /audit-records/`
+- `GET /audit-records/{audit_id}`
 
-Clients cannot submit arbitrary event types, recipients, event keys, titles, messages, or event payloads.
+Behavior:
 
-Recipients are resolved exclusively by trusted backend ownership and enrollment rules.
+- authentication is required
+- users may read only audit records attributed to their own account
+- clients cannot select another actor
+- clients cannot create audit records
+- clients cannot update audit records
+- clients cannot delete audit records
+- internal audit keys are not exposed
+- audit metadata is privacy-filtered before persistence
 
 ---
 
 ## Domain Integrations
 
-### Activity Publication
+### Classroom Creation
 
-Successful activity publication triggers privacy-safe notifications for eligible active enrolled students.
+Creating an instructor-owned classroom creates a `classroom_created` audit record.
 
 Behavior:
 
-- notifications are created only for published activities
-- the activity must belong to the authenticated instructor
-- the classroom must be active
-- publication uses the backend-controlled `published_at`
-- repeated publication requests reuse the same idempotent event key
-- repeated publication does not create duplicate notifications
-- unpublishing does not create a notification
-- notification workflow failure does not undo a successfully committed publication
-- repeating publication safely retries missing notification creation
-- notification failure is exposed as controlled HTTP `503 Service Unavailable`
+- instructor identity comes from the authenticated account
+- class codes are generated only by the backend
+- class-code values are never stored in audit metadata
+- classroom creation and the audit record are committed together
+- audit failure rolls back classroom creation
+- audit failure is exposed as controlled HTTP `503 Service Unavailable`
+
+### Classroom Update
+
+Meaningful classroom field changes create a `classroom_updated` audit record.
+
+Behavior:
+
+- only changed field names are recorded
+- no-op updates do not create duplicate audit rows
+- classroom changes and their audit records are committed together
+- audit failure rolls back the classroom update
+
+### Classroom Archive and Reactivation
+
+An active-to-inactive transition creates `classroom_archived`.
+
+An inactive-to-active transition creates `classroom_reactivated`.
+
+Behavior:
+
+- `archived_at` is backend-controlled
+- repeated inactive updates preserve the original archive timestamp
+- repeated no-op archive requests do not create duplicate audit rows
+- reactivation clears `archived_at`
+- archive audit, academic event, and eligible student notifications participate in the accountable workflow
+- notification failure rolls back the archive transition
+- audit failure rolls back the archive transition
+- failures are exposed as controlled HTTP `503 Service Unavailable`
+
+### Class-Code Regeneration
+
+Regenerating a class code creates a `classroom_updated` audit record.
+
+Behavior:
+
+- the generated code is never stored in audit metadata
+- metadata records only that the backend regenerated the code
+- code regeneration and its audit record are committed together
+
+### Student Enrollment
+
+Joining a classroom creates a `student_enrolled` audit record.
+
+Behavior:
+
+- student identity comes from the authenticated account
+- class ownership is resolved by the backend
+- enrollment and its audit record are committed together
+- audit failure rolls back enrollment creation
+- failure is exposed as controlled HTTP `503 Service Unavailable`
+
+### Enrollment Status Change
+
+A meaningful enrollment-state transition creates `enrollment_status_changed`.
+
+Behavior:
+
+- only the owning instructor may change enrollment status
+- previous and new status values are recorded
+- repeated no-op status requests do not create duplicate audit rows
+- enrollment changes and audit records are committed together
+- audit failure rolls back the status transition
+
+### Activity Creation
+
+Creating an instructor activity creates `activity_created`.
+
+Behavior:
+
+- instructor identity is backend-controlled
+- publication state begins as draft
+- activity creation and its audit record are committed together
+- titles, descriptions, instructions, starter code, AST rules, and test data are excluded from audit metadata
+
+### Activity Update
+
+Meaningful activity changes create `activity_updated`.
+
+Behavior:
+
+- only changed field names are recorded
+- no-op updates do not create duplicate audit rows
+- activity changes and audit records are committed together
+- source-bearing or evaluator-sensitive fields are not copied into metadata
+
+### Activity Publication and Unpublication
+
+Publishing creates `activity_published`.
+
+Returning an activity to draft creates `activity_unpublished`.
+
+Behavior:
+
+- publication requires an active instructor-owned classroom
+- publication requires a future deadline when a deadline is configured
+- publication timestamp is backend-controlled
+- publication or unpublication and the audit record are committed together
+- repeated no-op publication does not duplicate audit rows
+- repeated publication may safely retry a previously incomplete notification workflow
+- audit failure rolls back the publication-state transition
+- notification failure remains exposed as controlled HTTP `503 Service Unavailable`
 
 ### Submission Creation
 
-Creating a student submission triggers a privacy-safe notification for the instructor who owns the activity.
+Creating an immutable official attempt creates `submission_created`.
 
 Behavior:
 
-- submission ownership comes from the authenticated student
-- only published graded activities accept official submissions
-- active enrollment is required
+- student identity is backend-controlled
+- attempt number is backend-controlled
+- latest accepted attempt becomes official
 - source code and standard input remain immutable
-- the latest accepted attempt becomes the official attempt
-- the submission, academic event, and instructor notification are saved atomically
-- notification workflow failure rolls back the new attempt
+- audit metadata contains only approved identifiers, attempt number, workflow status, and official-attempt state
+- source code and standard input are never stored in the audit record
+- submission, audit record, academic event, and instructor notification are saved atomically
+- audit failure rolls back the new attempt and restores the previous official attempt
+- notification failure rolls back the entire submission workflow
 - retrying after failure does not consume an attempt number
-- notification failure is exposed as controlled HTTP `503 Service Unavailable`
+- failures are exposed as controlled HTTP `503 Service Unavailable`
+
+### Manual Grade Creation
+
+Creating a manual instructor grade creates `grade_created`.
+
+Behavior:
+
+- only the owning instructor may create the grade
+- only the latest accepted official submission of a graded activity may receive a grade
+- grade creation and its audit record are committed together
+- audit metadata contains field names and release state, not grade values
+- score, maximum score, and feedback are never copied into audit metadata
+
+### Manual Grade Update
+
+A meaningful grade edit creates `grade_updated`.
+
+Behavior:
+
+- no-op grade updates do not create duplicate audit rows
+- changed field names are recorded
+- score values, maximum-score values, and feedback text are excluded
+- grade changes and audit records are committed together
+- audit failure rolls back the grade change
 
 ### Grade Release
 
-A student notification is created only when a manual instructor grade changes from unreleased to released.
+An unreleased-to-released transition creates `grade_released`.
 
 Behavior:
 
-- only the owning instructor may release the grade
-- only the latest accepted official submission may receive the official grade
-- automated AST, similarity, execution, and behavioral indicators never populate the grade
-- ordinary score or feedback edits do not create release notifications
-- editing an already released grade does not create a duplicate notification
-- the release transition, academic event, and student notification are saved atomically
-- notification workflow failure rolls back the release transition
-- notification failure is exposed as controlled HTTP `503 Service Unavailable`
-
-### Classroom Archive
-
-Changing an instructor-owned classroom from active to inactive triggers privacy-safe notifications for eligible active enrolled students.
-
-Behavior:
-
-- `archived_at` is set by the backend on the active-to-inactive transition
-- reactivating a classroom clears `archived_at`
-- repeated inactive updates preserve the original archive timestamp
-- repeated inactive updates do not create duplicate notifications
-- only active, verified, active-account students are recipients
-- disabled and removed enrollments are excluded
-- archiving a classroom with no eligible recipients still succeeds
-- the archive transition, academic event, and notifications are saved atomically
-- notification workflow failure rolls back the archive transition
-- notification failure is exposed as controlled HTTP `503 Service Unavailable`
+- a separate release audit record is created in addition to the grade write audit
+- repeated writes to an already released grade do not duplicate release audits
+- grade release, audit records, academic event, and student notification are saved atomically
+- audit or notification failure rolls back the release transition
+- failures are exposed as controlled HTTP `503 Service Unavailable`
 
 ---
 
@@ -188,119 +395,142 @@ Behavior:
 
 The OpenAPI contract includes:
 
-- the `Notifications` tag
-- all five notification endpoints
+- backend version `0.12.0`
+- the `Audit Trail` tag
+- both owner-scoped audit endpoints
 - authenticated access requirements
-- owner-scoped notification retrieval
-- owner-scoped read-state operations
-- documented HTTP `503` responses for notification-dependent domain workflows
-- no client-facing notification creation request body
-- recipient-safe notification response fields
-- backend version `0.11.0`
+- read-only audit route enforcement
+- no audit-creation request body
+- no actor-selection input
+- privacy-safe audit responses
+- documented HTTP `503` responses for accountable workflow failures
 
-The public notification response includes only:
+Documented accountable failure responses include:
 
-- notification identifier
-- academic-event identifier
-- event type
-- resource type
-- resource identifier
-- title
-- message
-- read state
-- read timestamp
-- notification creation timestamp
-- academic-event occurrence timestamp
-
-Internal recipient identifiers, actor identifiers, event keys, and event payloads are not exposed.
-
----
-
-## Verified Test Coverage
-
-Verified full backend regression:
-
-```text
-255 passed
-```
-
-Pillar 11 tests cover:
-
-- academic-event table registration
-- notification table registration
-- academic-event type and resource constraints
-- unique academic-event keys
-- unique event-recipient notification pairs
-- multiple recipients for one event
-- ORM relationships
-- event creation idempotency
-- event-key conflict detection
-- inactive-recipient rejection
-- recipient ownership
-- deterministic ordering
-- notification pagination
-- read and unread filters
-- unread counts
-- owner-only notification retrieval
-- idempotent mark-one-read
-- owner-scoped mark-all-read
-- authentication requirements
-- page-size validation
-- activity publication notifications
-- repeated publication idempotency
-- submission-created instructor notifications
-- submission rollback on notification failure
-- grade-release transition notifications
-- no duplicate notification for later released-grade edits
-- classroom archive notifications
-- archive recipient filtering
-- archive success with no eligible recipients
-- archive rollback on notification failure
-- notification privacy contracts
-- OpenAPI notification route contracts
-- OpenAPI notification failure-response documentation
+- classroom creation
+- classroom update
+- classroom archive
+- classroom reactivation
+- class-code regeneration
+- student enrollment
+- enrollment status transition
+- activity creation
+- activity update
+- activity publication
+- activity unpublication
+- submission creation
+- manual grade creation
+- manual grade update
+- grade release
 
 ---
 
-## Non-Negotiable Security and Privacy Rules
+## Audit Privacy and Non-Surveillance Rules
 
-- Clients cannot create academic events.
-- Clients cannot create notifications.
-- Clients cannot choose notification recipients.
-- Clients cannot choose event keys.
-- Clients cannot choose notification titles or messages.
-- Notification ownership comes from the authenticated database user.
-- Notification content comes only from trusted backend templates.
-- Academic events and notifications never contain source code.
-- Academic events and notifications never contain starter code.
-- Academic events and notifications never contain standard input.
-- Academic events and notifications never contain hidden test cases.
-- Academic events and notifications never contain expected outputs.
-- Academic events and notifications never contain AST rules or findings.
-- Academic events and notifications never contain similarity details.
-- Academic events and notifications never contain execution output.
-- Academic events and notifications never contain worker identifiers.
-- Academic events and notifications never contain coding-session telemetry.
-- Clipboard contents and pasted text are never stored.
+- Clients cannot create audit records.
+- Clients cannot choose audit actors.
+- Clients cannot choose audit keys.
+- Clients cannot alter audit timestamps.
+- Clients cannot update audit records.
+- Clients cannot delete audit records.
+- Users may read only records attributed to their own account.
+- Audit records never contain passwords.
+- Audit records never contain password hashes.
+- Audit records never contain OTP values.
+- Audit records never contain source code.
+- Audit records never contain starter code.
+- Audit records never contain standard input.
+- Audit records never contain hidden test data.
+- Audit records never contain expected outputs.
+- Audit records never contain AST rules.
+- Audit records never contain AST findings.
+- Audit records never contain similarity details.
+- Audit records never contain execution output.
+- Audit records never contain worker identifiers.
+- Audit records never contain score values.
+- Audit records never contain maximum-score values.
+- Audit records never contain feedback text.
+- Audit records never contain clipboard contents.
+- Audit records never contain pasted text.
 - Browsing history is never collected.
+- Individual keystrokes are never collected.
 - Screen recordings are never collected.
 - Webcam data is never collected.
 - Microphone data is never collected.
-- Individual keystrokes are never collected.
-- Unreleased scores and feedback are never included.
-- Grade-release notifications are created only for manually released grades.
+- Audit records never contain automated misconduct conclusions.
+- Audit records support accountability and authorized review only.
+- The audit trail must not become a surveillance system.
+
+---
+
+## Existing System Boundaries That Remain Mandatory
+
+- Registration accepts only `@pampangastateu.edu.ph`.
+- School ID is exactly 10 digits.
+- School ID is stored as a string.
+- School ID is unique.
+- Roles are controlled only by the backend allowlist.
+- OTP verification remains required.
+- Submission attempts are immutable.
+- The latest accepted attempt becomes official.
+- Official grades are manually controlled by instructors.
+- AST, Jaccard similarity, execution, and coding-session indicators remain review-only.
 - Automated indicators never assign grades.
 - Automated indicators never determine plagiarism, cheating, copying, or misconduct.
-- Pillar 11 provides in-app notifications only.
-- Email, SMS, and push delivery remain outside Pillar 11.
+- Paste policy remains `internal_only` or `disabled`.
+- Blocked-paste telemetry stores count and timestamp only.
+- Clipboard contents and pasted text are never stored.
+- Browsing history is never collected.
+- Screen, webcam, and microphone recording are prohibited.
+- Individual keystroke collection is prohibited.
 - Student Python code never executes inside React or FastAPI.
 - Student code executes only through the partner-owned isolated sandbox worker.
 
 ---
 
-## Final Pillar 11 Git Procedure
+## Pillar 12 Files
 
-From the repository root, verify the current branch:
+Primary implementation files:
+
+```text
+backend/app/models/domain_models.py
+backend/app/schemas/audit_schema.py
+backend/app/services/audit_service.py
+backend/app/routers/audit_records.py
+backend/app/services/classroom_service.py
+backend/app/routers/classrooms.py
+backend/app/services/task_service.py
+backend/app/routers/instructor.py
+backend/app/services/submission_service.py
+backend/app/routers/submissions.py
+backend/app/services/evaluation_service.py
+backend/app/routers/evaluation.py
+backend/app/main.py
+```
+
+Primary test files:
+
+```text
+backend/tests/test_audit_models.py
+backend/tests/test_audit_schemas.py
+backend/tests/test_audit_service.py
+backend/tests/test_audit_router.py
+backend/tests/test_audit_workflow.py
+backend/tests/test_openapi_contracts.py
+backend/tests/test_classroom_openapi_contracts.py
+```
+
+Documentation:
+
+```text
+docs/ai/CURRENT_HANDOFF.md
+```
+
+---
+
+## Verification Commands
+
+From the repository root:
 
 ```powershell
 git branch --show-current
@@ -309,20 +539,45 @@ git branch --show-current
 Expected:
 
 ```text
-review/backend-p11-notification-workflow
+review/backend-p12-audit-trail
 ```
 
-Run final checks:
+Run focused Pillar 12 verification:
 
 ```powershell
 cd backend
+.\venv\Scripts\python.exe -m pytest `
+    tests\test_audit_models.py `
+    tests\test_audit_schemas.py `
+    tests\test_audit_service.py `
+    tests\test_audit_router.py `
+    tests\test_audit_workflow.py `
+    tests\test_openapi_contracts.py `
+    tests\test_classroom_openapi_contracts.py `
+    -q
+```
+
+Run the complete backend regression:
+
+```powershell
 .\venv\Scripts\python.exe -m pytest -q
 cd ..
+```
+
+Run repository checks:
+
+```powershell
 git diff --check
 git status --short
 ```
 
-Stage only exact Pillar 11 files.
+Do not claim final Pillar 12 verification until the complete backend regression is green.
+
+---
+
+## Final Pillar 12 Git Procedure
+
+Stage exact files only.
 
 Do not use:
 
@@ -330,10 +585,37 @@ Do not use:
 git add .
 ```
 
-Commit the completed review branch locally:
+Suggested exact staging command:
 
 ```powershell
-git commit -m "feat: complete in-app notification workflows"
+git add `
+    backend/app/models/domain_models.py `
+    backend/app/schemas/audit_schema.py `
+    backend/app/services/audit_service.py `
+    backend/app/routers/audit_records.py `
+    backend/app/services/classroom_service.py `
+    backend/app/routers/classrooms.py `
+    backend/app/services/task_service.py `
+    backend/app/routers/instructor.py `
+    backend/app/services/submission_service.py `
+    backend/app/routers/submissions.py `
+    backend/app/services/evaluation_service.py `
+    backend/app/routers/evaluation.py `
+    backend/app/main.py `
+    backend/tests/test_audit_models.py `
+    backend/tests/test_audit_schemas.py `
+    backend/tests/test_audit_service.py `
+    backend/tests/test_audit_router.py `
+    backend/tests/test_audit_workflow.py `
+    backend/tests/test_openapi_contracts.py `
+    backend/tests/test_classroom_openapi_contracts.py `
+    docs/ai/CURRENT_HANDOFF.md
+```
+
+Commit locally after all tests pass:
+
+```powershell
+git commit -m "feat: complete audit trail and academic accountability"
 ```
 
 Do not push the review branch.
@@ -342,21 +624,15 @@ Merge locally into `dev`:
 
 ```powershell
 git switch dev
-git merge --no-ff review/backend-p11-notification-workflow
+git merge --no-ff review/backend-p12-audit-trail
 ```
 
-Run the full backend regression again on `dev`:
+Run the complete backend regression again on `dev`:
 
 ```powershell
 cd backend
 .\venv\Scripts\python.exe -m pytest -q
 cd ..
-```
-
-Expected:
-
-```text
-255 passed
 ```
 
 Push only `dev`:
@@ -367,59 +643,13 @@ git push origin dev
 
 ---
 
-## Next Pillar
+## Next Work
 
-Continue with:
+After Pillar 12 is fully verified and merged:
 
-- Pillar 12 — Audit Trail and Academic Accountability
-- Target backend version: `0.12.0`
-
-Create the next local review branch from the updated `dev` branch:
-
-```powershell
-git switch dev
-git pull --ff-only origin dev
-git switch -c review/backend-p12-audit-trail
-```
-
-Do not push the Pillar 12 review branch.
-
----
-
-## Pillar 12 Starting Direction
-
-Begin by designing backend-owned audit records for security-sensitive and academically accountable actions.
-
-Initial audit scope should consider:
-
-- authentication-relevant account actions
-- classroom creation and archive transitions
-- enrollment status changes
-- activity publication changes
-- immutable submission creation
-- manual grade creation and updates
-- grade release transitions
-- notification read-state changes only when academically necessary
-- authenticated actor identity
-- target resource identity
-- action type
-- timestamp
-- privacy-safe structured metadata
-
-Audit records must not contain:
-
-- passwords
-- password hashes
-- OTP values
-- source code
-- standard input
-- hidden test data
-- execution output
-- clipboard contents
-- pasted text
-- browsing history
-- individual keystrokes
-- webcam or microphone data
-- automatic misconduct conclusions
-
-The audit trail must support accountability and authorized review without becoming a surveillance system.
+1. Read `docs/ai/ROADMAP.md`.
+2. Confirm the next incomplete pillar and target backend version.
+3. Create the next local review branch from updated `dev`.
+4. Do not push the review branch.
+5. Continue one module at a time.
+6. Preserve all security, privacy, grading, execution, and non-surveillance boundaries documented above.

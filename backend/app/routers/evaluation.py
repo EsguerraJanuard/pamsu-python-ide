@@ -35,6 +35,7 @@ from app.services.evaluation_service import (
     EvaluationPersistenceError,
     EvaluationServiceError,
     EvaluationStateConflictError,
+    GradeAuditWorkflowError,
     GradeNotFoundError,
     GradeNotificationWorkflowError,
     GradeUnavailableError,
@@ -200,7 +201,10 @@ def raise_evaluation_service_http_exception(
 
     if isinstance(
         exc,
-        GradeNotificationWorkflowError,
+        (
+            GradeNotificationWorkflowError,
+            GradeAuditWorkflowError,
+        ),
     ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -412,8 +416,10 @@ def update_eval_status(
         "the authenticated instructor. Automated AST, similarity, "
         "execution, and session indicators are never used to populate "
         "the grade. This operation does not change submission status. "
-        "A student notification is created only when the grade changes "
-        "from unreleased to released."
+        "The grade write and its privacy-safe immutable accountability "
+        "record are committed together. A student notification is "
+        "created only when the grade changes from unreleased to "
+        "released."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -434,8 +440,10 @@ def update_eval_status(
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": (
-                "The grade release and its required student "
-                "notification could not be saved."
+                "The manual grade and its required accountability "
+                "record could not be saved, or the grade release and "
+                "its required student notification could not be "
+                "completed."
             ),
         },
     },
@@ -473,9 +481,10 @@ def set_grade(
         "Updates selected fields of an existing manual instructor "
         "grade. At least one field is required, and the final score "
         "cannot exceed the final maximum score. This operation does "
-        "not change submission status. A student notification is "
-        "created only when the grade changes from unreleased to "
-        "released."
+        "not change submission status. Meaningful changes and their "
+        "privacy-safe immutable accountability record are committed "
+        "together. A student notification is created only when the "
+        "grade changes from unreleased to released."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -499,8 +508,10 @@ def set_grade(
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": (
-                "The grade release and its required student "
-                "notification could not be saved."
+                "The manual grade update and its required "
+                "accountability record could not be saved, or the "
+                "grade release and its required student notification "
+                "could not be completed."
             ),
         },
     },
@@ -546,6 +557,20 @@ def patch_eval_grade(
 # Official grades are manually created or updated by an authorized
 # instructor for the latest accepted official submission. Grade changes
 # do not silently change the submission review status.
+
+# AUDIT WORKFLOW BOUNDARY:
+# Manual grade creation and meaningful grade updates create immutable
+# backend-owned audit records. An unreleased-to-released transition
+# creates a separate grade-release audit record. Audit workflow failures
+# roll back the manual grade write and return HTTP 503.
+
+# AUDIT PRIVACY BOUNDARY:
+# Grade audit metadata contains only approved resource identifiers,
+# changed field names, and release-state transitions. It never contains
+# score values, maximum-score values, feedback text, source code,
+# standard input, hidden test data, AST or similarity details, execution
+# output, behavioral telemetry, clipboard or paste contents,
+# surveillance data, or misconduct conclusions.
 
 # NOTIFICATION WORKFLOW BOUNDARY:
 # Grade-release notifications are created only when a manual instructor

@@ -97,6 +97,7 @@ from app.services.submission_service import (
 )
 from app.services.task_service import (
     TaskAccessDeniedError,
+    TaskAuditWorkflowError,
     TaskClassAccessDeniedError,
     TaskClassInactiveError,
     TaskClassNotFoundError,
@@ -175,7 +176,10 @@ def raise_task_service_http_exception(
 
     if isinstance(
         exc,
-        TaskNotificationWorkflowError,
+        (
+            TaskNotificationWorkflowError,
+            TaskAuditWorkflowError,
+        ),
     ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -613,7 +617,8 @@ def list_gradebook_endpoint(
         "Creates a draft laboratory or homework activity inside an "
         "active classroom owned by the authenticated instructor. "
         "Instructor identity, publication state, and publication "
-        "timestamp are backend-controlled."
+        "timestamp are backend-controlled. The activity and its "
+        "privacy-safe immutable audit record are committed together."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -624,6 +629,12 @@ def list_gradebook_endpoint(
         },
         status.HTTP_409_CONFLICT: {
             "description": "The classroom is inactive.",
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The activity and its required accountability record "
+                "could not be created."
+            ),
         },
     },
 )
@@ -642,6 +653,7 @@ def create_task_endpoint(
         TaskClassNotFoundError,
         TaskClassAccessDeniedError,
         TaskClassInactiveError,
+        TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)
 
@@ -745,7 +757,9 @@ def get_task_endpoint(
     description=(
         "Updates selected activity fields. Moving an activity to "
         "another classroom is permitted only when that classroom "
-        "is active and owned by the authenticated instructor."
+        "is active and owned by the authenticated instructor. "
+        "Meaningful changes and their privacy-safe immutable audit "
+        "record are committed together."
     ),
     responses={
         status.HTTP_400_BAD_REQUEST: {
@@ -763,6 +777,12 @@ def get_task_endpoint(
             "description": (
                 "The destination classroom is inactive or the "
                 "update would invalidate a published activity."
+            ),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The activity update and its required accountability "
+                "record could not be completed."
             ),
         },
     },
@@ -792,6 +812,7 @@ def update_task_endpoint(
         TaskClassInactiveError,
         TaskUpdateEmptyError,
         TaskPublicationError,
+        TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)
 
@@ -805,9 +826,10 @@ def update_task_endpoint(
     description=(
         "Publishes a valid activity or returns it to draft status. "
         "Publishing requires an active instructor-owned classroom and "
-        "a future deadline when a deadline is configured. A successful "
-        "publication triggers privacy-safe in-app notifications for "
-        "eligible active students."
+        "a future deadline when a deadline is configured. Publication "
+        "or unpublication and its privacy-safe immutable audit record "
+        "are committed together. A successful publication also triggers "
+        "privacy-safe in-app notifications for eligible active students."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -824,9 +846,11 @@ def update_task_endpoint(
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": (
-                "The activity was published, but its in-app "
-                "notification workflow could not be completed. "
-                "Publishing again safely retries notification creation."
+                "The required accountability record could not be "
+                "completed, or the activity was published but its "
+                "in-app notification workflow could not be completed. "
+                "A repeated publication safely retries notification "
+                "creation without duplicating the audit transition."
             ),
         },
     },
@@ -856,6 +880,7 @@ def update_task_publication_endpoint(
         TaskClassInactiveError,
         TaskPublicationError,
         TaskNotificationWorkflowError,
+        TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)
 
@@ -1397,6 +1422,19 @@ def get_execution_request_endpoint(
 # in-app notification workflow. Notification failure is mapped to HTTP
 # 503, and repeating the publication request safely retries the
 # idempotent backend-generated event without duplicate notifications.
+
+# AUDIT WORKFLOW BOUNDARY:
+# Activity creation, meaningful updates, publication, and unpublication
+# create immutable backend-owned audit records. Audit failures map to
+# HTTP 503 and roll back the originating activity transition. Repeated
+# no-op publication requests do not create misleading duplicate audit
+# records but may retry a previously incomplete notification workflow.
+
+# AUDIT PRIVACY BOUNDARY:
+# Activity audit metadata excludes titles, descriptions, instructions,
+# starter code, test cases, AST rules, source code, standard input,
+# execution output, similarity details, grades, feedback, clipboard or
+# paste contents, surveillance data, and misconduct conclusions.
 
 # SUBMISSION IMMUTABILITY BOUNDARY:
 # Instructor routes are read-only for submission source, ownership,
