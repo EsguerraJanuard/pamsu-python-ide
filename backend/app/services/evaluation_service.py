@@ -1,4 +1,8 @@
+from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
+
+from pydantic import ValidationError
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
@@ -21,6 +25,10 @@ from app.services.academic_event_service import (
     notify_grade_released,
 )
 from app.services.ast_evaluator import evaluate_ast_details
+from app.services.audit_service import (
+    AuditServiceError,
+    create_audit_record,
+)
 from app.services.jaccard import find_highest_similarity
 from app.services.notification_service import NotificationServiceError
 
@@ -104,6 +112,15 @@ class GradeNotificationWorkflowError(
     """
 
 
+class GradeAuditWorkflowError(
+    EvaluationServiceError,
+):
+    """
+    Raised when a manual-grade write and its required accountability
+    record cannot be saved as one transaction.
+    """
+
+
 def _commit_evaluation_transaction(
     db: Session,
 ) -> None:
@@ -123,15 +140,16 @@ def _commit_evaluation_transaction(
         ) from error
 
 
-def _flush_grade_release_transaction(
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _flush_grade_write_transaction(
     db: Session,
 ) -> None:
     """
-    Flush a manual grade before creating its release event.
-
-    The approved notification workflow performs the final commit so
-    the grade release, academic event, and student notification are
-    persisted atomically.
+    Flush a manual grade before creating its required audit records
+    and optional release notification workflow.
     """
 
     try:
@@ -140,39 +158,157 @@ def _flush_grade_release_transaction(
         db.rollback()
 
         raise EvaluationPersistenceConflictError(
-            "The grade release conflicted with another database operation."
+            "The grade write conflicted with another database operation."
         ) from error
     except SQLAlchemyError as error:
         db.rollback()
 
         raise EvaluationPersistenceError(
-            "The grade release could not be saved."
+            "The grade write could not be saved."
         ) from error
+
+
+def _build_grade_audit_key(
+    *,
+    action_type: str,
+    grade_id: int,
+    repeatable: bool,
+) -> str:
+    base_key = f"audit:{action_type}:grade:{grade_id}"
+
+    if not repeatable:
+        return base_key
+
+    return f"{base_key}:{uuid4()}"
+
+
+def _record_grade_audit(
+    *,
+    db: Session,
+    audit_key: str,
+    actor_user_id: int,
+    action_type: str,
+    grade_id: int,
+    audit_data: dict[str, Any],
+    occurred_at: datetime,
+) -> None:
+    create_audit_record(
+        db,
+        {
+            "audit_key": audit_key,
+            "actor_user_id": actor_user_id,
+            "action_type": action_type,
+            "resource_type": "grade",
+            "resource_id": str(grade_id),
+            "outcome": "succeeded",
+            "audit_data": audit_data,
+            "occurred_at": occurred_at,
+        },
+        commit=False,
+    )
 
 
 def _complete_grade_write(
     db: Session,
     *,
     grade: InstructorGrade,
+    submission: Submission,
+    task: Task,
+    was_created: bool,
     was_released: bool,
+    changed_fields: list[str],
     actor_instructor_id: int,
 ) -> InstructorGrade:
     """
-    Commit an ordinary grade write or atomically dispatch a release event.
+    Save one manual-grade write with immutable accountability records.
 
-    A notification is created only when the grade transitions from
-    unreleased to released.
+    A grade-created audit record is created for the initial write.
+    Later meaningful edits create grade-updated records. A separate
+    grade-released record and student notification are created only on
+    an unreleased-to-released transition.
     """
 
     release_transition = not was_released and bool(grade.is_released)
+    occurred_at = _utc_now()
+
+    _flush_grade_write_transaction(db)
+
+    base_audit_data = {
+        "submission_id": submission.sub_id,
+        "task_id": task.task_id,
+        "class_id": task.class_id,
+        "previous_release_state": ("released" if was_released else "unreleased"),
+        "new_release_state": ("released" if grade.is_released else "unreleased"),
+    }
+
+    try:
+        if was_created:
+            _record_grade_audit(
+                db=db,
+                audit_key=_build_grade_audit_key(
+                    action_type="grade_created",
+                    grade_id=grade.grade_id,
+                    repeatable=False,
+                ),
+                actor_user_id=actor_instructor_id,
+                action_type="grade_created",
+                grade_id=grade.grade_id,
+                audit_data={
+                    **base_audit_data,
+                    "created_fields": sorted(changed_fields),
+                },
+                occurred_at=occurred_at,
+            )
+        else:
+            _record_grade_audit(
+                db=db,
+                audit_key=_build_grade_audit_key(
+                    action_type="grade_updated",
+                    grade_id=grade.grade_id,
+                    repeatable=True,
+                ),
+                actor_user_id=actor_instructor_id,
+                action_type="grade_updated",
+                grade_id=grade.grade_id,
+                audit_data={
+                    **base_audit_data,
+                    "changed_fields": sorted(changed_fields),
+                },
+                occurred_at=occurred_at,
+            )
+
+        if release_transition:
+            _record_grade_audit(
+                db=db,
+                audit_key=_build_grade_audit_key(
+                    action_type="grade_released",
+                    grade_id=grade.grade_id,
+                    repeatable=True,
+                ),
+                actor_user_id=actor_instructor_id,
+                action_type="grade_released",
+                grade_id=grade.grade_id,
+                audit_data=base_audit_data,
+                occurred_at=occurred_at,
+            )
+    except (
+        AuditServiceError,
+        ValidationError,
+        SQLAlchemyError,
+    ) as error:
+        db.rollback()
+
+        raise GradeAuditWorkflowError(
+            "The manual grade and its required accountability record "
+            "could not be saved. No grade change was completed. "
+            "Please try again."
+        ) from error
 
     if not release_transition:
         _commit_evaluation_transaction(db)
         db.refresh(grade)
 
         return grade
-
-    _flush_grade_release_transaction(db)
 
     try:
         notify_grade_released(
@@ -183,6 +319,7 @@ def _complete_grade_write(
     except (
         AcademicEventWorkflowError,
         NotificationServiceError,
+        SQLAlchemyError,
     ) as error:
         db.rollback()
 
@@ -673,8 +810,10 @@ def create_or_update_grade(
     Create or fully replace a manual instructor grade.
 
     Automated AST, similarity, execution, and session indicators are
-    never used to populate the manual grade. A student notification is
-    created only when the grade transitions from unreleased to released.
+    never used to populate the manual grade. Every meaningful write
+    creates a privacy-safe immutable audit record. A student
+    notification is created only when the grade transitions from
+    unreleased to released.
     """
 
     submission = _get_submission(
@@ -702,16 +841,23 @@ def create_or_update_grade(
         .first()
     )
 
+    was_created = grade is None
     was_released = False
 
+    incoming_values = {
+        "score": grade_in.score,
+        "max_score": grade_in.max_score,
+        "feedback": grade_in.feedback,
+        "is_released": grade_in.is_released,
+    }
+
     if grade is None:
+        changed_fields = sorted(incoming_values)
+
         grade = InstructorGrade(
             submission_id=submission.sub_id,
             instructor_id=current_user.user_id,
-            score=grade_in.score,
-            max_score=grade_in.max_score,
-            feedback=grade_in.feedback,
-            is_released=grade_in.is_released,
+            **incoming_values,
         )
 
         db.add(grade)
@@ -725,16 +871,31 @@ def create_or_update_grade(
 
         was_released = bool(grade.is_released)
 
-        grade.score = grade_in.score
-        grade.max_score = grade_in.max_score
-        grade.feedback = grade_in.feedback
-        grade.is_released = grade_in.is_released
+        changed_fields = sorted(
+            field_name
+            for field_name, value in incoming_values.items()
+            if getattr(grade, field_name) != value
+        )
+
+        if not changed_fields:
+            return grade
+
+        for field_name, value in incoming_values.items():
+            setattr(
+                grade,
+                field_name,
+                value,
+            )
 
     # Intentionally do not change submission.status here.
     return _complete_grade_write(
         db,
         grade=grade,
+        submission=submission,
+        task=task,
+        was_created=was_created,
         was_released=was_released,
+        changed_fields=changed_fields,
         actor_instructor_id=current_user.user_id,
     )
 
@@ -749,8 +910,10 @@ def patch_grade(
     Partially modify an existing manual instructor grade.
 
     The service validates the final score and maximum after combining
-    supplied fields with the current database values. A student
-    notification is created only on an unreleased-to-released transition.
+    supplied fields with the current database values. Every meaningful
+    edit creates a privacy-safe immutable audit record. A student
+    notification is created only on an unreleased-to-released
+    transition.
     """
 
     submission = _get_submission(
@@ -814,6 +977,15 @@ def patch_grade(
 
         raise GradeValidationError("score cannot be greater than max_score")
 
+    changed_fields = sorted(
+        field_name
+        for field_name, value in update_data.items()
+        if getattr(grade, field_name) != value
+    )
+
+    if not changed_fields:
+        return grade
+
     was_released = bool(grade.is_released)
 
     for field_name, value in update_data.items():
@@ -827,7 +999,11 @@ def patch_grade(
     return _complete_grade_write(
         db,
         grade=grade,
+        submission=submission,
+        task=task,
+        was_created=False,
         was_released=was_released,
+        changed_fields=changed_fields,
         actor_instructor_id=current_user.user_id,
     )
 
@@ -842,6 +1018,21 @@ def patch_grade(
 # the latest accepted official submission of a graded activity. Manual
 # grading does not silently change the submission's review status.
 
+# GRADE AUDIT WORKFLOW BOUNDARY:
+# Manual grade creation and every meaningful later edit create immutable
+# backend-owned audit records. An unreleased-to-released transition also
+# creates a separate grade-released record. Grade writes and their audit
+# records are committed together. Audit failure rolls back the grade
+# change so the instructor may retry safely.
+
+# GRADE AUDIT PRIVACY BOUNDARY:
+# Grade audit metadata contains only grade, submission, task, and
+# classroom identifiers, changed field names, and release-state
+# transitions. It never contains score values, maximum-score values,
+# feedback text, source code, standard input, hidden test data, AST or
+# similarity details, execution output, behavioral telemetry, clipboard
+# or paste contents, surveillance data, or misconduct conclusions.
+
 # GRADE-RELEASE NOTIFICATION BOUNDARY:
 # A student notification is created only when an instructor-controlled
 # grade transitions from unreleased to released. Ordinary grade edits,
@@ -849,9 +1040,9 @@ def patch_grade(
 # do not create duplicate release notifications.
 
 # NOTIFICATION TRANSACTION BOUNDARY:
-# A grade release, its academic event, and the student notification are
-# committed as one transaction. A workflow failure rolls back the release
-# so the instructor may retry safely.
+# A grade release, its audit records, academic event, and student
+# notification are committed as one transaction. A workflow failure
+# rolls back the release so the instructor may retry safely.
 
 # NOTIFICATION PRIVACY BOUNDARY:
 # Grade-release notifications exclude the score, maximum score, feedback,

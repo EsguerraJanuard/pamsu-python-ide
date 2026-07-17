@@ -19,6 +19,7 @@ from app.schemas.submission_schema import (
 )
 from app.services.submission_service import (
     CodingSessionUnavailableError,
+    SubmissionAuditWorkflowError,
     SubmissionConflictError,
     SubmissionNotFoundError,
     SubmissionNotificationWorkflowError,
@@ -69,7 +70,10 @@ def _raise_submission_service_error(
 
     if isinstance(
         error,
-        SubmissionNotificationWorkflowError,
+        (
+            SubmissionNotificationWorkflowError,
+            SubmissionAuditWorkflowError,
+        ),
     ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -109,8 +113,9 @@ def _raise_submission_service_error(
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": (
-                "The submission and its required in-app notification "
-                "could not be saved. No new attempt was created."
+                "The submission, required accountability record, "
+                "academic event, or instructor notification could not "
+                "be saved. No new attempt was created."
             ),
         },
     },
@@ -125,8 +130,8 @@ def create_submission_endpoint(
 
     The backend calculates student ownership, attempt number,
     official-attempt state, status, and timestamps. The submission,
-    academic event, and instructor notification are saved as one
-    transaction.
+    immutable accountability record, academic event, and instructor
+    notification are saved as one transaction.
 
     This endpoint does not execute Python code, calculate an automated
     grade, or make an automated misconduct determination.
@@ -268,13 +273,21 @@ def get_my_submission_endpoint(
 # All routes use the authenticated student account. A client cannot
 # create or retrieve submission attempts for another student.
 
+# AUDIT WORKFLOW BOUNDARY:
+# SubmissionAuditWorkflowError maps to HTTP 503 because the submission
+# and its immutable accountability record must be saved as one
+# transaction. A failed audit workflow creates no attempt and restores
+# the previous official-attempt state.
+
 # NOTIFICATION WORKFLOW BOUNDARY:
 # SubmissionNotificationWorkflowError maps to HTTP 503 because the
-# submission, academic event, and instructor notification are required
-# to succeed as one transaction. A failed workflow creates no attempt,
+# submission, audit record, academic event, and instructor notification
+# must succeed as one transaction. A failed workflow creates no attempt,
 # allowing the student to retry safely.
 
 # PRIVACY BOUNDARY:
-# Student responses exclude source-analysis details, hidden test cases,
-# similarity results, internal instructor review notes, coding-session
-# telemetry, and automated misconduct conclusions.
+# Student responses and audit metadata exclude source-analysis details,
+# hidden test cases, similarity results, internal instructor review
+# notes, coding-session telemetry, source code, standard input,
+# execution output, grades, feedback, clipboard or paste contents,
+# surveillance data, and automated misconduct conclusions.

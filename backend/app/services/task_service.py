@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
-from typing import TypeVar
+from typing import Any, TypeVar
+from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
@@ -20,6 +21,10 @@ from app.schemas.task_test_case_schema import (
 from app.services.academic_event_service import (
     AcademicEventWorkflowError,
     notify_activity_published,
+)
+from app.services.audit_service import (
+    AuditServiceError,
+    create_audit_record,
 )
 from app.services.notification_service import (
     NotificationServiceError,
@@ -74,6 +79,15 @@ class TaskNotificationWorkflowError(
     """
 
 
+class TaskAuditWorkflowError(
+    TaskServiceError,
+):
+    """
+    Raised when an activity action and its required audit record
+    cannot be saved as one accountable transaction.
+    """
+
+
 class TaskTestCaseNotFoundError(TaskServiceError):
     pass
 
@@ -108,6 +122,46 @@ def commit_and_refresh(
     except Exception:
         db.rollback()
         raise
+
+
+def build_task_audit_key(
+    *,
+    action_type: str,
+    task_id: int,
+    repeatable: bool,
+) -> str:
+    base_key = f"audit:{action_type}:task:{task_id}"
+
+    if not repeatable:
+        return base_key
+
+    return f"{base_key}:{uuid4()}"
+
+
+def record_task_audit(
+    *,
+    db: Session,
+    audit_key: str,
+    actor_user_id: int,
+    action_type: str,
+    task_id: int,
+    audit_data: dict[str, Any],
+    occurred_at: datetime,
+) -> None:
+    create_audit_record(
+        db,
+        {
+            "audit_key": audit_key,
+            "actor_user_id": actor_user_id,
+            "action_type": action_type,
+            "resource_type": "task",
+            "resource_id": str(task_id),
+            "outcome": "succeeded",
+            "audit_data": audit_data,
+            "occurred_at": occurred_at,
+        },
+        commit=False,
+    )
 
 
 def get_classroom_by_id(
@@ -219,6 +273,8 @@ def create_task(
         require_active=True,
     )
 
+    occurred_at = get_utc_now()
+
     task = Task(
         class_id=task_data.class_id,
         instructor_id=instructor_id,
@@ -235,12 +291,45 @@ def create_task(
         published_at=None,
     )
 
-    db.add(task)
+    try:
+        db.add(task)
+        db.flush()
 
-    return commit_and_refresh(
-        db=db,
-        instance=task,
-    )
+        record_task_audit(
+            db=db,
+            audit_key=build_task_audit_key(
+                action_type="activity_created",
+                task_id=task.task_id,
+                repeatable=False,
+            ),
+            actor_user_id=instructor_id,
+            action_type="activity_created",
+            task_id=task.task_id,
+            audit_data={
+                "class_id": task.class_id,
+                "activity_type": task.activity_type,
+                "is_graded": bool(task.is_graded),
+                "is_published": False,
+                "paste_policy": task.paste_policy,
+            },
+            occurred_at=occurred_at,
+        )
+
+        db.commit()
+        db.refresh(task)
+
+        return task
+    except AuditServiceError as error:
+        db.rollback()
+
+        raise TaskAuditWorkflowError(
+            "The activity could not be created because its required "
+            "accountability record could not be saved. Please try "
+            "again."
+        ) from error
+    except Exception:
+        db.rollback()
+        raise
 
 
 def list_instructor_tasks(
@@ -314,6 +403,15 @@ def update_task(
             due_at=candidate_due_at,
         )
 
+    changed_fields = sorted(
+        field_name
+        for field_name, value in update_data.items()
+        if getattr(task, field_name) != value
+    )
+
+    if not changed_fields:
+        return task
+
     for field_name, value in update_data.items():
         setattr(
             task,
@@ -321,10 +419,44 @@ def update_task(
             value,
         )
 
-    return commit_and_refresh(
-        db=db,
-        instance=task,
-    )
+    occurred_at = get_utc_now()
+
+    try:
+        db.flush()
+
+        record_task_audit(
+            db=db,
+            audit_key=build_task_audit_key(
+                action_type="activity_updated",
+                task_id=task.task_id,
+                repeatable=True,
+            ),
+            actor_user_id=instructor_id,
+            action_type="activity_updated",
+            task_id=task.task_id,
+            audit_data={
+                "class_id": task.class_id,
+                "changed_fields": changed_fields,
+                "is_published": bool(task.is_published),
+            },
+            occurred_at=occurred_at,
+        )
+
+        db.commit()
+        db.refresh(task)
+
+        return task
+    except AuditServiceError as error:
+        db.rollback()
+
+        raise TaskAuditWorkflowError(
+            "The activity could not be updated because its required "
+            "accountability record could not be saved. Please try "
+            "again."
+        ) from error
+    except Exception:
+        db.rollback()
+        raise
 
 
 def set_task_publication(
@@ -340,6 +472,9 @@ def set_task_publication(
         instructor_id=instructor_id,
     )
 
+    was_published = bool(task.is_published)
+    state_changed = was_published != is_published
+
     if is_published:
         validate_task_for_publication(
             db=db,
@@ -348,25 +483,59 @@ def set_task_publication(
             due_at=task.due_at,
         )
 
-        if not task.is_published:
-            task.published_at = get_utc_now()
+    if state_changed:
+        occurred_at = get_utc_now()
 
-        task.is_published = True
-    else:
-        task.is_published = False
-        task.published_at = None
+        if is_published:
+            task.is_published = True
+            task.published_at = occurred_at
+            action_type = "activity_published"
+        else:
+            task.is_published = False
+            task.published_at = None
+            action_type = "activity_unpublished"
 
-    saved_task = commit_and_refresh(
-        db=db,
-        instance=task,
-    )
+        try:
+            db.flush()
+
+            record_task_audit(
+                db=db,
+                audit_key=build_task_audit_key(
+                    action_type=action_type,
+                    task_id=task.task_id,
+                    repeatable=True,
+                ),
+                actor_user_id=instructor_id,
+                action_type=action_type,
+                task_id=task.task_id,
+                audit_data={
+                    "class_id": task.class_id,
+                    "previous_state": ("published" if was_published else "draft"),
+                    "new_state": ("published" if is_published else "draft"),
+                },
+                occurred_at=occurred_at,
+            )
+
+            db.commit()
+            db.refresh(task)
+        except AuditServiceError as error:
+            db.rollback()
+
+            raise TaskAuditWorkflowError(
+                "The activity publication state could not be changed "
+                "because its required accountability record could "
+                "not be saved. Please try again."
+            ) from error
+        except Exception:
+            db.rollback()
+            raise
 
     if is_published:
         try:
             notify_activity_published(
                 db,
                 actor_instructor_id=instructor_id,
-                task_id=saved_task.task_id,
+                task_id=task.task_id,
             )
         except (
             AcademicEventWorkflowError,
@@ -379,9 +548,9 @@ def set_task_publication(
                 "notification creation."
             ) from error
 
-        db.refresh(saved_task)
+        db.refresh(task)
 
-    return saved_task
+    return task
 
 
 def get_test_case_by_id(
@@ -645,6 +814,21 @@ def list_student_sample_test_cases(
 # reuse the same backend-generated academic event key. Notification
 # content excludes starter code, instructions, test cases, AST rules,
 # analytics, execution output, and unreleased grades.
+
+# AUDIT WORKFLOW BOUNDARY:
+# Activity creation, meaningful activity updates, publication, and
+# unpublication create immutable audit records. Activity and audit
+# changes are committed together. Repeated no-op publication requests
+# do not create misleading duplicate audit rows but may safely retry
+# a previously incomplete notification workflow.
+
+# AUDIT PRIVACY BOUNDARY:
+# Activity audit metadata contains only approved identifiers, changed
+# field names, activity classification, paste-policy classification,
+# and publication-state transitions. It excludes titles, descriptions,
+# instructions, starter code, AST rules, test cases, source code,
+# execution output, analytics details, grades, feedback, clipboard or
+# paste contents, surveillance data, and misconduct conclusions.
 
 # REVIEW BOUNDARY:
 # Task test cases support execution review but do not independently assign

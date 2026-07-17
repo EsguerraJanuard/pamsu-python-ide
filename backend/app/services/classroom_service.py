@@ -1,6 +1,7 @@
 import secrets
 from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -22,6 +23,10 @@ from app.schemas.enrollment_schema import (
 from app.services.academic_event_service import (
     AcademicEventWorkflowError,
     notify_classroom_archived,
+)
+from app.services.audit_service import (
+    AuditServiceError,
+    create_audit_record,
 )
 from app.services.notification_service import (
     NotificationServiceError,
@@ -60,6 +65,13 @@ class ClassroomNotificationWorkflowError(ClassroomServiceError):
     """
 
 
+class ClassroomAuditWorkflowError(ClassroomServiceError):
+    """
+    Raised when a classroom or enrollment action and its required
+    audit record cannot be saved as one transaction.
+    """
+
+
 class EnrollmentNotFoundError(ClassroomServiceError):
     pass
 
@@ -80,6 +92,48 @@ def generate_class_code(
     length: int = CLASS_CODE_LENGTH,
 ) -> str:
     return "".join(secrets.choice(CLASS_CODE_ALPHABET) for _ in range(length))
+
+
+def _build_audit_key(
+    *,
+    action_type: str,
+    resource_type: str,
+    resource_id: int | str,
+    repeatable: bool,
+) -> str:
+    base_key = f"audit:{action_type}:{resource_type}:{resource_id}"
+
+    if not repeatable:
+        return base_key
+
+    return f"{base_key}:{uuid4()}"
+
+
+def _record_audit(
+    *,
+    db: Session,
+    audit_key: str,
+    actor_user_id: int,
+    action_type: str,
+    resource_type: str,
+    resource_id: int | str,
+    audit_data: dict[str, Any],
+    occurred_at: datetime,
+) -> None:
+    create_audit_record(
+        db,
+        {
+            "audit_key": audit_key,
+            "actor_user_id": actor_user_id,
+            "action_type": action_type,
+            "resource_type": resource_type,
+            "resource_id": str(resource_id),
+            "outcome": "succeeded",
+            "audit_data": audit_data,
+            "occurred_at": occurred_at,
+        },
+        commit=False,
+    )
 
 
 def get_classroom_by_id(
@@ -138,6 +192,8 @@ def create_classroom(
     classroom_data: ClassroomCreate,
 ) -> Classroom:
     for _ in range(CLASS_CODE_MAX_ATTEMPTS):
+        occurred_at = get_utc_now()
+
         classroom = Classroom(
             instructor_id=instructor_id,
             name=classroom_data.name,
@@ -150,12 +206,45 @@ def create_classroom(
 
         try:
             db.add(classroom)
+            db.flush()
+
+            _record_audit(
+                db=db,
+                audit_key=_build_audit_key(
+                    action_type="classroom_created",
+                    resource_type="classroom",
+                    resource_id=classroom.class_id,
+                    repeatable=False,
+                ),
+                actor_user_id=instructor_id,
+                action_type="classroom_created",
+                resource_type="classroom",
+                resource_id=classroom.class_id,
+                audit_data={
+                    "subject_code": classroom.subject_code,
+                    "section": classroom.section,
+                    "is_active": True,
+                },
+                occurred_at=occurred_at,
+            )
+
             db.commit()
             db.refresh(classroom)
 
             return classroom
         except IntegrityError:
             db.rollback()
+        except AuditServiceError as error:
+            db.rollback()
+
+            raise ClassroomAuditWorkflowError(
+                "The classroom could not be created because its "
+                "required accountability record could not be saved. "
+                "Please try again."
+            ) from error
+        except Exception:
+            db.rollback()
+            raise
 
     raise ClassroomCodeGenerationError(
         "A unique class code could not be generated. Please retry the request."
@@ -185,9 +274,9 @@ def update_classroom(
     """
     Update an instructor-owned classroom.
 
-    A classroom-archived academic event is created only when the
-    classroom changes from active to inactive. The classroom update,
-    academic event, and student notifications are saved atomically.
+    Accountable classroom changes and their audit record are committed
+    together. An archive transition also creates its approved academic
+    event and student notifications in the same transaction.
     """
 
     classroom = get_owned_classroom(
@@ -196,11 +285,20 @@ def update_classroom(
         instructor_id=instructor_id,
     )
 
-    was_active = bool(classroom.is_active)
-
     update_data = classroom_data.model_dump(
         exclude_unset=True,
     )
+
+    changed_fields = sorted(
+        field_name
+        for field_name, value in update_data.items()
+        if getattr(classroom, field_name) != value
+    )
+
+    if not changed_fields:
+        return classroom
+
+    was_active = bool(classroom.is_active)
 
     for field_name, value in update_data.items():
         setattr(
@@ -215,36 +313,71 @@ def update_classroom(
 
     reactivation_transition = not was_active and is_active_now
 
+    occurred_at = get_utc_now()
+
     if archive_transition:
-        classroom.archived_at = get_utc_now()
+        classroom.archived_at = occurred_at
+        action_type = "classroom_archived"
     elif reactivation_transition:
         classroom.archived_at = None
+        action_type = "classroom_reactivated"
+    else:
+        action_type = "classroom_updated"
 
-    if not archive_transition:
-        try:
-            db.commit()
-            db.refresh(classroom)
+    audit_data: dict[str, Any] = {
+        "changed_fields": changed_fields,
+        "previous_active": was_active,
+        "new_active": is_active_now,
+    }
 
-            return classroom
-        except Exception:
-            db.rollback()
-            raise
+    if archive_transition:
+        audit_data["archived_at"] = occurred_at.isoformat(
+            timespec="microseconds",
+        )
+    elif reactivation_transition:
+        audit_data["archived_at_cleared"] = True
 
     try:
         db.flush()
 
-        notify_classroom_archived(
-            db,
-            actor_instructor_id=instructor_id,
-            class_id=classroom.class_id,
+        _record_audit(
+            db=db,
+            audit_key=_build_audit_key(
+                action_type=action_type,
+                resource_type="classroom",
+                resource_id=classroom.class_id,
+                repeatable=True,
+            ),
+            actor_user_id=instructor_id,
+            action_type=action_type,
+            resource_type="classroom",
+            resource_id=classroom.class_id,
+            audit_data=audit_data,
+            occurred_at=occurred_at,
         )
 
+        if archive_transition:
+            notify_classroom_archived(
+                db,
+                actor_instructor_id=instructor_id,
+                class_id=classroom.class_id,
+            )
+
         # The notification workflow commits when recipients exist.
-        # This commit is also required for the valid no-recipient case.
+        # This explicit commit also handles ordinary updates,
+        # reactivation, and the valid archive-with-no-recipients case.
         db.commit()
         db.refresh(classroom)
 
         return classroom
+    except AuditServiceError as error:
+        db.rollback()
+
+        raise ClassroomAuditWorkflowError(
+            "The classroom change could not be saved because its "
+            "required accountability record could not be completed. "
+            "Please try again."
+        ) from error
     except (
         AcademicEventWorkflowError,
         NotificationServiceError,
@@ -275,9 +408,33 @@ def regenerate_class_code(
     )
 
     for _ in range(CLASS_CODE_MAX_ATTEMPTS):
+        occurred_at = get_utc_now()
         classroom.class_code = generate_class_code()
 
         try:
+            db.flush()
+
+            _record_audit(
+                db=db,
+                audit_key=_build_audit_key(
+                    action_type="classroom_updated",
+                    resource_type="classroom",
+                    resource_id=classroom.class_id,
+                    repeatable=True,
+                ),
+                actor_user_id=instructor_id,
+                action_type="classroom_updated",
+                resource_type="classroom",
+                resource_id=classroom.class_id,
+                audit_data={
+                    "changed_fields": [
+                        "class_code",
+                    ],
+                    "reason_code": ("backend_code_regeneration"),
+                },
+                occurred_at=occurred_at,
+            )
+
             db.commit()
             db.refresh(classroom)
 
@@ -290,6 +447,17 @@ def regenerate_class_code(
                 class_id=class_id,
                 instructor_id=instructor_id,
             )
+        except AuditServiceError as error:
+            db.rollback()
+
+            raise ClassroomAuditWorkflowError(
+                "The replacement class code could not be saved "
+                "because its required accountability record could "
+                "not be completed. Please try again."
+            ) from error
+        except Exception:
+            db.rollback()
+            raise
 
     raise ClassroomCodeGenerationError(
         "A unique replacement class code could not be generated. "
@@ -327,6 +495,8 @@ def join_classroom(
             "You already have an enrollment record in this classroom."
         )
 
+    occurred_at = get_utc_now()
+
     enrollment = Enrollment(
         class_id=classroom.class_id,
         student_id=student_id,
@@ -336,6 +506,27 @@ def join_classroom(
 
     try:
         db.add(enrollment)
+        db.flush()
+
+        _record_audit(
+            db=db,
+            audit_key=_build_audit_key(
+                action_type="student_enrolled",
+                resource_type="enrollment",
+                resource_id=enrollment.enrollment_id,
+                repeatable=False,
+            ),
+            actor_user_id=student_id,
+            action_type="student_enrolled",
+            resource_type="enrollment",
+            resource_id=enrollment.enrollment_id,
+            audit_data={
+                "class_id": classroom.class_id,
+                "status": "active",
+            },
+            occurred_at=occurred_at,
+        )
+
         db.commit()
         db.refresh(enrollment)
 
@@ -346,6 +537,17 @@ def join_classroom(
         raise EnrollmentConflictError(
             "You already have an enrollment record in this classroom."
         ) from exc
+    except AuditServiceError as error:
+        db.rollback()
+
+        raise ClassroomAuditWorkflowError(
+            "The enrollment could not be completed because its "
+            "required accountability record could not be saved. "
+            "Please try again."
+        ) from error
+    except Exception:
+        db.rollback()
+        raise
 
 
 def list_student_classrooms(
@@ -435,6 +637,7 @@ def apply_enrollment_status(
     *,
     enrollment: Enrollment,
     new_status: EnrollmentStatus,
+    changed_at: datetime | None = None,
 ) -> None:
     previous_status = enrollment.status
     enrollment.status = new_status
@@ -444,7 +647,9 @@ def apply_enrollment_status(
         return
 
     if previous_status != new_status or enrollment.deactivated_at is None:
-        enrollment.deactivated_at = get_utc_now()
+        enrollment.deactivated_at = (
+            changed_at if changed_at is not None else get_utc_now()
+        )
 
 
 def update_enrollment_status(
@@ -469,16 +674,69 @@ def update_enrollment_status(
             "You can only manage enrollments in your own classrooms."
         )
 
+    previous_status = enrollment.status
+    previous_deactivated_at = enrollment.deactivated_at
+    occurred_at = get_utc_now()
+
     apply_enrollment_status(
         enrollment=enrollment,
         new_status=new_status,
+        changed_at=occurred_at,
     )
 
+    status_changed = previous_status != enrollment.status
+
+    timestamp_repaired = previous_deactivated_at != enrollment.deactivated_at
+
+    if not status_changed:
+        if not timestamp_repaired:
+            return enrollment
+
+        try:
+            db.commit()
+            db.refresh(enrollment)
+
+            return enrollment
+        except Exception:
+            db.rollback()
+            raise
+
     try:
+        db.flush()
+
+        _record_audit(
+            db=db,
+            audit_key=_build_audit_key(
+                action_type="enrollment_status_changed",
+                resource_type="enrollment",
+                resource_id=enrollment.enrollment_id,
+                repeatable=True,
+            ),
+            actor_user_id=instructor_id,
+            action_type="enrollment_status_changed",
+            resource_type="enrollment",
+            resource_id=enrollment.enrollment_id,
+            audit_data={
+                "class_id": enrollment.class_id,
+                "student_id": enrollment.student_id,
+                "previous_status": previous_status,
+                "new_status": enrollment.status,
+            },
+            occurred_at=occurred_at,
+        )
+
         db.commit()
         db.refresh(enrollment)
 
         return enrollment
+    except AuditServiceError as error:
+        db.rollback()
+
+        raise ClassroomAuditWorkflowError(
+            "The enrollment status could not be changed because "
+            "its required accountability record could not be saved. "
+            "Please try again."
+        ) from error
     except Exception:
         db.rollback()
         raise
@@ -492,6 +750,8 @@ def update_enrollment_status(
 # CLASS-CODE BOUNDARY:
 # Class codes are generated using cryptographically secure randomness.
 # Clients cannot manually assign or modify a classroom class code.
+# Audit metadata records only that regeneration occurred and never
+# stores the generated code.
 
 # ENROLLMENT BOUNDARY:
 # Enrollment status is limited to active, disabled, or removed.
@@ -506,12 +766,19 @@ def update_enrollment_status(
 # NOTIFICATION WORKFLOW BOUNDARY:
 # A classroom-archived event is created only when an instructor-owned
 # classroom transitions from active to inactive. The classroom update,
-# academic event, and notifications for active enrolled students are
-# persisted as one transaction. Repeated inactive updates do not create
-# duplicate archive notifications.
+# audit record, academic event, and notifications for active enrolled
+# students are persisted as one transaction. Repeated inactive updates
+# do not create duplicate archive notifications.
 
-# NOTIFICATION PRIVACY BOUNDARY:
-# Classroom archive notifications exclude class codes, student personal
-# information, source code, test cases, grades, feedback, AST findings,
-# similarity records, execution output, coding-session telemetry,
-# clipboard contents, pasted text, and misconduct conclusions.
+# AUDIT WORKFLOW BOUNDARY:
+# Classroom creation, meaningful classroom updates, class-code
+# regeneration, archive/reactivation transitions, student enrollment,
+# and enrollment-status transitions create immutable audit records.
+# No-op requests do not create misleading duplicate audit rows.
+
+# AUDIT PRIVACY BOUNDARY:
+# Classroom and enrollment audit records exclude class codes, student
+# names and email addresses, passwords, OTP values, source code, test
+# data, grades, feedback, AST findings, similarity records, execution
+# output, coding-session telemetry, clipboard contents, pasted text,
+# surveillance data, and misconduct conclusions.

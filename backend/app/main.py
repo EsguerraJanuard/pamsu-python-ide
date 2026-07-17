@@ -2,6 +2,7 @@ from fastapi import FastAPI, status
 
 from app.routers import (
     activities,
+    audit_records,
     auth,
     classrooms,
     evaluation,
@@ -15,7 +16,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.11.0"
+APP_VERSION = "0.12.0"
 
 OPENAPI_TAGS = [
     {
@@ -37,8 +38,9 @@ OPENAPI_TAGS = [
         "name": "Classrooms",
         "description": (
             "Instructor-owned classroom management, backend-generated "
-            "class codes, student enrollment operations, and "
-            "privacy-safe classroom archive notifications."
+            "class codes, student enrollment operations, privacy-safe "
+            "classroom archive notifications, and immutable "
+            "accountability records for meaningful changes."
         ),
     },
     {
@@ -49,7 +51,8 @@ OPENAPI_TAGS = [
             "review-queue, gradebook, and manual grading operations. "
             "Review and gradebook summaries exclude source code and "
             "sensitive analytics. Automated indicators remain "
-            "review-only."
+            "review-only, while accountable academic changes create "
+            "privacy-safe immutable audit records."
         ),
     },
     {
@@ -66,8 +69,9 @@ OPENAPI_TAGS = [
         "description": (
             "Student-owned immutable submission attempts. Student "
             "identity, attempt numbering, official-attempt state, "
-            "status, timestamps, and approved instructor "
-            "notifications are controlled by the backend."
+            "status, timestamps, approved instructor notifications, "
+            "and submission-accountability records are controlled by "
+            "the backend."
         ),
     },
     {
@@ -94,8 +98,9 @@ OPENAPI_TAGS = [
             "Static AST and source-similarity indicators for "
             "authorized instructor review, student-safe "
             "released-grade viewing, explicit review-status updates, "
-            "manual instructor grading, and privacy-safe grade-release "
-            "notifications. Automated indicators never assign official "
+            "manual instructor grading, privacy-safe grade-release "
+            "notifications, and immutable grading-accountability "
+            "records. Automated indicators never assign official "
             "grades or determine plagiarism, cheating, copying, or "
             "misconduct."
         ),
@@ -108,6 +113,17 @@ OPENAPI_TAGS = [
             "counts, and read-state operations. Notification creation, "
             "recipient selection, titles, messages, and event payloads "
             "remain exclusive to trusted academic workflows."
+        ),
+    },
+    {
+        "name": "Audit Trail",
+        "description": (
+            "Authenticated users may read only audit records attributed "
+            "to their own account. Audit creation remains exclusive to "
+            "trusted backend workflows, and records exclude source code, "
+            "credentials, OTP values, hidden test data, execution output, "
+            "surveillance data, unreleased grades, and automated "
+            "misconduct conclusions."
         ),
     },
 ]
@@ -128,8 +144,9 @@ app = FastAPI(
         "manual-grade lists, explicit evaluation-status control, "
         "manual instructor grading workflows, immutable approved "
         "academic events, recipient-owned in-app notifications, "
-        "notification unread counts, and owner-scoped read-state "
-        "operations."
+        "notification unread counts, owner-scoped read-state operations, "
+        "and immutable privacy-safe audit records for authenticated "
+        "academic accountability."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -149,6 +166,7 @@ app.include_router(execution.router)
 app.include_router(logs.router)
 app.include_router(evaluation.router)
 app.include_router(notifications.router)
+app.include_router(audit_records.router)
 
 
 @app.get(
