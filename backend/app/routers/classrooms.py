@@ -1,4 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from typing import NoReturn
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Path,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -6,7 +14,11 @@ from app.core.security import (
     get_current_instructor,
     get_current_student,
 )
-from app.models.domain_models import Classroom, Enrollment, User
+from app.models.domain_models import (
+    Classroom,
+    Enrollment,
+    User,
+)
 from app.schemas.classroom_schema import (
     ClassroomCodeResponse,
     ClassroomCreate,
@@ -25,6 +37,7 @@ from app.services.classroom_service import (
     ClassroomCodeGenerationError,
     ClassroomInactiveError,
     ClassroomNotFoundError,
+    ClassroomNotificationWorkflowError,
     EnrollmentAccessDeniedError,
     EnrollmentConflictError,
     EnrollmentNotFoundError,
@@ -48,14 +61,14 @@ router = APIRouter(
 
 def raise_classroom_service_http_exception(
     exc: Exception,
-) -> None:
-    if isinstance(exc, ClassroomNotFoundError):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-
-    if isinstance(exc, EnrollmentNotFoundError):
+) -> NoReturn:
+    if isinstance(
+        exc,
+        (
+            ClassroomNotFoundError,
+            EnrollmentNotFoundError,
+        ),
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
@@ -85,7 +98,13 @@ def raise_classroom_service_http_exception(
             detail=str(exc),
         ) from exc
 
-    if isinstance(exc, ClassroomCodeGenerationError):
+    if isinstance(
+        exc,
+        (
+            ClassroomCodeGenerationError,
+            ClassroomNotificationWorkflowError,
+        ),
+    ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
@@ -106,7 +125,7 @@ def raise_classroom_service_http_exception(
     ),
     responses={
         status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "A unique class code could not be generated.",
+            "description": ("A unique class code could not be generated."),
         },
     },
 )
@@ -155,7 +174,7 @@ def list_instructor_classrooms_endpoint(
     ),
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "description": "No classroom matches the supplied code.",
+            "description": ("No classroom matches the supplied code."),
         },
         status.HTTP_409_CONFLICT: {
             "description": (
@@ -190,8 +209,8 @@ def join_classroom_endpoint(
     operation_id="list_student_classrooms",
     summary="List enrolled classrooms",
     description=(
-        "Returns classrooms associated with the authenticated student's "
-        "own enrollment records."
+        "Returns classrooms associated with the authenticated "
+        "student's own enrollment records."
     ),
 )
 def list_student_classrooms_endpoint(
@@ -218,7 +237,7 @@ def list_student_classrooms_endpoint(
             "description": ("The enrollment belongs to another instructor's class."),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The enrollment or classroom does not exist.",
+            "description": ("The enrollment or classroom does not exist."),
         },
     },
 )
@@ -259,10 +278,10 @@ def update_enrollment_status_endpoint(
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
-            "description": "The classroom belongs to another instructor.",
+            "description": ("The classroom belongs to another instructor."),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The classroom does not exist.",
+            "description": ("The classroom does not exist."),
         },
     },
 )
@@ -299,10 +318,10 @@ def list_class_members_endpoint(
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
-            "description": "The classroom belongs to another instructor.",
+            "description": ("The classroom belongs to another instructor."),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The classroom does not exist.",
+            "description": ("The classroom does not exist."),
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": ("A unique replacement code could not be generated."),
@@ -341,10 +360,10 @@ def regenerate_class_code_endpoint(
     description=("Returns a classroom owned by the authenticated instructor."),
     responses={
         status.HTTP_403_FORBIDDEN: {
-            "description": "The classroom belongs to another instructor.",
+            "description": ("The classroom belongs to another instructor."),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The classroom does not exist.",
+            "description": ("The classroom does not exist."),
         },
     },
 )
@@ -378,14 +397,23 @@ def get_classroom_endpoint(
     summary="Update a classroom",
     description=(
         "Updates classroom details or active status. The class code "
-        "cannot be directly modified by the client."
+        "cannot be directly modified by the client. Changing the "
+        "classroom from active to inactive creates privacy-safe in-app "
+        "notifications for active enrolled students."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
-            "description": "The classroom belongs to another instructor.",
+            "description": ("The classroom belongs to another instructor."),
         },
         status.HTTP_404_NOT_FOUND: {
-            "description": "The classroom does not exist.",
+            "description": ("The classroom does not exist."),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The classroom archive and its required in-app "
+                "notification workflow could not be completed. "
+                "The classroom remains active."
+            ),
         },
     },
 )
@@ -409,6 +437,7 @@ def update_classroom_endpoint(
     except (
         ClassroomNotFoundError,
         ClassroomAccessDeniedError,
+        ClassroomNotificationWorkflowError,
     ) as exc:
         raise_classroom_service_http_exception(exc)
 
@@ -424,3 +453,14 @@ def update_classroom_endpoint(
 # AUTHORIZATION BOUNDARY:
 # Only the classroom owner can view members, update the classroom,
 # regenerate its code, or manage enrollment status.
+
+# NOTIFICATION WORKFLOW BOUNDARY:
+# Classroom archive notifications are created only when an owned
+# classroom changes from active to inactive. A workflow failure maps to
+# HTTP 503 and leaves the classroom active so the instructor can retry.
+
+# NOTIFICATION PRIVACY BOUNDARY:
+# Classroom archive notifications exclude class codes, source code,
+# grades, feedback, AST findings, similarity records, hidden tests,
+# execution output, coding-session telemetry, clipboard contents,
+# pasted text, and automated misconduct conclusions.

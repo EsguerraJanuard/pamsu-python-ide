@@ -66,7 +66,9 @@ def _datetime_event_token(
 
     normalized_value = _normalize_datetime(value)
 
-    return normalized_value.isoformat(timespec="microseconds")
+    return normalized_value.isoformat(
+        timespec="microseconds",
+    )
 
 
 def _build_no_recipient_result(
@@ -319,7 +321,7 @@ def notify_activity_published(
 
     task, classroom = _get_instructor_owned_task(
         db,
-        actor_instructor_id=(actor_instructor_id),
+        actor_instructor_id=actor_instructor_id,
         task_id=task_id,
     )
 
@@ -355,8 +357,8 @@ def notify_activity_published(
         event_data={
             "task_id": task.task_id,
             "class_id": classroom.class_id,
-            "activity_type": (task.activity_type),
-            "published_at": (published_token),
+            "activity_type": task.activity_type,
+            "published_at": published_token,
         },
     )
 
@@ -403,11 +405,11 @@ def notify_submission_created(
         resource_type="submission",
         resource_id=str(submission.sub_id),
         event_data={
-            "submission_id": (submission.sub_id),
+            "submission_id": submission.sub_id,
             "task_id": task.task_id,
             "class_id": classroom.class_id,
-            "attempt_number": (submission.attempt_number),
-            "is_official": (submission.is_official),
+            "attempt_number": submission.attempt_number,
+            "is_official": submission.is_official,
         },
     )
 
@@ -444,7 +446,7 @@ def notify_grade_released(
         classroom,
     ) = _get_instructor_owned_grade(
         db,
-        actor_instructor_id=(actor_instructor_id),
+        actor_instructor_id=actor_instructor_id,
         grade_id=grade_id,
     )
 
@@ -469,7 +471,7 @@ def notify_grade_released(
         resource_id=str(grade.grade_id),
         event_data={
             "grade_id": grade.grade_id,
-            "submission_id": (submission.sub_id),
+            "submission_id": submission.sub_id,
             "task_id": task.task_id,
             "class_id": classroom.class_id,
             "released_at": release_token,
@@ -498,7 +500,7 @@ def notify_classroom_archived(
 
     classroom = _get_instructor_owned_classroom(
         db,
-        actor_instructor_id=(actor_instructor_id),
+        actor_instructor_id=actor_instructor_id,
         class_id=class_id,
     )
 

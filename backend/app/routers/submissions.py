@@ -21,6 +21,7 @@ from app.services.submission_service import (
     CodingSessionUnavailableError,
     SubmissionConflictError,
     SubmissionNotFoundError,
+    SubmissionNotificationWorkflowError,
     SubmissionPersistenceError,
     SubmissionServiceError,
     SubmissionTaskNotGradableError,
@@ -68,6 +69,15 @@ def _raise_submission_service_error(
 
     if isinstance(
         error,
+        SubmissionNotificationWorkflowError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(error),
+        ) from error
+
+    if isinstance(
+        error,
         SubmissionPersistenceError,
     ):
         raise HTTPException(
@@ -77,7 +87,7 @@ def _raise_submission_service_error(
 
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail=("The submission operation could not be completed."),
+        detail="The submission operation could not be completed.",
     ) from error
 
 
@@ -97,6 +107,12 @@ def _raise_submission_service_error(
                 "or the attempt could not be saved safely."
             ),
         },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The submission and its required in-app notification "
+                "could not be saved. No new attempt was created."
+            ),
+        },
     },
 )
 def create_submission_endpoint(
@@ -108,8 +124,12 @@ def create_submission_endpoint(
     Create a new immutable attempt for the authenticated student.
 
     The backend calculates student ownership, attempt number,
-    official-attempt state, status, and timestamps. This endpoint
-    does not execute Python code or calculate an automated grade.
+    official-attempt state, status, and timestamps. The submission,
+    academic event, and instructor notification are saved as one
+    transaction.
+
+    This endpoint does not execute Python code, calculate an automated
+    grade, or make an automated misconduct determination.
     """
 
     try:
@@ -242,3 +262,19 @@ def get_my_submission_endpoint(
         _raise_submission_service_error(error)
 
     return StudentSubmissionResponse.model_validate(submission)
+
+
+# AUTHENTICATION BOUNDARY:
+# All routes use the authenticated student account. A client cannot
+# create or retrieve submission attempts for another student.
+
+# NOTIFICATION WORKFLOW BOUNDARY:
+# SubmissionNotificationWorkflowError maps to HTTP 503 because the
+# submission, academic event, and instructor notification are required
+# to succeed as one transaction. A failed workflow creates no attempt,
+# allowing the student to retry safely.
+
+# PRIVACY BOUNDARY:
+# Student responses exclude source-analysis details, hidden test cases,
+# similarity results, internal instructor review notes, coding-session
+# telemetry, and automated misconduct conclusions.

@@ -16,8 +16,13 @@ from app.schemas.evaluation_schema import (
     InstructorGradeCreate,
     InstructorGradeUpdate,
 )
+from app.services.academic_event_service import (
+    AcademicEventWorkflowError,
+    notify_grade_released,
+)
 from app.services.ast_evaluator import evaluate_ast_details
 from app.services.jaccard import find_highest_similarity
+from app.services.notification_service import NotificationServiceError
 
 
 class EvaluationServiceError(Exception):
@@ -90,6 +95,15 @@ class EvaluationPersistenceError(
     """Raised when evaluation data cannot be persisted."""
 
 
+class GradeNotificationWorkflowError(
+    EvaluationServiceError,
+):
+    """
+    Raised when a released grade and its required student notification
+    cannot be saved as one transaction.
+    """
+
+
 def _commit_evaluation_transaction(
     db: Session,
 ) -> None:
@@ -107,6 +121,79 @@ def _commit_evaluation_transaction(
         raise EvaluationPersistenceError(
             "The evaluation operation could not be saved."
         ) from error
+
+
+def _flush_grade_release_transaction(
+    db: Session,
+) -> None:
+    """
+    Flush a manual grade before creating its release event.
+
+    The approved notification workflow performs the final commit so
+    the grade release, academic event, and student notification are
+    persisted atomically.
+    """
+
+    try:
+        db.flush()
+    except IntegrityError as error:
+        db.rollback()
+
+        raise EvaluationPersistenceConflictError(
+            "The grade release conflicted with another database operation."
+        ) from error
+    except SQLAlchemyError as error:
+        db.rollback()
+
+        raise EvaluationPersistenceError(
+            "The grade release could not be saved."
+        ) from error
+
+
+def _complete_grade_write(
+    db: Session,
+    *,
+    grade: InstructorGrade,
+    was_released: bool,
+    actor_instructor_id: int,
+) -> InstructorGrade:
+    """
+    Commit an ordinary grade write or atomically dispatch a release event.
+
+    A notification is created only when the grade transitions from
+    unreleased to released.
+    """
+
+    release_transition = not was_released and bool(grade.is_released)
+
+    if not release_transition:
+        _commit_evaluation_transaction(db)
+        db.refresh(grade)
+
+        return grade
+
+    _flush_grade_release_transaction(db)
+
+    try:
+        notify_grade_released(
+            db,
+            actor_instructor_id=actor_instructor_id,
+            grade_id=grade.grade_id,
+        )
+    except (
+        AcademicEventWorkflowError,
+        NotificationServiceError,
+    ) as error:
+        db.rollback()
+
+        raise GradeNotificationWorkflowError(
+            "The grade release and its in-app notification could not "
+            "be saved. The grade remains unreleased. Please try again."
+        ) from error
+
+    db.refresh(grade)
+
+    return grade
 
 
 def _get_submission(
@@ -586,7 +673,8 @@ def create_or_update_grade(
     Create or fully replace a manual instructor grade.
 
     Automated AST, similarity, execution, and session indicators are
-    never used to populate the manual grade.
+    never used to populate the manual grade. A student notification is
+    created only when the grade transitions from unreleased to released.
     """
 
     submission = _get_submission(
@@ -614,6 +702,8 @@ def create_or_update_grade(
         .first()
     )
 
+    was_released = False
+
     if grade is None:
         grade = InstructorGrade(
             submission_id=submission.sub_id,
@@ -633,17 +723,20 @@ def create_or_update_grade(
                 "The existing grade belongs to another instructor."
             )
 
+        was_released = bool(grade.is_released)
+
         grade.score = grade_in.score
         grade.max_score = grade_in.max_score
         grade.feedback = grade_in.feedback
         grade.is_released = grade_in.is_released
 
     # Intentionally do not change submission.status here.
-    _commit_evaluation_transaction(db)
-
-    db.refresh(grade)
-
-    return grade
+    return _complete_grade_write(
+        db,
+        grade=grade,
+        was_released=was_released,
+        actor_instructor_id=current_user.user_id,
+    )
 
 
 def patch_grade(
@@ -656,7 +749,8 @@ def patch_grade(
     Partially modify an existing manual instructor grade.
 
     The service validates the final score and maximum after combining
-    supplied fields with the current database values.
+    supplied fields with the current database values. A student
+    notification is created only on an unreleased-to-released transition.
     """
 
     submission = _get_submission(
@@ -720,6 +814,8 @@ def patch_grade(
 
         raise GradeValidationError("score cannot be greater than max_score")
 
+    was_released = bool(grade.is_released)
+
     for field_name, value in update_data.items():
         setattr(
             grade,
@@ -728,11 +824,12 @@ def patch_grade(
         )
 
     # Intentionally do not change submission.status here.
-    _commit_evaluation_transaction(db)
-
-    db.refresh(grade)
-
-    return grade
+    return _complete_grade_write(
+        db,
+        grade=grade,
+        was_released=was_released,
+        actor_instructor_id=current_user.user_id,
+    )
 
 
 # SECURITY BOUNDARY:
@@ -744,6 +841,22 @@ def patch_grade(
 # Only an authorized instructor may create or modify a manual grade for
 # the latest accepted official submission of a graded activity. Manual
 # grading does not silently change the submission's review status.
+
+# GRADE-RELEASE NOTIFICATION BOUNDARY:
+# A student notification is created only when an instructor-controlled
+# grade transitions from unreleased to released. Ordinary grade edits,
+# repeated writes to an already released grade, and unrelease operations
+# do not create duplicate release notifications.
+
+# NOTIFICATION TRANSACTION BOUNDARY:
+# A grade release, its academic event, and the student notification are
+# committed as one transaction. A workflow failure rolls back the release
+# so the instructor may retry safely.
+
+# NOTIFICATION PRIVACY BOUNDARY:
+# Grade-release notifications exclude the score, maximum score, feedback,
+# source code, standard input, AST details, similarity results, execution
+# output, hidden test cases, behavioral telemetry, and misconduct claims.
 
 # REVIEW BOUNDARY:
 # AST and source-similarity results are automated review indicators only.

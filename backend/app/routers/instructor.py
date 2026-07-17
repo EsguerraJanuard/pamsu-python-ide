@@ -104,6 +104,7 @@ from app.services.task_service import (
     TaskPublicationError,
     TaskTestCaseNotFoundError,
     TaskUpdateEmptyError,
+    TaskNotificationWorkflowError,
     create_task as create_task_service,
     create_task_test_case,
     delete_task_test_case,
@@ -169,6 +170,15 @@ def raise_task_service_http_exception(
     ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        TaskNotificationWorkflowError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 
