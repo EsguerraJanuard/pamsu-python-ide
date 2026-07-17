@@ -101,6 +101,11 @@ class User(Base):
         back_populates="recipient",
         foreign_keys="Notification.recipient_id",
     )
+    audit_records_created = relationship(
+        "AuditRecord",
+        back_populates="actor",
+        foreign_keys="AuditRecord.actor_user_id",
+    )
 
 
 class InstructorAllowlist(Base):
@@ -1206,6 +1211,154 @@ class AcademicEvent(Base):
     # It must never contain source code, standard input, hidden test cases,
     # AST details, similarity details, execution output, session telemetry,
     # clipboard contents, pasted text, or unreleased grade information.
+
+
+class AuditRecord(Base):
+    __tablename__ = "audit_records"
+    __table_args__ = (
+        CheckConstraint(
+            "action_type IN ("
+            "'user_registered', "
+            "'login_succeeded', "
+            "'login_failed', "
+            "'classroom_created', "
+            "'classroom_updated', "
+            "'classroom_archived', "
+            "'classroom_reactivated', "
+            "'student_enrolled', "
+            "'enrollment_status_changed', "
+            "'activity_created', "
+            "'activity_updated', "
+            "'activity_published', "
+            "'activity_unpublished', "
+            "'submission_created', "
+            "'submission_status_changed', "
+            "'grade_created', "
+            "'grade_updated', "
+            "'grade_released', "
+            "'notification_marked_read', "
+            "'notifications_marked_read'"
+            ")",
+            name="ck_audit_records_action_type",
+        ),
+        CheckConstraint(
+            "resource_type IN ("
+            "'user', "
+            "'classroom', "
+            "'enrollment', "
+            "'task', "
+            "'submission', "
+            "'grade', "
+            "'notification'"
+            ")",
+            name="ck_audit_records_resource_type",
+        ),
+        CheckConstraint(
+            "outcome IN ('succeeded', 'denied', 'failed')",
+            name="ck_audit_records_outcome",
+        ),
+        UniqueConstraint(
+            "audit_key",
+            name="uq_audit_records_audit_key",
+        ),
+        Index(
+            "ix_audit_records_actor_occurred",
+            "actor_user_id",
+            "occurred_at",
+        ),
+        Index(
+            "ix_audit_records_action_occurred",
+            "action_type",
+            "occurred_at",
+        ),
+        Index(
+            "ix_audit_records_resource_occurred",
+            "resource_type",
+            "resource_id",
+            "occurred_at",
+        ),
+    )
+
+    audit_id = Column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    audit_key = Column(
+        String(255),
+        nullable=False,
+    )
+    actor_user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+        index=True,
+    )
+    action_type = Column(
+        String(60),
+        nullable=False,
+    )
+    resource_type = Column(
+        String(30),
+        nullable=False,
+    )
+    resource_id = Column(
+        String(100),
+        nullable=False,
+    )
+    outcome = Column(
+        String(20),
+        nullable=False,
+        default="succeeded",
+    )
+    audit_data = Column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+    occurred_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    actor = relationship(
+        "User",
+        back_populates="audit_records_created",
+        foreign_keys=[actor_user_id],
+    )
+
+    # AUDIT IMMUTABILITY BOUNDARY:
+    # Audit records represent completed or attempted accountable actions.
+    # Services may create and read these rows but must never update or
+    # delete their actor, action, resource, outcome, payload, or timestamps.
+    #
+    # IDEMPOTENCY BOUNDARY:
+    # audit_key is generated only by trusted backend workflows. Retrying
+    # the same domain action must reuse the same key when duplicate audit
+    # rows would misrepresent the action history.
+    #
+    # ACTOR BOUNDARY:
+    # actor_user_id identifies the authenticated database user responsible
+    # for the action. It may be null only for pre-authentication failures or
+    # trusted system-originated actions where no authenticated actor exists.
+    #
+    # PRIVACY BOUNDARY:
+    # audit_data may contain only approved identifiers, state transitions,
+    # and privacy-safe accountability metadata. It must never contain
+    # passwords, password hashes, OTP values, source code, starter code,
+    # standard input, hidden test data, execution output, AST details,
+    # similarity details, clipboard contents, pasted text, browsing history,
+    # individual keystrokes, screen recordings, webcam data, microphone
+    # data, or automated misconduct conclusions.
 
 
 class Notification(Base):

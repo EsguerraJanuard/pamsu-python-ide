@@ -84,7 +84,7 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
-    # Pillar 11 remains a work in progress until all notification
+    # Pillar 12 remains a work in progress until all audit-trail
     # integrations and regressions are complete.
     assert APP_VERSION == "0.11.0"
     assert document["info"]["title"] == APP_TITLE
@@ -110,6 +110,7 @@ def test_openapi_metadata_and_tags():
         "Behavioral Logs",
         "Evaluation",
         "Notifications",
+        "Audit Trail",
     }
 
 

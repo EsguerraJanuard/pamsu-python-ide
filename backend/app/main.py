@@ -2,6 +2,7 @@ from fastapi import FastAPI, status
 
 from app.routers import (
     activities,
+    audit_records,
     auth,
     classrooms,
     evaluation,
@@ -110,6 +111,17 @@ OPENAPI_TAGS = [
             "remain exclusive to trusted academic workflows."
         ),
     },
+    {
+        "name": "Audit Trail",
+        "description": (
+            "Authenticated users may read only audit records attributed "
+            "to their own account. Audit creation remains exclusive to "
+            "trusted backend workflows, and records exclude source code, "
+            "credentials, OTP values, hidden test data, execution output, "
+            "surveillance data, unreleased grades, and automated "
+            "misconduct conclusions."
+        ),
+    },
 ]
 
 
@@ -128,8 +140,9 @@ app = FastAPI(
         "manual-grade lists, explicit evaluation-status control, "
         "manual instructor grading workflows, immutable approved "
         "academic events, recipient-owned in-app notifications, "
-        "notification unread counts, and owner-scoped read-state "
-        "operations."
+        "notification unread counts, owner-scoped read-state operations, "
+        "and immutable privacy-safe audit records for authenticated "
+        "academic accountability."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -149,6 +162,7 @@ app.include_router(execution.router)
 app.include_router(logs.router)
 app.include_router(evaluation.router)
 app.include_router(notifications.router)
+app.include_router(audit_records.router)
 
 
 @app.get(
