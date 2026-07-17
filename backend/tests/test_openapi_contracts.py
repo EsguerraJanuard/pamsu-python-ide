@@ -84,7 +84,9 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
-    assert APP_VERSION == "0.10.0"
+    # Pillar 11 remains a work in progress until all notification
+    # integrations and regressions are complete.
+    assert APP_VERSION == "0.11.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
@@ -125,6 +127,7 @@ def test_required_api_paths_and_status_codes():
         "/classrooms/",
         "/classrooms/join",
         "/classrooms/mine",
+        "/classrooms/{class_id}",
         "/instructors/tasks/",
         "/instructors/tasks/{task_id}",
         "/instructors/tasks/{task_id}/publication",
@@ -149,9 +152,16 @@ def test_required_api_paths_and_status_codes():
         "/execution/requests/",
         "/execution/requests/{execution_id}",
         "/evaluation/submissions/{sub_id}",
+        "/evaluation/submissions/{sub_id}/status",
+        "/evaluation/submissions/{sub_id}/grade",
         "/logs/behavioral/",
         "/logs/behavioral/{log_id}",
         "/logs/behavioral/submission/{sub_id}",
+        "/notifications/",
+        "/notifications/unread-count",
+        "/notifications/read-all",
+        "/notifications/{notification_id}",
+        "/notifications/{notification_id}/read",
     }
 
     assert required_paths.issubset(paths.keys())
@@ -162,7 +172,17 @@ def test_required_api_paths_and_status_codes():
 
     assert "201" in paths["/instructors/tasks/"]["post"]["responses"]
 
+    assert (
+        "200" in paths["/instructors/tasks/{task_id}/publication"]["patch"]["responses"]
+    )
+
+    assert (
+        "503" in paths["/instructors/tasks/{task_id}/publication"]["patch"]["responses"]
+    )
+
     assert "201" in paths["/submissions/"]["post"]["responses"]
+
+    assert "503" in paths["/submissions/"]["post"]["responses"]
 
     assert "201" in paths["/execution/requests/"]["post"]["responses"]
 
@@ -197,6 +217,24 @@ def test_required_api_paths_and_status_codes():
     assert "201" in paths["/execution/submissions/"]["post"]["responses"]
 
     assert "200" in paths["/evaluation/submissions/{sub_id}"]["post"]["responses"]
+
+    assert "503" in paths["/evaluation/submissions/{sub_id}/grade"]["put"]["responses"]
+
+    assert (
+        "503" in paths["/evaluation/submissions/{sub_id}/grade"]["patch"]["responses"]
+    )
+
+    assert "503" in paths["/classrooms/{class_id}"]["patch"]["responses"]
+
+    assert "200" in paths["/notifications/"]["get"]["responses"]
+
+    assert "200" in paths["/notifications/unread-count"]["get"]["responses"]
+
+    assert "200" in paths["/notifications/{notification_id}"]["get"]["responses"]
+
+    assert "200" in paths["/notifications/{notification_id}/read"]["patch"]["responses"]
+
+    assert "200" in paths["/notifications/read-all"]["patch"]["responses"]
 
 
 def test_all_operation_ids_are_unique():
@@ -600,3 +638,226 @@ def test_evaluation_contract_has_no_automatic_grade_verdict():
     }
 
     assert prohibited_fields.isdisjoint(properties)
+
+
+def test_notification_routes_are_read_state_only():
+    document = get_openapi_document()
+    paths = document["paths"]
+
+    assert set(
+        method for method in paths["/notifications/"] if method.lower() in HTTP_METHODS
+    ) == {
+        "get",
+    }
+
+    assert set(
+        method
+        for method in paths["/notifications/unread-count"]
+        if method.lower() in HTTP_METHODS
+    ) == {
+        "get",
+    }
+
+    assert set(
+        method
+        for method in paths["/notifications/read-all"]
+        if method.lower() in HTTP_METHODS
+    ) == {
+        "patch",
+    }
+
+    assert set(
+        method
+        for method in paths["/notifications/{notification_id}"]
+        if method.lower() in HTTP_METHODS
+    ) == {
+        "get",
+    }
+
+    assert set(
+        method
+        for method in paths["/notifications/{notification_id}/read"]
+        if method.lower() in HTTP_METHODS
+    ) == {
+        "patch",
+    }
+
+
+def test_notification_response_respects_privacy_boundary():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "NotificationResponse",
+    )
+
+    assert {
+        "notification_id",
+        "event_id",
+        "event_type",
+        "resource_type",
+        "resource_id",
+        "title",
+        "message",
+        "is_read",
+        "read_at",
+        "created_at",
+        "occurred_at",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "recipient_id",
+        "actor_user_id",
+        "event_key",
+        "event_data",
+        "raw_code",
+        "source_code",
+        "starter_code",
+        "standard_input",
+        "expected_output",
+        "hidden_test_cases",
+        "required_ast_rules",
+        "ast_details",
+        "ast_findings",
+        "jaccard_score",
+        "similarity_results",
+        "stdout",
+        "stderr",
+        "exit_code",
+        "worker_task_id",
+        "coding_session",
+        "clipboard_content",
+        "pasted_text",
+        "keystrokes",
+        "browsing_history",
+        "screen_recording",
+        "webcam",
+        "microphone",
+        "score",
+        "max_score",
+        "feedback",
+        "unreleased_score",
+        "unreleased_feedback",
+        "automatic_grade",
+        "risk_score",
+        "plagiarism_verdict",
+        "cheating_verdict",
+        "misconduct_verdict",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+
+def test_notification_list_contract_is_recipient_safe():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "NotificationListResponse",
+    )
+
+    assert {
+        "items",
+        "total_items",
+        "total_pages",
+        "page",
+        "page_size",
+        "recipient_unread_count",
+        "read_filter",
+        "sort_direction",
+    }.issubset(properties)
+
+    prohibited_fields = {
+        "recipient_id",
+        "recipient_email",
+        "recipient_school_id",
+        "actor_user_id",
+        "event_key",
+        "event_data",
+        "source_code",
+        "standard_input",
+        "score",
+        "feedback",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+
+def test_notification_counter_and_read_all_contracts():
+    document = get_openapi_document()
+
+    unread_properties = get_schema_properties(
+        document,
+        "NotificationUnreadCountResponse",
+    )
+
+    mark_all_properties = get_schema_properties(
+        document,
+        "MarkAllNotificationsReadResponse",
+    )
+
+    assert set(unread_properties) == {
+        "unread_count",
+    }
+
+    assert {
+        "marked_read_count",
+        "remaining_unread_count",
+        "marked_at",
+    }.issubset(mark_all_properties)
+
+    assert {
+        "recipient_id",
+        "notification_ids",
+        "event_ids",
+        "event_data",
+    }.isdisjoint(mark_all_properties)
+
+
+def test_notification_create_contract_is_not_exposed_by_routes():
+    document = get_openapi_document()
+
+    notification_operations = [
+        operation
+        for method, path, operation in iter_operations(document)
+        if path.startswith("/notifications")
+    ]
+
+    request_bodies = [
+        operation.get("requestBody")
+        for operation in notification_operations
+        if operation.get("requestBody") is not None
+    ]
+
+    assert request_bodies == []
+
+
+def test_notification_domain_failure_responses_are_documented():
+    document = get_openapi_document()
+    paths = document["paths"]
+
+    protected_operations = {
+        (
+            "patch",
+            "/instructors/tasks/{task_id}/publication",
+        ),
+        (
+            "post",
+            "/submissions/",
+        ),
+        (
+            "put",
+            "/evaluation/submissions/{sub_id}/grade",
+        ),
+        (
+            "patch",
+            "/evaluation/submissions/{sub_id}/grade",
+        ),
+        (
+            "patch",
+            "/classrooms/{class_id}",
+        ),
+    }
+
+    for method, path in protected_operations:
+        assert "503" in paths[path][method]["responses"]

@@ -15,7 +15,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.10.0"
+APP_VERSION = "0.11.0"
 
 OPENAPI_TAGS = [
     {
@@ -37,17 +37,19 @@ OPENAPI_TAGS = [
         "name": "Classrooms",
         "description": (
             "Instructor-owned classroom management, backend-generated "
-            "class codes, and student enrollment operations."
+            "class codes, student enrollment operations, and "
+            "privacy-safe classroom archive notifications."
         ),
     },
     {
         "name": "Instructor",
         "description": (
             "Instructor-authorized activity, test-case, submission, "
-            "execution-request, coding-session, evaluation, review-queue, "
-            "gradebook, and manual grading operations. Review and gradebook "
-            "summaries exclude source code and sensitive analytics. "
-            "Automated indicators remain review-only."
+            "execution-request, coding-session, evaluation, "
+            "review-queue, gradebook, and manual grading operations. "
+            "Review and gradebook summaries exclude source code and "
+            "sensitive analytics. Automated indicators remain "
+            "review-only."
         ),
     },
     {
@@ -55,8 +57,8 @@ OPENAPI_TAGS = [
         "description": (
             "Student-safe access to published laboratory and homework "
             "activities, public sample test cases, student-owned "
-            "coding-session lifecycle operations, and the authenticated "
-            "student's own released manual grades."
+            "coding-session lifecycle operations, and the "
+            "authenticated student's own released manual grades."
         ),
     },
     {
@@ -64,7 +66,8 @@ OPENAPI_TAGS = [
         "description": (
             "Student-owned immutable submission attempts. Student "
             "identity, attempt numbering, official-attempt state, "
-            "status, and timestamps are controlled by the backend."
+            "status, timestamps, and approved instructor "
+            "notifications are controlled by the backend."
         ),
     },
     {
@@ -88,20 +91,23 @@ OPENAPI_TAGS = [
     {
         "name": "Evaluation",
         "description": (
-            "Static AST and source-similarity indicators for authorized "
-            "instructor review, student-safe released-grade viewing, "
-            "explicit review-status updates, and manual instructor "
-            "grading. Automated indicators never assign official grades "
-            "or determine plagiarism, cheating, copying, or misconduct."
+            "Static AST and source-similarity indicators for "
+            "authorized instructor review, student-safe "
+            "released-grade viewing, explicit review-status updates, "
+            "manual instructor grading, and privacy-safe grade-release "
+            "notifications. Automated indicators never assign official "
+            "grades or determine plagiarism, cheating, copying, or "
+            "misconduct."
         ),
     },
     {
         "name": "Notifications",
         "description": (
-            "Authenticated student and instructor access to their own "
-            "backend-generated in-app notifications, unread counts, "
-            "and read-state operations. Notification creation remains "
-            "exclusive to trusted academic workflows."
+            "Authenticated students and instructors may access only "
+            "their own backend-generated in-app notifications, unread "
+            "counts, and read-state operations. Notification creation, "
+            "recipient selection, titles, messages, and event payloads "
+            "remain exclusive to trusted academic workflows."
         ),
     },
 ]
@@ -120,8 +126,10 @@ app = FastAPI(
         "source-similarity analytics, instructor-owned paginated review "
         "queues, privacy-safe gradebook summaries, student-safe released "
         "manual-grade lists, explicit evaluation-status control, "
-        "manual instructor grading workflows, immutable academic "
-        "events, and recipient-owned in-app notifications."
+        "manual instructor grading workflows, immutable approved "
+        "academic events, recipient-owned in-app notifications, "
+        "notification unread counts, and owner-scoped read-state "
+        "operations."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
