@@ -19,6 +19,13 @@ from app.schemas.enrollment_schema import (
     EnrollmentJoinRequest,
     EnrollmentStatus,
 )
+from app.services.academic_event_service import (
+    AcademicEventWorkflowError,
+    notify_classroom_archived,
+)
+from app.services.notification_service import (
+    NotificationServiceError,
+)
 
 
 CLASS_CODE_LENGTH = 8
@@ -44,6 +51,13 @@ class ClassroomInactiveError(ClassroomServiceError):
 
 class ClassroomCodeGenerationError(ClassroomServiceError):
     pass
+
+
+class ClassroomNotificationWorkflowError(ClassroomServiceError):
+    """
+    Raised when a classroom archive and its required notifications
+    cannot be saved as one transaction.
+    """
 
 
 class EnrollmentNotFoundError(ClassroomServiceError):
@@ -131,6 +145,7 @@ def create_classroom(
             section=classroom_data.section,
             class_code=generate_class_code(),
             is_active=True,
+            archived_at=None,
         )
 
         try:
@@ -139,7 +154,6 @@ def create_classroom(
             db.refresh(classroom)
 
             return classroom
-
         except IntegrityError:
             db.rollback()
 
@@ -168,11 +182,21 @@ def update_classroom(
     instructor_id: int,
     classroom_data: ClassroomUpdate,
 ) -> Classroom:
+    """
+    Update an instructor-owned classroom.
+
+    A classroom-archived academic event is created only when the
+    classroom changes from active to inactive. The classroom update,
+    academic event, and student notifications are saved atomically.
+    """
+
     classroom = get_owned_classroom(
         db=db,
         class_id=class_id,
         instructor_id=instructor_id,
     )
+
+    was_active = bool(classroom.is_active)
 
     update_data = classroom_data.model_dump(
         exclude_unset=True,
@@ -185,12 +209,54 @@ def update_classroom(
             value,
         )
 
+    is_active_now = bool(classroom.is_active)
+
+    archive_transition = was_active and not is_active_now
+
+    reactivation_transition = not was_active and is_active_now
+
+    if archive_transition:
+        classroom.archived_at = get_utc_now()
+    elif reactivation_transition:
+        classroom.archived_at = None
+
+    if not archive_transition:
+        try:
+            db.commit()
+            db.refresh(classroom)
+
+            return classroom
+        except Exception:
+            db.rollback()
+            raise
+
     try:
+        db.flush()
+
+        notify_classroom_archived(
+            db,
+            actor_instructor_id=instructor_id,
+            class_id=classroom.class_id,
+        )
+
+        # The notification workflow commits when recipients exist.
+        # This commit is also required for the valid no-recipient case.
         db.commit()
         db.refresh(classroom)
 
         return classroom
+    except (
+        AcademicEventWorkflowError,
+        NotificationServiceError,
+    ) as error:
+        db.rollback()
 
+        raise ClassroomNotificationWorkflowError(
+            "The classroom could not be archived because its "
+            "required in-app notification workflow could not be "
+            "completed. The classroom remains active. Please try "
+            "again."
+        ) from error
     except Exception:
         db.rollback()
         raise
@@ -216,7 +282,6 @@ def regenerate_class_code(
             db.refresh(classroom)
 
             return classroom
-
         except IntegrityError:
             db.rollback()
 
@@ -275,7 +340,6 @@ def join_classroom(
         db.refresh(enrollment)
 
         return enrollment
-
     except IntegrityError as exc:
         db.rollback()
 
@@ -290,7 +354,10 @@ def list_student_classrooms(
     student_id: int,
 ) -> list[dict[str, Any]]:
     enrollment_rows = (
-        db.query(Enrollment, Classroom)
+        db.query(
+            Enrollment,
+            Classroom,
+        )
         .join(
             Classroom,
             Classroom.class_id == Enrollment.class_id,
@@ -323,7 +390,10 @@ def list_class_members(
     )
 
     member_rows = (
-        db.query(Enrollment, User)
+        db.query(
+            Enrollment,
+            User,
+        )
         .join(
             User,
             User.user_id == Enrollment.student_id,
@@ -409,7 +479,6 @@ def update_enrollment_status(
         db.refresh(enrollment)
 
         return enrollment
-
     except Exception:
         db.rollback()
         raise
@@ -417,7 +486,8 @@ def update_enrollment_status(
 
 # SECURITY BOUNDARY:
 # instructor_id and student_id always come from authenticated users.
-# Clients cannot create classrooms or enrollments on behalf of other users.
+# Clients cannot create classrooms or enrollments on behalf of other
+# users.
 
 # CLASS-CODE BOUNDARY:
 # Class codes are generated using cryptographically secure randomness.
@@ -427,3 +497,21 @@ def update_enrollment_status(
 # Enrollment status is limited to active, disabled, or removed.
 # Disabled and removed records retain their historical enrollment row.
 # Only the owning instructor can reactivate an enrollment.
+
+# ARCHIVE STATE BOUNDARY:
+# archived_at is set only by the backend when a classroom transitions
+# from active to inactive. Reactivating the classroom clears it.
+# Repeated inactive updates preserve the original archive timestamp.
+
+# NOTIFICATION WORKFLOW BOUNDARY:
+# A classroom-archived event is created only when an instructor-owned
+# classroom transitions from active to inactive. The classroom update,
+# academic event, and notifications for active enrolled students are
+# persisted as one transaction. Repeated inactive updates do not create
+# duplicate archive notifications.
+
+# NOTIFICATION PRIVACY BOUNDARY:
+# Classroom archive notifications exclude class codes, student personal
+# information, source code, test cases, grades, feedback, AST findings,
+# similarity records, execution output, coding-session telemetry,
+# clipboard contents, pasted text, and misconduct conclusions.

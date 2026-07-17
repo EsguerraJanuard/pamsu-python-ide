@@ -17,6 +17,13 @@ from app.schemas.task_test_case_schema import (
     TaskTestCaseCreate,
     TaskTestCaseUpdate,
 )
+from app.services.academic_event_service import (
+    AcademicEventWorkflowError,
+    notify_activity_published,
+)
+from app.services.notification_service import (
+    NotificationServiceError,
+)
 
 
 ModelType = TypeVar(
@@ -56,6 +63,15 @@ class TaskUpdateEmptyError(TaskServiceError):
 
 class TaskPublicationError(TaskServiceError):
     pass
+
+
+class TaskNotificationWorkflowError(
+    TaskServiceError,
+):
+    """
+    Raised when publication succeeds but its in-app notification
+    workflow cannot be completed.
+    """
 
 
 class TaskTestCaseNotFoundError(TaskServiceError):
@@ -340,10 +356,32 @@ def set_task_publication(
         task.is_published = False
         task.published_at = None
 
-    return commit_and_refresh(
+    saved_task = commit_and_refresh(
         db=db,
         instance=task,
     )
+
+    if is_published:
+        try:
+            notify_activity_published(
+                db,
+                actor_instructor_id=instructor_id,
+                task_id=saved_task.task_id,
+            )
+        except (
+            AcademicEventWorkflowError,
+            NotificationServiceError,
+        ) as error:
+            raise TaskNotificationWorkflowError(
+                "The activity was published, but its in-app "
+                "notification workflow could not be completed. "
+                "Publishing the activity again will safely retry "
+                "notification creation."
+            ) from error
+
+        db.refresh(saved_task)
+
+    return saved_task
 
 
 def get_test_case_by_id(
@@ -600,6 +638,13 @@ def list_student_sample_test_cases(
 # Published tasks require an active instructor-owned classroom and a future
 # deadline when a deadline is configured. Draft tasks may be prepared before
 # all publication requirements are satisfied.
+
+# NOTIFICATION WORKFLOW BOUNDARY:
+# Successful publication triggers the approved activity-published
+# in-app notification workflow. Repeated publication requests safely
+# reuse the same backend-generated academic event key. Notification
+# content excludes starter code, instructions, test cases, AST rules,
+# analytics, execution output, and unreleased grades.
 
 # REVIEW BOUNDARY:
 # Task test cases support execution review but do not independently assign

@@ -36,6 +36,7 @@ from app.services.evaluation_service import (
     EvaluationServiceError,
     EvaluationStateConflictError,
     GradeNotFoundError,
+    GradeNotificationWorkflowError,
     GradeUnavailableError,
     GradeValidationError,
     InvalidEvaluationResultError,
@@ -199,19 +200,28 @@ def raise_evaluation_service_http_exception(
 
     if isinstance(
         exc,
+        GradeNotificationWorkflowError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
         (
             InvalidEvaluationResultError,
             EvaluationPersistenceError,
         ),
     ):
         raise HTTPException(
-            status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         ) from exc
 
     raise HTTPException(
-        status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
-        detail=("The evaluation operation could not be completed."),
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="The evaluation operation could not be completed.",
     ) from exc
 
 
@@ -401,7 +411,9 @@ def update_eval_status(
         "accepted official submission of a graded activity owned by "
         "the authenticated instructor. Automated AST, similarity, "
         "execution, and session indicators are never used to populate "
-        "the grade. This operation does not change submission status."
+        "the grade. This operation does not change submission status. "
+        "A student notification is created only when the grade changes "
+        "from unreleased to released."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -419,6 +431,12 @@ def update_eval_status(
         },
         status.HTTP_422_UNPROCESSABLE_CONTENT: {
             "description": ("The grade values violate the manual-grade contract."),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The grade release and its required student "
+                "notification could not be saved."
+            ),
         },
     },
 )
@@ -455,7 +473,9 @@ def set_grade(
         "Updates selected fields of an existing manual instructor "
         "grade. At least one field is required, and the final score "
         "cannot exceed the final maximum score. This operation does "
-        "not change submission status."
+        "not change submission status. A student notification is "
+        "created only when the grade changes from unreleased to "
+        "released."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -475,6 +495,12 @@ def set_grade(
             "description": (
                 "No grade fields were supplied or the final "
                 "score exceeds the final maximum score."
+            ),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The grade release and its required student "
+                "notification could not be saved."
             ),
         },
     },
@@ -520,6 +546,17 @@ def patch_eval_grade(
 # Official grades are manually created or updated by an authorized
 # instructor for the latest accepted official submission. Grade changes
 # do not silently change the submission review status.
+
+# NOTIFICATION WORKFLOW BOUNDARY:
+# Grade-release notifications are created only when a manual instructor
+# grade changes from unreleased to released. A failure rolls back the
+# release operation and returns HTTP 503 so the instructor may retry.
+
+# NOTIFICATION PRIVACY BOUNDARY:
+# Grade-release notifications do not contain score, maximum score,
+# feedback, source code, standard input, AST details, similarity data,
+# execution output, hidden tests, behavioral telemetry, or automated
+# misconduct conclusions.
 
 # REVIEW BOUNDARY:
 # AST findings and Jaccard similarity values support instructor review

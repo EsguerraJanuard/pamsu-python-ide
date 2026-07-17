@@ -16,6 +16,13 @@ from app.schemas.submission_schema import (
     SubmissionCreate,
     SubmissionStatus,
 )
+from app.services.academic_event_service import (
+    AcademicEventWorkflowError,
+    notify_submission_created,
+)
+from app.services.notification_service import (
+    NotificationServiceError,
+)
 
 
 class SubmissionServiceError(Exception):
@@ -64,15 +71,32 @@ class SubmissionPersistenceError(
     """Raised when an unexpected database error occurs."""
 
 
+class SubmissionNotificationWorkflowError(
+    SubmissionServiceError,
+):
+    """
+    Raised when the submission and its required in-app notification
+    cannot be saved as one transaction.
+    """
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _commit_submission_transaction(
+def _flush_submission_transaction(
     db: Session,
 ) -> None:
+    """
+    Flush the immutable submission before creating its academic event.
+
+    The notification service performs the final commit so the
+    submission, academic event, and recipient notification are saved
+    atomically.
+    """
+
     try:
-        db.commit()
+        db.flush()
     except IntegrityError as error:
         db.rollback()
 
@@ -254,6 +278,9 @@ def create_student_submission(
 
     Only the is_official flag of an older attempt may be changed so
     that the latest accepted attempt becomes the official attempt.
+
+    The new submission, academic event, and instructor notification
+    are committed as one transaction.
     """
 
     task = _get_student_submission_task(
@@ -264,7 +291,7 @@ def create_student_submission(
 
     _validate_coding_session(
         db,
-        coding_session_id=payload.coding_session_id,
+        coding_session_id=(payload.coding_session_id),
         student_id=student_id,
         task_id=task.task_id,
     )
@@ -297,10 +324,10 @@ def create_student_submission(
     submission = Submission(
         student_id=student_id,
         task_id=task.task_id,
-        coding_session_id=payload.coding_session_id,
-        attempt_number=next_attempt_number,
+        coding_session_id=(payload.coding_session_id),
+        attempt_number=(next_attempt_number),
         raw_code=payload.raw_code,
-        standard_input=payload.standard_input,
+        standard_input=(payload.standard_input),
         status="submitted",
         is_official=True,
         accepted_at=accepted_at,
@@ -308,8 +335,28 @@ def create_student_submission(
 
     db.add(submission)
 
-    _commit_submission_transaction(db)
+    _flush_submission_transaction(db)
 
+    try:
+        notify_submission_created(
+            db,
+            student_id=student_id,
+            submission_id=submission.sub_id,
+        )
+    except (
+        AcademicEventWorkflowError,
+        NotificationServiceError,
+    ) as error:
+        db.rollback()
+
+        raise SubmissionNotificationWorkflowError(
+            "The submission and its in-app notification could not "
+            "be saved. No submission attempt was created. "
+            "Please submit again."
+        ) from error
+
+    # The notification workflow commits the submission, academic event,
+    # and instructor notification as one transaction.
     db.refresh(submission)
 
     return submission
@@ -497,3 +544,31 @@ def get_instructor_submission(
         )
 
     return submission
+
+
+# AUTHORIZATION BOUNDARY:
+# Student submission creation and reads are always scoped to the
+# authenticated student. Instructor reads are restricted to submissions
+# belonging to classrooms owned by the authenticated instructor.
+
+# IMMUTABILITY BOUNDARY:
+# Source code, standard input, student ownership, task ownership, coding
+# session ownership, and attempt number are fixed when an attempt is
+# created. Only official-attempt metadata may change for older attempts.
+
+# NOTIFICATION WORKFLOW BOUNDARY:
+# A new immutable submission, its academic event, and the instructor's
+# in-app notification are saved in one transaction. A notification
+# workflow failure rolls back the new attempt and restores the previous
+# official-attempt state, making a client retry safe.
+
+# NOTIFICATION PRIVACY BOUNDARY:
+# Submission-created notifications exclude source code, standard input,
+# AST details, similarity results, execution output, hidden test cases,
+# coding-session telemetry, clipboard contents, pasted text, and
+# automated misconduct conclusions.
+
+# REVIEW BOUNDARY:
+# Submission records and automated indicators support instructor review.
+# They never independently assign an official grade or determine
+# plagiarism, cheating, copying, or misconduct.

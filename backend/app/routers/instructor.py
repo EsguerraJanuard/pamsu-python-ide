@@ -101,6 +101,7 @@ from app.services.task_service import (
     TaskClassInactiveError,
     TaskClassNotFoundError,
     TaskNotFoundError,
+    TaskNotificationWorkflowError,
     TaskPublicationError,
     TaskTestCaseNotFoundError,
     TaskUpdateEmptyError,
@@ -169,6 +170,15 @@ def raise_task_service_http_exception(
     ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        TaskNotificationWorkflowError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 
@@ -795,7 +805,9 @@ def update_task_endpoint(
     description=(
         "Publishes a valid activity or returns it to draft status. "
         "Publishing requires an active instructor-owned classroom and "
-        "a future deadline when a deadline is configured."
+        "a future deadline when a deadline is configured. A successful "
+        "publication triggers privacy-safe in-app notifications for "
+        "eligible active students."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -808,6 +820,13 @@ def update_task_endpoint(
             "description": (
                 "The activity cannot be published because its "
                 "classroom or deadline is invalid."
+            ),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The activity was published, but its in-app "
+                "notification workflow could not be completed. "
+                "Publishing again safely retries notification creation."
             ),
         },
     },
@@ -836,6 +855,7 @@ def update_task_publication_endpoint(
         TaskClassAccessDeniedError,
         TaskClassInactiveError,
         TaskPublicationError,
+        TaskNotificationWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)
 
@@ -1371,6 +1391,12 @@ def get_execution_request_endpoint(
 
 # PUBLICATION BOUNDARY:
 # Publication state and published_at are controlled by the backend.
+
+# NOTIFICATION WORKFLOW BOUNDARY:
+# Successful publication triggers the approved activity-published
+# in-app notification workflow. Notification failure is mapped to HTTP
+# 503, and repeating the publication request safely retries the
+# idempotent backend-generated event without duplicate notifications.
 
 # SUBMISSION IMMUTABILITY BOUNDARY:
 # Instructor routes are read-only for submission source, ownership,
