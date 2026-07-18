@@ -11,12 +11,13 @@ from app.routers import (
     logs,
     notifications,
     registration,
+    reporting,
     submissions,
 )
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.12.0"
+APP_VERSION = "0.13.0"
 
 OPENAPI_TAGS = [
     {
@@ -126,6 +127,18 @@ OPENAPI_TAGS = [
             "misconduct conclusions."
         ),
     },
+    {
+        "name": "Reporting",
+        "description": (
+            "Ownership-scoped classroom and activity completion summaries, "
+            "manual-grade distributions, missing-submission reports, "
+            "authenticated student progress, and privacy-safe gradebook CSV "
+            "exports. Reporting excludes raw source code, standard input, "
+            "hidden tests, AST or similarity details, execution output, "
+            "session telemetry, unreleased student-grade data, surveillance "
+            "data, and automated misconduct rankings."
+        ),
+    },
 ]
 
 
@@ -145,8 +158,10 @@ app = FastAPI(
         "manual instructor grading workflows, immutable approved "
         "academic events, recipient-owned in-app notifications, "
         "notification unread counts, owner-scoped read-state operations, "
-        "and immutable privacy-safe audit records for authenticated "
-        "academic accountability."
+        "immutable privacy-safe audit records for authenticated academic "
+        "accountability, ownership-safe completion summaries, manual-grade "
+        "distributions, missing-submission reports, authenticated student "
+        "progress summaries, and privacy-safe gradebook CSV exports."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -167,6 +182,7 @@ app.include_router(logs.router)
 app.include_router(evaluation.router)
 app.include_router(notifications.router)
 app.include_router(audit_records.router)
+app.include_router(reporting.router)
 
 
 @app.get(

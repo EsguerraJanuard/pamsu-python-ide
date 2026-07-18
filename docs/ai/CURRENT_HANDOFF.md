@@ -18,452 +18,459 @@ These repository files are the authoritative source of truth.
 Current local working branch:
 
 ```text
-review/backend-p12-audit-trail
+review/backend-p13-reporting-exports
 ```
 
 Backend version:
 
 ```text
-0.12.0
+0.13.0
 ```
 
-Latest completed implementation scope:
+Latest completed and merged pillar:
 
 - Pillar 12 — Audit Trail and Academic Accountability
+- merged locally into `dev`
+- only `dev` pushed
+
+Current implementation scope:
+
+- Pillar 13 — Reporting and Privacy-Safe Export APIs
 
 Current verification status:
 
 ```text
-Latest observed full regression: 380 passed, 1 failed
+Focused Pillar 13 verification: passed
+Complete backend regression on review branch: 448 passed
 ```
 
-The remaining observed failure was a stale version assertion in:
-
-```text
-backend/tests/test_classroom_openapi_contracts.py
-```
-
-Required assertion:
-
-```python
-assert APP_VERSION == "0.12.0"
-```
-
-A final green full-regression rerun was not yet supplied when this handoff was updated.
-
-The Pillar 12 review branch must remain local.
+The Pillar 13 review branch must remain local.
 
 Do not push the review branch.
 
-After the final full regression passes, merge it locally into `dev`, rerun the full regression on `dev`, and push only `dev`.
+After focused tests and the complete backend regression pass, commit locally, merge into `dev`, rerun the complete regression on `dev`, and push only `dev`.
 
 ---
 
-## Completed Pillar 12 Scope
+## Pillar 13 Objective
 
-Pillar 12 provides backend-owned, immutable, privacy-safe audit records for accountable academic actions.
+Pillar 13 provides ownership-safe academic reports and privacy-safe gradebook exports without exposing raw student source code, execution data, telemetry, unreleased student-visible grades, or automated misconduct rankings.
 
-Implemented database model:
+Implemented reporting areas:
 
-- `AuditRecord`
-- UUID audit identifier
-- unique backend-generated audit key
-- authenticated actor identity
-- action type
-- resource type
-- resource identifier
-- outcome
-- privacy-safe structured metadata
-- occurrence timestamp
-- creation timestamp
-- actor, action, and resource indexes
+- classroom completion summaries
+- activity completion summaries
+- manual-grade distributions
+- missing-submission reports
+- authenticated student personal progress summaries
+- gradebook CSV exports
 
-Implemented audit action types:
-
-- `user_registered`
-- `login_succeeded`
-- `login_failed`
-- `classroom_created`
-- `classroom_updated`
-- `classroom_archived`
-- `classroom_reactivated`
-- `student_enrolled`
-- `enrollment_status_changed`
-- `activity_created`
-- `activity_updated`
-- `activity_published`
-- `activity_unpublished`
-- `submission_created`
-- `submission_status_changed`
-- `grade_created`
-- `grade_updated`
-- `grade_released`
-- `notification_marked_read`
-- `notifications_marked_read`
-
-The current Pillar 12 domain integrations cover classroom, enrollment, activity, submission, and manual-grade accountability workflows.
-
-Authentication and notification read-state action types remain reserved for trusted future integration unless explicitly implemented and tested.
-
-Implemented resource types:
-
-- `user`
-- `classroom`
-- `enrollment`
-- `task`
-- `submission`
-- `grade`
-- `notification`
-
-Implemented outcomes:
-
-- `succeeded`
-- `denied`
-- `failed`
+No database model or migration change is required for the current Pillar 13 implementation.
 
 ---
 
-## Audit Schemas and Validation
+## Reporting Schemas
 
-Implemented audit schemas:
+Implemented in:
 
-- `AuditActionType`
-- `AuditResourceType`
-- `AuditOutcome`
-- `AuditRecordCreateInternal`
-- `AuditRecordResponse`
-- `AuditRecordListResponse`
+```text
+backend/app/schemas/reporting_schema.py
+```
+
+Implemented contracts:
+
+- `ReportingStudentSummary`
+- `ReportingClassroomSummary`
+- `ReportingActivitySummary`
+- `CompletionCounts`
+- `ActivityCompletionSummaryResponse`
+- `ClassroomActivityCompletionItem`
+- `ClassroomCompletionSummaryResponse`
+- `GradeDistributionBucket`
+- `GradeDistributionResponse`
+- `MissingSubmissionItem`
+- `MissingSubmissionListResponse`
+- `StudentClassProgressItem`
+- `StudentProgressSummaryResponse`
+- `GradebookCSVExportMetadata`
 
 Schema behavior:
 
-- strict Pydantic validation
-- extra fields are forbidden
-- audit creation is internal-only
-- public responses exclude the internal audit key
-- recursive metadata privacy validation
-- metadata size limit
-- actor identity is backend-controlled
-- occurrence timestamp is backend-controlled
-- resource identity is backend-controlled by trusted workflows
+- Pydantic V2 strict validation
+- extra fields forbidden
+- ten-digit student school ID validation
+- bounded pagination contracts
+- deterministic approved sorting values
+- completion-count consistency validation
+- grade-distribution bucket-count validation
+- safe CSV filename validation
+- privacy flags cannot be client-enabled
+- no raw-source or surveillance fields
 
-Prohibited audit metadata includes:
+---
 
-- passwords
-- password hashes
-- OTP values
-- source code
-- starter code
+## Reporting Service
+
+Implemented in:
+
+```text
+backend/app/services/reporting_service.py
+```
+
+Implemented operations:
+
+- `get_classroom_completion_summary`
+- `get_activity_completion_summary`
+- `get_grade_distribution`
+- `list_missing_submissions`
+- `get_student_progress_summary`
+- `build_gradebook_csv_export`
+
+Implemented service errors:
+
+- `ReportingServiceError`
+- `ReportingClassroomNotFoundError`
+- `ReportingTaskNotFoundError`
+- `ReportingAccessDeniedError`
+- `ReportingFilterConflictError`
+- `ReportingTaskUnavailableError`
+- `ReportingPaginationError`
+- `ReportingExportError`
+
+### Classroom Completion Summary
+
+A classroom completion summary includes only:
+
+- an instructor-owned classroom
+- active enrollments
+- active student accounts
+- verified student accounts
+- published graded activities
+- official submission attempts
+- manually created instructor grades
+- released manual-grade counts
+
+The service calculates:
+
+- active student count
+- published graded activity count
+- expected student-activity completion count
+- submitted count
+- missing count
+- manually graded count
+- released grade count
+- completion percentage
+- per-activity completion summaries
+
+### Activity Completion Summary
+
+An activity completion summary requires:
+
+- an instructor-owned activity
+- an activity assigned to an instructor-owned classroom
+- a published activity
+- a graded activity
+
+Only official submission attempts contribute to completion.
+
+Only manually created `InstructorGrade` records contribute to grade counts.
+
+### Manual-Grade Distribution
+
+Grade distributions are based only on manual instructor grades attached to official submissions.
+
+Implemented bands:
+
+- `0-59.99`
+- `60-69.99`
+- `70-79.99`
+- `80-89.99`
+- `90-100`
+
+The report includes:
+
+- manually graded submission count
+- released grade count
+- average percentage
+- minimum percentage
+- maximum percentage
+- deterministic grade bands
+
+The report does not create:
+
+- automatic grades
+- misconduct rankings
+- plagiarism rankings
+- cheating scores
+- behavioral risk scores
+
+### Missing-Submission Report
+
+The missing-submission report includes only:
+
+- instructor-owned classrooms and activities
+- active enrollments
+- active student accounts
+- verified student accounts
+- published graded activities
+- student-activity pairs without an official submission
+
+Pagination is bounded:
+
+```text
+minimum page size: 1
+maximum page size: 100
+```
+
+Approved sorting:
+
+- student name
+- school ID
+- activity title
+- due date
+- ascending
+- descending
+
+### Student Personal Progress
+
+The student progress service uses only the authenticated student identity.
+
+It reports:
+
+- active classroom count
+- published graded activity count
+- submitted activity count
+- missing activity count
+- released grade count
+- average released percentage
+- completion percentage
+- per-classroom progress summaries
+
+Students do not receive:
+
+- another student's progress
+- unreleased grade values
+- unreleased feedback
+- instructor-only review data
+- source-similarity details
+- AST findings
+- execution output
+- coding-session telemetry
+
+### Gradebook CSV Export
+
+CSV export is restricted to instructor-owned classrooms and optional instructor-owned activity filters.
+
+The export includes summary fields such as:
+
+- student name
+- school ID
+- classroom
+- subject code
+- section
+- activity title
+- activity type
+- official attempt number
+- submission status
+- manual-grade presence
+- score
+- maximum score
+- percentage
+- release state
+- grade update timestamp
+
+The export excludes:
+
+- raw source code
 - standard input
+- starter code
+- task descriptions and instructions
+- grade feedback text
 - hidden test data
-- expected output
-- AST rules or findings
+- AST rules and findings
 - similarity details
 - execution output
 - worker identifiers
-- coding-session telemetry details
+- coding-session telemetry
 - clipboard contents
 - pasted text
 - browsing history
-- individual keystrokes
-- screen recordings
-- webcam data
-- microphone data
-- score values
-- maximum-score values
-- feedback text
-- automated plagiarism verdicts
-- automated cheating verdicts
+- screen, webcam, and microphone data
 - automated misconduct conclusions
 
----
+CSV text cells beginning with the following characters are prefixed with an apostrophe:
 
-## Audit Service
+```text
+=
++
+-
+@
+```
 
-Implemented service operations:
+This prevents spreadsheet formula injection.
 
-- idempotent audit creation by unique `audit_key`
-- internal atomic mode using `commit=False`
-- metadata-size enforcement
-- audit-key conflict handling
-- actor-owned audit retrieval
-- actor-owned audit listing
-- action-type filtering
-- resource-type filtering
-- outcome filtering
-- deterministic pagination
-- owner-scoped authorization
-
-Audit records are append-only through the application API.
-
-There are no client-facing create, update, patch, or delete operations.
+A UTF-8 byte-order mark is included for spreadsheet compatibility.
 
 ---
 
-## Audit Endpoints
+## Reporting Endpoints
+
+Implemented router:
+
+```text
+backend/app/routers/reporting.py
+```
 
 Implemented endpoints:
 
-- `GET /audit-records/`
-- `GET /audit-records/{audit_id}`
+```text
+GET /reports/classrooms/{class_id}/completion
+GET /reports/activities/{task_id}/completion
+GET /reports/classrooms/{class_id}/grade-distribution
+GET /reports/missing-submissions
+GET /reports/students/me/progress
+GET /reports/classrooms/{class_id}/gradebook.csv
+```
 
-Behavior:
+Instructor-only endpoints:
 
-- authentication is required
-- users may read only audit records attributed to their own account
-- clients cannot select another actor
-- clients cannot create audit records
-- clients cannot update audit records
-- clients cannot delete audit records
-- internal audit keys are not exposed
-- audit metadata is privacy-filtered before persistence
+- classroom completion
+- activity completion
+- grade distribution
+- missing submissions
+- gradebook CSV export
 
----
+Student-only endpoint:
 
-## Domain Integrations
+- authenticated personal progress
 
-### Classroom Creation
+Clients cannot supply:
 
-Creating an instructor-owned classroom creates a `classroom_created` audit record.
+- instructor identity
+- student identity for personal progress
+- another report owner
+- raw-source inclusion flags
+- unreleased-student-data inclusion flags
+- risk-score filters
+- misconduct-ranking filters
 
-Behavior:
+Service errors map to controlled HTTP responses:
 
-- instructor identity comes from the authenticated account
-- class codes are generated only by the backend
-- class-code values are never stored in audit metadata
-- classroom creation and the audit record are committed together
-- audit failure rolls back classroom creation
-- audit failure is exposed as controlled HTTP `503 Service Unavailable`
-
-### Classroom Update
-
-Meaningful classroom field changes create a `classroom_updated` audit record.
-
-Behavior:
-
-- only changed field names are recorded
-- no-op updates do not create duplicate audit rows
-- classroom changes and their audit records are committed together
-- audit failure rolls back the classroom update
-
-### Classroom Archive and Reactivation
-
-An active-to-inactive transition creates `classroom_archived`.
-
-An inactive-to-active transition creates `classroom_reactivated`.
-
-Behavior:
-
-- `archived_at` is backend-controlled
-- repeated inactive updates preserve the original archive timestamp
-- repeated no-op archive requests do not create duplicate audit rows
-- reactivation clears `archived_at`
-- archive audit, academic event, and eligible student notifications participate in the accountable workflow
-- notification failure rolls back the archive transition
-- audit failure rolls back the archive transition
-- failures are exposed as controlled HTTP `503 Service Unavailable`
-
-### Class-Code Regeneration
-
-Regenerating a class code creates a `classroom_updated` audit record.
-
-Behavior:
-
-- the generated code is never stored in audit metadata
-- metadata records only that the backend regenerated the code
-- code regeneration and its audit record are committed together
-
-### Student Enrollment
-
-Joining a classroom creates a `student_enrolled` audit record.
-
-Behavior:
-
-- student identity comes from the authenticated account
-- class ownership is resolved by the backend
-- enrollment and its audit record are committed together
-- audit failure rolls back enrollment creation
-- failure is exposed as controlled HTTP `503 Service Unavailable`
-
-### Enrollment Status Change
-
-A meaningful enrollment-state transition creates `enrollment_status_changed`.
-
-Behavior:
-
-- only the owning instructor may change enrollment status
-- previous and new status values are recorded
-- repeated no-op status requests do not create duplicate audit rows
-- enrollment changes and audit records are committed together
-- audit failure rolls back the status transition
-
-### Activity Creation
-
-Creating an instructor activity creates `activity_created`.
-
-Behavior:
-
-- instructor identity is backend-controlled
-- publication state begins as draft
-- activity creation and its audit record are committed together
-- titles, descriptions, instructions, starter code, AST rules, and test data are excluded from audit metadata
-
-### Activity Update
-
-Meaningful activity changes create `activity_updated`.
-
-Behavior:
-
-- only changed field names are recorded
-- no-op updates do not create duplicate audit rows
-- activity changes and audit records are committed together
-- source-bearing or evaluator-sensitive fields are not copied into metadata
-
-### Activity Publication and Unpublication
-
-Publishing creates `activity_published`.
-
-Returning an activity to draft creates `activity_unpublished`.
-
-Behavior:
-
-- publication requires an active instructor-owned classroom
-- publication requires a future deadline when a deadline is configured
-- publication timestamp is backend-controlled
-- publication or unpublication and the audit record are committed together
-- repeated no-op publication does not duplicate audit rows
-- repeated publication may safely retry a previously incomplete notification workflow
-- audit failure rolls back the publication-state transition
-- notification failure remains exposed as controlled HTTP `503 Service Unavailable`
-
-### Submission Creation
-
-Creating an immutable official attempt creates `submission_created`.
-
-Behavior:
-
-- student identity is backend-controlled
-- attempt number is backend-controlled
-- latest accepted attempt becomes official
-- source code and standard input remain immutable
-- audit metadata contains only approved identifiers, attempt number, workflow status, and official-attempt state
-- source code and standard input are never stored in the audit record
-- submission, audit record, academic event, and instructor notification are saved atomically
-- audit failure rolls back the new attempt and restores the previous official attempt
-- notification failure rolls back the entire submission workflow
-- retrying after failure does not consume an attempt number
-- failures are exposed as controlled HTTP `503 Service Unavailable`
-
-### Manual Grade Creation
-
-Creating a manual instructor grade creates `grade_created`.
-
-Behavior:
-
-- only the owning instructor may create the grade
-- only the latest accepted official submission of a graded activity may receive a grade
-- grade creation and its audit record are committed together
-- audit metadata contains field names and release state, not grade values
-- score, maximum score, and feedback are never copied into audit metadata
-
-### Manual Grade Update
-
-A meaningful grade edit creates `grade_updated`.
-
-Behavior:
-
-- no-op grade updates do not create duplicate audit rows
-- changed field names are recorded
-- score values, maximum-score values, and feedback text are excluded
-- grade changes and audit records are committed together
-- audit failure rolls back the grade change
-
-### Grade Release
-
-An unreleased-to-released transition creates `grade_released`.
-
-Behavior:
-
-- a separate release audit record is created in addition to the grade write audit
-- repeated writes to an already released grade do not duplicate release audits
-- grade release, audit records, academic event, and student notification are saved atomically
-- audit or notification failure rolls back the release transition
-- failures are exposed as controlled HTTP `503 Service Unavailable`
+- `400 Bad Request`
+- `403 Forbidden`
+- `404 Not Found`
+- `409 Conflict`
+- `500 Internal Server Error`
+- `503 Service Unavailable`
 
 ---
 
-## OpenAPI and API Contracts
+## Main Application and OpenAPI
 
-The OpenAPI contract includes:
+Updated:
 
-- backend version `0.12.0`
-- the `Audit Trail` tag
-- both owner-scoped audit endpoints
-- authenticated access requirements
-- read-only audit route enforcement
-- no audit-creation request body
-- no actor-selection input
-- privacy-safe audit responses
-- documented HTTP `503` responses for accountable workflow failures
+```text
+backend/app/main.py
+```
 
-Documented accountable failure responses include:
+Changes:
 
-- classroom creation
-- classroom update
-- classroom archive
-- classroom reactivation
-- class-code regeneration
-- student enrollment
-- enrollment status transition
-- activity creation
-- activity update
-- activity publication
-- activity unpublication
-- submission creation
-- manual grade creation
-- manual grade update
-- grade release
+- backend version updated to `0.13.0`
+- `reporting` router imported
+- reporting router registered
+- `Reporting` OpenAPI tag added
+- API description expanded for reporting and privacy-safe exports
 
----
+Updated contract tests:
 
-## Audit Privacy and Non-Surveillance Rules
+```text
+backend/tests/test_openapi_contracts.py
+backend/tests/test_classroom_openapi_contracts.py
+```
 
-- Clients cannot create audit records.
-- Clients cannot choose audit actors.
-- Clients cannot choose audit keys.
-- Clients cannot alter audit timestamps.
-- Clients cannot update audit records.
-- Clients cannot delete audit records.
-- Users may read only records attributed to their own account.
-- Audit records never contain passwords.
-- Audit records never contain password hashes.
-- Audit records never contain OTP values.
-- Audit records never contain source code.
-- Audit records never contain starter code.
-- Audit records never contain standard input.
-- Audit records never contain hidden test data.
-- Audit records never contain expected outputs.
-- Audit records never contain AST rules.
-- Audit records never contain AST findings.
-- Audit records never contain similarity details.
-- Audit records never contain execution output.
-- Audit records never contain worker identifiers.
-- Audit records never contain score values.
-- Audit records never contain maximum-score values.
-- Audit records never contain feedback text.
-- Audit records never contain clipboard contents.
-- Audit records never contain pasted text.
-- Browsing history is never collected.
-- Individual keystrokes are never collected.
-- Screen recordings are never collected.
-- Webcam data is never collected.
-- Microphone data is never collected.
-- Audit records never contain automated misconduct conclusions.
-- Audit records support accountability and authorized review only.
-- The audit trail must not become a surveillance system.
+OpenAPI requirements include:
+
+- version `0.13.0`
+- `Reporting` tag
+- all six reporting routes
+- authenticated route protection
+- GET-only reporting operations
+- bounded missing-submission pagination
+- approved deterministic sorting
+- owner-safe query parameters
+- privacy-safe response schemas
+- `text/csv` binary export contract
+- no client-selected source-code export
+- no client-selected unreleased-grade export
+- no automated misconduct-ranking contract
 
 ---
 
-## Existing System Boundaries That Remain Mandatory
+## Pillar 13 Tests
+
+Implemented:
+
+```text
+backend/tests/test_reporting_schemas.py
+backend/tests/test_reporting_service.py
+backend/tests/test_reporting_router.py
+```
+
+Schema tests cover:
+
+- strict extra-field rejection
+- ten-digit school ID
+- completion invariants
+- grade-distribution invariants
+- missing-submission contracts
+- student progress invariants
+- safe CSV filenames
+- forced privacy flags
+- prohibited sensitive fields
+
+Service tests cover:
+
+- owner instructor allowed
+- another instructor denied
+- active and verified student filtering
+- official and unofficial attempt handling
+- published and graded activity requirements
+- completion counts
+- manual-grade distribution
+- released and unreleased grade handling
+- missing-submission filtering
+- bounded pagination
+- student personal progress
+- CSV privacy
+- CSV formula-injection protection
+- constant query-count behavior
+
+Router tests cover:
+
+- authenticated instructor identity
+- authenticated student identity
+- query validation
+- role dependency denial
+- HTTP error mapping
+- CSV headers
+- GET-only OpenAPI operations
+- privacy-safe reporting schemas
+
+Latest confirmed focused reporting suite:
+
+```text
+59 passed
+```
+
+Latest confirmed complete backend regression:
+
+```text
+448 passed
+```
+
+---
+
+## Permanent Authorization and Privacy Boundaries
 
 - Registration accepts only `@pampangastateu.edu.ph`.
 - School ID is exactly 10 digits.
@@ -477,6 +484,7 @@ Documented accountable failure responses include:
 - AST, Jaccard similarity, execution, and coding-session indicators remain review-only.
 - Automated indicators never assign grades.
 - Automated indicators never determine plagiarism, cheating, copying, or misconduct.
+- Reports never create automated rankings based on behavioral or review indicators.
 - Paste policy remains `internal_only` or `disabled`.
 - Blocked-paste telemetry stores count and timestamp only.
 - Clipboard contents and pasted text are never stored.
@@ -485,37 +493,28 @@ Documented accountable failure responses include:
 - Individual keystroke collection is prohibited.
 - Student Python code never executes inside React or FastAPI.
 - Student code executes only through the partner-owned isolated sandbox worker.
+- Reporting and exports must remain ownership-safe.
+- Raw source code is excluded from gradebook CSV exports by default and by current contract.
 
 ---
 
-## Pillar 12 Files
+## Pillar 13 Files
 
-Primary implementation files:
+Implementation:
 
 ```text
-backend/app/models/domain_models.py
-backend/app/schemas/audit_schema.py
-backend/app/services/audit_service.py
-backend/app/routers/audit_records.py
-backend/app/services/classroom_service.py
-backend/app/routers/classrooms.py
-backend/app/services/task_service.py
-backend/app/routers/instructor.py
-backend/app/services/submission_service.py
-backend/app/routers/submissions.py
-backend/app/services/evaluation_service.py
-backend/app/routers/evaluation.py
+backend/app/schemas/reporting_schema.py
+backend/app/services/reporting_service.py
+backend/app/routers/reporting.py
 backend/app/main.py
 ```
 
-Primary test files:
+Tests:
 
 ```text
-backend/tests/test_audit_models.py
-backend/tests/test_audit_schemas.py
-backend/tests/test_audit_service.py
-backend/tests/test_audit_router.py
-backend/tests/test_audit_workflow.py
+backend/tests/test_reporting_schemas.py
+backend/tests/test_reporting_service.py
+backend/tests/test_reporting_router.py
 backend/tests/test_openapi_contracts.py
 backend/tests/test_classroom_openapi_contracts.py
 ```
@@ -539,19 +538,16 @@ git branch --show-current
 Expected:
 
 ```text
-review/backend-p12-audit-trail
+review/backend-p13-reporting-exports
 ```
 
-Run focused Pillar 12 verification:
+From `backend`, run focused Pillar 13 tests:
 
 ```powershell
-cd backend
 .\venv\Scripts\python.exe -m pytest `
-    tests\test_audit_models.py `
-    tests\test_audit_schemas.py `
-    tests\test_audit_service.py `
-    tests\test_audit_router.py `
-    tests\test_audit_workflow.py `
+    tests\test_reporting_schemas.py `
+    tests\test_reporting_service.py `
+    tests\test_reporting_router.py `
     tests\test_openapi_contracts.py `
     tests\test_classroom_openapi_contracts.py `
     -q
@@ -561,6 +557,11 @@ Run the complete backend regression:
 
 ```powershell
 .\venv\Scripts\python.exe -m pytest -q
+```
+
+Return to the repository root:
+
+```powershell
 cd ..
 ```
 
@@ -571,11 +572,23 @@ git diff --check
 git status --short
 ```
 
-Do not claim final Pillar 12 verification until the complete backend regression is green.
+Pillar 13 review-branch verification is complete:
+
+- focused Pillar 13 tests passed
+- complete backend regression passed
+- exact full regression count recorded: `448 passed`
+
+Remaining completion steps:
+
+- commit the review branch locally
+- merge the review branch locally into `dev`
+- rerun the complete regression on `dev`
+- push only `dev`
+- confirm the working tree is clean
 
 ---
 
-## Final Pillar 12 Git Procedure
+## Final Pillar 13 Git Procedure
 
 Stage exact files only.
 
@@ -585,37 +598,26 @@ Do not use:
 git add .
 ```
 
-Suggested exact staging command:
+Stage:
 
 ```powershell
 git add `
-    backend/app/models/domain_models.py `
-    backend/app/schemas/audit_schema.py `
-    backend/app/services/audit_service.py `
-    backend/app/routers/audit_records.py `
-    backend/app/services/classroom_service.py `
-    backend/app/routers/classrooms.py `
-    backend/app/services/task_service.py `
-    backend/app/routers/instructor.py `
-    backend/app/services/submission_service.py `
-    backend/app/routers/submissions.py `
-    backend/app/services/evaluation_service.py `
-    backend/app/routers/evaluation.py `
+    backend/app/schemas/reporting_schema.py `
+    backend/app/services/reporting_service.py `
+    backend/app/routers/reporting.py `
     backend/app/main.py `
-    backend/tests/test_audit_models.py `
-    backend/tests/test_audit_schemas.py `
-    backend/tests/test_audit_service.py `
-    backend/tests/test_audit_router.py `
-    backend/tests/test_audit_workflow.py `
+    backend/tests/test_reporting_schemas.py `
+    backend/tests/test_reporting_service.py `
+    backend/tests/test_reporting_router.py `
     backend/tests/test_openapi_contracts.py `
     backend/tests/test_classroom_openapi_contracts.py `
     docs/ai/CURRENT_HANDOFF.md
 ```
 
-Commit locally after all tests pass:
+Commit locally after the focused and complete regressions pass:
 
 ```powershell
-git commit -m "feat: complete audit trail and academic accountability"
+git commit -m "feat: add privacy-safe reporting and gradebook exports"
 ```
 
 Do not push the review branch.
@@ -624,7 +626,8 @@ Merge locally into `dev`:
 
 ```powershell
 git switch dev
-git merge --no-ff review/backend-p12-audit-trail
+git pull --ff-only origin dev
+git merge --no-ff review/backend-p13-reporting-exports
 ```
 
 Run the complete backend regression again on `dev`:
@@ -635,21 +638,58 @@ cd backend
 cd ..
 ```
 
-Push only `dev`:
+Push only `dev` after the regression passes:
 
 ```powershell
 git push origin dev
 ```
 
+Confirm the working tree is clean:
+
+```powershell
+git status --short
+```
+
 ---
 
-## Next Work
+## Next Pillar
 
-After Pillar 12 is fully verified and merged:
+After Pillar 13 is verified, merged, and pushed:
 
-1. Read `docs/ai/ROADMAP.md`.
-2. Confirm the next incomplete pillar and target backend version.
-3. Create the next local review branch from updated `dev`.
-4. Do not push the review branch.
-5. Continue one module at a time.
-6. Preserve all security, privacy, grading, execution, and non-surveillance boundaries documented above.
+### Pillar 14 — Partner Integration Contracts
+
+Version:
+
+```text
+0.14.0
+```
+
+Local branch:
+
+```text
+review/backend-p14-partner-contracts
+```
+
+Authoritative scope from `docs/ai/ROADMAP.md`:
+
+- isolated-worker request/result contracts
+- authenticated result updates
+- allowed execution lifecycle transitions
+- replay and idempotency protection
+- correlation IDs
+- result-size validation
+- OTP email-adapter interface
+- local LLM interface boundary
+- health and readiness contracts
+
+Excluded implementation:
+
+- Celery
+- Redis
+- Docker
+- sandbox runtime
+- resource-limit enforcement runtime
+- email-provider implementation
+- LLM runtime implementation
+
+The local LLM may draft explanations, hints, or feedback, but it must never set grades or determine plagiarism or misconduct.

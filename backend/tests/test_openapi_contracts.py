@@ -84,9 +84,8 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
-    # Pillar 12 remains a work in progress until all audit-trail
-    # integrations and regressions are complete.
-    assert APP_VERSION == "0.12.0"
+    # Pillar 13 reporting and privacy-safe export contracts.
+    assert APP_VERSION == "0.13.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
@@ -111,6 +110,7 @@ def test_openapi_metadata_and_tags():
         "Evaluation",
         "Notifications",
         "Audit Trail",
+        "Reporting",
     }
 
 
@@ -167,6 +167,12 @@ def test_required_api_paths_and_status_codes():
         "/notifications/{notification_id}/read",
         "/audit-records/",
         "/audit-records/{audit_id}",
+        "/reports/classrooms/{class_id}/completion",
+        "/reports/activities/{task_id}/completion",
+        "/reports/classrooms/{class_id}/grade-distribution",
+        "/reports/missing-submissions",
+        "/reports/students/me/progress",
+        "/reports/classrooms/{class_id}/gradebook.csv",
     }
 
     assert required_paths.issubset(paths.keys())
@@ -246,6 +252,34 @@ def test_required_api_paths_and_status_codes():
     assert "200" in paths["/audit-records/{audit_id}"]["get"]["responses"]
 
     assert "404" in paths["/audit-records/{audit_id}"]["get"]["responses"]
+
+    assert (
+        "200" in paths["/reports/classrooms/{class_id}/completion"]["get"]["responses"]
+    )
+
+    assert (
+        "200" in paths["/reports/activities/{task_id}/completion"]["get"]["responses"]
+    )
+
+    assert (
+        "409" in paths["/reports/activities/{task_id}/completion"]["get"]["responses"]
+    )
+
+    assert (
+        "200"
+        in paths["/reports/classrooms/{class_id}/grade-distribution"]["get"][
+            "responses"
+        ]
+    )
+
+    assert "200" in paths["/reports/missing-submissions"]["get"]["responses"]
+
+    assert "200" in paths["/reports/students/me/progress"]["get"]["responses"]
+
+    assert (
+        "200"
+        in paths["/reports/classrooms/{class_id}/gradebook.csv"]["get"]["responses"]
+    )
 
 
 def test_all_operation_ids_are_unique():
@@ -1039,3 +1073,434 @@ def test_accountability_workflow_failure_responses_are_documented():
 
     for method, path in protected_operations:
         assert "503" in paths[path][method]["responses"]
+
+
+def test_reporting_routes_are_get_only():
+    document = get_openapi_document()
+    paths = document["paths"]
+
+    reporting_paths = {
+        "/reports/classrooms/{class_id}/completion",
+        "/reports/activities/{task_id}/completion",
+        "/reports/classrooms/{class_id}/grade-distribution",
+        "/reports/missing-submissions",
+        "/reports/students/me/progress",
+        "/reports/classrooms/{class_id}/gradebook.csv",
+    }
+
+    for path in reporting_paths:
+        methods = {
+            method.lower() for method in paths[path] if method.lower() in HTTP_METHODS
+        }
+
+        assert methods == {
+            "get",
+        }
+
+
+def test_reporting_query_contracts_are_owner_safe():
+    document = get_openapi_document()
+    paths = document["paths"]
+
+    instructor_reporting_paths = {
+        "/reports/classrooms/{class_id}/completion",
+        "/reports/activities/{task_id}/completion",
+        "/reports/classrooms/{class_id}/grade-distribution",
+        "/reports/missing-submissions",
+        "/reports/classrooms/{class_id}/gradebook.csv",
+    }
+
+    prohibited_parameter_names = {
+        "instructor_id",
+        "student_id",
+        "user_id",
+        "actor_user_id",
+        "school_id",
+        "email",
+        "include_raw_source",
+        "include_source_code",
+        "include_unreleased_grades",
+        "risk_score",
+        "misconduct_rank",
+    }
+
+    for path in instructor_reporting_paths:
+        parameter_names = {
+            parameter["name"]
+            for parameter in paths[path]["get"].get(
+                "parameters",
+                [],
+            )
+        }
+
+        assert prohibited_parameter_names.isdisjoint(parameter_names)
+
+    student_progress_parameters = {
+        parameter["name"]
+        for parameter in paths["/reports/students/me/progress"]["get"].get(
+            "parameters",
+            [],
+        )
+    }
+
+    assert prohibited_parameter_names.isdisjoint(student_progress_parameters)
+
+
+def test_reporting_missing_submission_filters_are_bounded():
+    document = get_openapi_document()
+
+    operation = document["paths"]["/reports/missing-submissions"]["get"]
+
+    parameters = {
+        parameter["name"]: parameter
+        for parameter in operation.get(
+            "parameters",
+            [],
+        )
+    }
+
+    assert {
+        "page",
+        "page_size",
+        "class_id",
+        "task_id",
+        "sort_by",
+        "sort_direction",
+    }.issubset(parameters)
+
+    page_schema = resolve_schema(
+        document,
+        parameters["page"]["schema"],
+    )
+
+    page_size_schema = resolve_schema(
+        document,
+        parameters["page_size"]["schema"],
+    )
+
+    assert page_schema["minimum"] == 1
+    assert page_size_schema["minimum"] == 1
+    assert page_size_schema["maximum"] == 100
+
+    sort_by_schema = resolve_schema(
+        document,
+        parameters["sort_by"]["schema"],
+    )
+
+    sort_direction_schema = resolve_schema(
+        document,
+        parameters["sort_direction"]["schema"],
+    )
+
+    assert set(sort_by_schema["enum"]) == {
+        "student_name",
+        "school_id",
+        "activity_title",
+        "due_at",
+    }
+
+    assert set(sort_direction_schema["enum"]) == {
+        "asc",
+        "desc",
+    }
+
+
+def test_reporting_completion_contracts_are_privacy_safe():
+    document = get_openapi_document()
+
+    completion_properties = get_schema_properties(
+        document,
+        "CompletionCounts",
+    )
+
+    classroom_properties = get_schema_properties(
+        document,
+        "ClassroomCompletionSummaryResponse",
+    )
+
+    activity_properties = get_schema_properties(
+        document,
+        "ActivityCompletionSummaryResponse",
+    )
+
+    assert {
+        "expected_count",
+        "submitted_count",
+        "missing_count",
+        "manually_graded_count",
+        "released_grade_count",
+        "completion_percentage",
+    }.issubset(completion_properties)
+
+    assert {
+        "classroom",
+        "active_student_count",
+        "published_graded_activity_count",
+        "completion",
+        "activities",
+        "generated_at",
+    }.issubset(classroom_properties)
+
+    assert {
+        "activity",
+        "active_student_count",
+        "completion",
+        "generated_at",
+    }.issubset(activity_properties)
+
+    prohibited_fields = {
+        "raw_code",
+        "source_code",
+        "starter_code",
+        "standard_input",
+        "expected_output",
+        "hidden_test_cases",
+        "required_ast_rules",
+        "ast_findings",
+        "jaccard_score",
+        "similarity_results",
+        "stdout",
+        "stderr",
+        "worker_task_id",
+        "coding_session_telemetry",
+        "clipboard_content",
+        "pasted_text",
+        "keystrokes",
+        "browsing_history",
+        "screen_recording",
+        "webcam",
+        "microphone",
+        "automatic_grade",
+        "risk_score",
+        "plagiarism_verdict",
+        "cheating_verdict",
+        "misconduct_verdict",
+    }
+
+    for properties in (
+        completion_properties,
+        classroom_properties,
+        activity_properties,
+    ):
+        assert prohibited_fields.isdisjoint(properties)
+
+
+def test_grade_distribution_contract_uses_manual_grade_summary_only():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "GradeDistributionResponse",
+    )
+
+    bucket_properties = get_schema_properties(
+        document,
+        "GradeDistributionBucket",
+    )
+
+    assert {
+        "classroom",
+        "activity",
+        "manually_graded_submission_count",
+        "released_grade_count",
+        "average_percentage",
+        "minimum_percentage",
+        "maximum_percentage",
+        "buckets",
+        "generated_at",
+    }.issubset(properties)
+
+    assert {
+        "band",
+        "minimum_percentage",
+        "maximum_percentage",
+        "count",
+        "percentage_of_graded",
+    }.issubset(bucket_properties)
+
+    prohibited_fields = {
+        "raw_code",
+        "source_code",
+        "standard_input",
+        "feedback",
+        "automatic_grade",
+        "risk_score",
+        "plagiarism_verdict",
+        "cheating_verdict",
+        "misconduct_verdict",
+        "student_rank",
+        "misconduct_rank",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+    assert prohibited_fields.isdisjoint(bucket_properties)
+
+
+def test_missing_submission_contract_has_no_source_or_risk_data():
+    document = get_openapi_document()
+
+    list_properties = get_schema_properties(
+        document,
+        "MissingSubmissionListResponse",
+    )
+
+    item_properties = get_schema_properties(
+        document,
+        "MissingSubmissionItem",
+    )
+
+    assert {
+        "items",
+        "page",
+        "page_size",
+        "total_items",
+        "total_pages",
+        "sort_by",
+        "sort_direction",
+        "generated_at",
+    }.issubset(list_properties)
+
+    assert {
+        "student",
+        "activity",
+        "due_at",
+        "enrollment_status",
+        "submission_state",
+    }.issubset(item_properties)
+
+    prohibited_fields = {
+        "raw_code",
+        "source_code",
+        "standard_input",
+        "feedback",
+        "ast_findings",
+        "jaccard_score",
+        "similarity_results",
+        "execution_output",
+        "session_telemetry",
+        "risk_score",
+        "misconduct_rank",
+        "plagiarism_verdict",
+        "cheating_verdict",
+        "misconduct_verdict",
+    }
+
+    assert prohibited_fields.isdisjoint(list_properties)
+
+    assert prohibited_fields.isdisjoint(item_properties)
+
+
+def test_student_progress_contract_is_personal_and_release_safe():
+    document = get_openapi_document()
+
+    properties = get_schema_properties(
+        document,
+        "StudentProgressSummaryResponse",
+    )
+
+    classroom_properties = get_schema_properties(
+        document,
+        "StudentClassProgressItem",
+    )
+
+    assert {
+        "student_id",
+        "active_classroom_count",
+        "published_graded_activity_count",
+        "submitted_activity_count",
+        "missing_activity_count",
+        "released_grade_count",
+        "average_released_percentage",
+        "completion_percentage",
+        "classrooms",
+        "generated_at",
+    }.issubset(properties)
+
+    assert {
+        "classroom",
+        "published_graded_activity_count",
+        "submitted_activity_count",
+        "missing_activity_count",
+        "released_grade_count",
+        "average_released_percentage",
+        "completion_percentage",
+    }.issubset(classroom_properties)
+
+    prohibited_fields = {
+        "instructor_id",
+        "another_student_id",
+        "unreleased_score",
+        "unreleased_feedback",
+        "raw_code",
+        "source_code",
+        "standard_input",
+        "automatic_grade",
+        "risk_score",
+        "misconduct_rank",
+        "plagiarism_verdict",
+        "cheating_verdict",
+        "misconduct_verdict",
+    }
+
+    assert prohibited_fields.isdisjoint(properties)
+
+    assert prohibited_fields.isdisjoint(classroom_properties)
+
+
+def test_gradebook_csv_openapi_contract_is_privacy_safe():
+    document = get_openapi_document()
+
+    operation = document["paths"]["/reports/classrooms/{class_id}/gradebook.csv"]["get"]
+
+    responses = operation["responses"]
+
+    assert {
+        "200",
+        "400",
+        "403",
+        "404",
+        "500",
+        "503",
+    }.issubset(responses)
+
+    success_content = responses["200"].get(
+        "content",
+        {},
+    )
+
+    assert "text/csv" in success_content
+
+    csv_schema = success_content["text/csv"]["schema"]
+
+    assert csv_schema["type"] == "string"
+    assert csv_schema["format"] == "binary"
+
+    assert operation.get("requestBody") is None
+
+    parameter_names = {
+        parameter["name"]
+        for parameter in operation.get(
+            "parameters",
+            [],
+        )
+    }
+
+    assert {
+        "class_id",
+        "task_id",
+    }.issubset(parameter_names)
+
+    assert {
+        "student_id",
+        "instructor_id",
+        "include_raw_source",
+        "include_source_code",
+        "include_feedback",
+        "include_unreleased_grades",
+        "include_ast_findings",
+        "include_similarity_details",
+        "include_session_telemetry",
+        "risk_score",
+        "misconduct_rank",
+    }.isdisjoint(parameter_names)
