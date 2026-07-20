@@ -1,5 +1,19 @@
-from fastapi import FastAPI, status
+import os
+from datetime import datetime, timezone
+from typing import Literal
 
+from fastapi import Depends, FastAPI, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.integrations.partner_auth import (
+    MIN_PARTNER_EXECUTION_TOKEN_LENGTH,
+    PARTNER_EXECUTION_TOKEN_ENV,
+)
 from app.routers import (
     activities,
     audit_records,
@@ -17,12 +31,59 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.13.0"
+APP_VERSION = "0.14.0"
+
+HealthState = Literal["healthy"]
+ReadinessState = Literal["ready", "not_ready"]
+ReadinessComponentState = Literal[
+    "ready",
+    "not_ready",
+    "contract_only",
+]
+
+
+class HealthResponse(BaseModel):
+    status: HealthState
+    service: str
+    version: str
+    checked_at: datetime
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+
+class ReadinessComponentResponse(BaseModel):
+    name: str
+    status: ReadinessComponentState
+    required: bool
+    detail: str
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+
+class ReadinessResponse(BaseModel):
+    status: ReadinessState
+    service: str
+    version: str
+    checked_at: datetime
+    components: list[ReadinessComponentResponse]
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
 
 OPENAPI_TAGS = [
     {
         "name": "System",
-        "description": ("Application availability and service information."),
+        "description": (
+            "Application information, liveness checks, and readiness "
+            "contracts. Health responses do not expose credentials, "
+            "provider configuration, or internal exception details."
+        ),
     },
     {
         "name": "Authentication",
@@ -31,8 +92,10 @@ OPENAPI_TAGS = [
     {
         "name": "Registration",
         "description": (
-            "University-email registration and OTP verification. "
-            "Client applications cannot assign account roles."
+            "University-email registration and OTP verification through "
+            "an injected email-delivery adapter contract. Client "
+            "applications cannot assign account roles, and plaintext OTP "
+            "codes are never persisted or returned."
         ),
     },
     {
@@ -79,9 +142,12 @@ OPENAPI_TAGS = [
         "name": "Execution",
         "description": (
             "Student-owned run, check, and submit execution-request "
-            "snapshots. FastAPI persists and authorizes requests only. "
-            "Student Python code must execute exclusively through the "
-            "partner-owned isolated sandbox worker."
+            "snapshots plus authenticated isolated-worker result updates. "
+            "Partner updates require correlation IDs, idempotency keys, "
+            "strict sequence ordering, replay validation, and allowed "
+            "lifecycle transitions. FastAPI never executes student Python "
+            "code; execution remains exclusive to the partner-owned "
+            "isolated sandbox."
         ),
     },
     {
@@ -101,9 +167,9 @@ OPENAPI_TAGS = [
             "released-grade viewing, explicit review-status updates, "
             "manual instructor grading, privacy-safe grade-release "
             "notifications, and immutable grading-accountability "
-            "records. Automated indicators never assign official "
-            "grades or determine plagiarism, cheating, copying, or "
-            "misconduct."
+            "records. Automated indicators and local LLM assistance "
+            "never assign official grades or determine plagiarism, "
+            "cheating, copying, or misconduct."
         ),
     },
     {
@@ -146,22 +212,25 @@ app = FastAPI(
     title=APP_TITLE,
     description=(
         "Backend API for the PAMSU Web-Based Python IDE with "
-        "university-email authentication, OTP registration, classroom "
-        "and enrollment management, activity and test-case management, "
-        "student-owned coding sessions, privacy-safe aggregate session "
-        "telemetry, immutable submission attempts, queued execution "
-        "requests, backend-controlled execution-attempt counters, "
-        "isolated worker integration boundaries, static structural and "
-        "source-similarity analytics, instructor-owned paginated review "
-        "queues, privacy-safe gradebook summaries, student-safe released "
-        "manual-grade lists, explicit evaluation-status control, "
-        "manual instructor grading workflows, immutable approved "
-        "academic events, recipient-owned in-app notifications, "
-        "notification unread counts, owner-scoped read-state operations, "
-        "immutable privacy-safe audit records for authenticated academic "
-        "accountability, ownership-safe completion summaries, manual-grade "
-        "distributions, missing-submission reports, authenticated student "
-        "progress summaries, and privacy-safe gradebook CSV exports."
+        "university-email authentication, OTP registration through an "
+        "email-adapter contract, classroom and enrollment management, "
+        "activity and test-case management, student-owned coding sessions, "
+        "privacy-safe aggregate session telemetry, immutable submission "
+        "attempts, queued execution requests, backend-controlled "
+        "execution-attempt counters, authenticated isolated-worker result "
+        "contracts, correlation and idempotency controls, replay-safe "
+        "partner updates, local LLM assistance boundaries, static "
+        "structural and source-similarity analytics, instructor-owned "
+        "paginated review queues, privacy-safe gradebook summaries, "
+        "student-safe released manual-grade lists, explicit "
+        "evaluation-status control, manual instructor grading workflows, "
+        "immutable approved academic events, recipient-owned in-app "
+        "notifications, notification unread counts, owner-scoped "
+        "read-state operations, immutable privacy-safe audit records, "
+        "ownership-safe completion summaries, manual-grade distributions, "
+        "missing-submission reports, authenticated student progress "
+        "summaries, privacy-safe gradebook CSV exports, and explicit "
+        "liveness and readiness contracts."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -185,6 +254,65 @@ app.include_router(audit_records.router)
 app.include_router(reporting.router)
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def check_database_readiness(
+    db: Session,
+) -> ReadinessComponentResponse:
+    try:
+        db.execute(text("SELECT 1"))
+
+        return ReadinessComponentResponse(
+            name="database",
+            status="ready",
+            required=True,
+            detail="The database connection is available.",
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return ReadinessComponentResponse(
+            name="database",
+            status="not_ready",
+            required=True,
+            detail="The database connection is unavailable.",
+        )
+
+
+def check_execution_partner_auth_readiness() -> ReadinessComponentResponse:
+    configured_token = (os.getenv(PARTNER_EXECUTION_TOKEN_ENV) or "").strip()
+
+    if len(configured_token) < MIN_PARTNER_EXECUTION_TOKEN_LENGTH:
+        return ReadinessComponentResponse(
+            name="execution_partner_auth",
+            status="not_ready",
+            required=True,
+            detail=("The execution-partner authentication boundary is not configured."),
+        )
+
+    return ReadinessComponentResponse(
+        name="execution_partner_auth",
+        status="ready",
+        required=True,
+        detail=("The execution-partner authentication boundary is configured."),
+    )
+
+
+def build_contract_only_component(
+    *,
+    name: str,
+    detail: str,
+) -> ReadinessComponentResponse:
+    return ReadinessComponentResponse(
+        name=name,
+        status="contract_only",
+        required=False,
+        detail=detail,
+    )
+
+
 @app.get(
     "/",
     response_model=dict[str, str],
@@ -197,19 +325,103 @@ def read_root() -> dict[str, str]:
         "message": f"{APP_TITLE} is running.",
         "version": APP_VERSION,
         "documentation": "/docs",
+        "health": "/health",
+        "readiness": "/ready",
     }
 
 
 @app.get(
     "/health",
-    response_model=dict[str, str],
+    response_model=HealthResponse,
     status_code=status.HTTP_200_OK,
     tags=["System"],
-    summary="Check service health",
+    summary="Check application liveness",
+    description=(
+        "Returns process-level liveness without contacting external "
+        "providers or exposing configuration details."
+    ),
 )
-def health_check() -> dict[str, str]:
-    return {
-        "status": "healthy",
-        "service": APP_TITLE,
-        "version": APP_VERSION,
-    }
+def health_check() -> HealthResponse:
+    return HealthResponse(
+        status="healthy",
+        service=APP_TITLE,
+        version=APP_VERSION,
+        checked_at=utc_now(),
+    )
+
+
+@app.get(
+    "/ready",
+    response_model=ReadinessResponse,
+    tags=["System"],
+    summary="Check required integration readiness",
+    description=(
+        "Checks required database and execution-partner authentication "
+        "boundaries. OTP email and local LLM integrations are reported as "
+        "contract-only because Pillar 14 intentionally does not select or "
+        "implement concrete providers."
+    ),
+    responses={
+        status.HTTP_200_OK: {
+            "description": ("All required Pillar 14 components are ready."),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": ("One or more required components are not ready."),
+        },
+    },
+)
+def readiness_check(
+    db: Session = Depends(get_db),
+) -> ReadinessResponse | JSONResponse:
+    components = [
+        check_database_readiness(db),
+        check_execution_partner_auth_readiness(),
+        build_contract_only_component(
+            name="otp_email_adapter",
+            detail=(
+                "The OTP email-delivery interface is defined; no "
+                "concrete provider is selected by Pillar 14."
+            ),
+        ),
+        build_contract_only_component(
+            name="local_llm_adapter",
+            detail=(
+                "The local LLM assistance interface is defined; no "
+                "runtime or model provider is selected by Pillar 14."
+            ),
+        ),
+    ]
+
+    required_components_ready = all(
+        component.status == "ready" for component in components if component.required
+    )
+
+    response = ReadinessResponse(
+        status=("ready" if required_components_ready else "not_ready"),
+        service=APP_TITLE,
+        version=APP_VERSION,
+        checked_at=utc_now(),
+        components=components,
+    )
+
+    if required_components_ready:
+        return response
+
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=response.model_dump(mode="json"),
+    )
+
+
+# HEALTH BOUNDARY:
+# /health is a liveness contract only. It does not test the database,
+# execution partner, OTP provider, local LLM runtime, or external services.
+
+# READINESS BOUNDARY:
+# /ready checks required backend dependencies without returning credentials,
+# raw exceptions, connection strings, provider names, or secret lengths.
+
+# OPTIONAL-INTEGRATION BOUNDARY:
+# OTP email and local LLM integrations remain contract-only in Pillar 14.
+# Their absence does not make the core API unready until concrete adapters
+# become required by a later deployment pillar.

@@ -17,6 +17,7 @@ HTTP_METHODS = {
 PUBLIC_OPERATIONS = {
     ("get", "/"),
     ("get", "/health"),
+    ("get", "/ready"),
     ("post", "/login"),
     ("post", "/registration/start"),
     ("post", "/registration/verify"),
@@ -84,8 +85,8 @@ def get_schema_properties(
 def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
-    # Pillar 13 reporting and privacy-safe export contracts.
-    assert APP_VERSION == "0.13.0"
+    # Pillar 14 partner integrations and health/readiness contracts.
+    assert APP_VERSION == "0.14.0"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 
@@ -121,6 +122,7 @@ def test_required_api_paths_and_status_codes():
     required_paths = {
         "/",
         "/health",
+        "/ready",
         "/login",
         "/registration/start",
         "/registration/verify",
@@ -154,6 +156,7 @@ def test_required_api_paths_and_status_codes():
         "/execution/submissions/{sub_id}",
         "/execution/requests/",
         "/execution/requests/{execution_id}",
+        "/execution/internal/partner-results",
         "/evaluation/submissions/{sub_id}",
         "/evaluation/submissions/{sub_id}/status",
         "/evaluation/submissions/{sub_id}/grade",
@@ -177,6 +180,12 @@ def test_required_api_paths_and_status_codes():
 
     assert required_paths.issubset(paths.keys())
 
+    assert "200" in paths["/health"]["get"]["responses"]
+
+    assert "200" in paths["/ready"]["get"]["responses"]
+
+    assert "503" in paths["/ready"]["get"]["responses"]
+
     assert "201" in paths["/registration/start"]["post"]["responses"]
 
     assert "200" in paths["/registration/verify"]["post"]["responses"]
@@ -198,6 +207,21 @@ def test_required_api_paths_and_status_codes():
     assert "201" in paths["/execution/requests/"]["post"]["responses"]
 
     assert "200" in paths["/execution/requests/"]["get"]["responses"]
+
+    partner_result_responses = paths["/execution/internal/partner-results"]["post"][
+        "responses"
+    ]
+
+    assert {
+        "200",
+        "400",
+        "401",
+        "404",
+        "409",
+        "422",
+        "500",
+        "503",
+    }.issubset(partner_result_responses)
 
     assert "201" in paths["/activities/coding-sessions/"]["post"]["responses"]
 

@@ -4,13 +4,17 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from math import ceil
-from typing import Protocol
 
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash
+from app.integrations.otp_email import (
+    OTPEmailAdapter,
+    OTPEmailAdapterError,
+    validate_otp_email_adapter,
+)
 from app.models.domain_models import (
     InstructorAllowlist,
     OTPChallenge,
@@ -110,18 +114,9 @@ class OTPDeliveryError(OTPServiceError):
     """Raised when the partner-owned email adapter cannot deliver OTP."""
 
 
-class OTPDeliveryAdapter(Protocol):
-    def send_otp(
-        self,
-        *,
-        recipient_email: str,
-        otp_code: str,
-        purpose: str,
-        expires_in_seconds: int,
-    ) -> None:
-        """
-        Deliver an OTP without returning or persisting its plaintext value.
-        """
+# Backward-compatible alias for modules that imported the previous
+# service-local protocol name.
+OTPDeliveryAdapter = OTPEmailAdapter
 
 
 def utc_now() -> datetime:
@@ -287,18 +282,34 @@ def remove_previous_pending_registration(
 
 def deliver_otp(
     *,
-    delivery_adapter: OTPDeliveryAdapter,
+    delivery_adapter: OTPEmailAdapter,
     email: str,
     otp_code: str,
     purpose: str,
 ) -> None:
+    """
+    Deliver a temporary OTP through the injected partner adapter.
+
+    Adapter validation and delivery occur before the surrounding service
+    transaction commits. Any adapter failure is converted into a controlled
+    OTPDeliveryError so the caller can roll back challenge changes.
+    """
+
     try:
-        delivery_adapter.send_otp(
+        validated_adapter = validate_otp_email_adapter(
+            delivery_adapter,
+        )
+
+        validated_adapter.send_otp(
             recipient_email=email,
             otp_code=otp_code,
             purpose=purpose,
             expires_in_seconds=OTP_EXPIRE_SECONDS,
         )
+    except OTPEmailAdapterError as exc:
+        raise OTPDeliveryError(
+            "The verification email could not be delivered."
+        ) from exc
     except Exception as exc:
         raise OTPDeliveryError(
             "The verification email could not be delivered."
@@ -309,7 +320,7 @@ def start_registration(
     *,
     db: Session,
     registration_data: RegistrationStartRequest,
-    delivery_adapter: OTPDeliveryAdapter,
+    delivery_adapter: OTPEmailAdapter,
 ) -> OTPChallengeResponse:
     normalized_email = normalize_email(registration_data.email)
 
@@ -394,7 +405,7 @@ def resend_registration_otp(
     *,
     db: Session,
     challenge_id: str,
-    delivery_adapter: OTPDeliveryAdapter,
+    delivery_adapter: OTPEmailAdapter,
 ) -> OTPChallengeResponse:
     challenge = get_challenge_or_raise(
         db=db,
@@ -569,6 +580,11 @@ def verify_registration_otp(
 # the verified email exists in the active backend instructor allowlist.
 
 # PARTNER INTEGRATION:
-# The partner implements OTPDeliveryAdapter.send_otp(). The adapter delivers
-# email only; it must not validate OTPs, create users, assign roles, or update
-# challenge state.
+# The partner implements OTPEmailAdapter.send_otp() from
+# app.integrations.otp_email. The adapter delivers email only; it must not
+# validate OTPs, create users, assign roles, or update challenge state.
+#
+# ADAPTER FAILURE BOUNDARY:
+# Missing, incompatible, rejected, or failed partner adapters are converted
+# into OTPDeliveryError. Registration and resend workflows roll back their
+# database changes before propagating the controlled service error.
