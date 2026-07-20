@@ -14,6 +14,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.integrations.partner_auth import (
+    PartnerExecutionIdentity,
+    get_authenticated_execution_partner,
+)
 from app.core.security import (
     get_current_student,
     get_current_user,
@@ -29,6 +33,8 @@ from app.schemas.execution_schema import (
     ExecutionRequestCreate,
     ExecutionRequestKind,
     ExecutionStatus,
+    PartnerExecutionResultUpdate,
+    PartnerExecutionUpdateAcceptedResponse,
     StudentExecutionResponse,
 )
 from app.schemas.submission_schema import (
@@ -36,13 +42,20 @@ from app.schemas.submission_schema import (
     SubmissionResponse,
 )
 from app.services.execution_service import (
+    ExecutionAccessDeniedError,
     ExecutionCodingSessionUnavailableError,
+    ExecutionPartnerCorrelationError,
+    ExecutionPartnerReplayConflictError,
+    ExecutionPartnerSequenceConflictError,
     ExecutionPersistenceConflictError,
     ExecutionPersistenceError,
     ExecutionRequestNotFoundError,
     ExecutionServiceError,
+    ExecutionStateConflictError,
     ExecutionSubmissionUnavailableError,
     ExecutionTaskUnavailableError,
+    ExecutionWorkerUpdateInvalidError,
+    apply_partner_execution_result_update,
     create_student_execution_request,
     get_student_execution_request,
     list_student_execution_requests,
@@ -270,7 +283,31 @@ def raise_execution_service_http_exception(
 
     if isinstance(
         exc,
-        ExecutionPersistenceConflictError,
+        ExecutionAccessDeniedError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        ExecutionWorkerUpdateInvalidError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        (
+            ExecutionPartnerCorrelationError,
+            ExecutionPartnerReplayConflictError,
+            ExecutionPartnerSequenceConflictError,
+            ExecutionStateConflictError,
+            ExecutionPersistenceConflictError,
+        ),
     ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -282,12 +319,12 @@ def raise_execution_service_http_exception(
         ExecutionPersistenceError,
     ):
         raise HTTPException(
-            status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         ) from exc
 
     raise HTTPException(
-        status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail=("The execution request operation could not be completed."),
     ) from exc
 
@@ -592,6 +629,70 @@ def get_execution_request_endpoint(
     return StudentExecutionResponse.model_validate(execution_request)
 
 
+# ------------------------------------------------------------------
+# Pillar 14 authenticated partner-result route
+# ------------------------------------------------------------------
+
+
+@router.post(
+    "/internal/partner-results",
+    response_model=PartnerExecutionUpdateAcceptedResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="apply_partner_execution_result_update",
+    summary="Apply an authenticated isolated-worker result update",
+    description=(
+        "Accepts a lifecycle or execution-result update only from the "
+        "trusted isolated-execution partner. The route validates partner "
+        "authentication, execution identity, correlation ID, update ID, "
+        "strict sequence ordering, worker-task identity, lifecycle "
+        "transitions, and replay safety. It never executes Python code."
+    ),
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "description": (
+                "The authenticated partner supplied lifecycle data that "
+                "cannot be applied to the execution request."
+            ),
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": ("The execution-partner token is missing or invalid."),
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": ("The referenced execution request does not exist."),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "The correlation ID, replay payload, sequence number, "
+                "worker identity, lifecycle transition, or persistence "
+                "state conflicts with the stored execution."
+            ),
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": ("The authenticated partner update could not be persisted."),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The execution-partner authentication boundary is not configured."
+            ),
+        },
+    },
+)
+def apply_partner_execution_result_endpoint(
+    update_data: PartnerExecutionResultUpdate,
+    db: Session = Depends(get_db),
+    _partner_identity: PartnerExecutionIdentity = Depends(
+        get_authenticated_execution_partner,
+    ),
+) -> PartnerExecutionUpdateAcceptedResponse:
+    try:
+        return apply_partner_execution_result_update(
+            db,
+            update_data=update_data,
+        )
+    except ExecutionServiceError as exc:
+        raise_execution_service_http_exception(exc)
+
+
 # SECURITY BOUNDARY:
 # student_id always comes from the authenticated student. Clients cannot
 # create a submission or execution request for another student.
@@ -602,9 +703,9 @@ def get_execution_request_endpoint(
 # inside FastAPI, React, or the host operating system.
 
 # WORKER BOUNDARY:
-# No public route in this module may assign worker_task_id or update
-# lifecycle/result fields. The partner-owned adapter must use a trusted
-# internal integration boundary.
+# No student or instructor route may assign worker_task_id or update
+# lifecycle/result fields. Only the authenticated internal partner route
+# may apply isolated-worker updates.
 
 # IMMUTABILITY BOUNDARY:
 # Every execution request stores its own source and standard-input

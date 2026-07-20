@@ -1,3 +1,5 @@
+import hashlib
+import json
 from datetime import datetime, timezone
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -8,15 +10,22 @@ from app.models.domain_models import (
     CodingSession,
     Enrollment,
     ExecutionRequest,
+    PartnerExecutionUpdateRecord,
     Submission,
     Task,
 )
 from app.schemas.execution_schema import (
+    MAX_WORKER_TASK_ID_LENGTH,
     ExecutionRequestCreate,
     ExecutionRequestKind,
     ExecutionStatus,
     ExecutionWorkerUpdate,
+    PartnerExecutionDispatchRequest,
+    PartnerExecutionLimits,
+    PartnerExecutionResultUpdate,
+    PartnerExecutionUpdateAcceptedResponse,
     TERMINAL_EXECUTION_STATUSES,
+    is_execution_status_transition_allowed,
 )
 from app.services.coding_session_service import (
     CodingSessionCounterOverflowError,
@@ -71,6 +80,24 @@ class ExecutionWorkerUpdateInvalidError(
     ExecutionServiceError,
 ):
     """Raised when worker lifecycle data is inconsistent."""
+
+
+class ExecutionPartnerCorrelationError(
+    ExecutionServiceError,
+):
+    """Raised when a partner result uses the wrong correlation ID."""
+
+
+class ExecutionPartnerReplayConflictError(
+    ExecutionServiceError,
+):
+    """Raised when an update ID is replayed with different content."""
+
+
+class ExecutionPartnerSequenceConflictError(
+    ExecutionServiceError,
+):
+    """Raised when a partner update sequence is stale or out of order."""
 
 
 class ExecutionPersistenceConflictError(
@@ -264,7 +291,7 @@ def _resolve_execution_snapshot(
                 db,
                 student_id=student_id,
                 task_id=task.task_id,
-                coding_session_id=(payload.coding_session_id),
+                coding_session_id=payload.coding_session_id,
                 require_active=True,
             )
 
@@ -302,7 +329,7 @@ def _resolve_execution_snapshot(
             db,
             student_id=student_id,
             task_id=task.task_id,
-            coding_session_id=(submission_session_id),
+            coding_session_id=submission_session_id,
             require_active=False,
         )
 
@@ -374,11 +401,11 @@ def create_student_execution_request(
     """
     Persist a queued execution request without executing Python code.
 
+    Partner correlation and dispatch-idempotency identifiers are generated
+    by the database model defaults and are never accepted from the student.
+
     When the request references a coding session, its server-controlled
     run-attempt counter is incremented in the same transaction.
-
-    The resulting execution ID may later be handed to the partner-owned
-    Celery/Redis worker adapter.
     """
 
     task = _get_student_execution_task(
@@ -424,6 +451,7 @@ def create_student_execution_request(
         worker_task_id=None,
         started_at=None,
         completed_at=None,
+        last_partner_sequence=0,
     )
 
     db.add(execution_request)
@@ -608,25 +636,69 @@ def get_internal_execution_request(
     return execution_request
 
 
+def build_partner_execution_dispatch(
+    execution_request: ExecutionRequest,
+    *,
+    limits: PartnerExecutionLimits | None = None,
+) -> PartnerExecutionDispatchRequest:
+    """
+    Build the internal immutable request handed to the isolated worker.
+
+    This function performs no dispatch and executes no student code.
+    """
+
+    if execution_request.task_id is None:
+        raise ExecutionWorkerUpdateInvalidError(
+            "The execution request has no activity identifier."
+        )
+
+    queued_at = _normalize_database_datetime(
+        execution_request.queued_at,
+    )
+
+    if queued_at is None:
+        raise ExecutionWorkerUpdateInvalidError(
+            "The execution request has no queue timestamp."
+        )
+
+    return PartnerExecutionDispatchRequest(
+        execution_id=execution_request.execution_id,
+        correlation_id=execution_request.correlation_id,
+        idempotency_key=execution_request.dispatch_idempotency_key,
+        request_kind=execution_request.request_kind,
+        task_id=execution_request.task_id,
+        submission_id=execution_request.submission_id,
+        coding_session_id=execution_request.coding_session_id,
+        source_code=execution_request.source_code,
+        standard_input=execution_request.standard_input,
+        limits=limits or PartnerExecutionLimits(),
+        queued_at=queued_at,
+    )
+
+
 def _validate_status_transition(
     *,
     current_status: str,
     target_status: str,
 ) -> None:
     if current_status == target_status:
+        if current_status in TERMINAL_EXECUTION_STATUSES:
+            raise ExecutionStateConflictError(
+                "A terminal execution request cannot accept another update."
+            )
+
+        return
+
+    if is_execution_status_transition_allowed(
+        current_status=current_status,
+        next_status=target_status,
+    ):
         return
 
     if current_status in TERMINAL_EXECUTION_STATUSES:
         raise ExecutionStateConflictError(
-            "A completed execution request cannot transition to another status."
+            "A terminal execution request cannot transition to another status."
         )
-
-    if current_status == "queued":
-        if target_status == "running" or target_status in TERMINAL_EXECUTION_STATUSES:
-            return
-
-    if current_status == "running" and target_status in TERMINAL_EXECUTION_STATUSES:
-        return
 
     raise ExecutionStateConflictError(
         f"Execution status cannot transition from {current_status} to {target_status}."
@@ -650,7 +722,6 @@ def _validate_worker_timestamps(
     )
 
     started_at = _normalize_database_datetime(started_at)
-
     completed_at = _normalize_database_datetime(completed_at)
 
     if completed_at is not None and target_status not in TERMINAL_EXECUTION_STATUSES:
@@ -675,11 +746,10 @@ def update_execution_from_worker(
     update_data: ExecutionWorkerUpdate,
 ) -> ExecutionRequest:
     """
-    Apply a trusted worker lifecycle/result update.
+    Apply the legacy trusted worker lifecycle/result update.
 
-    This function is not exposed through a public student or instructor
-    write endpoint. The partner-owned adapter should call this boundary
-    after authenticating through an internal integration mechanism.
+    New partner integrations should use apply_partner_execution_result_update,
+    which adds correlation, idempotency, and sequence enforcement.
     """
 
     execution_request = get_internal_execution_request(
@@ -766,9 +836,9 @@ def assign_worker_task_id(
     if not normalized_worker_task_id:
         raise ExecutionWorkerUpdateInvalidError("Worker task ID cannot be empty.")
 
-    if len(normalized_worker_task_id) > 255:
+    if len(normalized_worker_task_id) > MAX_WORKER_TASK_ID_LENGTH:
         raise ExecutionWorkerUpdateInvalidError(
-            "Worker task ID cannot exceed 255 characters."
+            f"Worker task ID cannot exceed {MAX_WORKER_TASK_ID_LENGTH} characters."
         )
 
     if (
@@ -788,9 +858,277 @@ def assign_worker_task_id(
     return execution_request
 
 
+def _partner_update_payload_digest(
+    update_data: PartnerExecutionResultUpdate,
+) -> str:
+    canonical_payload = json.dumps(
+        update_data.model_dump(
+            mode="json",
+        ),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+    return hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+
+
+def _find_partner_update_record(
+    db: Session,
+    *,
+    update_id: str,
+) -> PartnerExecutionUpdateRecord | None:
+    return (
+        db.query(PartnerExecutionUpdateRecord)
+        .filter(
+            PartnerExecutionUpdateRecord.update_id == update_id,
+        )
+        .first()
+    )
+
+
+def _build_partner_update_acknowledgment(
+    *,
+    record: PartnerExecutionUpdateRecord,
+    replayed: bool,
+) -> PartnerExecutionUpdateAcceptedResponse:
+    accepted_at = _normalize_database_datetime(
+        record.accepted_at,
+    )
+
+    if accepted_at is None:
+        raise ExecutionPersistenceError(
+            "The accepted partner update has no acceptance timestamp."
+        )
+
+    return PartnerExecutionUpdateAcceptedResponse(
+        execution_id=record.execution_id,
+        correlation_id=record.correlation_id,
+        update_id=record.update_id,
+        status=record.status,
+        sequence_number=record.sequence_number,
+        replayed=replayed,
+        accepted_at=accepted_at,
+    )
+
+
+def _resolve_existing_partner_replay(
+    *,
+    existing_record: PartnerExecutionUpdateRecord,
+    payload_digest: str,
+) -> PartnerExecutionUpdateAcceptedResponse:
+    if existing_record.payload_digest != payload_digest:
+        raise ExecutionPartnerReplayConflictError(
+            "The partner update ID was already used for different content."
+        )
+
+    return _build_partner_update_acknowledgment(
+        record=existing_record,
+        replayed=True,
+    )
+
+
+def _validate_partner_sequence(
+    *,
+    execution_request: ExecutionRequest,
+    sequence_number: int,
+) -> None:
+    expected_sequence = execution_request.last_partner_sequence + 1
+
+    if sequence_number != expected_sequence:
+        raise ExecutionPartnerSequenceConflictError(
+            "Partner result updates must use the next sequence number. "
+            f"Expected {expected_sequence}, received {sequence_number}."
+        )
+
+
+def _validate_partner_worker_identity(
+    *,
+    execution_request: ExecutionRequest,
+    worker_task_id: str,
+) -> None:
+    if (
+        execution_request.worker_task_id is not None
+        and execution_request.worker_task_id != worker_task_id
+    ):
+        raise ExecutionStateConflictError(
+            "The execution request is assigned to a different worker task."
+        )
+
+
+def _partner_execution_update_values(
+    *,
+    execution_request: ExecutionRequest,
+    update_data: PartnerExecutionResultUpdate,
+) -> dict:
+    values = update_data.model_dump(
+        exclude={
+            "execution_id",
+            "correlation_id",
+            "update_id",
+            "sequence_number",
+            "error_code",
+            "error_message",
+        },
+        exclude_unset=True,
+    )
+
+    target_status = update_data.status
+
+    _validate_status_transition(
+        current_status=execution_request.status,
+        target_status=target_status,
+    )
+
+    if target_status == "running":
+        values.setdefault(
+            "started_at",
+            execution_request.started_at or _utc_now(),
+        )
+        values.pop(
+            "completed_at",
+            None,
+        )
+
+    if target_status in TERMINAL_EXECUTION_STATUSES:
+        values.setdefault(
+            "started_at",
+            execution_request.started_at or _utc_now(),
+        )
+        values["completed_at"] = update_data.completed_at
+
+    _validate_worker_timestamps(
+        execution_request=execution_request,
+        values=values,
+        target_status=target_status,
+    )
+
+    return values
+
+
+def apply_partner_execution_result_update(
+    db: Session,
+    *,
+    update_data: PartnerExecutionResultUpdate,
+) -> PartnerExecutionUpdateAcceptedResponse:
+    """
+    Atomically apply an authenticated partner result update.
+
+    Authentication is enforced by the calling router or integration adapter.
+    This service validates execution identity, correlation, worker identity,
+    lifecycle transition, strict sequence ordering, and idempotent replay.
+
+    A repeated update_id with identical canonical content returns a replay
+    acknowledgment without mutating the execution a second time.
+    """
+
+    payload_digest = _partner_update_payload_digest(
+        update_data,
+    )
+
+    existing_record = _find_partner_update_record(
+        db,
+        update_id=update_data.update_id,
+    )
+
+    if existing_record is not None:
+        return _resolve_existing_partner_replay(
+            existing_record=existing_record,
+            payload_digest=payload_digest,
+        )
+
+    execution_request = get_internal_execution_request(
+        db,
+        execution_id=update_data.execution_id,
+        lock_for_update=True,
+    )
+
+    if execution_request.correlation_id != update_data.correlation_id:
+        raise ExecutionPartnerCorrelationError(
+            "The partner correlation ID does not match the execution request."
+        )
+
+    _validate_partner_sequence(
+        execution_request=execution_request,
+        sequence_number=update_data.sequence_number,
+    )
+
+    _validate_partner_worker_identity(
+        execution_request=execution_request,
+        worker_task_id=update_data.worker_task_id,
+    )
+
+    values = _partner_execution_update_values(
+        execution_request=execution_request,
+        update_data=update_data,
+    )
+
+    if execution_request.worker_task_id is None:
+        execution_request.worker_task_id = update_data.worker_task_id
+
+    for field_name, value in values.items():
+        setattr(
+            execution_request,
+            field_name,
+            value,
+        )
+
+    execution_request.last_partner_sequence = update_data.sequence_number
+
+    update_record = PartnerExecutionUpdateRecord(
+        update_id=update_data.update_id,
+        execution_id=execution_request.execution_id,
+        correlation_id=execution_request.correlation_id,
+        sequence_number=update_data.sequence_number,
+        status=update_data.status,
+        payload_digest=payload_digest,
+    )
+
+    db.add(update_record)
+
+    try:
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+
+        concurrent_record = _find_partner_update_record(
+            db,
+            update_id=update_data.update_id,
+        )
+
+        if concurrent_record is not None:
+            return _resolve_existing_partner_replay(
+                existing_record=concurrent_record,
+                payload_digest=payload_digest,
+            )
+
+        raise ExecutionPersistenceConflictError(
+            "The partner result update conflicted with another database operation."
+        ) from error
+    except SQLAlchemyError as error:
+        db.rollback()
+
+        raise ExecutionPersistenceError(
+            "The partner result update could not be saved."
+        ) from error
+
+    db.refresh(execution_request)
+    db.refresh(update_record)
+
+    return _build_partner_update_acknowledgment(
+        record=update_record,
+        replayed=False,
+    )
+
+
 # EXECUTION BOUNDARY:
 # This service persists and authorizes execution requests only. It never
 # executes student Python inside FastAPI or the host operating system.
+
+# PARTNER AUTHENTICATION BOUNDARY:
+# Authentication belongs to the internal router or integration adapter.
+# Credentials, JWTs, API keys, and shared secrets are never accepted inside
+# partner result bodies and are never persisted as update metadata.
 
 # TELEMETRY BOUNDARY:
 # run_attempt_count is incremented only after backend validation and in
@@ -800,6 +1138,11 @@ def assign_worker_task_id(
 # IMMUTABILITY BOUNDARY:
 # Execution source, standard input, ownership, task, submission, and
 # coding-session references are immutable after request creation.
+
+# REPLAY BOUNDARY:
+# Accepted partner update IDs and canonical payload digests provide
+# idempotent replay handling. Sequence numbers are strictly monotonic per
+# execution. Terminal executions cannot accept later lifecycle mutations.
 
 # REVIEW BOUNDARY:
 # Worker output and resource-limit results support instructor review only.
