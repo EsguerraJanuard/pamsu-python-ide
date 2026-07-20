@@ -18,350 +18,587 @@ These repository files are the authoritative source of truth.
 Current local working branch:
 
 ```text
-review/backend-p13-reporting-exports
+review/backend-p14-partner-contracts
 ```
 
 Backend version:
 
 ```text
-0.13.0
+0.14.0
 ```
 
 Latest completed and merged pillar:
 
-- Pillar 12 — Audit Trail and Academic Accountability
+- Pillar 13 — Reporting and Privacy-Safe Export APIs
 - merged locally into `dev`
 - only `dev` pushed
 
-Current implementation scope:
+Current completed implementation scope:
 
-- Pillar 13 — Reporting and Privacy-Safe Export APIs
+- Pillar 14 — Partner Integration Contracts
 
 Current verification status:
 
 ```text
-Focused Pillar 13 verification: passed
-Complete backend regression on review branch: 448 passed
+Focused Pillar 14 verification: passed
+Complete backend regression on review branch: 567 passed
+PostgreSQL schema verification: passed
+Real readiness verification: HTTP 200 ready
 ```
 
-The Pillar 13 review branch must remain local.
+The Pillar 14 review branch must remain local.
 
 Do not push the review branch.
 
-After focused tests and the complete backend regression pass, commit locally, merge into `dev`, rerun the complete regression on `dev`, and push only `dev`.
+Local checkpoint commits were created during implementation. The remaining completion sequence is:
+
+1. replace and commit this handoff
+2. confirm repository checks
+3. merge the review branch locally into `dev`
+4. rerun the complete backend regression on `dev`
+5. push only `dev`
+6. confirm the working tree is clean
 
 ---
 
-## Pillar 13 Objective
+## Pillar 14 Objective
 
-Pillar 13 provides ownership-safe academic reports and privacy-safe gradebook exports without exposing raw student source code, execution data, telemetry, unreleased student-visible grades, or automated misconduct rankings.
+Pillar 14 defines secure, explicit contracts between the FastAPI backend and trusted partner-owned integrations without implementing the isolated execution runtime, concrete email delivery provider, or local LLM runtime.
 
-Implemented reporting areas:
+Implemented areas:
 
-- classroom completion summaries
-- activity completion summaries
-- manual-grade distributions
-- missing-submission reports
-- authenticated student personal progress summaries
-- gradebook CSV exports
+- isolated-worker dispatch and result contracts
+- authenticated partner result updates
+- backend-controlled execution lifecycle transitions
+- replay and idempotency protection
+- correlation identifiers
+- strict partner update sequencing
+- bounded execution-result validation
+- partner update persistence records
+- OTP email-adapter interface
+- local LLM assistance interface boundary
+- liveness and readiness contracts
+- explicit PostgreSQL-compatible schema upgrade support
 
-No database model or migration change is required for the current Pillar 13 implementation.
+Excluded implementation remains:
+
+- Celery
+- Redis
+- Docker
+- isolated sandbox runtime
+- resource-limit enforcement runtime
+- SMTP or third-party email-provider implementation
+- local LLM model runtime
+- model download or inference server
+- background delivery or inference queues
+
+Student Python code still never executes inside React or FastAPI.
 
 ---
 
-## Reporting Schemas
+## Partner Execution Schemas
 
 Implemented in:
 
 ```text
-backend/app/schemas/reporting_schema.py
+backend/app/schemas/execution_schema.py
 ```
+
+Implemented or extended contracts include:
+
+- partner-reportable execution statuses
+- allowed lifecycle transition map
+- bounded worker identity and output values
+- backend-generated correlation identifiers
+- backend-generated dispatch idempotency identifiers
+- `PartnerExecutionLimits`
+- `PartnerExecutionDispatchRequest`
+- `PartnerExecutionResultUpdate`
+- `PartnerExecutionUpdateAcceptedResponse`
+- lifecycle-transition validation helpers
+- combined UTF-8 execution-output size validation
+
+Contract behavior:
+
+- strict Pydantic V2 validation
+- extra fields forbidden
+- UUID normalization
+- timezone-aware partner timestamps
+- bounded source, input, output, and worker identifiers
+- terminal updates require completion metadata
+- running updates cannot claim terminal completion
+- terminal execution requests cannot be mutated by later updates
+- result payloads cannot carry credentials, grades, analytics, telemetry, or misconduct verdicts
+
+Execution limits are contract values only in Pillar 14.
+
+FastAPI does not enforce CPU, memory, filesystem, process, or network isolation.
+
+Those controls remain the responsibility of the future partner-owned isolated worker.
+
+---
+
+## Partner Execution Models
+
+Updated in:
+
+```text
+backend/app/models/domain_models.py
+```
+
+`ExecutionRequest` now includes:
+
+- `correlation_id`
+- `dispatch_idempotency_key`
+- `last_partner_sequence`
+- partner lifecycle index
+- unique correlation identifier
+- unique dispatch idempotency identifier
+- relationship to accepted partner update records
+
+Implemented partner update model:
+
+```text
+PartnerExecutionUpdateRecord
+```
+
+Database table:
+
+```text
+partner_execution_updates
+```
+
+Stored partner update metadata:
+
+- partner update record identifier
+- globally unique update identifier
+- execution identifier
+- correlation identifier
+- strict sequence number
+- accepted status
+- canonical payload digest
+- acceptance timestamp
+
+The update-record table does not store:
+
+- source code
+- standard input
+- stdout or stderr
+- credentials
+- OTP values
+- grades
+- AST findings
+- similarity details
+- session telemetry
+- clipboard contents
+- pasted text
+- surveillance data
+- misconduct conclusions
+
+---
+
+## Partner Authentication Boundary
+
+Implemented in:
+
+```text
+backend/app/integrations/partner_auth.py
+```
+
+Authentication configuration:
+
+```text
+Environment variable: PAMSU_PARTNER_EXECUTION_TOKEN
+HTTP header: X-Partner-Token
+Minimum configured token length: 32 characters
+```
+
+Behavior:
+
+- missing configured token returns `503 Service Unavailable`
+- configured token shorter than the minimum returns `503 Service Unavailable`
+- missing partner header returns `401 Unauthorized`
+- invalid partner token returns `401 Unauthorized`
+- comparison uses constant-time secret comparison
+- token values are never returned in responses
+- token values are never included in OpenAPI
+- query parameters and request bodies cannot replace the required header
+
+The real development token belongs only in:
+
+```text
+backend/.env
+```
+
+The token must never be committed.
+
+Production transport must use TLS.
+
+---
+
+## Partner Execution Service
+
+Updated in:
+
+```text
+backend/app/services/execution_service.py
+```
+
+Implemented partner operations include:
+
+- build a partner dispatch contract from a stored execution request
+- apply an authenticated partner lifecycle or result update
+- validate execution correlation identity
+- validate strict partner sequence ordering
+- validate worker-task identity
+- enforce allowed lifecycle transitions
+- reject updates after terminal completion
+- compute a canonical SHA-256 payload digest
+- recognize identical retries as safe replays
+- reject reuse of an update identifier with different content
+- persist execution state and accepted update metadata atomically
+- roll back controlled persistence failures
+
+Replay behavior:
+
+- first accepted update returns `replayed: false`
+- identical retry returns `replayed: true`
+- conflicting retry returns `409 Conflict`
+- stale or skipped sequence numbers return `409 Conflict`
+
+The legacy internal worker-update service remains available for backward compatibility, but the authenticated Pillar 14 route is the trusted partner boundary.
+
+---
+
+## Authenticated Partner Result Endpoint
+
+Updated router:
+
+```text
+backend/app/routers/execution.py
+```
+
+Implemented endpoint:
+
+```text
+POST /execution/internal/partner-results
+```
+
+This endpoint:
+
+- requires `X-Partner-Token`
+- accepts `PartnerExecutionResultUpdate`
+- returns `PartnerExecutionUpdateAcceptedResponse`
+- never executes Python code
+- never accepts partner credentials in the body
+- never exposes the internal partner token
+
+Controlled HTTP mappings include:
+
+- `200 OK` — accepted update or identical replay
+- `400 Bad Request` — invalid worker lifecycle data
+- `401 Unauthorized` — missing or invalid partner token
+- `404 Not Found` — execution request does not exist
+- `409 Conflict` — correlation, replay, sequence, worker, lifecycle, or persistence conflict
+- `422 Unprocessable Content` — request-schema validation failure
+- `500 Internal Server Error` — persistence failure
+- `503 Service Unavailable` — partner authentication boundary not configured
+
+Student and instructor execution routes remain protected by their existing authenticated ownership rules.
+
+---
+
+## OTP Email-Adapter Boundary
+
+Implemented integration contract:
+
+```text
+backend/app/integrations/otp_email.py
+```
+
+Updated service:
+
+```text
+backend/app/services/otp_service.py
+```
+
+Implemented interface:
+
+```text
+OTPEmailAdapter.send_otp()
+```
+
+The adapter receives only:
+
+- recipient university email
+- temporary plaintext OTP
+- approved delivery purpose
+- expiration duration
+
+The backend remains responsible for:
+
+- OTP generation
+- OTP hashing
+- expiration
+- resend cooldowns
+- resend limits
+- verification attempts
+- challenge consumption
+- account creation
+- role assignment
+
+Adapter failures are converted into:
+
+```text
+OTPDeliveryError
+```
+
+Registration and resend transactions roll back when delivery fails.
+
+Plaintext OTP values:
+
+- exist only temporarily in process memory
+- are never stored
+- are never logged
+- are never returned through the API
+- are never included in OpenAPI
+- are never written to audit records
+
+Pillar 14 does not implement SMTP or a third-party email provider.
+
+---
+
+## Local LLM Interface Boundary
+
+Implemented in:
+
+```text
+backend/app/integrations/local_llm.py
+```
+
+Implemented assistance kinds:
+
+- `explanation`
+- `hint`
+- `feedback`
 
 Implemented contracts:
 
-- `ReportingStudentSummary`
-- `ReportingClassroomSummary`
-- `ReportingActivitySummary`
-- `CompletionCounts`
-- `ActivityCompletionSummaryResponse`
-- `ClassroomActivityCompletionItem`
-- `ClassroomCompletionSummaryResponse`
-- `GradeDistributionBucket`
-- `GradeDistributionResponse`
-- `MissingSubmissionItem`
-- `MissingSubmissionListResponse`
-- `StudentClassProgressItem`
-- `StudentProgressSummaryResponse`
-- `GradebookCSVExportMetadata`
+- `LocalLLMAssistanceRequest`
+- `LocalLLMAssistanceResponse`
+- `LocalLLMAdapter`
+- adapter validation
+- request and response correlation validation
+- assistance-kind matching
+- bounded context and response sizes
+- timezone-aware response timestamps
 
-Schema behavior:
+Allowed context is limited to explicitly approved student-visible data.
 
-- Pydantic V2 strict validation
-- extra fields forbidden
-- ten-digit student school ID validation
-- bounded pagination contracts
-- deterministic approved sorting values
-- completion-count consistency validation
-- grade-distribution bucket-count validation
-- safe CSV filename validation
-- privacy flags cannot be client-enabled
-- no raw-source or surveillance fields
+The contract excludes:
+
+- passwords
+- OTP values
+- JWTs
+- API keys
+- hidden tests
+- expected outputs
+- unreleased grades
+- official grades
+- similarity details
+- surveillance telemetry
+- clipboard contents
+- pasted text
+- browsing history
+- individual keystrokes
+- screen recordings
+- webcam data
+- microphone data
+
+Local LLM output may draft educational explanations, hints, or feedback only.
+
+It must never:
+
+- assign a score
+- assign an official grade
+- release a grade
+- determine pass or fail
+- determine plagiarism
+- determine cheating
+- determine copying
+- determine misconduct
+- rank behavioral or academic risk
+
+Pillar 14 does not implement a model runtime, inference server, provider client, prompt engine, or persistence layer.
 
 ---
 
-## Reporting Service
+## Health and Readiness Contracts
+
+Updated:
+
+```text
+backend/app/main.py
+```
+
+Backend version:
+
+```text
+0.14.0
+```
+
+Implemented system endpoints:
+
+```text
+GET /
+GET /health
+GET /ready
+```
+
+### Liveness
+
+```text
+GET /health
+```
+
+Behavior:
+
+- checks process-level application liveness only
+- does not query the database
+- does not contact the execution partner
+- does not contact an email provider
+- does not contact a local LLM runtime
+- returns sanitized service, version, state, and timestamp values
+
+### Readiness
+
+```text
+GET /ready
+```
+
+`/ready` is a public deployment probe and does not require a user JWT.
+
+Required readiness components:
+
+- database connection
+- execution-partner authentication configuration
+
+Optional Pillar 14 contract-only components:
+
+- OTP email adapter
+- local LLM adapter
+
+Readiness behavior:
+
+- returns `200 OK` with `status: ready` when required components are ready
+- returns `503 Service Unavailable` with `status: not_ready` when a required component is unavailable
+- reports OTP email and local LLM as `contract_only`
+- does not expose tokens
+- does not expose secret names
+- does not expose secret lengths
+- does not expose connection strings
+- does not expose provider names
+- does not expose raw exceptions
+
+---
+
+## Explicit Database Upgrade
 
 Implemented in:
 
 ```text
-backend/app/services/reporting_service.py
+backend/app/db/upgrade_p14_partner_execution.py
 ```
 
-Implemented operations:
-
-- `get_classroom_completion_summary`
-- `get_activity_completion_summary`
-- `get_grade_distribution`
-- `list_missing_submissions`
-- `get_student_progress_summary`
-- `build_gradebook_csv_export`
-
-Implemented service errors:
-
-- `ReportingServiceError`
-- `ReportingClassroomNotFoundError`
-- `ReportingTaskNotFoundError`
-- `ReportingAccessDeniedError`
-- `ReportingFilterConflictError`
-- `ReportingTaskUnavailableError`
-- `ReportingPaginationError`
-- `ReportingExportError`
-
-### Classroom Completion Summary
-
-A classroom completion summary includes only:
-
-- an instructor-owned classroom
-- active enrollments
-- active student accounts
-- verified student accounts
-- published graded activities
-- official submission attempts
-- manually created instructor grades
-- released manual-grade counts
-
-The service calculates:
-
-- active student count
-- published graded activity count
-- expected student-activity completion count
-- submitted count
-- missing count
-- manually graded count
-- released grade count
-- completion percentage
-- per-activity completion summaries
-
-### Activity Completion Summary
-
-An activity completion summary requires:
-
-- an instructor-owned activity
-- an activity assigned to an instructor-owned classroom
-- a published activity
-- a graded activity
-
-Only official submission attempts contribute to completion.
-
-Only manually created `InstructorGrade` records contribute to grade counts.
-
-### Manual-Grade Distribution
-
-Grade distributions are based only on manual instructor grades attached to official submissions.
-
-Implemented bands:
-
-- `0-59.99`
-- `60-69.99`
-- `70-79.99`
-- `80-89.99`
-- `90-100`
-
-The report includes:
-
-- manually graded submission count
-- released grade count
-- average percentage
-- minimum percentage
-- maximum percentage
-- deterministic grade bands
-
-The report does not create:
-
-- automatic grades
-- misconduct rankings
-- plagiarism rankings
-- cheating scores
-- behavioral risk scores
-
-### Missing-Submission Report
-
-The missing-submission report includes only:
-
-- instructor-owned classrooms and activities
-- active enrollments
-- active student accounts
-- verified student accounts
-- published graded activities
-- student-activity pairs without an official submission
-
-Pagination is bounded:
+The module exists because:
 
 ```text
-minimum page size: 1
-maximum page size: 100
+Base.metadata.create_all()
 ```
 
-Approved sorting:
+creates missing tables but does not alter existing tables.
 
-- student name
-- school ID
-- activity title
-- due date
-- ascending
-- descending
+The explicit upgrade:
 
-### Student Personal Progress
+- supports PostgreSQL
+- supports SQLite development databases
+- requires the base `execution_requests` table
+- adds missing Pillar 14 execution columns
+- backfills missing partner UUIDs
+- initializes missing partner sequence values
+- applies unique indexes
+- applies the partner lifecycle index
+- applies PostgreSQL not-null and sequence constraints
+- creates `partner_execution_updates`
+- verifies the resulting schema
+- is safe to rerun
+- never runs automatically during FastAPI import or startup
 
-The student progress service uses only the authenticated student identity.
+Run explicitly from `backend`:
 
-It reports:
+```powershell
+.\venv\Scripts\python.exe -m app.db.upgrade_p14_partner_execution
+```
 
-- active classroom count
-- published graded activity count
-- submitted activity count
-- missing activity count
-- released grade count
-- average released percentage
-- completion percentage
-- per-classroom progress summaries
-
-Students do not receive:
-
-- another student's progress
-- unreleased grade values
-- unreleased feedback
-- instructor-only review data
-- source-similarity details
-- AST findings
-- execution output
-- coding-session telemetry
-
-### Gradebook CSV Export
-
-CSV export is restricted to instructor-owned classrooms and optional instructor-owned activity filters.
-
-The export includes summary fields such as:
-
-- student name
-- school ID
-- classroom
-- subject code
-- section
-- activity title
-- activity type
-- official attempt number
-- submission status
-- manual-grade presence
-- score
-- maximum score
-- percentage
-- release state
-- grade update timestamp
-
-The export excludes:
-
-- raw source code
-- standard input
-- starter code
-- task descriptions and instructions
-- grade feedback text
-- hidden test data
-- AST rules and findings
-- similarity details
-- execution output
-- worker identifiers
-- coding-session telemetry
-- clipboard contents
-- pasted text
-- browsing history
-- screen, webcam, and microphone data
-- automated misconduct conclusions
-
-CSV text cells beginning with the following characters are prefixed with an apostrophe:
+Observed PostgreSQL verification:
 
 ```text
-=
-+
--
-@
+Pillar 14 partner-execution schema upgrade completed.
+Database dialect: postgresql
+Execution rows backfilled: 0
+Partner-update table created: False
 ```
 
-This prevents spreadsheet formula injection.
-
-A UTF-8 byte-order mark is included for spreadsheet compatibility.
+`Partner-update table created: False` was correct because the fresh database schema had already created the table.
 
 ---
 
-## Reporting Endpoints
+## PostgreSQL Verification
 
-Implemented router:
-
-```text
-backend/app/routers/reporting.py
-```
-
-Implemented endpoints:
+Configured development database dialect:
 
 ```text
-GET /reports/classrooms/{class_id}/completion
-GET /reports/activities/{task_id}/completion
-GET /reports/classrooms/{class_id}/grade-distribution
-GET /reports/missing-submissions
-GET /reports/students/me/progress
-GET /reports/classrooms/{class_id}/gradebook.csv
+postgresql
 ```
 
-Instructor-only endpoints:
+Sanitized configured URL:
 
-- classroom completion
-- activity completion
-- grade distribution
-- missing submissions
-- gradebook CSV export
+```text
+postgresql://postgres:***@localhost:5432/pamsu_ide_db
+```
 
-Student-only endpoint:
+The database was initially empty.
 
-- authenticated personal progress
+The complete current metadata schema was initialized explicitly for the fresh development database.
 
-Clients cannot supply:
+Observed table state:
 
-- instructor identity
-- student identity for personal progress
-- another report owner
-- raw-source inclusion flags
-- unreleased-student-data inclusion flags
-- risk-score filters
-- misconduct-ranking filters
+```text
+Table count: 20
+execution_requests exists: True
+partner_execution_updates exists: True
+```
 
-Service errors map to controlled HTTP responses:
+Verified `execution_requests` Pillar 14 columns:
 
-- `400 Bad Request`
-- `403 Forbidden`
-- `404 Not Found`
-- `409 Conflict`
-- `500 Internal Server Error`
-- `503 Service Unavailable`
+```text
+correlation_id
+dispatch_idempotency_key
+last_partner_sequence
+```
+
+Observed real readiness verification:
+
+```text
+HTTP status: 200
+Application status: ready
+database: ready
+execution_partner_auth: ready
+otp_email_adapter: contract_only
+local_llm_adapter: contract_only
+```
+
+No database password or partner token is recorded in this handoff.
 
 ---
 
@@ -371,106 +608,102 @@ Updated:
 
 ```text
 backend/app/main.py
-```
-
-Changes:
-
-- backend version updated to `0.13.0`
-- `reporting` router imported
-- reporting router registered
-- `Reporting` OpenAPI tag added
-- API description expanded for reporting and privacy-safe exports
-
-Updated contract tests:
-
-```text
 backend/tests/test_openapi_contracts.py
 backend/tests/test_classroom_openapi_contracts.py
 ```
 
-OpenAPI requirements include:
+OpenAPI requirements now include:
 
-- version `0.13.0`
-- `Reporting` tag
-- all six reporting routes
-- authenticated route protection
-- GET-only reporting operations
-- bounded missing-submission pagination
-- approved deterministic sorting
-- owner-safe query parameters
-- privacy-safe response schemas
-- `text/csv` binary export contract
-- no client-selected source-code export
-- no client-selected unreleased-grade export
-- no automated misconduct-ranking contract
+- version `0.14.0`
+- public `/health`
+- public `/ready`
+- authenticated `POST /execution/internal/partner-results`
+- `PartnerExecutionToken` API-key security scheme
+- `X-Partner-Token` header authentication
+- documented partner result responses
+- no partner secret in OpenAPI
+- no partner credential fields in result bodies
+- health and readiness response contracts
+- preserved classroom and all previous API contracts
 
 ---
 
-## Pillar 13 Tests
+## Pillar 14 Tests
 
-Implemented:
-
-```text
-backend/tests/test_reporting_schemas.py
-backend/tests/test_reporting_service.py
-backend/tests/test_reporting_router.py
-```
-
-Schema tests cover:
-
-- strict extra-field rejection
-- ten-digit school ID
-- completion invariants
-- grade-distribution invariants
-- missing-submission contracts
-- student progress invariants
-- safe CSV filenames
-- forced privacy flags
-- prohibited sensitive fields
-
-Service tests cover:
-
-- owner instructor allowed
-- another instructor denied
-- active and verified student filtering
-- official and unofficial attempt handling
-- published and graded activity requirements
-- completion counts
-- manual-grade distribution
-- released and unreleased grade handling
-- missing-submission filtering
-- bounded pagination
-- student personal progress
-- CSV privacy
-- CSV formula-injection protection
-- constant query-count behavior
-
-Router tests cover:
-
-- authenticated instructor identity
-- authenticated student identity
-- query validation
-- role dependency denial
-- HTTP error mapping
-- CSV headers
-- GET-only OpenAPI operations
-- privacy-safe reporting schemas
-
-Latest confirmed focused reporting suite:
+Implemented or updated:
 
 ```text
-59 passed
+backend/tests/test_schemas.py
+backend/tests/test_partner_execution_models.py
+backend/tests/test_execution_service.py
+backend/tests/test_partner_auth.py
+backend/tests/test_partner_execution_router.py
+backend/tests/test_otp_service.py
+backend/tests/test_local_llm.py
+backend/tests/test_system_health.py
+backend/tests/test_p14_schema_upgrade.py
+backend/tests/test_openapi_contracts.py
+backend/tests/test_classroom_openapi_contracts.py
 ```
 
-Latest confirmed complete backend regression:
+Test coverage includes:
+
+- partner dispatch and result schemas
+- UUID and timestamp validation
+- bounded execution limits and output
+- lifecycle transitions
+- terminal-state protection
+- partner model constraints
+- unique update identifiers
+- unique per-execution sequence numbers
+- update-record privacy
+- authenticated partner result updates
+- correlation conflicts
+- worker identity conflicts
+- stale and skipped sequences
+- safe identical replay
+- conflicting replay rejection
+- persistence rollback
+- partner API-key OpenAPI contract
+- partner secret exclusion
+- OTP adapter compatibility
+- OTP delivery failures
+- registration rollback
+- resend rollback
+- plaintext OTP privacy
+- local LLM adapter compatibility
+- LLM request and response correlation
+- assistance-kind validation
+- timezone validation
+- grade and misconduct field exclusion
+- health liveness
+- readiness success and failure states
+- database readiness rollback
+- contract-only optional components
+- schema upgrade backfill
+- schema upgrade rerun idempotency
+- source-code preservation during schema upgrade
+- complete OpenAPI route and authentication boundaries
+
+Latest confirmed selected Pillar 14 verification:
 
 ```text
-448 passed
+passed
 ```
+
+Latest confirmed complete backend regression on the review branch:
+
+```text
+567 passed in 116.87s (0:01:56)
+```
+
+This is the authoritative current regression count.
+
+Do not replace it with an estimate.
 
 ---
 
-## Permanent Authorization and Privacy Boundaries
+## Permanent Authorization, Academic, and Privacy Boundaries
 
 - Registration accepts only `@pampangastateu.edu.ph`.
 - School ID is exactly 10 digits.
@@ -478,12 +711,15 @@ Latest confirmed complete backend regression:
 - School ID is unique.
 - Roles are controlled only by the backend allowlist.
 - OTP verification remains required.
+- Plaintext OTP values are never persisted or returned.
 - Submission attempts are immutable.
 - The latest accepted attempt becomes official.
 - Official grades are manually controlled by instructors.
-- AST, Jaccard similarity, execution, and coding-session indicators remain review-only.
+- AST, Jaccard similarity, execution, coding-session, and local LLM indicators remain review-only.
 - Automated indicators never assign grades.
+- Local LLM output never assigns grades.
 - Automated indicators never determine plagiarism, cheating, copying, or misconduct.
+- Local LLM output never determines plagiarism, cheating, copying, or misconduct.
 - Reports never create automated rankings based on behavioral or review indicators.
 - Paste policy remains `internal_only` or `disabled`.
 - Blocked-paste telemetry stores count and timestamp only.
@@ -493,28 +729,43 @@ Latest confirmed complete backend regression:
 - Individual keystroke collection is prohibited.
 - Student Python code never executes inside React or FastAPI.
 - Student code executes only through the partner-owned isolated sandbox worker.
-- Reporting and exports must remain ownership-safe.
-- Raw source code is excluded from gradebook CSV exports by default and by current contract.
+- Partner result updates require authenticated trusted integration.
+- Partner result retries must remain replay-safe and idempotent.
+- Reporting and exports remain ownership-safe.
+- Raw source code remains excluded from gradebook CSV exports.
+- Health and readiness responses never expose credentials or connection details.
 
 ---
 
-## Pillar 13 Files
+## Pillar 14 Files
 
 Implementation:
 
 ```text
-backend/app/schemas/reporting_schema.py
-backend/app/services/reporting_service.py
-backend/app/routers/reporting.py
+backend/app/schemas/execution_schema.py
+backend/app/models/domain_models.py
+backend/app/services/execution_service.py
+backend/app/integrations/partner_auth.py
+backend/app/routers/execution.py
+backend/app/integrations/otp_email.py
+backend/app/services/otp_service.py
+backend/app/integrations/local_llm.py
 backend/app/main.py
+backend/app/db/upgrade_p14_partner_execution.py
 ```
 
 Tests:
 
 ```text
-backend/tests/test_reporting_schemas.py
-backend/tests/test_reporting_service.py
-backend/tests/test_reporting_router.py
+backend/tests/test_schemas.py
+backend/tests/test_partner_execution_models.py
+backend/tests/test_execution_service.py
+backend/tests/test_partner_auth.py
+backend/tests/test_partner_execution_router.py
+backend/tests/test_otp_service.py
+backend/tests/test_local_llm.py
+backend/tests/test_system_health.py
+backend/tests/test_p14_schema_upgrade.py
 backend/tests/test_openapi_contracts.py
 backend/tests/test_classroom_openapi_contracts.py
 ```
@@ -524,6 +775,14 @@ Documentation:
 ```text
 docs/ai/CURRENT_HANDOFF.md
 ```
+
+Local environment configuration:
+
+```text
+backend/.env
+```
+
+The `.env` file is not a Pillar 14 repository file and must not be committed.
 
 ---
 
@@ -538,25 +797,37 @@ git branch --show-current
 Expected:
 
 ```text
-review/backend-p13-reporting-exports
+review/backend-p14-partner-contracts
 ```
 
-From `backend`, run focused Pillar 13 tests:
-
-```powershell
-.\venv\Scripts\python.exe -m pytest `
-    tests\test_reporting_schemas.py `
-    tests\test_reporting_service.py `
-    tests\test_reporting_router.py `
-    tests\test_openapi_contracts.py `
-    tests\test_classroom_openapi_contracts.py `
-    -q
-```
-
-Run the complete backend regression:
+From `backend`, run the complete regression:
 
 ```powershell
 .\venv\Scripts\python.exe -m pytest -q
+```
+
+Latest verified review-branch result:
+
+```text
+567 passed in 116.87s (0:01:56)
+```
+
+Verify the sanitized database target:
+
+```powershell
+.\venv\Scripts\python.exe -c "from app.core.database import engine; print(engine.url.render_as_string(hide_password=True)); print(engine.dialect.name)"
+```
+
+Run the explicit database upgrade when required:
+
+```powershell
+.\venv\Scripts\python.exe -m app.db.upgrade_p14_partner_execution
+```
+
+Verify real readiness:
+
+```powershell
+.\venv\Scripts\python.exe -c "from fastapi.testclient import TestClient; from app.main import app; r=TestClient(app).get('/ready'); print('Status:', r.status_code); print(r.json())"
 ```
 
 Return to the repository root:
@@ -572,23 +843,18 @@ git diff --check
 git status --short
 ```
 
-Pillar 13 review-branch verification is complete:
+Do not claim final Pillar 14 merge completion until:
 
-- focused Pillar 13 tests passed
-- complete backend regression passed
-- exact full regression count recorded: `448 passed`
-
-Remaining completion steps:
-
-- commit the review branch locally
-- merge the review branch locally into `dev`
-- rerun the complete regression on `dev`
-- push only `dev`
-- confirm the working tree is clean
+- this handoff is committed
+- the review branch is committed locally
+- the review branch is merged locally into `dev`
+- the complete regression passes again on `dev`
+- only `dev` is pushed
+- the working tree is clean
 
 ---
 
-## Final Pillar 13 Git Procedure
+## Final Pillar 14 Git Procedure
 
 Stage exact files only.
 
@@ -598,36 +864,62 @@ Do not use:
 git add .
 ```
 
-Stage:
+From the repository root, stage the complete Pillar 14 file set:
 
 ```powershell
 git add `
-    backend/app/schemas/reporting_schema.py `
-    backend/app/services/reporting_service.py `
-    backend/app/routers/reporting.py `
+    backend/app/schemas/execution_schema.py `
+    backend/app/models/domain_models.py `
+    backend/app/services/execution_service.py `
+    backend/app/integrations/partner_auth.py `
+    backend/app/routers/execution.py `
+    backend/app/integrations/otp_email.py `
+    backend/app/services/otp_service.py `
+    backend/app/integrations/local_llm.py `
     backend/app/main.py `
-    backend/tests/test_reporting_schemas.py `
-    backend/tests/test_reporting_service.py `
-    backend/tests/test_reporting_router.py `
+    backend/app/db/upgrade_p14_partner_execution.py `
+    backend/tests/test_schemas.py `
+    backend/tests/test_partner_execution_models.py `
+    backend/tests/test_execution_service.py `
+    backend/tests/test_partner_auth.py `
+    backend/tests/test_partner_execution_router.py `
+    backend/tests/test_otp_service.py `
+    backend/tests/test_local_llm.py `
+    backend/tests/test_system_health.py `
+    backend/tests/test_p14_schema_upgrade.py `
     backend/tests/test_openapi_contracts.py `
     backend/tests/test_classroom_openapi_contracts.py `
     docs/ai/CURRENT_HANDOFF.md
 ```
 
-Commit locally after the focused and complete regressions pass:
+Review the staged set:
 
 ```powershell
-git commit -m "feat: add privacy-safe reporting and gradebook exports"
+git diff --cached --name-only
+git diff --cached --check
+```
+
+Confirm the local environment file is not staged:
+
+```powershell
+git status --short | Select-String "\.env|\.db|__pycache__|\.pyc"
+```
+
+Create the final local Pillar 14 commit:
+
+```powershell
+git commit -m "feat: complete partner integration contracts"
 ```
 
 Do not push the review branch.
 
-Merge locally into `dev`:
+Merge locally into the updated `dev` branch:
 
 ```powershell
 git switch dev
-git pull --ff-only origin dev
-git merge --no-ff review/backend-p13-reporting-exports
+git fetch origin dev
+git merge --ff-only origin/dev
+git merge --no-ff review/backend-p14-partner-contracts
 ```
 
 Run the complete backend regression again on `dev`:
@@ -638,58 +930,45 @@ cd backend
 cd ..
 ```
 
-Push only `dev` after the regression passes:
+Do not push until the `dev` regression is green.
+
+Push only `dev`:
 
 ```powershell
 git push origin dev
 ```
 
-Confirm the working tree is clean:
+Confirm the working tree:
 
 ```powershell
 git status --short
+git log -3 --oneline
 ```
+
+The review branch remains local and must not be pushed.
 
 ---
 
 ## Next Pillar
 
-After Pillar 13 is verified, merged, and pushed:
+Before starting the next pillar:
 
-### Pillar 14 — Partner Integration Contracts
+1. confirm Pillar 14 is merged and pushed through `dev`
+2. read `docs/ai/ROADMAP.md`
+3. copy the exact next pillar title, version, branch name, scope, and exclusions into this handoff
+4. create the next local review branch from the updated `dev`
+5. do not infer the next scope from Pillar 14 exclusions
+6. do not push the next review branch
 
-Version:
+The currently supplied handoff identifies Pillar 14 as the latest roadmap entry but does not contain the authoritative Pillar 15 title or scope.
 
-```text
-0.14.0
+Do not invent the next pillar.
+
+Use this starting sequence after reading the roadmap:
+
+```powershell
+git switch dev
+git fetch origin dev
+git merge --ff-only origin/dev
+git switch -c <exact-next-review-branch-from-roadmap>
 ```
-
-Local branch:
-
-```text
-review/backend-p14-partner-contracts
-```
-
-Authoritative scope from `docs/ai/ROADMAP.md`:
-
-- isolated-worker request/result contracts
-- authenticated result updates
-- allowed execution lifecycle transitions
-- replay and idempotency protection
-- correlation IDs
-- result-size validation
-- OTP email-adapter interface
-- local LLM interface boundary
-- health and readiness contracts
-
-Excluded implementation:
-
-- Celery
-- Redis
-- Docker
-- sandbox runtime
-- resource-limit enforcement runtime
-- email-provider implementation
-- LLM runtime implementation
-
-The local LLM may draft explanations, hints, or feedback, but it must never set grades or determine plagiarism or misconduct.

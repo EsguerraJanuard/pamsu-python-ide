@@ -810,12 +810,46 @@ class ExecutionRequest(Base):
             "'output_limit', 'process_limit', 'cancelled', 'failed')",
             name="ck_execution_status",
         ),
+        CheckConstraint(
+            "last_partner_sequence >= 0",
+            name="ck_execution_last_partner_sequence",
+        ),
+        UniqueConstraint(
+            "correlation_id",
+            name="uq_execution_requests_correlation_id",
+        ),
+        UniqueConstraint(
+            "dispatch_idempotency_key",
+            name="uq_execution_requests_dispatch_idempotency_key",
+        ),
+        Index(
+            "ix_execution_requests_partner_state",
+            "status",
+            "last_partner_sequence",
+        ),
     )
 
     execution_id = Column(
         String(36),
         primary_key=True,
         default=lambda: str(uuid4()),
+    )
+    correlation_id = Column(
+        String(36),
+        nullable=False,
+        default=lambda: str(uuid4()),
+        index=True,
+    )
+    dispatch_idempotency_key = Column(
+        String(36),
+        nullable=False,
+        default=lambda: str(uuid4()),
+        index=True,
+    )
+    last_partner_sequence = Column(
+        Integer,
+        nullable=False,
+        default=0,
     )
     student_id = Column(
         Integer,
@@ -909,16 +943,142 @@ class ExecutionRequest(Base):
         "ASTAnalysis",
         back_populates="execution_request",
     )
+    partner_updates = relationship(
+        "PartnerExecutionUpdateRecord",
+        back_populates="execution_request",
+        order_by="PartnerExecutionUpdateRecord.sequence_number",
+    )
 
     # PARTNER INTEGRATION:
     # FastAPI validates authorization and persists this request before the
-    # partner-owned Celery/Redis adapter receives execution_id. FastAPI must
-    # never execute submitted Python code directly.
+    # partner-owned isolated-worker adapter receives the immutable execution
+    # snapshot. FastAPI must never execute submitted Python code directly.
+    #
+    # CORRELATION BOUNDARY:
+    # correlation_id is backend-generated and binds dispatch and result
+    # updates to one execution. dispatch_idempotency_key is backend-generated
+    # and allows a partner adapter to deduplicate a repeated dispatch.
+    #
+    # REPLAY BOUNDARY:
+    # last_partner_sequence stores the highest accepted result-update sequence.
+    # Accepted update IDs and payload digests are stored separately in
+    # PartnerExecutionUpdateRecord. Service logic must reject correlation
+    # mismatches, stale sequences, conflicting replays, and updates after a
+    # terminal status.
     #
     # WORKER UPDATE CONTRACT:
     # The isolated worker may update only lifecycle and result fields such as
     # status, stdout, stderr, exit_code, execution_time_ms, limit_reason,
-    # started_at, and completed_at.
+    # worker_task_id, started_at, and completed_at. Ownership, task,
+    # submission, coding-session, request-kind, source, and input snapshots
+    # remain immutable.
+
+
+class PartnerExecutionUpdateRecord(Base):
+    __tablename__ = "partner_execution_updates"
+    __table_args__ = (
+        CheckConstraint(
+            "sequence_number > 0",
+            name="ck_partner_execution_updates_sequence",
+        ),
+        CheckConstraint(
+            "status IN "
+            "('running', 'completed', 'syntax_error', 'runtime_error', "
+            "'timed_out', 'memory_limit', 'output_limit', "
+            "'process_limit', 'cancelled', 'failed')",
+            name="ck_partner_execution_updates_status",
+        ),
+        CheckConstraint(
+            "length(payload_digest) = 64",
+            name="ck_partner_execution_updates_digest_length",
+        ),
+        UniqueConstraint(
+            "update_id",
+            name="uq_partner_execution_updates_update_id",
+        ),
+        UniqueConstraint(
+            "execution_id",
+            "sequence_number",
+            name="uq_partner_execution_updates_execution_sequence",
+        ),
+        Index(
+            "ix_partner_execution_updates_execution_accepted",
+            "execution_id",
+            "accepted_at",
+        ),
+        Index(
+            "ix_partner_execution_updates_correlation_sequence",
+            "correlation_id",
+            "sequence_number",
+        ),
+    )
+
+    partner_update_record_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    update_id = Column(
+        String(36),
+        nullable=False,
+    )
+    execution_id = Column(
+        String(36),
+        ForeignKey(
+            "execution_requests.execution_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+    correlation_id = Column(
+        String(36),
+        nullable=False,
+        index=True,
+    )
+    sequence_number = Column(
+        Integer,
+        nullable=False,
+    )
+    status = Column(
+        String(30),
+        nullable=False,
+    )
+    payload_digest = Column(
+        String(64),
+        nullable=False,
+    )
+    accepted_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    execution_request = relationship(
+        "ExecutionRequest",
+        back_populates="partner_updates",
+    )
+
+    # IMMUTABILITY BOUNDARY:
+    # This table is append-only metadata for accepted partner updates.
+    # Services must not update or delete accepted update identities,
+    # correlations, sequences, statuses, digests, or timestamps.
+    #
+    # IDEMPOTENCY BOUNDARY:
+    # update_id identifies one partner result update. A repeated update_id
+    # with the same payload digest is an idempotent replay. Reusing an
+    # update_id with a different digest is a conflict.
+    #
+    # SEQUENCE BOUNDARY:
+    # One execution may accept each positive sequence number at most once.
+    # Service logic must also compare sequence_number with the execution's
+    # last_partner_sequence while holding a row lock.
+    #
+    # PRIVACY BOUNDARY:
+    # This table stores only update identity and lifecycle metadata. It never
+    # stores source code, standard input, stdout, stderr, credentials, OTPs,
+    # JWTs, grades, AST findings, similarity details, session telemetry,
+    # clipboard or paste contents, surveillance data, or misconduct verdicts.
 
 
 class ASTAnalysis(Base):
