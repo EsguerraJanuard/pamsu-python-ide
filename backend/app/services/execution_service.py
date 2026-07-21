@@ -985,6 +985,7 @@ def _partner_execution_update_values(
             "started_at",
             execution_request.started_at or _utc_now(),
         )
+
         values.pop(
             "completed_at",
             None,
@@ -995,6 +996,7 @@ def _partner_execution_update_values(
             "started_at",
             execution_request.started_at or _utc_now(),
         )
+
         values["completed_at"] = update_data.completed_at
 
     _validate_worker_timestamps(
@@ -1020,6 +1022,10 @@ def apply_partner_execution_result_update(
 
     A repeated update_id with identical canonical content returns a replay
     acknowledgment without mutating the execution a second time.
+
+    The update ID is checked before and after acquiring the execution-row
+    lock. The second check handles concurrent identical deliveries where
+    both transactions miss the initial lookup before one transaction commits.
     """
 
     payload_digest = _partner_update_payload_digest(
@@ -1042,6 +1048,17 @@ def apply_partner_execution_result_update(
         execution_id=update_data.execution_id,
         lock_for_update=True,
     )
+
+    concurrent_record = _find_partner_update_record(
+        db,
+        update_id=update_data.update_id,
+    )
+
+    if concurrent_record is not None:
+        return _resolve_existing_partner_replay(
+            existing_record=concurrent_record,
+            payload_digest=payload_digest,
+        )
 
     if execution_request.correlation_id != update_data.correlation_id:
         raise ExecutionPartnerCorrelationError(
@@ -1141,8 +1158,10 @@ def apply_partner_execution_result_update(
 
 # REPLAY BOUNDARY:
 # Accepted partner update IDs and canonical payload digests provide
-# idempotent replay handling. Sequence numbers are strictly monotonic per
-# execution. Terminal executions cannot accept later lifecycle mutations.
+# idempotent replay handling. The update ID is checked again after the
+# execution lock so concurrent identical deliveries return one accepted
+# mutation and one replay acknowledgment. Sequence numbers remain strictly
+# monotonic per execution, and terminal executions reject later mutations.
 
 # REVIEW BOUNDARY:
 # Worker output and resource-limit results support instructor review only.
