@@ -1,9 +1,19 @@
-from math import ceil
 from typing import Any
 
 from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    DEFAULT_PAGE,
+    DEFAULT_PAGE_SIZE,
+    PaginationBounds,
+    PaginationError,
+    PaginationRequest,
+    SortConfigurationError,
+    build_pagination_metadata,
+    normalize_sort_direction,
+    validate_pagination,
+)
 from app.models.domain_models import (
     Classroom,
     InstructorGrade,
@@ -18,6 +28,20 @@ from app.schemas.review_queue_schema import (
     SortDirection,
 )
 from app.schemas.submission_schema import SubmissionStatus
+
+
+REVIEW_QUEUE_PAGINATION_BOUNDS = PaginationBounds(
+    minimum_page=1,
+    minimum_page_size=MIN_PAGE_SIZE,
+    maximum_page_size=MAX_PAGE_SIZE,
+)
+
+APPROVED_REVIEW_QUEUE_SORT_FIELDS = {
+    "submitted_at",
+    "accepted_at",
+    "student_name",
+    "attempt_number",
+}
 
 
 class ReviewQueueServiceError(Exception):
@@ -51,7 +75,22 @@ class ReviewQueueFilterConflictError(
 class ReviewQueuePaginationError(
     ReviewQueueServiceError,
 ):
-    """Raised when pagination values fall outside allowed limits."""
+    """Raised when pagination or ordering values are invalid."""
+
+
+def _build_pagination_request(
+    *,
+    page: int,
+    page_size: int,
+) -> PaginationRequest:
+    try:
+        return validate_pagination(
+            page=page,
+            page_size=page_size,
+            bounds=REVIEW_QUEUE_PAGINATION_BOUNDS,
+        )
+    except PaginationError as error:
+        raise ReviewQueuePaginationError(str(error)) from error
 
 
 def _validate_pagination(
@@ -59,13 +98,15 @@ def _validate_pagination(
     page: int,
     page_size: int,
 ) -> None:
-    if page < 1:
-        raise ReviewQueuePaginationError("page must be greater than or equal to 1.")
+    """
+    Preserve the existing private service boundary while delegating
+    validation to the common pagination utility.
+    """
 
-    if not MIN_PAGE_SIZE <= page_size <= MAX_PAGE_SIZE:
-        raise ReviewQueuePaginationError(
-            f"page_size must be between {MIN_PAGE_SIZE} and {MAX_PAGE_SIZE}."
-        )
+    _build_pagination_request(
+        page=page,
+        page_size=page_size,
+    )
 
 
 def _get_owned_classroom(
@@ -396,8 +437,18 @@ def _apply_review_queue_ordering(
     sort_by: ReviewQueueSortField,
     sort_direction: SortDirection,
 ) -> Any:
-    def apply_direction(column: Any) -> Any:
-        if sort_direction == "asc":
+    if sort_by not in APPROVED_REVIEW_QUEUE_SORT_FIELDS:
+        raise ReviewQueuePaginationError("Unsupported review-queue sort field.")
+
+    try:
+        normalized_direction = normalize_sort_direction(sort_direction)
+    except SortConfigurationError as error:
+        raise ReviewQueuePaginationError(str(error)) from error
+
+    def apply_direction(
+        column: Any,
+    ) -> Any:
+        if normalized_direction == "asc":
             return column.asc()
 
         return column.desc()
@@ -473,8 +524,8 @@ def list_instructor_review_queue(
     db: Session,
     *,
     instructor_id: int,
-    page: int = 1,
-    page_size: int = 25,
+    page: int = DEFAULT_PAGE,
+    page_size: int = DEFAULT_PAGE_SIZE,
     class_id: int | None = None,
     task_id: int | None = None,
     student_id: int | None = None,
@@ -492,7 +543,7 @@ def list_instructor_review_queue(
     test-case data, and session telemetry are not loaded or returned.
     """
 
-    _validate_pagination(
+    pagination = _build_pagination_request(
         page=page,
         page_size=page_size,
     )
@@ -519,7 +570,7 @@ def list_instructor_review_queue(
         grade_released=(grade_released),
     )
 
-    total_items = item_query.order_by(None).count()
+    total_items = int(item_query.order_by(None).count())
 
     count_query = _build_authorized_count_query(
         db,
@@ -544,20 +595,21 @@ def list_instructor_review_queue(
         sort_direction=sort_direction,
     )
 
-    offset = (page - 1) * page_size
+    rows = ordered_query.offset(pagination.offset).limit(pagination.page_size).all()
 
-    rows = ordered_query.offset(offset).limit(page_size).all()
-
-    total_pages = ceil(total_items / page_size) if total_items else 0
+    metadata = build_pagination_metadata(
+        pagination=pagination,
+        total_items=total_items,
+    )
 
     return {
         "items": [_build_review_queue_item(row) for row in rows],
-        "page": page,
-        "page_size": page_size,
-        "total_items": total_items,
-        "total_pages": total_pages,
+        "page": metadata.page,
+        "page_size": metadata.page_size,
+        "total_items": metadata.total_items,
+        "total_pages": metadata.total_pages,
         "sort_by": sort_by,
-        "sort_direction": (sort_direction),
+        "sort_direction": sort_direction,
         "counts": {
             "total": int(count_row.total or 0),
             "submitted": int(count_row.submitted or 0),
@@ -570,6 +622,14 @@ def list_instructor_review_queue(
         },
     }
 
+
+# PAGINATION BOUNDARY:
+# Review-queue pagination uses the common bounded pagination contract.
+# Database offsets are derived internally rather than accepted directly.
+
+# ORDERING BOUNDARY:
+# Every review-queue ordering ends with Submission.sub_id as the stable
+# unique tie-breaker. Sort fields are selected only from an approved map.
 
 # AUTHORIZATION BOUNDARY:
 # Every queue query is restricted to activities and classrooms owned by
