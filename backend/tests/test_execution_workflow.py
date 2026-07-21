@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import Session
@@ -61,9 +61,7 @@ def login_and_get_token(
             "password": TEST_PASSWORD,
         },
     )
-
     assert response.status_code == 200
-
     return response.json()["access_token"]
 
 
@@ -198,6 +196,7 @@ def create_execution_request(
     standard_input: str = "",
     submission_id: int | None = None,
     coding_session_id: str | None = None,
+    idempotency_key: str | None = None,
 ):
     payload = {
         "request_kind": request_kind,
@@ -214,9 +213,14 @@ def create_execution_request(
     if coding_session_id is not None:
         payload["coding_session_id"] = coding_session_id
 
+    headers = bearer_header(student_token)
+
+    if idempotency_key is not None:
+        headers["Idempotency-Key"] = idempotency_key
+
     return client.post(
         "/execution/requests/",
-        headers=bearer_header(student_token),
+        headers=headers,
         json=payload,
     )
 
@@ -321,7 +325,7 @@ def test_student_can_queue_run_and_check_requests(
 
     assert run_request["request_kind"] == "run"
     assert run_request["status"] == "queued"
-    assert run_request["task_id"] == (setup["task"]["task_id"])
+    assert run_request["task_id"] == setup["task"]["task_id"]
     assert run_request["submission_id"] is None
     assert run_request["coding_session_id"] is None
     assert run_request["source_code"] == run_code
@@ -371,6 +375,174 @@ def test_student_can_queue_run_and_check_requests(
         assert stored_request.worker_task_id is None
 
 
+def test_execution_request_idempotency_header_replays_same_request(
+    client,
+    db_session,
+):
+    setup = setup_execution_context(
+        client,
+        db_session,
+        instructor_school_id="7100000010",
+        instructor_email=("executionfaculty10@pampangastateu.edu.ph"),
+        student_school_id="7200000012",
+        student_email=("executionstudent12@pampangastateu.edu.ph"),
+        task_title=("Execution Idempotency Replay Test"),
+    )
+
+    idempotency_key = str(uuid4()).upper()
+    normalized_key = str(
+        UUID(idempotency_key),
+    )
+    source_code = "print('safe retry')\n"
+
+    first_response = create_execution_request(
+        client,
+        student_token=setup["student_token"],
+        request_kind="run",
+        task_id=setup["task"]["task_id"],
+        source_code=source_code,
+        standard_input="",
+        idempotency_key=idempotency_key,
+    )
+
+    second_response = create_execution_request(
+        client,
+        student_token=setup["student_token"],
+        request_kind="run",
+        task_id=setup["task"]["task_id"],
+        source_code=source_code,
+        standard_input="",
+        idempotency_key=idempotency_key,
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    first_request = first_response.json()
+    second_request = second_response.json()
+
+    assert second_request["execution_id"] == first_request["execution_id"]
+
+    for response_data in (
+        first_request,
+        second_request,
+    ):
+        assert "request_idempotency_key" not in response_data
+        assert "request_payload_digest" not in response_data
+        assert "dispatch_idempotency_key" not in response_data
+        assert "correlation_id" not in response_data
+        assert "worker_task_id" not in response_data
+
+    db_session.expire_all()
+
+    stored_requests = (
+        db_session.query(ExecutionRequest)
+        .filter(
+            ExecutionRequest.student_id == setup["student"].user_id,
+            ExecutionRequest.request_idempotency_key == normalized_key,
+        )
+        .all()
+    )
+
+    assert len(stored_requests) == 1
+    assert stored_requests[0].execution_id == first_request["execution_id"]
+    assert stored_requests[0].request_idempotency_key == normalized_key
+    assert stored_requests[0].request_payload_digest is not None
+    assert len(stored_requests[0].request_payload_digest) == 64
+
+
+def test_execution_request_idempotency_header_rejects_changed_payload(
+    client,
+    db_session,
+):
+    setup = setup_execution_context(
+        client,
+        db_session,
+        instructor_school_id="7100000011",
+        instructor_email=("executionfaculty11@pampangastateu.edu.ph"),
+        student_school_id="7200000013",
+        student_email=("executionstudent13@pampangastateu.edu.ph"),
+        task_title=("Execution Idempotency Conflict Test"),
+    )
+
+    idempotency_key = str(uuid4())
+
+    first_response = create_execution_request(
+        client,
+        student_token=setup["student_token"],
+        request_kind="run",
+        task_id=setup["task"]["task_id"],
+        source_code=("print('first payload')\n"),
+        idempotency_key=idempotency_key,
+    )
+
+    conflicting_response = create_execution_request(
+        client,
+        student_token=setup["student_token"],
+        request_kind="run",
+        task_id=setup["task"]["task_id"],
+        source_code=("print('changed payload')\n"),
+        idempotency_key=idempotency_key,
+    )
+
+    assert first_response.status_code == 201
+    assert conflicting_response.status_code == 409
+    assert "already used" in conflicting_response.json()["detail"]
+
+    db_session.expire_all()
+
+    stored_requests = (
+        db_session.query(ExecutionRequest)
+        .filter(
+            ExecutionRequest.student_id == setup["student"].user_id,
+            ExecutionRequest.request_idempotency_key == idempotency_key,
+        )
+        .all()
+    )
+
+    assert len(stored_requests) == 1
+    assert stored_requests[0].execution_id == first_response.json()["execution_id"]
+
+
+def test_execution_request_rejects_invalid_idempotency_header(
+    client,
+    db_session,
+):
+    setup = setup_execution_context(
+        client,
+        db_session,
+        instructor_school_id="7100000012",
+        instructor_email=("executionfaculty12@pampangastateu.edu.ph"),
+        student_school_id="7200000014",
+        student_email=("executionstudent14@pampangastateu.edu.ph"),
+        task_title=("Invalid Execution Idempotency Key Test"),
+    )
+
+    response = create_execution_request(
+        client,
+        student_token=setup["student_token"],
+        request_kind="run",
+        task_id=setup["task"]["task_id"],
+        source_code=("print('invalid key')\n"),
+        idempotency_key="not-a-uuid",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == ("Idempotency-Key must be a valid UUID.")
+
+    db_session.expire_all()
+
+    stored_count = (
+        db_session.query(ExecutionRequest)
+        .filter(
+            ExecutionRequest.student_id == setup["student"].user_id,
+        )
+        .count()
+    )
+
+    assert stored_count == 0
+
+
 def test_submit_request_uses_immutable_submission_snapshot(
     client,
     db_session,
@@ -405,7 +577,7 @@ def test_submit_request_uses_immutable_submission_snapshot(
         request_kind="submit",
         task_id=setup["task"]["task_id"],
         submission_id=submission["sub_id"],
-        standard_input="THIS MUST BE IGNORED\n",
+        standard_input=("THIS MUST BE IGNORED\n"),
     )
 
     assert execution_response.status_code == 201
@@ -485,7 +657,7 @@ def test_execution_request_kind_contract_is_enforced(
         student_token=setup["student_token"],
         request_kind="submit",
         task_id=setup["task"]["task_id"],
-        source_code="print('client source')\n",
+        source_code=("print('client source')\n"),
         submission_id=1,
     )
 
@@ -496,10 +668,10 @@ def test_execution_request_kind_contract_is_enforced(
         headers=bearer_header(setup["student_token"]),
         json={
             "request_kind": "run",
-            "task_id": setup["task"]["task_id"],
-            "source_code": "print('test')\n",
+            "task_id": (setup["task"]["task_id"]),
+            "source_code": ("print('test')\n"),
             "standard_input": "",
-            "student_id": setup["student"].user_id,
+            "student_id": (setup["student"].user_id),
             "execution_id": str(uuid4()),
             "status": "completed",
             "stdout": "forged",
@@ -507,7 +679,7 @@ def test_execution_request_kind_contract_is_enforced(
             "exit_code": 0,
             "execution_time_ms": 1,
             "limit_reason": None,
-            "worker_task_id": "forged-worker",
+            "worker_task_id": ("forged-worker"),
             "queued_at": ("2026-07-15T00:00:00Z"),
             "started_at": ("2026-07-15T00:00:00Z"),
             "completed_at": ("2026-07-15T00:00:01Z"),
@@ -602,7 +774,7 @@ def test_execution_requires_published_task_and_active_enrollment(
         student_token=unenrolled_token,
         request_kind="run",
         task_id=published_task["task_id"],
-        source_code="print('unenrolled')\n",
+        source_code=("print('unenrolled')\n"),
     )
 
     assert unenrolled_response.status_code == 404
@@ -622,7 +794,7 @@ def test_execution_requires_published_task_and_active_enrollment(
         student_token=enrolled_token,
         request_kind="run",
         task_id=published_task["task_id"],
-        source_code="print('disabled')\n",
+        source_code=("print('disabled')\n"),
     )
 
     assert disabled_response.status_code == 404
@@ -638,7 +810,7 @@ def test_execution_requires_published_task_and_active_enrollment(
     assert reactivate_response.status_code == 200
 
     deactivate_class_response = client.patch(
-        f"/classrooms/{classroom['class_id']}",
+        (f"/classrooms/{classroom['class_id']}"),
         headers=bearer_header(instructor_token),
         json={
             "is_active": False,
@@ -652,7 +824,7 @@ def test_execution_requires_published_task_and_active_enrollment(
         student_token=enrolled_token,
         request_kind="check",
         task_id=published_task["task_id"],
-        source_code="print('inactive')\n",
+        source_code=("print('inactive')\n"),
     )
 
     assert inactive_class_response.status_code == 404
@@ -674,7 +846,7 @@ def test_coding_session_must_match_student_and_task(
 
     second_task = create_task(
         client,
-        instructor_token=setup["instructor_token"],
+        instructor_token=(setup["instructor_token"]),
         class_id=setup["classroom"]["class_id"],
         title="Second Coding Session Task",
     )
@@ -695,18 +867,18 @@ def test_coding_session_must_match_student_and_task(
         [
             CodingSession(
                 session_id=valid_session_id,
-                student_id=setup["student"].user_id,
-                task_id=setup["task"]["task_id"],
+                student_id=(setup["student"].user_id),
+                task_id=(setup["task"]["task_id"]),
             ),
             CodingSession(
                 session_id=wrong_task_session_id,
-                student_id=setup["student"].user_id,
+                student_id=(setup["student"].user_id),
                 task_id=second_task["task_id"],
             ),
             CodingSession(
                 session_id=wrong_owner_session_id,
                 student_id=other_student.user_id,
-                task_id=setup["task"]["task_id"],
+                task_id=(setup["task"]["task_id"]),
             ),
         ]
     )
@@ -718,7 +890,7 @@ def test_coding_session_must_match_student_and_task(
         student_token=setup["student_token"],
         request_kind="run",
         task_id=setup["task"]["task_id"],
-        source_code="print('valid session')\n",
+        source_code=("print('valid session')\n"),
         coding_session_id=valid_session_id,
     )
 
@@ -730,7 +902,7 @@ def test_coding_session_must_match_student_and_task(
         student_token=setup["student_token"],
         request_kind="run",
         task_id=setup["task"]["task_id"],
-        source_code="print('wrong task')\n",
+        source_code=("print('wrong task')\n"),
         coding_session_id=wrong_task_session_id,
     )
 
@@ -741,7 +913,7 @@ def test_coding_session_must_match_student_and_task(
         student_token=setup["student_token"],
         request_kind="check",
         task_id=setup["task"]["task_id"],
-        source_code="print('wrong owner')\n",
+        source_code=("print('wrong owner')\n"),
         coding_session_id=wrong_owner_session_id,
     )
 
@@ -752,7 +924,7 @@ def test_coding_session_must_match_student_and_task(
         student_token=setup["student_token"],
         request_kind="run",
         task_id=setup["task"]["task_id"],
-        source_code="print('malformed')\n",
+        source_code=("print('malformed')\n"),
         coding_session_id="not-a-valid-uuid",
     )
 
@@ -831,7 +1003,7 @@ def test_student_can_view_only_owned_execution_requests(
         student_token=first_token,
         request_kind="run",
         task_id=task["task_id"],
-        source_code="print('first student')\n",
+        source_code=("print('first student')\n"),
     )
 
     second_response = create_execution_request(
@@ -839,7 +1011,7 @@ def test_student_can_view_only_owned_execution_requests(
         student_token=second_token,
         request_kind="check",
         task_id=task["task_id"],
-        source_code="print('second student')\n",
+        source_code=("print('second student')\n"),
     )
 
     assert first_response.status_code == 201
@@ -917,7 +1089,7 @@ def test_instructor_can_review_only_owned_execution_requests(
         student_token=setup["student_token"],
         request_kind="run",
         task_id=setup["task"]["task_id"],
-        source_code="print('review this')\n",
+        source_code=("print('review this')\n"),
     )
 
     assert execution_response.status_code == 201
@@ -1005,7 +1177,7 @@ def test_worker_lifecycle_updates_and_terminal_state_are_enforced(
         student_token=setup["student_token"],
         request_kind="run",
         task_id=setup["task"]["task_id"],
-        source_code="print('worker lifecycle')\n",
+        source_code=("print('worker lifecycle')\n"),
     )
 
     assert execution_response.status_code == 201
@@ -1028,7 +1200,9 @@ def test_worker_lifecycle_updates_and_terminal_state_are_enforced(
 
     assert same_assignment.worker_task_id == "worker-task-001"
 
-    with pytest.raises(ExecutionStateConflictError):
+    with pytest.raises(
+        ExecutionStateConflictError,
+    ):
         assign_worker_task_id(
             db_session,
             execution_id=execution_id,
@@ -1069,7 +1243,9 @@ def test_worker_lifecycle_updates_and_terminal_state_are_enforced(
     assert completed_request.execution_time_ms == 25
     assert completed_request.completed_at is not None
 
-    with pytest.raises(ExecutionStateConflictError):
+    with pytest.raises(
+        ExecutionStateConflictError,
+    ):
         update_execution_from_worker(
             db_session,
             execution_id=execution_id,
@@ -1086,7 +1262,7 @@ def test_worker_lifecycle_updates_and_terminal_state_are_enforced(
     )
 
     assert stored_request is not None
-    assert stored_request.student_id == (setup["student"].user_id)
-    assert stored_request.task_id == (setup["task"]["task_id"])
+    assert stored_request.student_id == setup["student"].user_id
+    assert stored_request.task_id == setup["task"]["task_id"]
     assert stored_request.source_code == ("print('worker lifecycle')\n")
-    assert stored_request.worker_task_id == ("worker-task-001")
+    assert stored_request.worker_task_id == "worker-task-001"

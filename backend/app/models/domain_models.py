@@ -814,6 +814,21 @@ class ExecutionRequest(Base):
             "last_partner_sequence >= 0",
             name="ck_execution_last_partner_sequence",
         ),
+        CheckConstraint(
+            "request_idempotency_key IS NULL OR length(request_idempotency_key) = 36",
+            name="ck_execution_request_idempotency_key_length",
+        ),
+        CheckConstraint(
+            "(request_idempotency_key IS NULL "
+            "AND request_payload_digest IS NULL) "
+            "OR (request_idempotency_key IS NOT NULL "
+            "AND request_payload_digest IS NOT NULL)",
+            name="ck_execution_request_idempotency_pair",
+        ),
+        CheckConstraint(
+            "request_payload_digest IS NULL OR length(request_payload_digest) = 64",
+            name="ck_execution_request_payload_digest_length",
+        ),
         UniqueConstraint(
             "correlation_id",
             name="uq_execution_requests_correlation_id",
@@ -821,6 +836,11 @@ class ExecutionRequest(Base):
         UniqueConstraint(
             "dispatch_idempotency_key",
             name="uq_execution_requests_dispatch_idempotency_key",
+        ),
+        UniqueConstraint(
+            "student_id",
+            "request_idempotency_key",
+            name="uq_execution_requests_student_idempotency_key",
         ),
         Index(
             "ix_execution_requests_partner_state",
@@ -845,6 +865,14 @@ class ExecutionRequest(Base):
         nullable=False,
         default=lambda: str(uuid4()),
         index=True,
+    )
+    request_idempotency_key = Column(
+        String(36),
+        nullable=True,
+    )
+    request_payload_digest = Column(
+        String(64),
+        nullable=True,
     )
     last_partner_sequence = Column(
         Integer,
@@ -958,6 +986,14 @@ class ExecutionRequest(Base):
     # correlation_id is backend-generated and binds dispatch and result
     # updates to one execution. dispatch_idempotency_key is backend-generated
     # and allows a partner adapter to deduplicate a repeated dispatch.
+    #
+    # REQUEST IDEMPOTENCY BOUNDARY:
+    # request_idempotency_key is an optional normalized UUID supplied through
+    # the authenticated student's Idempotency-Key request header. The
+    # request_payload_digest stores only a SHA-256 digest of the canonical
+    # execution-request identity. One student may use a key for only one
+    # logical request. Source code and standard input are never copied into
+    # either idempotency metadata field.
     #
     # REPLAY BOUNDARY:
     # last_partner_sequence stores the highest accepted result-update sequence.
