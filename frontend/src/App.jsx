@@ -4,7 +4,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute';
 import { RoleRoute } from './auth/RoleRoute';
 
 // Shared Layouts & Error Pages
-import StudentLayout from './components/layout/StudentLayout';
+// StudentLayout remains removed since student pages render their own custom Sidebar
 import InstructorLayout from './components/layout/InstructorLayout';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
@@ -45,23 +45,21 @@ export const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Protected Route Tree - Requires Valid JWT Session */}
+          {/* Protected Route Tree - Requires Valid JWT/Session */}
           <Route element={<ProtectedRoute />}>
             
-            {/* Student Role Tree */}
+            {/* Student Role Tree (Standalone Pages without StudentLayout) */}
             <Route element={<RoleRoute allowedRole="student" />}>
-              <Route element={<StudentLayout />}>
-                <Route path="/dashboard/student" element={<StudentDashboard />} />
-                <Route path="/classes" element={<PlaceholderView title="My Classes" description="Join classrooms using 6-character instructor codes." />} />
-                <Route path="/classes/:id" element={<PlaceholderView title="Classroom Details" description="View active laboratory activities and announcements." />} />
-                <Route path="/assignments" element={<Assignments />} />
-                <Route path="/workspace" element={<Workspace />} />
-                <Route path="/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
-                <Route path="/submissions" element={<Submissions />} />
-                <Route path="/submissions/:id" element={<PlaceholderView title="Submission Details" description="Review AST feedback, test cases, and instructor grades." />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/settings" element={<Settings />} />
-              </Route>
+              <Route path="/dashboard/student" element={<StudentDashboard />} />
+              <Route path="/classes" element={<PlaceholderView title="My Classes" description="Join classrooms using 6-character instructor codes." />} />
+              <Route path="/classes/:id" element={<PlaceholderView title="Classroom Details" description="View active laboratory activities and announcements." />} />
+              <Route path="/assignments" element={<Assignments />} />
+              <Route path="/workspace" element={<Workspace />} />
+              <Route path="/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
+              <Route path="/submissions" element={<Submissions />} />
+              <Route path="/submissions/:id" element={<PlaceholderView title="Submission Details" description="Review AST feedback, test cases, and instructor grades." />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
 
             {/* Instructor Role Tree */}
@@ -75,8 +73,7 @@ export const App = () => {
                 <Route path="/instructor/submissions" element={<PlaceholderView title="Grading Bench" description="Review student source code, execution results, and similarity indicators." />} />
                 <Route path="/instructor/submissions/:id" element={<PlaceholderView title="Manual Grading" description="Assign official grades and feedback." />} />
                 <Route path="/instructor/monitoring" element={<PlaceholderView title="Live Student Monitoring" description="Controlled 5-10s polling of active IDE sessions and tab switches." />} />
-                {/* Instructors share access to their own account settings */}
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/instructor/settings" element={<Settings />} />
               </Route>
             </Route>
 
