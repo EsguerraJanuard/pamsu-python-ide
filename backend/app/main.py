@@ -12,6 +12,10 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.request_context import (
+    RequestContextMiddleware,
+    configure_request_logging,
+)
 from app.integrations.partner_auth import (
     PARTNER_EXECUTION_TOKEN_HEADER,
 )
@@ -214,6 +218,8 @@ OPENAPI_TAGS = [
 
 settings = get_settings()
 
+request_logger = configure_request_logging(log_level=settings.log_level)
+
 documentation_url = "/docs" if settings.enable_api_docs else None
 
 redoc_url = "/redoc" if settings.enable_api_docs else None
@@ -242,8 +248,10 @@ app = FastAPI(
         "read-state operations, immutable privacy-safe audit records, "
         "ownership-safe completion summaries, manual-grade distributions, "
         "missing-submission reports, authenticated student progress "
-        "summaries, privacy-safe gradebook CSV exports, and explicit "
-        "liveness and readiness contracts."
+        "summaries, privacy-safe gradebook CSV exports, validated runtime "
+        "security configuration, request correlation IDs, privacy-safe "
+        "structured request logging, and explicit liveness and readiness "
+        "contracts."
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
@@ -286,6 +294,15 @@ if settings.cors_allowed_origins:
         ],
         max_age=600,
     )
+
+
+# Add request context last so it remains the outermost application
+# middleware and covers CORS and trusted-host responses as well.
+app.add_middleware(
+    RequestContextMiddleware,
+    correlation_id_header=(settings.correlation_id_header),
+    logger=request_logger,
+)
 
 
 app.include_router(auth.router)
@@ -485,6 +502,17 @@ def readiness_check(
 # DOCUMENTATION BOUNDARY:
 # OpenAPI, Swagger UI, and ReDoc are enabled or disabled through validated
 # environment configuration. Production defaults to disabled.
+
+# REQUEST-CONTEXT BOUNDARY:
+# Every HTTP request receives a validated UUID correlation ID. The ID is
+# returned through the configured response header and is available through
+# trusted request state and context-local access.
+
+# STRUCTURED-LOGGING BOUNDARY:
+# Request logs include only approved metadata: timestamp, level, event,
+# correlation ID, method, path, status code, and duration. Bodies, query
+# strings, headers, credentials, tokens, source code, execution data,
+# clipboard or paste contents, and surveillance data are excluded.
 
 # HEALTH BOUNDARY:
 # /health is a liveness contract only. It does not test the database,
