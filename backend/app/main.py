@@ -36,7 +36,7 @@ from app.routers import (
 
 
 APP_TITLE = "PAMSU Python IDE Backend"
-APP_VERSION = "0.14.0"
+APP_VERSION = "0.15.0"
 
 HealthState = Literal["healthy"]
 ReadinessState = Literal[
