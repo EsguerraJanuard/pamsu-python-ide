@@ -18,39 +18,46 @@ These repository files are the authoritative source of truth.
 Current local working branch:
 
 ```text
-review/backend-p14-partner-contracts
+review/backend-p15-api-hardening
 ```
 
 Backend version:
 
 ```text
-0.14.0
+0.15.0
 ```
 
-Latest completed and merged pillar:
+Latest completed implementation scope:
 
-- Pillar 13 — Reporting and Privacy-Safe Export APIs
-- merged locally into `dev`
-- only `dev` pushed
+- Pillar 15 — API Hardening and Production Readiness
+- implementation complete on the local review branch
+- final full review-branch regression passed
+- review branch has not been pushed
 
-Current completed implementation scope:
-
-- Pillar 14 — Partner Integration Contracts
-
-Current verification status:
+Latest confirmed local commits:
 
 ```text
-Focused Pillar 14 verification: passed
-Complete backend regression on review branch: 567 passed
-PostgreSQL schema verification: passed
-Real readiness verification: HTTP 200 ready
+8134462 chore: bump backend version to 0.15.0
+2ae65b8 feat: integrate request correlation and structured logging
+0145824 feat: harden runtime configuration and request context
+570eb4d feat: add student execution request idempotency
+a078fad feat: harden pagination and concurrent write safety
+ef99380 refactor: centralize bounded pagination and ordering
+cdd44eb db: add guarded legacy schema alignment
+50772ea build: add Alembic baseline and migration readiness
 ```
 
-The Pillar 14 review branch must remain local.
+Latest authoritative review-branch regression:
+
+```text
+699 passed in 120.22s (0:02:00)
+```
+
+The Pillar 15 review branch must remain local.
 
 Do not push the review branch.
 
-Local checkpoint commits were created during implementation. The remaining completion sequence is:
+Remaining Pillar 15 completion sequence:
 
 1. replace and commit this handoff
 2. confirm repository checks
@@ -61,379 +68,357 @@ Local checkpoint commits were created during implementation. The remaining compl
 
 ---
 
-## Pillar 14 Objective
+## Pillar 15 Objective
 
-Pillar 14 defines secure, explicit contracts between the FastAPI backend and trusted partner-owned integrations without implementing the isolated execution runtime, concrete email delivery provider, or local LLM runtime.
+Pillar 15 hardens the existing FastAPI backend for deterministic API behavior, safer concurrent writes, replay-safe student execution requests, migration readiness, validated runtime configuration, safe security middleware, and privacy-safe request observability.
 
 Implemented areas:
 
-- isolated-worker dispatch and result contracts
-- authenticated partner result updates
-- backend-controlled execution lifecycle transitions
-- replay and idempotency protection
-- correlation identifiers
-- strict partner update sequencing
-- bounded execution-result validation
-- partner update persistence records
-- OTP email-adapter interface
-- local LLM assistance interface boundary
-- liveness and readiness contracts
-- explicit PostgreSQL-compatible schema upgrade support
+- centralized bounded pagination
+- deterministic ordering for paginated collections
+- transactional row locking for concurrent official-attempt allocation
+- transactional row locking for concurrent manual grading
+- replay-safe partner execution update handling under concurrency
+- student-scoped execution-request idempotency
+- Alembic baseline and migration smoke verification
+- guarded alignment for legacy development schemas
+- evidence-based database index cleanup and additions
+- N+1 query review for high-use listing services
+- validated immutable application settings
+- environment-controlled API documentation
+- explicit CORS allowlists
+- optional trusted-host enforcement
+- correlation-ID middleware
+- privacy-safe structured request logging
+- backend version `0.15.0`
 
-Excluded implementation remains:
+Pillar 15 does not execute student Python code inside FastAPI.
 
-- Celery
-- Redis
-- Docker
-- isolated sandbox runtime
-- resource-limit enforcement runtime
-- SMTP or third-party email-provider implementation
-- local LLM model runtime
-- model download or inference server
-- background delivery or inference queues
-
-Student Python code still never executes inside React or FastAPI.
+Student execution remains exclusive to the partner-owned isolated sandbox contract.
 
 ---
 
-## Partner Execution Schemas
+## Bounded Pagination and Deterministic Ordering
 
-Implemented in:
-
-```text
-backend/app/schemas/execution_schema.py
-```
-
-Implemented or extended contracts include:
-
-- partner-reportable execution statuses
-- allowed lifecycle transition map
-- bounded worker identity and output values
-- backend-generated correlation identifiers
-- backend-generated dispatch idempotency identifiers
-- `PartnerExecutionLimits`
-- `PartnerExecutionDispatchRequest`
-- `PartnerExecutionResultUpdate`
-- `PartnerExecutionUpdateAcceptedResponse`
-- lifecycle-transition validation helpers
-- combined UTF-8 execution-output size validation
-
-Contract behavior:
-
-- strict Pydantic V2 validation
-- extra fields forbidden
-- UUID normalization
-- timezone-aware partner timestamps
-- bounded source, input, output, and worker identifiers
-- terminal updates require completion metadata
-- running updates cannot claim terminal completion
-- terminal execution requests cannot be mutated by later updates
-- result payloads cannot carry credentials, grades, analytics, telemetry, or misconduct verdicts
-
-Execution limits are contract values only in Pillar 14.
-
-FastAPI does not enforce CPU, memory, filesystem, process, or network isolation.
-
-Those controls remain the responsibility of the future partner-owned isolated worker.
-
----
-
-## Partner Execution Models
-
-Updated in:
+Implemented shared pagination support:
 
 ```text
-backend/app/models/domain_models.py
+backend/app/core/pagination.py
 ```
 
-`ExecutionRequest` now includes:
+Integrated into:
 
-- `correlation_id`
-- `dispatch_idempotency_key`
-- `last_partner_sequence`
-- partner lifecycle index
-- unique correlation identifier
-- unique dispatch idempotency identifier
-- relationship to accepted partner update records
-
-Implemented partner update model:
-
-```text
-PartnerExecutionUpdateRecord
-```
-
-Database table:
-
-```text
-partner_execution_updates
-```
-
-Stored partner update metadata:
-
-- partner update record identifier
-- globally unique update identifier
-- execution identifier
-- correlation identifier
-- strict sequence number
-- accepted status
-- canonical payload digest
-- acceptance timestamp
-
-The update-record table does not store:
-
-- source code
-- standard input
-- stdout or stderr
-- credentials
-- OTP values
-- grades
-- AST findings
-- similarity details
-- session telemetry
-- clipboard contents
-- pasted text
-- surveillance data
-- misconduct conclusions
-
----
-
-## Partner Authentication Boundary
-
-Implemented in:
-
-```text
-backend/app/integrations/partner_auth.py
-```
-
-Authentication configuration:
-
-```text
-Environment variable: PAMSU_PARTNER_EXECUTION_TOKEN
-HTTP header: X-Partner-Token
-Minimum configured token length: 32 characters
-```
+- notification listing
+- instructor review queue
+- gradebook listing
+- reporting queries
+- audit-record listing
 
 Behavior:
 
-- missing configured token returns `503 Service Unavailable`
-- configured token shorter than the minimum returns `503 Service Unavailable`
-- missing partner header returns `401 Unauthorized`
-- invalid partner token returns `401 Unauthorized`
-- comparison uses constant-time secret comparison
-- token values are never returned in responses
-- token values are never included in OpenAPI
-- query parameters and request bodies cannot replace the required header
+- page and page-size values are validated and bounded
+- collection ordering is deterministic
+- stable tie-breakers prevent duplicate or skipped rows between pages
+- pagination behavior is centralized instead of reimplemented per service
+- ownership and authorization filters remain enforced before results are returned
 
-The real development token belongs only in:
+Verified focused results included:
 
 ```text
-backend/.env
+77 passed in 9.10s
+182 passed in 13.40s
+179 passed in 13.42s
 ```
-
-The token must never be committed.
-
-Production transport must use TLS.
 
 ---
 
-## Partner Execution Service
+## Concurrent Write Safety
 
-Updated in:
+### Submission Attempt Allocation
+
+Updated submission workflows serialize attempt allocation by locking the relevant activity task row before allocating the next attempt number.
+
+Implemented verification:
 
 ```text
+backend/tests/test_submission_concurrency.py
+```
+
+Confirmed results:
+
+```text
+Focused concurrency test: 1 passed
+Related submission regression: 22 passed
+```
+
+Concurrent accepted submissions do not receive the same attempt number.
+
+Official-attempt behavior remains backend-controlled.
+
+### Manual Grade Writes
+
+Updated evaluation workflows lock the target submission and existing instructor-grade row within the grading transaction.
+
+Implemented verification:
+
+```text
+backend/tests/test_grade_concurrency.py
+```
+
+Confirmed results:
+
+```text
+Focused concurrency test: 1 passed
+Related evaluation and gradebook regression: 40 passed
+```
+
+Official grades remain manually controlled by authorized instructors.
+
+### Partner Result Replay Concurrency
+
+Partner execution result processing performs a post-lock replay check before accepting a new update record.
+
+Implemented verification:
+
+```text
+backend/tests/test_partner_execution_concurrency.py
+```
+
+Confirmed results:
+
+```text
+Focused concurrency test: 1 passed
+Related partner execution regression: 15 passed
+```
+
+Concurrent identical partner retries remain replay-safe.
+
+---
+
+## Student Execution Request Idempotency
+
+Implemented across:
+
+```text
+backend/app/models/domain_models.py
+backend/app/schemas/execution_schema.py
 backend/app/services/execution_service.py
-```
-
-Implemented partner operations include:
-
-- build a partner dispatch contract from a stored execution request
-- apply an authenticated partner lifecycle or result update
-- validate execution correlation identity
-- validate strict partner sequence ordering
-- validate worker-task identity
-- enforce allowed lifecycle transitions
-- reject updates after terminal completion
-- compute a canonical SHA-256 payload digest
-- recognize identical retries as safe replays
-- reject reuse of an update identifier with different content
-- persist execution state and accepted update metadata atomically
-- roll back controlled persistence failures
-
-Replay behavior:
-
-- first accepted update returns `replayed: false`
-- identical retry returns `replayed: true`
-- conflicting retry returns `409 Conflict`
-- stale or skipped sequence numbers return `409 Conflict`
-
-The legacy internal worker-update service remains available for backward compatibility, but the authenticated Pillar 14 route is the trusted partner boundary.
-
----
-
-## Authenticated Partner Result Endpoint
-
-Updated router:
-
-```text
 backend/app/routers/execution.py
+backend/alembic/versions/4b3a1d9e7c25_add_execution_request_idempotency.py
 ```
 
-Implemented endpoint:
+Student execution-request behavior:
+
+- accepts optional `Idempotency-Key`
+- requires the key to be a UUID when supplied
+- scopes idempotency to the authenticated student
+- stores a normalized UUID and SHA-256 request digest
+- never stores plaintext source-code content in idempotency metadata
+- identical retries return the existing execution request
+- key reuse with changed resolved request content returns `409 Conflict`
+- malformed keys return `400 Bad Request`
+- concurrent identical retries create one execution request
+- concurrent identical retries increment the backend-controlled run counter once
+- response schemas do not expose internal idempotency metadata
+- response schemas do not expose partner-only execution fields
+
+Confirmed verification included:
 
 ```text
-POST /execution/internal/partner-results
+Migration tests: 3 passed in 7.02s
+HTTP workflow: 11 passed in 16.04s
+Combined execution/idempotency regression: 80 passed in 24.18s
 ```
-
-This endpoint:
-
-- requires `X-Partner-Token`
-- accepts `PartnerExecutionResultUpdate`
-- returns `PartnerExecutionUpdateAcceptedResponse`
-- never executes Python code
-- never accepts partner credentials in the body
-- never exposes the internal partner token
-
-Controlled HTTP mappings include:
-
-- `200 OK` — accepted update or identical replay
-- `400 Bad Request` — invalid worker lifecycle data
-- `401 Unauthorized` — missing or invalid partner token
-- `404 Not Found` — execution request does not exist
-- `409 Conflict` — correlation, replay, sequence, worker, lifecycle, or persistence conflict
-- `422 Unprocessable Content` — request-schema validation failure
-- `500 Internal Server Error` — persistence failure
-- `503 Service Unavailable` — partner authentication boundary not configured
-
-Student and instructor execution routes remain protected by their existing authenticated ownership rules.
 
 ---
 
-## OTP Email-Adapter Boundary
+## Alembic Baseline and Migration Readiness
 
-Implemented integration contract:
-
-```text
-backend/app/integrations/otp_email.py
-```
-
-Updated service:
+Alembic configuration:
 
 ```text
-backend/app/services/otp_service.py
+backend/alembic.ini
+backend/alembic/env.py
 ```
 
-Implemented interface:
+Migration chain:
 
 ```text
-OTPEmailAdapter.send_otp()
+18d3ef8f020d  baseline
+4b3a1d9e7c25  add execution request idempotency
+9f2c6e4a1b7d  optimize proven index coverage
 ```
 
-The adapter receives only:
-
-- recipient university email
-- temporary plaintext OTP
-- approved delivery purpose
-- expiration duration
-
-The backend remains responsible for:
-
-- OTP generation
-- OTP hashing
-- expiration
-- resend cooldowns
-- resend limits
-- verification attempts
-- challenge consumption
-- account creation
-- role assignment
-
-Adapter failures are converted into:
+Current migration head:
 
 ```text
-OTPDeliveryError
+9f2c6e4a1b7d
 ```
 
-Registration and resend transactions roll back when delivery fails.
+Implemented migration verification:
 
-Plaintext OTP values:
+```text
+backend/tests/test_alembic_migrations.py
+```
 
-- exist only temporarily in process memory
-- are never stored
-- are never logged
-- are never returned through the API
-- are never included in OpenAPI
-- are never written to audit records
+Confirmed migration state:
 
-Pillar 14 does not implement SMTP or a third-party email provider.
+```text
+alembic heads: 9f2c6e4a1b7d (head)
+alembic check: No new upgrade operations detected.
+Migration tests: 3 passed in 5.28s
+```
+
+The Alembic baseline represents 20 application tables.
+
+Migrations do not run automatically during FastAPI import.
+
+Run migrations explicitly from `backend`:
+
+```powershell
+.\venv\Scripts\python.exe -m alembic upgrade head
+```
+
+Check for model-to-migration drift:
+
+```powershell
+.\venv\Scripts\python.exe -m alembic check
+```
 
 ---
 
-## Local LLM Interface Boundary
+## Guarded Legacy Schema Alignment
 
-Implemented in:
+Implemented:
 
 ```text
-backend/app/integrations/local_llm.py
+backend/app/db/upgrade_p15_legacy_schema.py
 ```
 
-Implemented assistance kinds:
+Purpose:
 
-- `explanation`
-- `hint`
-- `feedback`
+- detect development databases created before the Alembic baseline
+- identify required missing columns without destructive guessing
+- apply only guarded known schema additions
+- permit Alembic stamping and migration verification after alignment
+- remain explicit and manually invoked
+- avoid running during application import or startup
 
-Implemented contracts:
+Observed legacy alignment:
 
-- `LocalLLMAssistanceRequest`
-- `LocalLLMAssistanceResponse`
-- `LocalLLMAdapter`
-- adapter validation
-- request and response correlation validation
-- assistance-kind matching
-- bounded context and response sizes
-- timezone-aware response timestamps
+```text
+Initial dry run: 31 missing columns
+Apply run: completed
+Post-apply dry run: 0 missing columns
+```
 
-Allowed context is limited to explicitly approved student-visible data.
+A local PostgreSQL backup was created before applying the legacy alignment.
 
-The contract excludes:
-
-- passwords
-- OTP values
-- JWTs
-- API keys
-- hidden tests
-- expected outputs
-- unreleased grades
-- official grades
-- similarity details
-- surveillance telemetry
-- clipboard contents
-- pasted text
-- browsing history
-- individual keystrokes
-- screen recordings
-- webcam data
-- microphone data
-
-Local LLM output may draft educational explanations, hints, or feedback only.
-
-It must never:
-
-- assign a score
-- assign an official grade
-- release a grade
-- determine pass or fail
-- determine plagiarism
-- determine cheating
-- determine copying
-- determine misconduct
-- rank behavioral or academic risk
-
-Pillar 14 does not implement a model runtime, inference server, provider client, prompt engine, or persistence layer.
+No database credentials are recorded in this handoff.
 
 ---
 
-## Health and Readiness Contracts
+## Query and Index Review
+
+Reviewed high-use services for N+1 behavior:
+
+- gradebook
+- review queue
+- reporting
+- audit records
+- notifications
+
+Result:
+
+- no proven N+1 pattern remained in the reviewed services
+- listing workflows use explicit joins, scalar queries, or bounded aggregate queries
+- no broad speculative eager-loading refactor was introduced
+
+Implemented index migration:
+
+```text
+backend/alembic/versions/9f2c6e4a1b7d_optimize_proven_index_coverage.py
+```
+
+Added composite execution-request indexes:
+
+```text
+ix_execution_requests_student_queued
+ix_execution_requests_task_queued
+```
+
+Removed redundant standalone or primary-key-equivalent indexes only where existing constraints or stronger composite indexes already provided equivalent coverage.
+
+Confirmed affected regression:
+
+```text
+102 passed in 9.90s
+```
+
+---
+
+## Validated Runtime Configuration
+
+Implemented:
+
+```text
+backend/app/core/config.py
+```
+
+Updated consumers:
+
+```text
+backend/app/core/database.py
+backend/app/core/security.py
+backend/app/integrations/partner_auth.py
+backend/app/main.py
+```
+
+Validated settings include:
+
+- `DATABASE_URL`
+- `JWT_SECRET_KEY`
+- `JWT_ALGORITHM`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `PAMSU_ENVIRONMENT`
+- `PAMSU_PARTNER_EXECUTION_TOKEN`
+- `PAMSU_CORS_ALLOWED_ORIGINS`
+- `PAMSU_CORS_ALLOW_CREDENTIALS`
+- `PAMSU_ALLOWED_HOSTS`
+- `PAMSU_ENABLE_API_DOCS`
+- `PAMSU_LOG_LEVEL`
+- `PAMSU_CORRELATION_ID_HEADER`
+
+Behavior:
+
+- required database and JWT settings fail fast
+- JWT secret length and algorithm are validated
+- token expiration is bounded
+- application environment is restricted to approved values
+- CORS origins are normalized, deduplicated, and validated
+- wildcard CORS origins are rejected
+- production CORS origins require HTTPS
+- credentialed CORS requires explicit origins
+- trusted-host entries accept hostnames only
+- production wildcard trusted hosts are rejected
+- API documentation defaults to disabled in production
+- log level and correlation-header name are validated
+- sensitive values use secret wrappers and are excluded from representations
+- configuration caching responds safely to test-time environment changes
+- missing or short partner token does not block unrelated core settings
+- partner endpoints and readiness preserve their existing `503` contract for missing or short partner configuration
+
+Confirmed configuration regression:
+
+```text
+45 passed in 2.95s
+56 passed in 3.63s
+73 passed in 19.00s
+```
+
+---
+
+## CORS, Trusted Hosts, and Documentation Exposure
 
 Updated:
 
@@ -441,164 +426,105 @@ Updated:
 backend/app/main.py
 ```
 
-Backend version:
+Dedicated tests:
 
 ```text
-0.14.0
-```
-
-Implemented system endpoints:
-
-```text
-GET /
-GET /health
-GET /ready
-```
-
-### Liveness
-
-```text
-GET /health
+backend/tests/test_application_security_config.py
 ```
 
 Behavior:
 
-- checks process-level application liveness only
-- does not query the database
-- does not contact the execution partner
-- does not contact an email provider
-- does not contact a local LLM runtime
-- returns sanitized service, version, state, and timestamp values
+- CORS middleware is installed only when explicit origins are configured
+- allowed origins are exact, not wildcard
+- allowed methods and request headers are explicit
+- untrusted origins do not receive approved CORS access
+- trusted-host middleware is installed only when a host allowlist is configured
+- invalid host headers return `400`
+- Swagger UI, ReDoc, and OpenAPI routes are environment-controlled
+- production defaults disable documentation routes
+- development defaults keep documentation routes available
+- unsafe wildcard configuration blocks application startup
+- startup failures do not disclose secret values
 
-### Readiness
+Confirmed dedicated result:
 
 ```text
-GET /ready
+7 passed in 14.97s
 ```
-
-`/ready` is a public deployment probe and does not require a user JWT.
-
-Required readiness components:
-
-- database connection
-- execution-partner authentication configuration
-
-Optional Pillar 14 contract-only components:
-
-- OTP email adapter
-- local LLM adapter
-
-Readiness behavior:
-
-- returns `200 OK` with `status: ready` when required components are ready
-- returns `503 Service Unavailable` with `status: not_ready` when a required component is unavailable
-- reports OTP email and local LLM as `contract_only`
-- does not expose tokens
-- does not expose secret names
-- does not expose secret lengths
-- does not expose connection strings
-- does not expose provider names
-- does not expose raw exceptions
 
 ---
 
-## Explicit Database Upgrade
+## Correlation IDs and Privacy-Safe Structured Logging
 
-Implemented in:
-
-```text
-backend/app/db/upgrade_p14_partner_execution.py
-```
-
-The module exists because:
+Implemented:
 
 ```text
-Base.metadata.create_all()
+backend/app/core/request_context.py
+backend/app/main.py
 ```
 
-creates missing tables but does not alter existing tables.
+Every HTTP request:
 
-The explicit upgrade:
+- accepts the configured correlation-ID header
+- preserves only valid UUID correlation IDs
+- replaces missing, blank, or malformed values with a backend-generated UUID
+- exposes the normalized correlation ID through `request.state`
+- exposes the active value through a request-local `ContextVar`
+- returns the correlation ID in the configured response header
+- resets request-local context after completion
 
-- supports PostgreSQL
-- supports SQLite development databases
-- requires the base `execution_requests` table
-- adds missing Pillar 14 execution columns
-- backfills missing partner UUIDs
-- initializes missing partner sequence values
-- applies unique indexes
-- applies the partner lifecycle index
-- applies PostgreSQL not-null and sequence constraints
-- creates `partner_execution_updates`
-- verifies the resulting schema
-- is safe to rerun
-- never runs automatically during FastAPI import or startup
+Structured request log fields are limited to:
 
-Run explicitly from `backend`:
+- timestamp
+- level
+- event
+- correlation ID
+- HTTP method
+- URL path
+- status code
+- duration in milliseconds
 
-```powershell
-.\venv\Scripts\python.exe -m app.db.upgrade_p14_partner_execution
-```
+Request logs exclude:
 
-Observed PostgreSQL verification:
+- query strings
+- request bodies
+- response bodies
+- headers
+- cookies
+- authorization values
+- JWTs
+- partner tokens
+- OTP values
+- database URLs
+- source code
+- standard input
+- stdout or stderr
+- hidden tests
+- grades
+- AST findings
+- similarity details
+- clipboard contents
+- pasted text
+- browsing history
+- individual keystrokes
+- screen, webcam, or microphone data
+- raw exception messages and tracebacks
+
+Confirmed middleware verification:
 
 ```text
-Pillar 14 partner-execution schema upgrade completed.
-Database dialect: postgresql
-Execution rows backfilled: 0
-Partner-update table created: False
+Request-context tests: 10 passed in 0.54s
+Integrated middleware/security tests: 28 passed in 20.15s
 ```
 
-`Partner-update table created: False` was correct because the fresh database schema had already created the table.
-
----
-
-## PostgreSQL Verification
-
-Configured development database dialect:
-
-```text
-postgresql
-```
-
-Sanitized configured URL:
-
-```text
-postgresql://postgres:***@localhost:5432/pamsu_ide_db
-```
-
-The database was initially empty.
-
-The complete current metadata schema was initialized explicitly for the fresh development database.
-
-Observed table state:
-
-```text
-Table count: 20
-execution_requests exists: True
-partner_execution_updates exists: True
-```
-
-Verified `execution_requests` Pillar 14 columns:
-
-```text
-correlation_id
-dispatch_idempotency_key
-last_partner_sequence
-```
-
-Observed real readiness verification:
+Observed health smoke:
 
 ```text
 HTTP status: 200
-Application status: ready
-database: ready
-execution_partner_auth: ready
-otp_email_adapter: contract_only
-local_llm_adapter: contract_only
+Response state: healthy
+Response correlation ID: generated UUID
+Structured request log correlation ID matched the response header
 ```
-
-No database password or partner token is recorded in this handoff.
 
 ---
 
@@ -608,102 +534,144 @@ Updated:
 
 ```text
 backend/app/main.py
+backend/tests/test_system_health.py
 backend/tests/test_openapi_contracts.py
 backend/tests/test_classroom_openapi_contracts.py
 ```
 
-OpenAPI requirements now include:
+Backend version:
 
-- version `0.14.0`
-- public `/health`
-- public `/ready`
-- authenticated `POST /execution/internal/partner-results`
-- `PartnerExecutionToken` API-key security scheme
-- `X-Partner-Token` header authentication
-- documented partner result responses
-- no partner secret in OpenAPI
-- no partner credential fields in result bodies
-- health and readiness response contracts
-- preserved classroom and all previous API contracts
+```text
+0.15.0
+```
+
+System endpoints remain:
+
+```text
+GET /
+GET /health
+GET /ready
+```
+
+OpenAPI and system contracts now report version:
+
+```text
+0.15.0
+```
+
+Confirmed version-contract results:
+
+```text
+System health/version contract: 11 passed in 1.17s
+Classroom OpenAPI contract: 11 passed in 1.06s
+OpenAPI contracts: 32 passed in 2.15s
+Combined version-contract group: 54 passed in 2.74s
+```
 
 ---
 
-## Pillar 14 Tests
+## Pillar 15 Files
 
-Implemented or updated:
+Primary implementation and migration files:
 
 ```text
-backend/tests/test_schemas.py
-backend/tests/test_partner_execution_models.py
-backend/tests/test_execution_service.py
+backend/alembic.ini
+backend/alembic/env.py
+backend/alembic/versions/18d3ef8f020d_baseline.py
+backend/alembic/versions/4b3a1d9e7c25_add_execution_request_idempotency.py
+backend/alembic/versions/9f2c6e4a1b7d_optimize_proven_index_coverage.py
+backend/app/core/config.py
+backend/app/core/database.py
+backend/app/core/pagination.py
+backend/app/core/request_context.py
+backend/app/core/security.py
+backend/app/db/upgrade_p15_legacy_schema.py
+backend/app/integrations/partner_auth.py
+backend/app/main.py
+backend/app/models/domain_models.py
+backend/app/services/audit_service.py
+backend/app/services/evaluation_service.py
+backend/app/services/execution_service.py
+backend/app/services/gradebook_service.py
+backend/app/services/notification_service.py
+backend/app/services/reporting_service.py
+backend/app/services/review_queue_service.py
+backend/app/services/submission_service.py
+```
+
+Primary Pillar 15 tests:
+
+```text
+backend/tests/test_alembic_migrations.py
+backend/tests/test_application_security_config.py
+backend/tests/test_config.py
+backend/tests/test_grade_concurrency.py
 backend/tests/test_partner_auth.py
-backend/tests/test_partner_execution_router.py
-backend/tests/test_otp_service.py
-backend/tests/test_local_llm.py
+backend/tests/test_partner_execution_concurrency.py
+backend/tests/test_pagination.py
+backend/tests/test_request_context.py
+backend/tests/test_security.py
+backend/tests/test_submission_concurrency.py
 backend/tests/test_system_health.py
-backend/tests/test_p14_schema_upgrade.py
 backend/tests/test_openapi_contracts.py
 backend/tests/test_classroom_openapi_contracts.py
 ```
 
-Test coverage includes:
-
-- partner dispatch and result schemas
-- UUID and timestamp validation
-- bounded execution limits and output
-- lifecycle transitions
-- terminal-state protection
-- partner model constraints
-- unique update identifiers
-- unique per-execution sequence numbers
-- update-record privacy
-- authenticated partner result updates
-- correlation conflicts
-- worker identity conflicts
-- stale and skipped sequences
-- safe identical replay
-- conflicting replay rejection
-- persistence rollback
-- partner API-key OpenAPI contract
-- partner secret exclusion
-- OTP adapter compatibility
-- OTP delivery failures
-- registration rollback
-- resend rollback
-- plaintext OTP privacy
-- local LLM adapter compatibility
-- LLM request and response correlation
-- assistance-kind validation
-- timezone validation
-- grade and misconduct field exclusion
-- health liveness
-- readiness success and failure states
-- database readiness rollback
-- contract-only optional components
-- schema upgrade backfill
-- schema upgrade rerun idempotency
-- source-code preservation during schema upgrade
-- complete OpenAPI route and authentication boundaries
-
-Latest confirmed selected Pillar 14 verification:
+Documentation:
 
 ```text
-passed
+docs/ai/CURRENT_HANDOFF.md
 ```
 
-Latest confirmed complete backend regression on the review branch:
+Local environment files, database files, backups, caches, and virtual environments must not be committed.
+
+---
+
+## Verified Pillar 15 Results
+
+The following results were explicitly observed during Pillar 15:
 
 ```text
-567 passed in 116.87s (0:01:56)
+Pagination verification: 77 passed in 9.10s
+Pagination-related regression: 182 passed in 13.40s
+Pagination-related regression: 179 passed in 13.42s
+Submission concurrency: 1 passed
+Submission-related regression: 22 passed
+Grade concurrency: 1 passed
+Evaluation/gradebook regression: 40 passed
+Partner execution concurrency: 1 passed
+Partner execution regression: 15 passed
+Idempotency migration verification: 3 passed in 7.02s
+Execution idempotency HTTP workflow: 11 passed in 16.04s
+Execution/idempotency combined regression: 80 passed in 24.18s
+Index/migration verification: 3 passed in 5.28s
+Index-affected regression: 102 passed in 9.90s
+Configuration/security regression: 12 passed in 1.36s
+Configuration suite: 45 passed in 2.95s
+System/config/security group: 56 passed in 3.63s
+Application security configuration: 7 passed in 14.97s
+Request-context middleware: 10 passed in 0.54s
+Integrated middleware/security group: 28 passed in 20.15s
+Complete configuration/request-hardening group: 73 passed in 19.00s
+System health/version contract: 11 passed in 1.17s
+Classroom OpenAPI contract: 11 passed in 1.06s
+OpenAPI contracts: 32 passed in 2.15s
+Combined version-contract group: 54 passed in 2.74s
+Complete backend regression before final version contract: 699 passed in 129.88s
+Final complete backend regression after version 0.15.0: 699 passed in 120.22s
 ```
 
-This is the authoritative current regression count.
+The authoritative current review-branch regression is:
+
+```text
+699 passed in 120.22s (0:02:00)
+```
 
 Do not replace it with an estimate.
 
 ---
 
-## Permanent Authorization, Academic, and Privacy Boundaries
+## Permanent Authorization, Academic, Execution, and Privacy Boundaries
 
 - Registration accepts only `@pampangastateu.edu.ph`.
 - School ID is exactly 10 digits.
@@ -711,7 +679,7 @@ Do not replace it with an estimate.
 - School ID is unique.
 - Roles are controlled only by the backend allowlist.
 - OTP verification remains required.
-- Plaintext OTP values are never persisted or returned.
+- Plaintext OTP values are never persisted, logged, or returned.
 - Submission attempts are immutable.
 - The latest accepted attempt becomes official.
 - Official grades are manually controlled by instructors.
@@ -730,59 +698,12 @@ Do not replace it with an estimate.
 - Student Python code never executes inside React or FastAPI.
 - Student code executes only through the partner-owned isolated sandbox worker.
 - Partner result updates require authenticated trusted integration.
-- Partner result retries must remain replay-safe and idempotent.
+- Partner result retries remain replay-safe and idempotent.
+- Student execution retries remain student-scoped and idempotent when an idempotency key is supplied.
 - Reporting and exports remain ownership-safe.
 - Raw source code remains excluded from gradebook CSV exports.
-- Health and readiness responses never expose credentials or connection details.
-
----
-
-## Pillar 14 Files
-
-Implementation:
-
-```text
-backend/app/schemas/execution_schema.py
-backend/app/models/domain_models.py
-backend/app/services/execution_service.py
-backend/app/integrations/partner_auth.py
-backend/app/routers/execution.py
-backend/app/integrations/otp_email.py
-backend/app/services/otp_service.py
-backend/app/integrations/local_llm.py
-backend/app/main.py
-backend/app/db/upgrade_p14_partner_execution.py
-```
-
-Tests:
-
-```text
-backend/tests/test_schemas.py
-backend/tests/test_partner_execution_models.py
-backend/tests/test_execution_service.py
-backend/tests/test_partner_auth.py
-backend/tests/test_partner_execution_router.py
-backend/tests/test_otp_service.py
-backend/tests/test_local_llm.py
-backend/tests/test_system_health.py
-backend/tests/test_p14_schema_upgrade.py
-backend/tests/test_openapi_contracts.py
-backend/tests/test_classroom_openapi_contracts.py
-```
-
-Documentation:
-
-```text
-docs/ai/CURRENT_HANDOFF.md
-```
-
-Local environment configuration:
-
-```text
-backend/.env
-```
-
-The `.env` file is not a Pillar 14 repository file and must not be committed.
+- Health, readiness, startup errors, OpenAPI, and request logs never expose credentials or connection details.
+- Request logs never contain request bodies, response bodies, query strings, or sensitive headers.
 
 ---
 
@@ -797,7 +718,7 @@ git branch --show-current
 Expected:
 
 ```text
-review/backend-p14-partner-contracts
+review/backend-p15-api-hardening
 ```
 
 From `backend`, run the complete regression:
@@ -809,25 +730,39 @@ From `backend`, run the complete regression:
 Latest verified review-branch result:
 
 ```text
-567 passed in 116.87s (0:01:56)
+699 passed in 120.22s (0:02:00)
 ```
 
-Verify the sanitized database target:
+Verify migration state:
 
 ```powershell
-.\venv\Scripts\python.exe -c "from app.core.database import engine; print(engine.url.render_as_string(hide_password=True)); print(engine.dialect.name)"
+.\venv\Scripts\python.exe -m alembic heads
+.\venv\Scripts\python.exe -m alembic current
+.\venv\Scripts\python.exe -m alembic check
 ```
 
-Run the explicit database upgrade when required:
+Expected head:
 
-```powershell
-.\venv\Scripts\python.exe -m app.db.upgrade_p14_partner_execution
+```text
+9f2c6e4a1b7d
 ```
 
-Verify real readiness:
+Expected drift result:
+
+```text
+No new upgrade operations detected.
+```
+
+Verify application health and correlation response:
 
 ```powershell
-.\venv\Scripts\python.exe -c "from fastapi.testclient import TestClient; from app.main import app; r=TestClient(app).get('/ready'); print('Status:', r.status_code); print(r.json())"
+.\venv\Scripts\python.exe -c "from fastapi.testclient import TestClient; from app.main import app; r=TestClient(app).get('/health'); print(r.status_code, r.headers.get('X-Correlation-ID'), r.json()['status'])"
+```
+
+Expected format:
+
+```text
+200 <generated-UUID> healthy
 ```
 
 Return to the repository root:
@@ -843,10 +778,10 @@ git diff --check
 git status --short
 ```
 
-Do not claim final Pillar 14 merge completion until:
+Do not claim final Pillar 15 completion until:
 
 - this handoff is committed
-- the review branch is committed locally
+- the review branch remains local
 - the review branch is merged locally into `dev`
 - the complete regression passes again on `dev`
 - only `dev` is pushed
@@ -854,9 +789,9 @@ Do not claim final Pillar 14 merge completion until:
 
 ---
 
-## Final Pillar 14 Git Procedure
+## Final Pillar 15 Git Procedure
 
-Stage exact files only.
+Stage the handoff only.
 
 Do not use:
 
@@ -864,51 +799,13 @@ Do not use:
 git add .
 ```
 
-From the repository root, stage the complete Pillar 14 file set:
+From the repository root:
 
 ```powershell
-git add `
-    backend/app/schemas/execution_schema.py `
-    backend/app/models/domain_models.py `
-    backend/app/services/execution_service.py `
-    backend/app/integrations/partner_auth.py `
-    backend/app/routers/execution.py `
-    backend/app/integrations/otp_email.py `
-    backend/app/services/otp_service.py `
-    backend/app/integrations/local_llm.py `
-    backend/app/main.py `
-    backend/app/db/upgrade_p14_partner_execution.py `
-    backend/tests/test_schemas.py `
-    backend/tests/test_partner_execution_models.py `
-    backend/tests/test_execution_service.py `
-    backend/tests/test_partner_auth.py `
-    backend/tests/test_partner_execution_router.py `
-    backend/tests/test_otp_service.py `
-    backend/tests/test_local_llm.py `
-    backend/tests/test_system_health.py `
-    backend/tests/test_p14_schema_upgrade.py `
-    backend/tests/test_openapi_contracts.py `
-    backend/tests/test_classroom_openapi_contracts.py `
-    docs/ai/CURRENT_HANDOFF.md
-```
-
-Review the staged set:
-
-```powershell
-git diff --cached --name-only
+git add -- docs/ai/CURRENT_HANDOFF.md
 git diff --cached --check
-```
-
-Confirm the local environment file is not staged:
-
-```powershell
-git status --short | Select-String "\.env|\.db|__pycache__|\.pyc"
-```
-
-Create the final local Pillar 14 commit:
-
-```powershell
-git commit -m "feat: complete partner integration contracts"
+git diff --cached --stat
+git commit -m "docs: complete pillar 15 handoff"
 ```
 
 Do not push the review branch.
@@ -919,7 +816,7 @@ Merge locally into the updated `dev` branch:
 git switch dev
 git fetch origin dev
 git merge --ff-only origin/dev
-git merge --no-ff review/backend-p14-partner-contracts
+git merge --no-ff review/backend-p15-api-hardening
 ```
 
 Run the complete backend regression again on `dev`:
@@ -938,11 +835,11 @@ Push only `dev`:
 git push origin dev
 ```
 
-Confirm the working tree:
+Confirm the final repository state:
 
 ```powershell
 git status --short
-git log -3 --oneline
+git log -5 --oneline
 ```
 
 The review branch remains local and must not be pushed.
@@ -951,24 +848,53 @@ The review branch remains local and must not be pushed.
 
 ## Next Pillar
 
-Before starting the next pillar:
+Exact roadmap entry:
 
-1. confirm Pillar 14 is merged and pushed through `dev`
-2. read `docs/ai/ROADMAP.md`
-3. copy the exact next pillar title, version, branch name, scope, and exclusions into this handoff
-4. create the next local review branch from the updated `dev`
-5. do not infer the next scope from Pillar 14 exclusions
-6. do not push the next review branch
+```text
+Pillar 16 — V-Model Verification and Release Candidate
+Version: 1.0.0-rc1
+Local branch: review/backend-p16-release-candidate
+Status: Planned
+```
 
-The currently supplied handoff identifies Pillar 14 as the latest roadmap entry but does not contain the authoritative Pillar 15 title or scope.
+Scope:
 
-Do not invent the next pillar.
+- requirements-to-test traceability matrix
+- end-to-end backend acceptance scenarios
+- complete authentication, classroom, activity, submission, execution, session, evaluation, grading, notification, audit, reporting, and partner-contract verification
+- privacy and security negative tests
+- migration verification
+- OpenAPI contract freeze
+- frontend and partner handoff packages
+- changelog and release notes
 
-Use this starting sequence after reading the roadmap:
+Definition of done:
+
+- all approved requirements map to passing tests
+- zero unresolved high-severity defects
+- release-candidate contracts frozen
+
+The roadmap excerpt does not list separate Pillar 16 exclusions.
+
+Do not infer new feature scope beyond the stated Pillar 16 verification and release-candidate work.
+
+The roadmap states that the later final release contains no new features and is limited to release-candidate fixes, documentation, migration corrections, contract-preserving security fixes, final changelog, and approved release tagging.
+
+Before starting Pillar 16:
+
+1. complete the Pillar 15 merge and push through `dev`
+2. confirm the `dev` regression is green
+3. reread `docs/ai/PROJECT_CONTEXT.md`
+4. reread `docs/ai/ROADMAP.md`
+5. reread `docs/ai/WORKFLOW.md`
+6. create the next local review branch from updated `dev`
+7. do not push the Pillar 16 review branch
+
+Starting sequence:
 
 ```powershell
 git switch dev
 git fetch origin dev
 git merge --ff-only origin/dev
-git switch -c <exact-next-review-branch-from-roadmap>
+git switch -c review/backend-p16-release-candidate
 ```

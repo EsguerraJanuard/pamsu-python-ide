@@ -1,6 +1,7 @@
 import hashlib
 import json
 from datetime import datetime, timezone
+from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -62,6 +63,18 @@ class ExecutionRequestNotFoundError(
     ExecutionServiceError,
 ):
     """Raised when an execution request cannot be found."""
+
+
+class ExecutionRequestIdempotencyInvalidError(
+    ExecutionServiceError,
+):
+    """Raised when a student request idempotency key is invalid."""
+
+
+class ExecutionRequestIdempotencyConflictError(
+    ExecutionServiceError,
+):
+    """Raised when an idempotency key is reused for different content."""
 
 
 class ExecutionAccessDeniedError(
@@ -150,6 +163,97 @@ def _commit_execution_transaction(
         raise ExecutionPersistenceError(
             "The execution request could not be saved."
         ) from error
+
+
+def _normalize_request_idempotency_key(
+    value: str | None,
+) -> str | None:
+    """
+    Normalize the optional student-supplied Idempotency-Key UUID.
+
+    The router should also validate the header contract, but the service
+    retains its own validation because it may be called outside HTTP routes.
+    """
+
+    if value is None:
+        return None
+
+    try:
+        return str(UUID(str(value)))
+    except (
+        TypeError,
+        ValueError,
+        AttributeError,
+    ) as error:
+        raise ExecutionRequestIdempotencyInvalidError(
+            "Idempotency-Key must be a valid UUID."
+        ) from error
+
+
+def _student_execution_request_payload_digest(
+    *,
+    task_id: int,
+    request_kind: ExecutionRequestKind,
+    submission_id: int | None,
+    coding_session_id: str | None,
+    source_code: str,
+    standard_input: str,
+) -> str:
+    """
+    Build a privacy-safe digest of the resolved immutable request snapshot.
+
+    Source code and standard input participate in the digest so a key cannot
+    be reused for different execution content. Only the SHA-256 digest is
+    persisted as idempotency metadata.
+    """
+
+    canonical_payload = json.dumps(
+        {
+            "schema_version": 1,
+            "task_id": task_id,
+            "request_kind": request_kind,
+            "submission_id": submission_id,
+            "coding_session_id": coding_session_id,
+            "source_code": source_code,
+            "standard_input": standard_input,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+    return hashlib.sha256(
+        canonical_payload.encode("utf-8"),
+    ).hexdigest()
+
+
+def _find_student_execution_request_by_idempotency_key(
+    db: Session,
+    *,
+    student_id: int,
+    request_idempotency_key: str,
+) -> ExecutionRequest | None:
+    return (
+        db.query(ExecutionRequest)
+        .filter(
+            ExecutionRequest.student_id == student_id,
+            ExecutionRequest.request_idempotency_key == request_idempotency_key,
+        )
+        .first()
+    )
+
+
+def _resolve_existing_student_request_replay(
+    *,
+    existing_request: ExecutionRequest,
+    request_payload_digest: str,
+) -> ExecutionRequest:
+    if existing_request.request_payload_digest != request_payload_digest:
+        raise ExecutionRequestIdempotencyConflictError(
+            "The idempotency key was already used for a different execution request."
+        )
+
+    return existing_request
 
 
 def _get_student_execution_task(
@@ -397,6 +501,7 @@ def create_student_execution_request(
     *,
     student_id: int,
     payload: ExecutionRequestCreate,
+    request_idempotency_key: str | None = None,
 ) -> ExecutionRequest:
     """
     Persist a queued execution request without executing Python code.
@@ -404,9 +509,20 @@ def create_student_execution_request(
     Partner correlation and dispatch-idempotency identifiers are generated
     by the database model defaults and are never accepted from the student.
 
+    The optional request_idempotency_key comes from the authenticated
+    student's Idempotency-Key HTTP header. Reusing the same key with the
+    same resolved request snapshot returns the existing execution request.
+    Reusing it with different content raises an idempotency conflict.
+
     When the request references a coding session, its server-controlled
-    run-attempt counter is incremented in the same transaction.
+    run-attempt counter is incremented in the same transaction. A concurrent
+    duplicate insert rolls back its own counter increment before returning
+    the already-created execution request.
     """
+
+    normalized_idempotency_key = _normalize_request_idempotency_key(
+        request_idempotency_key,
+    )
 
     task = _get_student_execution_task(
         db,
@@ -425,6 +541,30 @@ def create_student_execution_request(
         task=task,
         payload=payload,
     )
+
+    request_payload_digest: str | None = None
+
+    if normalized_idempotency_key is not None:
+        request_payload_digest = _student_execution_request_payload_digest(
+            task_id=task.task_id,
+            request_kind=payload.request_kind,
+            submission_id=submission_id,
+            coding_session_id=coding_session_id,
+            source_code=source_code,
+            standard_input=standard_input,
+        )
+
+        existing_request = _find_student_execution_request_by_idempotency_key(
+            db,
+            student_id=student_id,
+            request_idempotency_key=normalized_idempotency_key,
+        )
+
+        if existing_request is not None:
+            return _resolve_existing_student_request_replay(
+                existing_request=existing_request,
+                request_payload_digest=request_payload_digest,
+            )
 
     _increment_linked_session_attempt(
         db,
@@ -451,12 +591,47 @@ def create_student_execution_request(
         worker_task_id=None,
         started_at=None,
         completed_at=None,
+        request_idempotency_key=normalized_idempotency_key,
+        request_payload_digest=request_payload_digest,
         last_partner_sequence=0,
     )
 
     db.add(execution_request)
 
-    _commit_execution_transaction(db)
+    if normalized_idempotency_key is None:
+        _commit_execution_transaction(db)
+
+        db.refresh(execution_request)
+
+        return execution_request
+
+    try:
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+
+        concurrent_request = _find_student_execution_request_by_idempotency_key(
+            db,
+            student_id=student_id,
+            request_idempotency_key=normalized_idempotency_key,
+        )
+
+        if concurrent_request is not None:
+            return _resolve_existing_student_request_replay(
+                existing_request=concurrent_request,
+                request_payload_digest=request_payload_digest,
+            )
+
+        raise ExecutionPersistenceConflictError(
+            "The execution-request operation conflicted "
+            "with another database operation."
+        ) from error
+    except SQLAlchemyError as error:
+        db.rollback()
+
+        raise ExecutionPersistenceError(
+            "The execution request could not be saved."
+        ) from error
 
     db.refresh(execution_request)
 
@@ -870,7 +1045,9 @@ def _partner_update_payload_digest(
         ensure_ascii=False,
     )
 
-    return hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        canonical_payload.encode("utf-8"),
+    ).hexdigest()
 
 
 def _find_partner_update_record(
@@ -985,6 +1162,7 @@ def _partner_execution_update_values(
             "started_at",
             execution_request.started_at or _utc_now(),
         )
+
         values.pop(
             "completed_at",
             None,
@@ -995,6 +1173,7 @@ def _partner_execution_update_values(
             "started_at",
             execution_request.started_at or _utc_now(),
         )
+
         values["completed_at"] = update_data.completed_at
 
     _validate_worker_timestamps(
@@ -1020,6 +1199,10 @@ def apply_partner_execution_result_update(
 
     A repeated update_id with identical canonical content returns a replay
     acknowledgment without mutating the execution a second time.
+
+    The update ID is checked before and after acquiring the execution-row
+    lock. The second check handles concurrent identical deliveries where
+    both transactions miss the initial lookup before one transaction commits.
     """
 
     payload_digest = _partner_update_payload_digest(
@@ -1042,6 +1225,17 @@ def apply_partner_execution_result_update(
         execution_id=update_data.execution_id,
         lock_for_update=True,
     )
+
+    concurrent_record = _find_partner_update_record(
+        db,
+        update_id=update_data.update_id,
+    )
+
+    if concurrent_record is not None:
+        return _resolve_existing_partner_replay(
+            existing_record=concurrent_record,
+            payload_digest=payload_digest,
+        )
 
     if execution_request.correlation_id != update_data.correlation_id:
         raise ExecutionPartnerCorrelationError(
@@ -1125,6 +1319,14 @@ def apply_partner_execution_result_update(
 # This service persists and authorizes execution requests only. It never
 # executes student Python inside FastAPI or the host operating system.
 
+# REQUEST IDEMPOTENCY BOUNDARY:
+# The optional student Idempotency-Key is normalized as a UUID and scoped
+# by authenticated student ownership. The database stores only the key and
+# a SHA-256 digest of the resolved execution snapshot. Replaying the same
+# key and content returns the existing execution request. Reusing the key
+# for different content is rejected. Concurrent duplicate inserts roll back
+# their own coding-session counter update before resolving the stored request.
+
 # PARTNER AUTHENTICATION BOUNDARY:
 # Authentication belongs to the internal router or integration adapter.
 # Credentials, JWTs, API keys, and shared secrets are never accepted inside
@@ -1141,8 +1343,10 @@ def apply_partner_execution_result_update(
 
 # REPLAY BOUNDARY:
 # Accepted partner update IDs and canonical payload digests provide
-# idempotent replay handling. Sequence numbers are strictly monotonic per
-# execution. Terminal executions cannot accept later lifecycle mutations.
+# idempotent replay handling. The update ID is checked again after the
+# execution lock so concurrent identical deliveries return one accepted
+# mutation and one replay acknowledgment. Sequence numbers remain strictly
+# monotonic per execution, and terminal executions reject later mutations.
 
 # REVIEW BOUNDARY:
 # Worker output and resource-limit results support instructor review only.

@@ -1,10 +1,16 @@
 import json
-import math
 from datetime import datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    PaginationBounds,
+    PaginationError,
+    PaginationRequest,
+    build_pagination_metadata,
+    validate_pagination,
+)
 from app.models.domain_models import AuditRecord
 from app.schemas.audit_schema import (
     AuditActionType,
@@ -18,27 +24,47 @@ from app.schemas.audit_schema import (
 
 MAX_AUDIT_DATA_BYTES = 16_384
 
+DEFAULT_AUDIT_PAGE = 1
+DEFAULT_AUDIT_PAGE_SIZE = 20
+MIN_AUDIT_PAGE_SIZE = 1
+MAX_AUDIT_PAGE_SIZE = 100
+
+AUDIT_PAGINATION_BOUNDS = PaginationBounds(
+    minimum_page=1,
+    minimum_page_size=MIN_AUDIT_PAGE_SIZE,
+    maximum_page_size=MAX_AUDIT_PAGE_SIZE,
+)
+
 
 class AuditServiceError(Exception):
     """Base exception for trusted audit-service failures."""
 
 
-class AuditRecordConflictError(AuditServiceError):
+class AuditRecordConflictError(
+    AuditServiceError,
+):
     """Raised when an audit key is reused for a different action."""
 
 
-class AuditRecordNotFoundError(AuditServiceError):
+class AuditRecordNotFoundError(
+    AuditServiceError,
+):
     """Raised when an actor-owned audit record does not exist."""
 
 
-class AuditMetadataTooLargeError(AuditServiceError):
+class AuditMetadataTooLargeError(
+    AuditServiceError,
+):
     """Raised when privacy-safe metadata exceeds the storage limit."""
 
 
 def _validated_payload(
     payload: AuditRecordCreateInternal | dict[str, Any],
 ) -> AuditRecordCreateInternal:
-    if isinstance(payload, AuditRecordCreateInternal):
+    if isinstance(
+        payload,
+        AuditRecordCreateInternal,
+    ):
         return payload
 
     return AuditRecordCreateInternal.model_validate(payload)
@@ -50,7 +76,10 @@ def _ensure_metadata_size(
     serialized = json.dumps(
         audit_data,
         ensure_ascii=False,
-        separators=(",", ":"),
+        separators=(
+            ",",
+            ":",
+        ),
         sort_keys=True,
     ).encode("utf-8")
 
@@ -93,6 +122,29 @@ def _ensure_existing_record_matches(
         )
 
 
+def _build_pagination_request(
+    *,
+    page: int,
+    page_size: int,
+) -> PaginationRequest:
+    try:
+        return validate_pagination(
+            page=page,
+            page_size=page_size,
+            bounds=AUDIT_PAGINATION_BOUNDS,
+        )
+
+    except PaginationError as error:
+        if isinstance(page, bool) or not isinstance(page, int) or page < 1:
+            raise ValueError("page must be at least 1.") from error
+
+        raise ValueError(
+            "page_size must be between "
+            f"{MIN_AUDIT_PAGE_SIZE} and "
+            f"{MAX_AUDIT_PAGE_SIZE}."
+        ) from error
+
+
 def create_audit_record(
     db: Session,
     payload: AuditRecordCreateInternal | dict[str, Any],
@@ -112,6 +164,7 @@ def create_audit_record(
     """
 
     validated = _validated_payload(payload)
+
     _ensure_metadata_size(validated.audit_data)
 
     existing = (
@@ -127,6 +180,7 @@ def create_audit_record(
             existing,
             validated,
         )
+
         return existing
 
     record = AuditRecord(
@@ -186,8 +240,8 @@ def list_actor_owned_audit_records(
     db: Session,
     *,
     actor_user_id: int,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = DEFAULT_AUDIT_PAGE,
+    page_size: int = DEFAULT_AUDIT_PAGE_SIZE,
     action_type: AuditActionType | None = None,
     resource_type: AuditResourceType | None = None,
     resource_id: str | None = None,
@@ -201,14 +255,17 @@ def list_actor_owned_audit_records(
     disclosure path.
     """
 
-    if actor_user_id <= 0:
+    if (
+        isinstance(actor_user_id, bool)
+        or not isinstance(actor_user_id, int)
+        or actor_user_id <= 0
+    ):
         raise ValueError("actor_user_id must be greater than zero.")
 
-    if page < 1:
-        raise ValueError("page must be at least 1.")
-
-    if page_size < 1 or page_size > 100:
-        raise ValueError("page_size must be between 1 and 100.")
+    pagination = _build_pagination_request(
+        page=page,
+        page_size=page_size,
+    )
 
     query = db.query(AuditRecord).filter(
         AuditRecord.actor_user_id == actor_user_id,
@@ -239,25 +296,54 @@ def list_actor_owned_audit_records(
             AuditRecord.outcome == outcome,
         )
 
-    total = query.count()
-    total_pages = math.ceil(total / page_size) if total > 0 else 0
+    total = int(query.order_by(None).count())
 
     records = (
         query.order_by(
             AuditRecord.occurred_at.desc(),
             AuditRecord.audit_id.desc(),
         )
-        .offset(
-            (page - 1) * page_size,
-        )
-        .limit(page_size)
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
         .all()
+    )
+
+    metadata = build_pagination_metadata(
+        pagination=pagination,
+        total_items=total,
     )
 
     return AuditRecordListResponse(
         items=[AuditRecordResponse.model_validate(record) for record in records],
-        page=page,
-        page_size=page_size,
-        total=total,
-        total_pages=total_pages,
+        page=metadata.page,
+        page_size=metadata.page_size,
+        total=metadata.total_items,
+        total_pages=metadata.total_pages,
     )
+
+
+# IMMUTABILITY BOUNDARY:
+# Existing audit records are never updated or overwritten. Reusing an
+# audit key is accepted only when every accountable field still matches.
+
+# TRANSACTION BOUNDARY:
+# commit=False allows audit creation to share the originating domain
+# transaction. A failed domain transaction must not leave an audit row.
+
+# PAGINATION BOUNDARY:
+# Actor-owned audit listings use the common bounded pagination contract.
+# Database offsets are derived internally rather than accepted directly.
+
+# ORDERING BOUNDARY:
+# Audit listings are ordered by occurred_at followed by audit_id as the
+# stable unique tie-breaker.
+
+# OWNERSHIP BOUNDARY:
+# Public audit reads require both the audit identifier and authenticated
+# actor identifier. There is no unrestricted audit-table listing method.
+
+# PRIVACY BOUNDARY:
+# Audit metadata is validated by the internal schema and size-bounded.
+# It must not contain source code, clipboard or paste contents, passwords,
+# OTPs, JWTs, execution output, hidden tests, surveillance data, or
+# automated plagiarism, cheating, misconduct, or grading conclusions.

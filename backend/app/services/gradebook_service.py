@@ -1,9 +1,19 @@
-from math import ceil
 from typing import Any
 
 from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    DEFAULT_PAGE,
+    DEFAULT_PAGE_SIZE,
+    PaginationBounds,
+    PaginationError,
+    PaginationRequest,
+    SortConfigurationError,
+    build_pagination_metadata,
+    normalize_sort_direction,
+    validate_pagination,
+)
 from app.models.domain_models import (
     Classroom,
     InstructorGrade,
@@ -18,6 +28,21 @@ from app.schemas.gradebook_schema import (
     MIN_GRADEBOOK_PAGE_SIZE,
 )
 from app.schemas.submission_schema import SubmissionStatus
+
+
+GRADEBOOK_PAGINATION_BOUNDS = PaginationBounds(
+    minimum_page=1,
+    minimum_page_size=MIN_GRADEBOOK_PAGE_SIZE,
+    maximum_page_size=MAX_GRADEBOOK_PAGE_SIZE,
+)
+
+APPROVED_GRADEBOOK_SORT_FIELDS = {
+    "student_name",
+    "school_id",
+    "score",
+    "percentage",
+    "submitted_at",
+}
 
 
 class GradebookServiceError(Exception):
@@ -51,7 +76,22 @@ class GradebookFilterConflictError(
 class GradebookPaginationError(
     GradebookServiceError,
 ):
-    """Raised when pagination values are outside allowed limits."""
+    """Raised when pagination or sorting values are invalid."""
+
+
+def _build_pagination_request(
+    *,
+    page: int,
+    page_size: int,
+) -> PaginationRequest:
+    try:
+        return validate_pagination(
+            page=page,
+            page_size=page_size,
+            bounds=GRADEBOOK_PAGINATION_BOUNDS,
+        )
+    except PaginationError as error:
+        raise GradebookPaginationError(str(error)) from error
 
 
 def _validate_pagination(
@@ -59,15 +99,15 @@ def _validate_pagination(
     page: int,
     page_size: int,
 ) -> None:
-    if page < 1:
-        raise GradebookPaginationError("page must be greater than or equal to 1.")
+    """
+    Preserve the existing private validation boundary while delegating
+    validation to the common pagination utility.
+    """
 
-    if not (MIN_GRADEBOOK_PAGE_SIZE <= page_size <= MAX_GRADEBOOK_PAGE_SIZE):
-        raise GradebookPaginationError(
-            "page_size must be between "
-            f"{MIN_GRADEBOOK_PAGE_SIZE} and "
-            f"{MAX_GRADEBOOK_PAGE_SIZE}."
-        )
+    _build_pagination_request(
+        page=page,
+        page_size=page_size,
+    )
 
 
 def _get_owned_classroom(
@@ -417,10 +457,18 @@ def _apply_instructor_ordering(
     sort_by: GradebookSortField,
     sort_direction: GradebookSortDirection,
 ) -> Any:
+    if sort_by not in APPROVED_GRADEBOOK_SORT_FIELDS:
+        raise GradebookPaginationError("Unsupported gradebook sort field.")
+
+    try:
+        normalized_direction = normalize_sort_direction(sort_direction)
+    except SortConfigurationError as error:
+        raise GradebookPaginationError(str(error)) from error
+
     def apply_direction(
         column: Any,
     ) -> Any:
-        if sort_direction == "asc":
+        if normalized_direction == "asc":
             return column.asc()
 
         return column.desc()
@@ -517,10 +565,10 @@ def _build_instructor_gradebook_item(
         "student": {
             "student_id": row.student_id,
             "name": row.student_name,
-            "school_id": row.student_school_id,
+            "school_id": (row.student_school_id),
         },
-        "activity": _build_activity_summary(row),
-        "attempt_number": row.attempt_number,
+        "activity": (_build_activity_summary(row)),
+        "attempt_number": (row.attempt_number),
         "submission_status": (row.submission_status),
         "is_official": row.is_official,
         "submitted_at": row.submitted_at,
@@ -540,8 +588,8 @@ def list_instructor_gradebook(
     db: Session,
     *,
     instructor_id: int,
-    page: int = 1,
-    page_size: int = 25,
+    page: int = DEFAULT_PAGE,
+    page_size: int = DEFAULT_PAGE_SIZE,
     class_id: int | None = None,
     task_id: int | None = None,
     student_id: int | None = None,
@@ -559,7 +607,7 @@ def list_instructor_gradebook(
     similarity records, execution output, and session telemetry.
     """
 
-    _validate_pagination(
+    pagination = _build_pagination_request(
         page=page,
         page_size=page_size,
     )
@@ -592,7 +640,7 @@ def list_instructor_gradebook(
         grade_released=grade_released,
     )
 
-    total_items = item_query.order_by(None).count()
+    total_items = int(item_query.order_by(None).count())
 
     count_query = _build_instructor_count_query(
         db,
@@ -618,18 +666,19 @@ def list_instructor_gradebook(
         sort_direction=sort_direction,
     )
 
-    offset = (page - 1) * page_size
+    rows = ordered_query.offset(pagination.offset).limit(pagination.page_size).all()
 
-    rows = ordered_query.offset(offset).limit(page_size).all()
-
-    total_pages = ceil(total_items / page_size) if total_items else 0
+    metadata = build_pagination_metadata(
+        pagination=pagination,
+        total_items=total_items,
+    )
 
     return {
         "items": [_build_instructor_gradebook_item(row) for row in rows],
-        "page": page,
-        "page_size": page_size,
-        "total_items": total_items,
-        "total_pages": total_pages,
+        "page": metadata.page,
+        "page_size": metadata.page_size,
+        "total_items": metadata.total_items,
+        "total_pages": metadata.total_pages,
         "sort_by": sort_by,
         "sort_direction": sort_direction,
         "counts": {
@@ -713,8 +762,8 @@ def _build_student_released_grade_item(
 ) -> dict[str, Any]:
     return {
         "sub_id": row.sub_id,
-        "activity": _build_activity_summary(row),
-        "attempt_number": row.attempt_number,
+        "activity": (_build_activity_summary(row)),
+        "attempt_number": (row.attempt_number),
         "submission_status": (row.submission_status),
         "score": float(row.grade_score),
         "max_score": float(row.grade_max_score),
@@ -729,8 +778,8 @@ def list_student_released_grades(
     db: Session,
     *,
     student_id: int,
-    page: int = 1,
-    page_size: int = 25,
+    page: int = DEFAULT_PAGE,
+    page_size: int = DEFAULT_PAGE_SIZE,
     class_id: int | None = None,
     task_id: int | None = None,
 ) -> dict[str, Any]:
@@ -741,7 +790,7 @@ def list_student_released_grades(
     instructor-only evaluation information are excluded.
     """
 
-    _validate_pagination(
+    pagination = _build_pagination_request(
         page=page,
         page_size=page_size,
     )
@@ -757,30 +806,40 @@ def list_student_released_grades(
         task_id=task_id,
     )
 
-    total_items = query.order_by(None).count()
-
-    offset = (page - 1) * page_size
+    total_items = int(query.order_by(None).count())
 
     rows = (
         query.order_by(
             InstructorGrade.updated_at.desc(),
             Submission.sub_id.desc(),
         )
-        .offset(offset)
-        .limit(page_size)
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
         .all()
     )
 
-    total_pages = ceil(total_items / page_size) if total_items else 0
+    metadata = build_pagination_metadata(
+        pagination=pagination,
+        total_items=total_items,
+    )
 
     return {
         "items": [_build_student_released_grade_item(row) for row in rows],
-        "page": page,
-        "page_size": page_size,
-        "total_items": total_items,
-        "total_pages": total_pages,
+        "page": metadata.page,
+        "page_size": metadata.page_size,
+        "total_items": metadata.total_items,
+        "total_pages": metadata.total_pages,
     }
 
+
+# PAGINATION BOUNDARY:
+# Instructor and student gradebook pagination use the common bounded
+# pagination contract. Database offsets are derived internally.
+
+# ORDERING BOUNDARY:
+# Instructor gradebook ordering uses approved sort fields and ends with
+# Submission.sub_id as a stable unique tie-breaker. Student released
+# grades use grade update time followed by Submission.sub_id.
 
 # AUTHORIZATION BOUNDARY:
 # Instructor gradebook queries are restricted to activities and

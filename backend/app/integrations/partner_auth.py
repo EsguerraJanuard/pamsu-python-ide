@@ -1,14 +1,17 @@
-import os
 import secrets
 from typing import Annotated, Literal
 
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 
+from app.core.config import (
+    MIN_PARTNER_EXECUTION_TOKEN_LENGTH,
+    PARTNER_EXECUTION_TOKEN_ENV,
+    get_settings,
+)
 
-PARTNER_EXECUTION_TOKEN_ENV = "PAMSU_PARTNER_EXECUTION_TOKEN"
+
 PARTNER_EXECUTION_TOKEN_HEADER = "X-Partner-Token"
-MIN_PARTNER_EXECUTION_TOKEN_LENGTH = 32
 
 PartnerExecutionIdentity = Literal["isolated_execution_worker",]
 
@@ -25,10 +28,17 @@ partner_execution_token_header = APIKeyHeader(
 
 
 def _configured_partner_execution_token() -> str:
-    configured_token = os.getenv(
-        PARTNER_EXECUTION_TOKEN_ENV,
-        "",
-    ).strip()
+    settings = get_settings()
+
+    configured_secret = settings.partner_execution_token
+
+    if configured_secret is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=("The execution-partner authentication boundary is not configured."),
+        )
+
+    configured_token = configured_secret.get_secret_value()
 
     if len(configured_token) < MIN_PARTNER_EXECUTION_TOKEN_LENGTH:
         raise HTTPException(
@@ -58,7 +68,7 @@ def get_authenticated_execution_partner(
     if supplied_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Execution-partner authentication is required.",
+            detail=("Execution-partner authentication is required."),
             headers={
                 "WWW-Authenticate": "PartnerExecutionToken",
             },
@@ -72,7 +82,7 @@ def get_authenticated_execution_partner(
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Execution-partner authentication failed.",
+            detail=("Execution-partner authentication failed."),
             headers={
                 "WWW-Authenticate": "PartnerExecutionToken",
             },
@@ -81,14 +91,19 @@ def get_authenticated_execution_partner(
     return "isolated_execution_worker"
 
 
+# CONFIGURATION BOUNDARY:
+# The execution-partner secret is loaded only through the validated
+# immutable application settings object. This module does not parse
+# process environment variables independently.
+
 # AUTHENTICATION BOUNDARY:
 # This dependency authenticates only the partner-owned isolated execution
 # adapter. It must never be used as student or instructor authentication.
 
 # SECRET HANDLING BOUNDARY:
-# The token is read from the process environment and compared in constant
-# time. It must never be persisted, logged, returned, or copied into an
-# execution request, partner update record, audit record, or notification.
+# The token is unwrapped only for constant-time authentication comparison.
+# It must never be persisted, logged, returned, or copied into an execution
+# request, partner update record, audit record, or notification.
 
 # TRANSPORT BOUNDARY:
 # Production deployment must provide HTTPS at the reverse proxy or platform
