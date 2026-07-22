@@ -1,18 +1,19 @@
-import os
 from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import Depends, FastAPI, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.integrations.partner_auth import (
-    MIN_PARTNER_EXECUTION_TOKEN_LENGTH,
-    PARTNER_EXECUTION_TOKEN_ENV,
+    PARTNER_EXECUTION_TOKEN_HEADER,
 )
 from app.routers import (
     activities,
@@ -34,7 +35,10 @@ APP_TITLE = "PAMSU Python IDE Backend"
 APP_VERSION = "0.14.0"
 
 HealthState = Literal["healthy"]
-ReadinessState = Literal["ready", "not_ready"]
+ReadinessState = Literal[
+    "ready",
+    "not_ready",
+]
 ReadinessComponentState = Literal[
     "ready",
     "not_ready",
@@ -208,6 +212,15 @@ OPENAPI_TAGS = [
 ]
 
 
+settings = get_settings()
+
+documentation_url = "/docs" if settings.enable_api_docs else None
+
+redoc_url = "/redoc" if settings.enable_api_docs else None
+
+openapi_url = "/openapi.json" if settings.enable_api_docs else None
+
+
 app = FastAPI(
     title=APP_TITLE,
     description=(
@@ -234,10 +247,45 @@ app = FastAPI(
     ),
     version=APP_VERSION,
     openapi_tags=OPENAPI_TAGS,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url=documentation_url,
+    redoc_url=redoc_url,
+    openapi_url=openapi_url,
 )
+
+
+if settings.allowed_hosts:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=list(settings.allowed_hosts),
+        www_redirect=False,
+    )
+
+
+if settings.cors_allowed_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(settings.cors_allowed_origins),
+        allow_credentials=(settings.cors_allow_credentials),
+        allow_methods=[
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS",
+        ],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            PARTNER_EXECUTION_TOKEN_HEADER,
+            settings.correlation_id_header,
+        ],
+        expose_headers=[
+            settings.correlation_id_header,
+        ],
+        max_age=600,
+    )
 
 
 app.include_router(auth.router)
@@ -268,8 +316,9 @@ def check_database_readiness(
             name="database",
             status="ready",
             required=True,
-            detail="The database connection is available.",
+            detail=("The database connection is available."),
         )
+
     except SQLAlchemyError:
         db.rollback()
 
@@ -277,14 +326,14 @@ def check_database_readiness(
             name="database",
             status="not_ready",
             required=True,
-            detail="The database connection is unavailable.",
+            detail=("The database connection is unavailable."),
         )
 
 
 def check_execution_partner_auth_readiness() -> ReadinessComponentResponse:
-    configured_token = (os.getenv(PARTNER_EXECUTION_TOKEN_ENV) or "").strip()
+    runtime_settings = get_settings()
 
-    if len(configured_token) < MIN_PARTNER_EXECUTION_TOKEN_LENGTH:
+    if not runtime_settings.partner_execution_token_configured:
         return ReadinessComponentResponse(
             name="execution_partner_auth",
             status="not_ready",
@@ -317,14 +366,16 @@ def build_contract_only_component(
     "/",
     response_model=dict[str, str],
     status_code=status.HTTP_200_OK,
-    tags=["System"],
+    tags=[
+        "System",
+    ],
     summary="Read API information",
 )
 def read_root() -> dict[str, str]:
     return {
-        "message": f"{APP_TITLE} is running.",
+        "message": (f"{APP_TITLE} is running."),
         "version": APP_VERSION,
-        "documentation": "/docs",
+        "documentation": ("/docs" if settings.enable_api_docs else "disabled"),
         "health": "/health",
         "readiness": "/ready",
     }
@@ -334,7 +385,9 @@ def read_root() -> dict[str, str]:
     "/health",
     response_model=HealthResponse,
     status_code=status.HTTP_200_OK,
-    tags=["System"],
+    tags=[
+        "System",
+    ],
     summary="Check application liveness",
     description=(
         "Returns process-level liveness without contacting external "
@@ -353,17 +406,19 @@ def health_check() -> HealthResponse:
 @app.get(
     "/ready",
     response_model=ReadinessResponse,
-    tags=["System"],
+    tags=[
+        "System",
+    ],
     summary="Check required integration readiness",
     description=(
         "Checks required database and execution-partner authentication "
         "boundaries. OTP email and local LLM integrations are reported as "
-        "contract-only because Pillar 14 intentionally does not select or "
-        "implement concrete providers."
+        "contract-only because concrete providers remain outside the "
+        "current backend implementation."
     ),
     responses={
         status.HTTP_200_OK: {
-            "description": ("All required Pillar 14 components are ready."),
+            "description": ("All required components are ready."),
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": ("One or more required components are not ready."),
@@ -380,14 +435,14 @@ def readiness_check(
             name="otp_email_adapter",
             detail=(
                 "The OTP email-delivery interface is defined; no "
-                "concrete provider is selected by Pillar 14."
+                "concrete provider is selected by the backend."
             ),
         ),
         build_contract_only_component(
             name="local_llm_adapter",
             detail=(
                 "The local LLM assistance interface is defined; no "
-                "runtime or model provider is selected by Pillar 14."
+                "runtime or model provider is selected by the backend."
             ),
         ),
     ]
@@ -408,10 +463,28 @@ def readiness_check(
         return response
 
     return JSONResponse(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        status_code=(status.HTTP_503_SERVICE_UNAVAILABLE),
         content=response.model_dump(mode="json"),
     )
 
+
+# CONFIGURATION BOUNDARY:
+# Application environment, documentation exposure, trusted hosts, CORS,
+# partner readiness, logging level, and correlation-header configuration
+# are obtained only through the validated immutable settings layer.
+
+# CORS BOUNDARY:
+# CORS middleware is installed only when explicit trusted origins are
+# configured. Wildcard origins are rejected by configuration validation.
+# Only approved HTTP methods and request headers are allowed.
+
+# TRUSTED-HOST BOUNDARY:
+# Trusted-host middleware is installed only when an explicit host allowlist
+# is configured. Production configuration rejects wildcard trusted hosts.
+
+# DOCUMENTATION BOUNDARY:
+# OpenAPI, Swagger UI, and ReDoc are enabled or disabled through validated
+# environment configuration. Production defaults to disabled.
 
 # HEALTH BOUNDARY:
 # /health is a liveness contract only. It does not test the database,
@@ -422,6 +495,5 @@ def readiness_check(
 # raw exceptions, connection strings, provider names, or secret lengths.
 
 # OPTIONAL-INTEGRATION BOUNDARY:
-# OTP email and local LLM integrations remain contract-only in Pillar 14.
-# Their absence does not make the core API unready until concrete adapters
-# become required by a later deployment pillar.
+# OTP email and local LLM integrations remain contract-only. Their absence
+# does not make the core API unready until concrete adapters become required.
