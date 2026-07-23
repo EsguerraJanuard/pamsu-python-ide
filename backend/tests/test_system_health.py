@@ -98,7 +98,7 @@ def component_map(
     return {str(component["name"]): component for component in components}
 
 
-def test_root_reports_pillar_14_service_links(
+def test_root_reports_pillar_15_service_links(
     client: TestClient,
 ):
     response = client.get("/")
@@ -106,12 +106,12 @@ def test_root_reports_pillar_14_service_links(
     assert response.status_code == 200
     assert response.json() == {
         "message": f"{APP_TITLE} is running.",
-        "version": "0.14.0",
+        "version": "1.0.0-rc1",
         "documentation": "/docs",
         "health": "/health",
         "readiness": "/ready",
     }
-    assert APP_VERSION == "0.14.0"
+    assert APP_VERSION == "1.0.0-rc1"
 
 
 def test_health_reports_process_liveness(
@@ -125,7 +125,7 @@ def test_health_reports_process_liveness(
 
     assert body["status"] == "healthy"
     assert body["service"] == APP_TITLE
-    assert body["version"] == "0.14.0"
+    assert body["version"] == "1.0.0-rc1"
 
     checked_at = parse_response_datetime(body["checked_at"])
 
@@ -170,7 +170,7 @@ def test_ready_returns_200_when_required_components_are_ready(
 
     assert body["status"] == "ready"
     assert body["service"] == APP_TITLE
-    assert body["version"] == "0.14.0"
+    assert body["version"] == "1.0.0-rc1"
 
     checked_at = parse_response_datetime(body["checked_at"])
     assert checked_at.utcoffset() is not None
@@ -330,7 +330,7 @@ def test_openapi_documents_health_and_readiness_contracts(
 ):
     document = client.get("/openapi.json").json()
 
-    assert document["info"]["version"] == "0.14.0"
+    assert document["info"]["version"] == "1.0.0-rc1"
     assert "/health" in document["paths"]
     assert "/ready" in document["paths"]
 

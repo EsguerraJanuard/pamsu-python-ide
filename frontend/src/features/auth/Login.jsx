@@ -13,8 +13,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import { ApiError } from "../services/api";
+import { useAuth } from "./AuthContext";
+import { ApiError } from "../../services/api";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";

@@ -35,12 +35,37 @@ class User(Base):
 
     user_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False)
-    school_id = Column(String(10), unique=True, index=True, nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    role = Column(String(20), nullable=False, default="student")
-    password_hash = Column(String(255), nullable=False)
-    email_verified = Column(Boolean, nullable=False, default=False)
-    is_active = Column(Boolean, nullable=False, default=True)
+    school_id = Column(
+        String(10),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    email = Column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    role = Column(
+        String(20),
+        nullable=False,
+        default="student",
+    )
+    password_hash = Column(
+        String(255),
+        nullable=False,
+    )
+    email_verified = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -111,9 +136,22 @@ class User(Base):
 class InstructorAllowlist(Base):
     __tablename__ = "instructor_allowlist"
 
-    allowlist_id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), nullable=False, unique=True, index=True)
-    is_active = Column(Boolean, nullable=False, default=True)
+    allowlist_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    email = Column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -291,24 +329,47 @@ class PendingRegistration(Base):
 class Classroom(Base):
     __tablename__ = "classrooms"
 
-    class_id = Column(Integer, primary_key=True, index=True)
+    class_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     instructor_id = Column(
         Integer,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
-    name = Column(String(150), nullable=False)
-    subject_code = Column(String(50), nullable=True)
-    section = Column(String(100), nullable=True)
+    name = Column(
+        String(150),
+        nullable=False,
+    )
+    subject_code = Column(
+        String(50),
+        nullable=True,
+    )
+    section = Column(
+        String(100),
+        nullable=True,
+    )
     class_code = Column(
         String(20),
         nullable=False,
         unique=True,
         index=True,
     )
-    is_active = Column(Boolean, nullable=False, default=True)
-    archived_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+    archived_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -350,16 +411,26 @@ class Enrollment(Base):
         ),
     )
 
-    enrollment_id = Column(Integer, primary_key=True, index=True)
+    enrollment_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     class_id = Column(
         Integer,
-        ForeignKey("classrooms.class_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "classrooms.class_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
     student_id = Column(
         Integer,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
@@ -373,7 +444,10 @@ class Enrollment(Base):
         nullable=False,
         server_default=func.now(),
     )
-    deactivated_at = Column(DateTime(timezone=True), nullable=True)
+    deactivated_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     classroom = relationship(
         "Classroom",
@@ -399,22 +473,41 @@ class Task(Base):
         ),
     )
 
-    task_id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     class_id = Column(
         Integer,
-        ForeignKey("classrooms.class_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "classrooms.class_id",
+            ondelete="RESTRICT",
+        ),
         nullable=True,
         index=True,
     )
     instructor_id = Column(
         Integer,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
-    title = Column(String(200), nullable=False)
-    description = Column(Text, nullable=True)
-    instructions = Column(Text, nullable=True)
+    title = Column(
+        String(200),
+        nullable=False,
+    )
+    description = Column(
+        Text,
+        nullable=True,
+    )
+    instructions = Column(
+        Text,
+        nullable=True,
+    )
     activity_type = Column(
         String(20),
         nullable=False,
@@ -435,10 +528,24 @@ class Task(Base):
         nullable=False,
         default="internal_only",
     )
-    is_graded = Column(Boolean, nullable=False, default=True)
-    is_published = Column(Boolean, nullable=False, default=False)
-    due_at = Column(DateTime(timezone=True), nullable=True)
-    published_at = Column(DateTime(timezone=True), nullable=True)
+    is_graded = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+    is_published = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+    due_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    published_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -490,22 +597,43 @@ class TaskTestCase(Base):
         ),
     )
 
-    test_case_id = Column(Integer, primary_key=True, index=True)
+    test_case_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     task_id = Column(
         Integer,
-        ForeignKey("tasks.task_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "tasks.task_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
-    name = Column(String(150), nullable=False)
+    name = Column(
+        String(150),
+        nullable=False,
+    )
     standard_input = Column(
         Text,
         nullable=False,
         default="",
     )
-    expected_output = Column(Text, nullable=False)
-    is_hidden = Column(Boolean, nullable=False, default=False)
-    display_order = Column(Integer, nullable=False, default=0)
+    expected_output = Column(
+        Text,
+        nullable=False,
+    )
+    is_hidden = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+    display_order = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -542,16 +670,24 @@ class Submission(Base):
         ),
     )
 
-    sub_id = Column(Integer, primary_key=True, index=True)
+    sub_id = Column(
+        Integer,
+        primary_key=True,
+    )
     student_id = Column(
         Integer,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
-        index=True,
     )
     task_id = Column(
         Integer,
-        ForeignKey("tasks.task_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "tasks.task_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
@@ -569,7 +705,10 @@ class Submission(Base):
         nullable=False,
         default=1,
     )
-    raw_code = Column(Text, nullable=False)
+    raw_code = Column(
+        Text,
+        nullable=False,
+    )
     standard_input = Column(
         Text,
         nullable=False,
@@ -590,12 +729,21 @@ class Submission(Base):
         nullable=False,
         server_default=func.now(),
     )
-    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    accepted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     # Compatibility fields for the current evaluation endpoints.
     # Detailed results are stored in the related analysis tables.
-    jaccard_score = Column(Float, nullable=True)
-    ast_pass_fail = Column(Boolean, nullable=True)
+    jaccard_score = Column(
+        Float,
+        nullable=True,
+    )
+    ast_pass_fail = Column(
+        Boolean,
+        nullable=True,
+    )
 
     student = relationship(
         "User",
@@ -665,10 +813,17 @@ class BehavioralLog(Base):
         ),
     )
 
-    log_id = Column(Integer, primary_key=True, index=True)
+    log_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     sub_id = Column(
         Integer,
-        ForeignKey("submissions.sub_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "submissions.sub_id",
+            ondelete="RESTRICT",
+        ),
         unique=True,
         nullable=False,
     )
@@ -747,13 +902,19 @@ class CodingSession(Base):
     )
     student_id = Column(
         Integer,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
     task_id = Column(
         Integer,
-        ForeignKey("tasks.task_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "tasks.task_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
@@ -762,16 +923,35 @@ class CodingSession(Base):
         nullable=False,
         server_default=func.now(),
     )
-    ended_at = Column(DateTime(timezone=True), nullable=True)
+    ended_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     last_activity_at = Column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
-    tab_switch_count = Column(Integer, nullable=False, default=0)
-    blocked_paste_count = Column(Integer, nullable=False, default=0)
-    run_attempt_count = Column(Integer, nullable=False, default=0)
-    idle_duration_seconds = Column(Integer, nullable=False, default=0)
+    tab_switch_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    blocked_paste_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    run_attempt_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    idle_duration_seconds = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
     last_blocked_paste_at = Column(
         DateTime(timezone=True),
         nullable=True,
@@ -814,6 +994,21 @@ class ExecutionRequest(Base):
             "last_partner_sequence >= 0",
             name="ck_execution_last_partner_sequence",
         ),
+        CheckConstraint(
+            "request_idempotency_key IS NULL OR length(request_idempotency_key) = 36",
+            name="ck_execution_request_idempotency_key_length",
+        ),
+        CheckConstraint(
+            "(request_idempotency_key IS NULL "
+            "AND request_payload_digest IS NULL) "
+            "OR (request_idempotency_key IS NOT NULL "
+            "AND request_payload_digest IS NOT NULL)",
+            name="ck_execution_request_idempotency_pair",
+        ),
+        CheckConstraint(
+            "request_payload_digest IS NULL OR length(request_payload_digest) = 64",
+            name="ck_execution_request_payload_digest_length",
+        ),
         UniqueConstraint(
             "correlation_id",
             name="uq_execution_requests_correlation_id",
@@ -822,10 +1017,27 @@ class ExecutionRequest(Base):
             "dispatch_idempotency_key",
             name="uq_execution_requests_dispatch_idempotency_key",
         ),
+        UniqueConstraint(
+            "student_id",
+            "request_idempotency_key",
+            name="uq_execution_requests_student_idempotency_key",
+        ),
         Index(
             "ix_execution_requests_partner_state",
             "status",
             "last_partner_sequence",
+        ),
+        Index(
+            "ix_execution_requests_student_queued",
+            "student_id",
+            "queued_at",
+            "execution_id",
+        ),
+        Index(
+            "ix_execution_requests_task_queued",
+            "task_id",
+            "queued_at",
+            "execution_id",
         ),
     )
 
@@ -838,13 +1050,19 @@ class ExecutionRequest(Base):
         String(36),
         nullable=False,
         default=lambda: str(uuid4()),
-        index=True,
     )
     dispatch_idempotency_key = Column(
         String(36),
         nullable=False,
         default=lambda: str(uuid4()),
-        index=True,
+    )
+    request_idempotency_key = Column(
+        String(36),
+        nullable=True,
+    )
+    request_payload_digest = Column(
+        String(64),
+        nullable=True,
     )
     last_partner_sequence = Column(
         Integer,
@@ -853,19 +1071,28 @@ class ExecutionRequest(Base):
     )
     student_id = Column(
         Integer,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
     task_id = Column(
         Integer,
-        ForeignKey("tasks.task_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "tasks.task_id",
+            ondelete="RESTRICT",
+        ),
         nullable=True,
         index=True,
     )
     submission_id = Column(
         Integer,
-        ForeignKey("submissions.sub_id", ondelete="SET NULL"),
+        ForeignKey(
+            "submissions.sub_id",
+            ondelete="SET NULL",
+        ),
         nullable=True,
         index=True,
     )
@@ -887,9 +1114,11 @@ class ExecutionRequest(Base):
         String(30),
         nullable=False,
         default="queued",
-        index=True,
     )
-    source_code = Column(Text, nullable=False)
+    source_code = Column(
+        Text,
+        nullable=False,
+    )
     standard_input = Column(
         Text,
         nullable=False,
@@ -905,9 +1134,18 @@ class ExecutionRequest(Base):
         nullable=False,
         default="",
     )
-    exit_code = Column(Integer, nullable=True)
-    execution_time_ms = Column(Integer, nullable=True)
-    limit_reason = Column(String(100), nullable=True)
+    exit_code = Column(
+        Integer,
+        nullable=True,
+    )
+    execution_time_ms = Column(
+        Integer,
+        nullable=True,
+    )
+    limit_reason = Column(
+        String(100),
+        nullable=True,
+    )
     worker_task_id = Column(
         String(255),
         nullable=True,
@@ -919,8 +1157,14 @@ class ExecutionRequest(Base):
         nullable=False,
         server_default=func.now(),
     )
-    started_at = Column(DateTime(timezone=True), nullable=True)
-    completed_at = Column(DateTime(timezone=True), nullable=True)
+    started_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    completed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     student = relationship(
         "User",
@@ -958,6 +1202,14 @@ class ExecutionRequest(Base):
     # correlation_id is backend-generated and binds dispatch and result
     # updates to one execution. dispatch_idempotency_key is backend-generated
     # and allows a partner adapter to deduplicate a repeated dispatch.
+    #
+    # REQUEST IDEMPOTENCY BOUNDARY:
+    # request_idempotency_key is an optional normalized UUID supplied through
+    # the authenticated student's Idempotency-Key request header. The
+    # request_payload_digest stores only a SHA-256 digest of the canonical
+    # execution-request identity. One student may use a key for only one
+    # logical request. Source code and standard input are never copied into
+    # either idempotency metadata field.
     #
     # REPLAY BOUNDARY:
     # last_partner_sequence stores the highest accepted result-update sequence.
@@ -1016,7 +1268,6 @@ class PartnerExecutionUpdateRecord(Base):
     partner_update_record_id = Column(
         Integer,
         primary_key=True,
-        index=True,
     )
     update_id = Column(
         String(36),
@@ -1029,12 +1280,10 @@ class PartnerExecutionUpdateRecord(Base):
             ondelete="RESTRICT",
         ),
         nullable=False,
-        index=True,
     )
     correlation_id = Column(
         String(36),
         nullable=False,
-        index=True,
     )
     sequence_number = Column(
         Integer,
@@ -1084,10 +1333,17 @@ class PartnerExecutionUpdateRecord(Base):
 class ASTAnalysis(Base):
     __tablename__ = "ast_analyses"
 
-    analysis_id = Column(Integer, primary_key=True, index=True)
+    analysis_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     submission_id = Column(
         Integer,
-        ForeignKey("submissions.sub_id", ondelete="SET NULL"),
+        ForeignKey(
+            "submissions.sub_id",
+            ondelete="SET NULL",
+        ),
         nullable=True,
         index=True,
     )
@@ -1100,9 +1356,19 @@ class ASTAnalysis(Base):
         nullable=True,
         index=True,
     )
-    overall_pass = Column(Boolean, nullable=True)
-    syntax_error = Column(JSON, nullable=True)
-    details = Column(JSON, nullable=False, default=dict)
+    overall_pass = Column(
+        Boolean,
+        nullable=True,
+    )
+    syntax_error = Column(
+        JSON,
+        nullable=True,
+    )
+    details = Column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -1126,19 +1392,45 @@ class ASTAnalysis(Base):
 class ASTFinding(Base):
     __tablename__ = "ast_findings"
 
-    finding_id = Column(Integer, primary_key=True, index=True)
+    finding_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     analysis_id = Column(
         Integer,
-        ForeignKey("ast_analyses.analysis_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "ast_analyses.analysis_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
-    rule_key = Column(String(100), nullable=False)
-    label = Column(String(150), nullable=False)
-    passed = Column(Boolean, nullable=True)
-    line_number = Column(Integer, nullable=True)
-    message = Column(Text, nullable=True)
-    details = Column(JSON, nullable=False, default=dict)
+    rule_key = Column(
+        String(100),
+        nullable=False,
+    )
+    label = Column(
+        String(150),
+        nullable=False,
+    )
+    passed = Column(
+        Boolean,
+        nullable=True,
+    )
+    line_number = Column(
+        Integer,
+        nullable=True,
+    )
+    message = Column(
+        Text,
+        nullable=True,
+    )
+    details = Column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
 
     analysis = relationship(
         "ASTAnalysis",
@@ -1155,20 +1447,33 @@ class SimilarityResult(Base):
         ),
     )
 
-    result_id = Column(Integer, primary_key=True, index=True)
+    result_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
     source_submission_id = Column(
         Integer,
-        ForeignKey("submissions.sub_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "submissions.sub_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
     compared_submission_id = Column(
         Integer,
-        ForeignKey("submissions.sub_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "submissions.sub_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
-    score = Column(Float, nullable=False)
+    score = Column(
+        Float,
+        nullable=False,
+    )
     algorithm = Column(
         String(100),
         nullable=False,
@@ -1213,24 +1518,46 @@ class InstructorGrade(Base):
         ),
     )
 
-    grade_id = Column(Integer, primary_key=True, index=True)
+    grade_id = Column(
+        Integer,
+        primary_key=True,
+    )
     submission_id = Column(
         Integer,
-        ForeignKey("submissions.sub_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "submissions.sub_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         unique=True,
         index=True,
     )
     instructor_id = Column(
         Integer,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )
-    score = Column(Float, nullable=False)
-    max_score = Column(Float, nullable=False)
-    feedback = Column(Text, nullable=True)
-    is_released = Column(Boolean, nullable=False, default=False)
+    score = Column(
+        Float,
+        nullable=False,
+    )
+    max_score = Column(
+        Float,
+        nullable=False,
+    )
+    feedback = Column(
+        Text,
+        nullable=True,
+    )
+    is_released = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -1455,7 +1782,6 @@ class AuditRecord(Base):
             ondelete="RESTRICT",
         ),
         nullable=True,
-        index=True,
     )
     action_type = Column(
         String(60),
@@ -1549,7 +1875,6 @@ class Notification(Base):
             ondelete="RESTRICT",
         ),
         nullable=False,
-        index=True,
     )
     recipient_id = Column(
         Integer,
@@ -1558,7 +1883,6 @@ class Notification(Base):
             ondelete="RESTRICT",
         ),
         nullable=False,
-        index=True,
     )
     title = Column(
         String(200),

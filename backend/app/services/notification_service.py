@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from math import ceil
 from typing import Any, Sequence
 
 from sqlalchemy.exc import (
@@ -8,6 +7,17 @@ from sqlalchemy.exc import (
 )
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    DEFAULT_PAGE,
+    DEFAULT_PAGE_SIZE,
+    PaginationBounds,
+    PaginationError,
+    PaginationRequest,
+    SortConfigurationError,
+    build_deterministic_sort,
+    build_pagination_metadata,
+    validate_pagination,
+)
 from app.models.domain_models import (
     AcademicEvent,
     Notification,
@@ -24,6 +34,12 @@ from app.schemas.notification_schema import (
 
 
 MAX_NOTIFICATION_RECIPIENTS_PER_EVENT = 5_000
+
+NOTIFICATION_PAGINATION_BOUNDS = PaginationBounds(
+    minimum_page=1,
+    minimum_page_size=MIN_NOTIFICATION_PAGE_SIZE,
+    maximum_page_size=MAX_NOTIFICATION_PAGE_SIZE,
+)
 
 
 class NotificationServiceError(Exception):
@@ -76,20 +92,35 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _build_pagination_request(
+    *,
+    page: int,
+    page_size: int,
+) -> PaginationRequest:
+    try:
+        return validate_pagination(
+            page=page,
+            page_size=page_size,
+            bounds=NOTIFICATION_PAGINATION_BOUNDS,
+        )
+    except PaginationError as error:
+        raise NotificationPaginationError(str(error)) from error
+
+
 def _validate_pagination(
     *,
     page: int,
     page_size: int,
 ) -> None:
-    if page < 1:
-        raise NotificationPaginationError("page must be greater than or equal to 1.")
+    """
+    Preserve the original private validation boundary while delegating
+    validation to the shared pagination utility.
+    """
 
-    if not (MIN_NOTIFICATION_PAGE_SIZE <= page_size <= MAX_NOTIFICATION_PAGE_SIZE):
-        raise NotificationPaginationError(
-            "page_size must be between "
-            f"{MIN_NOTIFICATION_PAGE_SIZE} and "
-            f"{MAX_NOTIFICATION_PAGE_SIZE}."
-        )
+    _build_pagination_request(
+        page=page,
+        page_size=page_size,
+    )
 
 
 def _normalize_recipient_ids(
@@ -333,7 +364,7 @@ def create_academic_event_notifications(
 
     _validate_recipients(
         db,
-        recipient_ids=(normalized_recipient_ids),
+        recipient_ids=normalized_recipient_ids,
     )
 
     try:
@@ -368,14 +399,15 @@ def create_academic_event_notifications(
                     message=message,
                 ):
                     raise NotificationConflictError(
-                        "The academic event already has a different "
-                        "notification for this recipient."
+                        "The academic event already has a "
+                        "different notification for this "
+                        "recipient."
                     )
 
                 continue
 
             validated_notification = NotificationCreate(
-                event_id=academic_event.event_id,
+                event_id=(academic_event.event_id),
                 recipient_id=recipient_id,
                 title=title,
                 message=message,
@@ -384,8 +416,8 @@ def create_academic_event_notifications(
             notification = Notification(
                 event_id=(validated_notification.event_id),
                 recipient_id=(validated_notification.recipient_id),
-                title=validated_notification.title,
-                message=validated_notification.message,
+                title=(validated_notification.title),
+                message=(validated_notification.message),
             )
 
             db.add(notification)
@@ -427,7 +459,7 @@ def create_academic_event_notifications(
     notifications = _load_event_notifications(
         db,
         event_id=academic_event.event_id,
-        recipient_ids=(normalized_recipient_ids),
+        recipient_ids=normalized_recipient_ids,
     )
 
     return {
@@ -445,7 +477,7 @@ def _build_notification_item(
         "notification_id": (row.notification_id),
         "event_id": row.event_id,
         "event_type": row.event_type,
-        "resource_type": (row.resource_type),
+        "resource_type": row.resource_type,
         "resource_id": row.resource_id,
         "title": row.title,
         "message": row.message,
@@ -508,16 +540,31 @@ def _apply_notification_ordering(
     *,
     sort_direction: NotificationSortDirection,
 ) -> Any:
-    if sort_direction == "asc":
-        return query.order_by(
-            Notification.created_at.asc(),
-            Notification.notification_id.asc(),
+    try:
+        ordering = build_deterministic_sort(
+            primary_field="created_at",
+            tie_breaker_field=("notification_id"),
+            direction=sort_direction,
         )
+    except SortConfigurationError as error:
+        raise NotificationPaginationError(str(error)) from error
 
-    return query.order_by(
-        Notification.created_at.desc(),
-        Notification.notification_id.desc(),
-    )
+    approved_columns = {
+        "created_at": (Notification.created_at),
+        "notification_id": (Notification.notification_id),
+    }
+
+    ordering_expressions = []
+
+    for sort_field in ordering:
+        column = approved_columns[sort_field.field_name]
+
+        if sort_field.direction == "asc":
+            ordering_expressions.append(column.asc())
+        else:
+            ordering_expressions.append(column.desc())
+
+    return query.order_by(*ordering_expressions)
 
 
 def count_user_unread_notifications(
@@ -539,10 +586,10 @@ def list_user_notifications(
     db: Session,
     *,
     recipient_id: int,
-    page: int = 1,
-    page_size: int = 25,
-    read_filter: NotificationReadFilter = "all",
-    sort_direction: NotificationSortDirection = "desc",
+    page: int = DEFAULT_PAGE,
+    page_size: int = DEFAULT_PAGE_SIZE,
+    read_filter: NotificationReadFilter = ("all"),
+    sort_direction: NotificationSortDirection = ("desc"),
 ) -> dict[str, Any]:
     """
     Return only notifications belonging to the authenticated recipient.
@@ -550,7 +597,7 @@ def list_user_notifications(
     Academic-event event_data is intentionally not selected.
     """
 
-    _validate_pagination(
+    pagination = _build_pagination_request(
         page=page,
         page_size=page_size,
     )
@@ -565,21 +612,22 @@ def list_user_notifications(
         read_filter=read_filter,
     )
 
-    total_items = query.order_by(None).count()
-
-    offset = (page - 1) * page_size
+    total_items = int(query.order_by(None).count())
 
     rows = (
         _apply_notification_ordering(
             query,
             sort_direction=sort_direction,
         )
-        .offset(offset)
-        .limit(page_size)
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
         .all()
     )
 
-    total_pages = ceil(total_items / page_size) if total_items else 0
+    metadata = build_pagination_metadata(
+        pagination=pagination,
+        total_items=total_items,
+    )
 
     unread_count = count_user_unread_notifications(
         db,
@@ -588,13 +636,13 @@ def list_user_notifications(
 
     return {
         "items": [_build_notification_item(row) for row in rows],
-        "page": page,
-        "page_size": page_size,
-        "total_items": total_items,
-        "total_pages": total_pages,
+        "page": metadata.page,
+        "page_size": metadata.page_size,
+        "total_items": metadata.total_items,
+        "total_pages": metadata.total_pages,
         "recipient_unread_count": (unread_count),
         "read_filter": read_filter,
-        "sort_direction": (sort_direction),
+        "sort_direction": sort_direction,
     }
 
 
@@ -655,6 +703,7 @@ def mark_user_notification_read(
 
         try:
             db.commit()
+
         except SQLAlchemyError as error:
             db.rollback()
 
@@ -692,7 +741,7 @@ def mark_all_user_notifications_read(
             .update(
                 {
                     Notification.is_read: True,
-                    Notification.read_at: marked_at,
+                    Notification.read_at: (marked_at),
                     Notification.updated_at: (marked_at),
                 },
                 synchronize_session=False,
@@ -719,6 +768,11 @@ def mark_all_user_notifications_read(
         "marked_at": marked_at,
     }
 
+
+# PAGINATION BOUNDARY:
+# Notification pagination uses the shared bounded pagination contract.
+# Database offsets are derived internally and ordering always includes
+# notification_id as the stable unique tie-breaker.
 
 # OWNERSHIP BOUNDARY:
 # Public read-state operations always filter by both notification ID and

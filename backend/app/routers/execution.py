@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
+    Header,
     HTTPException,
     Path,
     Query,
@@ -49,6 +50,8 @@ from app.services.execution_service import (
     ExecutionPartnerSequenceConflictError,
     ExecutionPersistenceConflictError,
     ExecutionPersistenceError,
+    ExecutionRequestIdempotencyConflictError,
+    ExecutionRequestIdempotencyInvalidError,
     ExecutionRequestNotFoundError,
     ExecutionServiceError,
     ExecutionStateConflictError,
@@ -147,19 +150,19 @@ def verify_student_task_access(
     if not task.is_published:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=("This activity is not available for submission."),
+            detail="This activity is not available for submission.",
         )
 
     if not task.is_graded:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=("Practice activities do not accept graded submissions."),
+            detail="Practice activities do not accept graded submissions.",
         )
 
     if is_past_due(task.due_at):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=("The submission period for this activity has ended."),
+            detail="The submission period for this activity has ended.",
         )
 
     # Transitional compatibility for records created before classroom
@@ -170,7 +173,7 @@ def verify_student_task_access(
     if task.classroom is None or not task.classroom.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=("The class for this activity is no longer active."),
+            detail="The class for this activity is no longer active.",
         )
 
     enrollment = (
@@ -186,7 +189,7 @@ def verify_student_task_access(
     if enrollment is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=("You must be actively enrolled in the class."),
+            detail="You must be actively enrolled in the class.",
         )
 
 
@@ -217,13 +220,13 @@ def verify_coding_session(
     if coding_session.student_id != student_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=("You cannot use another student's coding session."),
+            detail="You cannot use another student's coding session.",
         )
 
     if coding_session.task_id != task_id:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=("The coding session does not belong to this activity."),
+            detail="The coding session does not belong to this activity.",
         )
 
     return coding_session
@@ -239,7 +242,7 @@ def verify_submission_access(
         if submission.student_id != current_user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=("You can only access your own submissions."),
+                detail="You can only access your own submissions.",
             )
 
         return
@@ -292,7 +295,10 @@ def raise_execution_service_http_exception(
 
     if isinstance(
         exc,
-        ExecutionWorkerUpdateInvalidError,
+        (
+            ExecutionWorkerUpdateInvalidError,
+            ExecutionRequestIdempotencyInvalidError,
+        ),
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -302,6 +308,7 @@ def raise_execution_service_http_exception(
     if isinstance(
         exc,
         (
+            ExecutionRequestIdempotencyConflictError,
             ExecutionPartnerCorrelationError,
             ExecutionPartnerReplayConflictError,
             ExecutionPartnerSequenceConflictError,
@@ -325,7 +332,7 @@ def raise_execution_service_http_exception(
 
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail=("The execution request operation could not be completed."),
+        detail="The execution request operation could not be completed.",
     ) from exc
 
 
@@ -389,7 +396,7 @@ def create_submission(
 
     verify_coding_session(
         db=db,
-        coding_session_id=(submission_data.coding_session_id),
+        coding_session_id=submission_data.coding_session_id,
         student_id=current_student.user_id,
         task_id=task.task_id,
     )
@@ -417,10 +424,10 @@ def create_submission(
         new_submission = Submission(
             student_id=current_student.user_id,
             task_id=task.task_id,
-            coding_session_id=(submission_data.coding_session_id),
+            coding_session_id=submission_data.coding_session_id,
             attempt_number=next_attempt_number,
             raw_code=submission_data.raw_code,
-            standard_input=(submission_data.standard_input),
+            standard_input=submission_data.standard_input,
             status="awaiting_review",
             is_official=True,
             accepted_at=get_utc_now(),
@@ -498,7 +505,7 @@ def get_submission(
 
 
 # ------------------------------------------------------------------
-# Pillar 7 student execution-request routes
+# Pillar 7 and Pillar 15 student execution-request routes
 # ------------------------------------------------------------------
 
 
@@ -511,10 +518,14 @@ def get_submission(
     description=(
         "Persists a queued run, check, or submit execution request. "
         "The endpoint does not execute Python code and does not call "
-        "the host operating system. The execution ID may later be "
-        "forwarded to the partner-owned isolated worker adapter."
+        "the host operating system. The optional Idempotency-Key "
+        "header prevents duplicate execution requests when a client "
+        "safely retries the same logical operation."
     ),
     responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "description": ("The supplied Idempotency-Key header is not a valid UUID."),
+        },
         status.HTTP_404_NOT_FOUND: {
             "description": (
                 "The activity, submission, or coding session "
@@ -523,7 +534,8 @@ def get_submission(
         },
         status.HTTP_409_CONFLICT: {
             "description": (
-                "The execution request could not be persisted "
+                "The Idempotency-Key was already used for different "
+                "execution content, or the request could not be persisted "
                 "because of a conflicting record."
             ),
         },
@@ -531,19 +543,32 @@ def get_submission(
 )
 def create_execution_request_endpoint(
     execution_data: ExecutionRequestCreate,
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        min_length=1,
+        max_length=100,
+        description=(
+            "Optional UUID that identifies one logical student "
+            "execution request across safe client retries."
+        ),
+    ),
     db: Session = Depends(get_db),
     current_student: User = Depends(get_current_student),
 ) -> StudentExecutionResponse:
     try:
         execution_request = create_student_execution_request(
             db,
-            student_id=(current_student.user_id),
+            student_id=current_student.user_id,
             payload=execution_data,
+            request_idempotency_key=idempotency_key,
         )
     except ExecutionServiceError as exc:
         raise_execution_service_http_exception(exc)
 
-    return StudentExecutionResponse.model_validate(execution_request)
+    return StudentExecutionResponse.model_validate(
+        execution_request,
+    )
 
 
 @router.get(
@@ -566,12 +591,12 @@ def list_execution_requests_endpoint(
     ),
     request_kind: ExecutionRequestKind | None = Query(
         default=None,
-        description=("Optional run, check, or submit filter."),
+        description="Optional run, check, or submit filter.",
     ),
     execution_status: ExecutionStatus | None = Query(
         default=None,
         alias="status",
-        description=("Optional execution lifecycle-status filter."),
+        description="Optional execution lifecycle-status filter.",
     ),
     db: Session = Depends(get_db),
     current_student: User = Depends(get_current_student),
@@ -585,7 +610,9 @@ def list_execution_requests_endpoint(
     )
 
     return [
-        StudentExecutionResponse.model_validate(execution_request)
+        StudentExecutionResponse.model_validate(
+            execution_request,
+        )
         for execution_request in execution_requests
     ]
 
@@ -599,7 +626,7 @@ def list_execution_requests_endpoint(
     description=(
         "Returns an execution request only when it belongs "
         "to the authenticated student. Internal worker task "
-        "identifiers are not exposed."
+        "identifiers and idempotency metadata are not exposed."
     ),
     responses={
         status.HTTP_404_NOT_FOUND: {
@@ -620,13 +647,15 @@ def get_execution_request_endpoint(
     try:
         execution_request = get_student_execution_request(
             db,
-            student_id=(current_student.user_id),
+            student_id=current_student.user_id,
             execution_id=str(execution_id),
         )
     except ExecutionServiceError as exc:
         raise_execution_service_http_exception(exc)
 
-    return StudentExecutionResponse.model_validate(execution_request)
+    return StudentExecutionResponse.model_validate(
+        execution_request,
+    )
 
 
 # ------------------------------------------------------------------
@@ -701,6 +730,12 @@ def apply_partner_execution_result_endpoint(
 # This router validates authorization and stores source snapshots and
 # execution-request metadata only. It must never execute student Python
 # inside FastAPI, React, or the host operating system.
+
+# REQUEST IDEMPOTENCY BOUNDARY:
+# Idempotency-Key is optional, UUID-based, and scoped to the authenticated
+# student. The service persists only the normalized key and a SHA-256 digest
+# of the resolved immutable request snapshot. It never exposes those fields
+# in student responses.
 
 # WORKER BOUNDARY:
 # No student or instructor route may assign worker_task_id or update

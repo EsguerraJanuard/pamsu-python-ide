@@ -1,5 +1,5 @@
-import Sidebar from "../components/Sidebar";
-import Statusbar from "../components/Statusbar";
+import Sidebar from "../../components/layout/Sidebar";
+import Statusbar from "../../components/layout/Statusbar";
 
 const SUMMARY_CARDS = [
   {

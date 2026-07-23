@@ -86,7 +86,7 @@ def test_openapi_metadata_and_tags():
     document = get_openapi_document()
 
     # Pillar 14 partner integrations and health/readiness contracts.
-    assert APP_VERSION == "0.14.0"
+    assert APP_VERSION == "1.0.0-rc1"
     assert document["info"]["title"] == APP_TITLE
     assert document["info"]["version"] == APP_VERSION
 

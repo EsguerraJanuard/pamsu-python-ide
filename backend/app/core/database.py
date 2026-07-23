@@ -1,21 +1,21 @@
-import os
 from collections.abc import Generator
+from typing import Any
 
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import (
+    Session,
+    declarative_base,
+    sessionmaker,
+)
 
-load_dotenv()
+from app.core.config import get_settings
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not SQLALCHEMY_DATABASE_URL:
-    raise RuntimeError(
-        "DATABASE_URL environment variable is not configured. "
-        "Add it to backend/.env before starting the application."
-    )
+settings = get_settings()
 
-engine_options = {
+SQLALCHEMY_DATABASE_URL = settings.database_url.get_secret_value()
+
+engine_options: dict[str, Any] = {
     "pool_pre_ping": True,
 }
 
@@ -53,3 +53,23 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+# CONFIGURATION BOUNDARY:
+# Database configuration is loaded only through the validated immutable
+# application settings object. This module does not parse environment
+# variables independently.
+
+# SECRET HANDLING BOUNDARY:
+# The database URL is unwrapped only when constructing the SQLAlchemy
+# engine. It must never be logged, returned in an API response, or exposed
+# through health and readiness endpoints.
+
+# SESSION BOUNDARY:
+# Each FastAPI request receives an independent SQLAlchemy session that is
+# always closed after use. Commit and rollback responsibilities remain with
+# the service or workflow performing the database operation.
+
+# TEST COMPATIBILITY:
+# SQLite connections disable same-thread enforcement for isolated tests.
+# Production PostgreSQL connections retain pool pre-ping validation.
