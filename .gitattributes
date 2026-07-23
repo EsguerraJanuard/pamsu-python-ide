@@ -1,3 +1,4 @@
 *.py text eol=lf
 docs/ai/P16_OPENAPI_RC1.json text eol=lf
 docs/ai/P16_OPENAPI_RC1.sha256 text eol=lf
+docs/ai/*.md text eol=lf
