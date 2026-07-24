@@ -23,6 +23,7 @@ import Submissions from './features/submissions/Submissions';
 import Analytics from './features/dashboard/Analytics';
 import Workspace from './features/workspace/Workspace';
 import Settings from './features/settings/Settings';
+import ClassRosterView from './features/dashboard/ClassRosterView';
 
 const PlaceholderView = ({ title, description }) => (
   <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-center">
@@ -40,7 +41,7 @@ export const App = () => {
       <Router>
         <Routes>
           {/* Public Authentication Routes */}
-          <Route path="/" element={<Navigate to="/dashboard/student" replace />} />
+          <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
@@ -50,23 +51,23 @@ export const App = () => {
             
             {/* Student Role Tree */}
             <Route element={<RoleRoute allowedRole="student" />}>
-              <Route path="/dashboard/student" element={<StudentDashboard />} />
-              <Route path="/classes" element={<PlaceholderView title="My Classes" description="Join classrooms using 6-character instructor codes." />} />
-              <Route path="/classes/:id" element={<PlaceholderView title="Classroom Details" description="View active laboratory activities and announcements." />} />
-              <Route path="/assignments" element={<Assignments />} />
-              <Route path="/workspace" element={<Workspace />} />
-              <Route path="/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
-              <Route path="/submissions" element={<Submissions />} />
-              <Route path="/submissions/:id" element={<PlaceholderView title="Submission Details" description="Review AST feedback, test cases, and instructor grades." />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/classes" element={<PlaceholderView title="My Classes" description="Join classrooms using 6-character instructor codes." />} />
+              <Route path="/student/classes/:id" element={<PlaceholderView title="Classroom Details" description="View active laboratory activities and announcements." />} />
+              <Route path="/student/assignments" element={<Assignments />} />
+              <Route path="/student/workspace" element={<Workspace />} />
+              <Route path="/student/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
+              <Route path="/student/submissions" element={<Submissions />} />
+              <Route path="/student/submissions/:id" element={<PlaceholderView title="Submission Details" description="Review AST feedback, test cases, and instructor grades." />} />
+              <Route path="/student/analytics" element={<Analytics />} />
+              <Route path="/student/settings" element={<Settings />} />
             </Route>
 
             {/* Instructor Role Tree */}
             <Route element={<RoleRoute allowedRole="instructor" />}>
-              <Route path="/dashboard/instructor" element={<InstructorDashboard />} />
+              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
               <Route path="/instructor/classes" element={<PlaceholderView title="Class Management" description="Create new classes and generate enrollment codes." />} />
-              <Route path="/instructor/classes/:id" element={<PlaceholderView title="Roster View" description="Manage enrolled student lists and class activities." />} />
+              <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
               <Route path="/instructor/activities" element={<PlaceholderView title="Activity Authoring" description="Configure starter code, AST rules, and hidden test cases." />} />
               <Route path="/instructor/activities/:id" element={<PlaceholderView title="Activity Details" description="Edit publication state and paste policy modes." />} />
               <Route path="/instructor/submissions" element={<PlaceholderView title="Grading Bench" description="Review student source code, execution results, and similarity indicators." />} />

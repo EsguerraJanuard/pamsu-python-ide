@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
+import JoinClassModal from "../../components/modals/JoinClassModal";
 
 const DEFAULT_USER = {
   name: "Student",
@@ -104,30 +106,24 @@ const PREVIEW_ACTIVITY_LOG = [
 const STATUS_CONFIG = {
   due_today: {
     label: "Due today",
-    badgeClass:
-      "border-amber-500/30 bg-amber-500/10 text-amber-400",
+    badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-400",
     accentClass: "border-l-amber-500",
     progressClass: "bg-amber-500",
-    buttonClass:
-      "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
+    buttonClass: "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
   },
   in_progress: {
     label: "In progress",
-    badgeClass:
-      "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-400",
     accentClass: "border-l-blue-500",
     progressClass: "bg-blue-500",
-    buttonClass:
-      "bg-blue-600 text-white hover:bg-blue-500",
+    buttonClass: "bg-blue-600 text-white hover:bg-blue-500",
   },
   submitted: {
     label: "Submitted",
-    badgeClass:
-      "border-green-500/30 bg-green-500/10 text-green-400",
+    badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
     accentClass: "border-l-green-500",
     progressClass: "bg-green-500",
-    buttonClass:
-      "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
+    buttonClass: "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
   },
 };
 
@@ -237,6 +233,9 @@ function ClockIcon() {
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const user = getStoredUser();
+  
+  // Modal State
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
   const activeActivities = PREVIEW_ACTIVITIES.filter(
     (activity) => activity.status !== "submitted",
@@ -324,6 +323,13 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsJoinModalOpen(true)}
+                    className="rounded-lg bg-[#3b82f6] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
+                  >
+                    + Join Class
+                  </button>
+
                   <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
                     Preview data
                   </span>
@@ -612,6 +618,15 @@ export default function StudentDashboard() {
           studentName={user.name}
         />
       </div>
+
+      <JoinClassModal 
+        isOpen={isJoinModalOpen} 
+        onClose={() => setIsJoinModalOpen(false)}
+        onSuccess={() => {
+          console.log("Successfully joined class!");
+          // Optional: Add logic to fetch updated student assignments/classes later
+        }}
+      />
     </div>
   );
 }

@@ -8,28 +8,28 @@ const NAV_SECTIONS = [
       {
         icon: "grid",
         label: "Dashboard",
-        path: "/dashboard/student",
+        path: "/student/dashboard", // Updated
         end: true,
       },
       {
         icon: "list",
         label: "Assignments",
-        path: "/assignments",
+        path: "/student/assignments", // Updated
       },
       {
         icon: "code",
         label: "Workspace",
-        path: "/workspace",
+        path: "/student/workspace", // Updated
       },
       {
         icon: "book",
         label: "My Classes",
-        path: "/classes",
+        path: "/student/classes", // Updated
       },
       {
         icon: "terminal",
         label: "Solo Practice",
-        path: "/practice",
+        path: "/student/practice", // Updated
       },
     ],
   },
@@ -39,12 +39,12 @@ const NAV_SECTIONS = [
       {
         icon: "chart",
         label: "My Analytics",
-        path: "/analytics",
+        path: "/student/analytics", // Updated
       },
       {
         icon: "file",
         label: "Submissions",
-        path: "/submissions",
+        path: "/student/submissions", // Updated
       },
     ],
   },
@@ -54,7 +54,7 @@ const NAV_SECTIONS = [
       {
         icon: "settings",
         label: "Settings",
-        path: "/settings",
+        path: "/student/settings", // Updated
       },
     ],
   },
@@ -183,7 +183,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
                       <span>{link.label}</span>
                     </span>
 
-                    {link.path === "/assignments" && assignmentCount > 0 && (
+                    {link.path === "/student/assignments" && assignmentCount > 0 && (
                       <span className="rounded-full bg-[#3b82f6] px-1.5 py-0.5 text-[10px] font-semibold text-white">
                         {assignmentCount}
                       </span>
