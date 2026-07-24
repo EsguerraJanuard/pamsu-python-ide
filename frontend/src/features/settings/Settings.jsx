@@ -2,9 +2,17 @@ import { useState } from "react";
 
 
 
+<<<<<<< HEAD:frontend/src/features/settings/Settings.jsx
 import Sidebar from "../../components/layout/Sidebar";
 
 import Statusbar from "../../components/layout/Statusbar";
+
+
+=======
+import Sidebar from "../components/Sidebar";
+
+import Statusbar from "../components/Statusbar";
+>>>>>>> origin/dev:frontend/src/pages/Settings.jsx
 
 
 
@@ -1100,4 +1108,8 @@ export default function Settings() {
 
   );
 
+<<<<<<< HEAD:frontend/src/features/settings/Settings.jsx
 }
+=======
+} 
+>>>>>>> origin/dev:frontend/src/pages/Settings.jsx
