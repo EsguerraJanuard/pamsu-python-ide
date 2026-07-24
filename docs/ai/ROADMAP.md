@@ -23,14 +23,21 @@ This is the canonical backend sequence. AI assistants must not rename, reorder, 
 7. Execution Request Workflow — `0.7.0` — Completed
 8. Coding Sessions and Privacy-Safe Telemetry — `0.8.0` — Completed
 9. Structural Evaluation Review and Manual Grading — `0.9.0` — Completed and hardened
+10. Instructor Review Queue and Gradebook APIs — `0.10.0` — Completed
+11. In-App Notification and Academic Event Workflow — `0.11.0` — Completed
+12. Audit Trail and Academic Accountability — `0.12.0` — Completed
+13. Reporting and Privacy-Safe Export APIs — `0.13.0` — Completed
+14. Partner Integration Contracts — `0.14.0` — Completed
+15. API Hardening, Concurrency, and Database Readiness — `0.15.0` — Completed
+16. V-Model Verification and Release Candidate — `1.0.0-rc1` — Completed
 
 Pillar 9 verified regression: `185 passed`.
 
 ---
 
 ## Pillar 10 — Instructor Review Queue and Gradebook APIs
-**Status:** Next  
-**Version:** `0.10.0`  
+**Status:** Completed
+**Version:** `0.10.0`
 **Local branch:** `review/backend-p10-review-queue-gradebook`
 
 Scope:
@@ -62,8 +69,8 @@ Definition of done:
 - only `dev` pushed.
 
 ## Pillar 11 — In-App Notification and Academic Event Workflow
-**Status:** Planned  
-**Version:** `0.11.0`  
+**Status:** Completed
+**Version:** `0.11.0`
 **Local branch:** `review/backend-p11-notification-workflow`
 
 Scope:
@@ -80,8 +87,8 @@ Excluded:
 - push infrastructure.
 
 ## Pillar 12 — Audit Trail and Academic Accountability
-**Status:** Planned  
-**Version:** `0.12.0`  
+**Status:** Completed
+**Version:** `0.12.0`
 **Local branch:** `review/backend-p12-audit-trail`
 
 Scope:
@@ -91,8 +98,8 @@ Scope:
 - no audit event when the main transaction fails.
 
 ## Pillar 13 — Reporting and Privacy-Safe Export APIs
-**Status:** Planned  
-**Version:** `0.13.0`  
+**Status:** Completed
+**Version:** `0.13.0`
 **Local branch:** `review/backend-p13-reporting-exports`
 
 Scope:
@@ -106,8 +113,8 @@ Scope:
 - no automated misconduct ranking.
 
 ## Pillar 14 — Partner Integration Contracts
-**Status:** Planned  
-**Version:** `0.14.0`  
+**Status:** Completed
+**Version:** `0.14.0`
 **Local branch:** `review/backend-p14-partner-contracts`
 
 Scope:
@@ -126,8 +133,8 @@ Excluded:
 Local LLM may draft explanations, hints, or feedback, but must never set grades or determine plagiarism/misconduct.
 
 ## Pillar 15 — API Hardening, Concurrency, and Database Readiness
-**Status:** Planned  
-**Version:** `0.15.0`  
+**Status:** Completed
+**Version:** `0.15.0`
 **Local branch:** `review/backend-p15-api-hardening`
 
 Scope:
@@ -142,8 +149,8 @@ Scope:
 - safe CORS/security configuration.
 
 ## Pillar 16 — V-Model Verification and Release Candidate
-**Status:** Planned  
-**Version:** `1.0.0-rc1`  
+**Status:** Completed
+**Version:** `1.0.0-rc1`
 **Local branch:** `review/backend-p16-release-candidate`
 
 Scope:
@@ -162,7 +169,7 @@ Definition of done:
 - release-candidate contracts frozen.
 
 ## Final Release — Backend 1.0.0
-**Status:** Planned after release-candidate acceptance  
+**Status:** Completed
 **Version:** `1.0.0`
 
 No new features. Only release-candidate fixes, documentation, migration corrections, contract-preserving security fixes, final changelog, and approved release tagging.

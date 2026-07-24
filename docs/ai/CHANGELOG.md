@@ -12,6 +12,7 @@
 - Migration head remains `9f2c6e4a1b7d`.
 - Authorization, privacy, grading, execution, and sandbox boundaries remain unchanged.
 - Review-branch regression: `731 passed in 115.83s (0:01:55)`
+- Post-merge dev regression: `731 passed in 126.48s (0:02:06)`
 
 ## 1.0.0-rc1 — Release Candidate
 
