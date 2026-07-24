@@ -48,8 +48,7 @@ export const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Protected Route Tree - Currently Bypassed */}
-          {/* Protected Route Tree - Requires Valid JWT/Session */}
+           {/* Protected Route Tree - Requires Valid JWT/Session */}
           <Route element={<ProtectedRoute />}>
             
             {/* Student Role Tree (Standalone Pages without StudentLayout) */}
@@ -64,17 +63,7 @@ export const App = () => {
               <Route path="/student/submissions/:id" element={<PlaceholderView title="Submission Details" description="Review AST feedback, test cases, and instructor grades." />} />
               <Route path="/student/analytics" element={<Analytics />} />
               <Route path="/student/settings" element={<Settings />} />
-              <Route path="/dashboard/student" element={<StudentDashboard />} />
-              <Route path="/classes" element={<PlaceholderView title="My Classes" description="Join classrooms using 6-character instructor codes." />} />
-              <Route path="/classes/:id" element={<PlaceholderView title="Classroom Details" description="View active laboratory activities and announcements." />} />
-              <Route path="/assignments" element={<Assignments />} />
-              <Route path="/workspace" element={<Workspace />} />
-              <Route path="/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
-              <Route path="/submissions" element={<Submissions />} />
-              <Route path="/submissions/:id" element={<PlaceholderView title="Submission Details" description="Review AST feedback, test cases, and instructor grades." />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/settings" element={<Settings />} />
-            </Route>
+              </Route>
 
             {/* Instructor Role Tree */}
             <Route element={<RoleRoute allowedRole="instructor" />}>
@@ -87,18 +76,7 @@ export const App = () => {
               <Route path="/instructor/submissions/:id" element={<PlaceholderView title="Manual Grading" description="Assign official grades and feedback." />} />
               <Route path="/instructor/monitoring" element={<PlaceholderView title="Live Student Monitoring" description="Controlled 5-10s polling of active IDE sessions and tab switches." />} />
               <Route path="/instructor/settings" element={<InstructorSettings />} />
-              <Route element={<InstructorLayout />}>
-                <Route path="/dashboard/instructor" element={<InstructorDashboard />} />
-                <Route path="/instructor/classes" element={<PlaceholderView title="Class Management" description="Create new classes and generate enrollment codes." />} />
-                <Route path="/instructor/classes/:id" element={<PlaceholderView title="Roster View" description="Manage enrolled student lists and class activities." />} />
-                <Route path="/instructor/activities" element={<PlaceholderView title="Activity Authoring" description="Configure starter code, AST rules, and hidden test cases." />} />
-                <Route path="/instructor/activities/:id" element={<PlaceholderView title="Activity Details" description="Edit publication state and paste policy modes." />} />
-                <Route path="/instructor/submissions" element={<PlaceholderView title="Grading Bench" description="Review student source code, execution results, and similarity indicators." />} />
-                <Route path="/instructor/submissions/:id" element={<PlaceholderView title="Manual Grading" description="Assign official grades and feedback." />} />
-                <Route path="/instructor/monitoring" element={<PlaceholderView title="Live Student Monitoring" description="Controlled 5-10s polling of active IDE sessions and tab switches." />} />
-                <Route path="/instructor/settings" element={<Settings />} />
               </Route>
-            </Route>
 
           </Route>
 
