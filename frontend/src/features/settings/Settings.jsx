@@ -1,12 +1,6 @@
 import { useState } from "react";
-
-
-
-import Sidebar from "../components/Sidebar";
-
-import Statusbar from "../components/Statusbar";
-
-
+import Sidebar from "../../components/layout/Sidebar";
+import Statusbar from "../../components/layout/Statusbar";
 
 const PREVIEW_PROFILE = {
 
@@ -1079,25 +1073,15 @@ export default function Settings() {
                     this browser.
 
                   </li>
-
                 </ul>
-
               </section>
-
             </div>
-
           </div>
-
         </main>
 
-
-
         <Statusbar />
-
       </div>
-
     </div>
+);
 
-  );
-
-} 
+}

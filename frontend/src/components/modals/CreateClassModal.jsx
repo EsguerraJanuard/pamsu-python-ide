@@ -1,0 +1,143 @@
+import { useState } from "react";
+
+export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({ name: "", section: "", description: "" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [generatedCode, setGeneratedCode] = useState(null);
+
+  if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/instructor/classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) throw new Error("Failed to create class. Please try again.");
+
+      const data = await response.json();
+      setGeneratedCode(data.enrollmentCode); 
+      onSuccess(); 
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetAndClose = () => {
+    setFormData({ name: "", section: "", description: "" });
+    setGeneratedCode(null);
+    setError(null);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#1a1d27] p-6 shadow-2xl">
+        {!generatedCode ? (
+          <>
+            <h2 className="mb-2 text-lg font-bold text-white">Create New Cohort</h2>
+            <p className="mb-6 text-sm text-white/50">
+              Initialize a new class section for automated grading.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-white/70">Course Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="e.g. Object-Oriented Programming"
+                  className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-white/70">Section / Schedule</label>
+                <input
+                  type="text"
+                  name="section"
+                  value={formData.section}
+                  onChange={handleChange}
+                  placeholder="e.g. CCS101 - Block A"
+                  className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-white/70">Description (Optional)</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleResetAndClose}
+                  className="rounded-lg px-4 py-2 text-xs font-semibold text-white/60 hover:bg-white/[0.04] hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading || !formData.name || !formData.section}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-emerald-500"
+                >
+                  {isLoading ? "Creating..." : "Create Class"}
+                </button>
+              </div>
+            </form>
+          </>
+        ) : (
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-lg font-bold text-white">Class Created!</h2>
+            <p className="mb-4 text-sm text-white/50">
+              Share this code with your students so they can join the class.
+            </p>
+            <div className="mb-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
+              <span className="font-mono text-2xl font-bold tracking-wider text-emerald-400">
+                {generatedCode}
+              </span>
+            </div>
+            <button
+              onClick={handleResetAndClose}
+              className="w-full rounded-lg bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/[0.1]"
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
