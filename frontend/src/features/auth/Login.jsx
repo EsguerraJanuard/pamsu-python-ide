@@ -14,7 +14,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import { ApiError } from "../../services/api";
+import { api, ApiError } from "../../services/api";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -105,26 +105,7 @@ export default function Login() {
       formData.append("username", normalizedEmail);
       formData.append("password", form.password);
 
-      const response = await fetch(`${BASE_URL}/login`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle specific backend error responses
-        if (response.status === 401) {
-          setError("Invalid email or password.");
-          return;
-        }
-        if (response.status === 403) {
-          setError(data?.detail || "Your account is inactive or not verified.");
-          return;
-        }
-        setError(data?.detail || "Login failed. Please try again.");
-        return;
-      }
+      const data = await api.post("/login", formData);
 
       // Save token and user data via AuthContext
       // login() stores in localStorage under pamsu_access_token, pamsu_user_role, pamsu_user_data
@@ -132,13 +113,19 @@ export default function Login() {
 
       // Redirect based on role returned by the backend
       if (data.user.role === "instructor") {
-        navigate("/dashboard/instructor", { replace: true });
+        navigate("/instructor/dashboard", { replace: true });
       } else {
-        navigate("/dashboard/student", { replace: true });
+        navigate("/student/dashboard", { replace: true });
       }
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        if (err.status === 401) {
+          setError("Invalid email or password.");
+        } else if (err.status === 403) {
+          setError(err.data?.detail || "Your account is inactive or not verified.");
+        } else {
+          setError(err.data?.detail || err.message || "Login failed. Please try again.");
+        }
       } else if (!navigator.onLine) {
         setError("Cannot connect to the server. Check your internet connection.");
       } else {

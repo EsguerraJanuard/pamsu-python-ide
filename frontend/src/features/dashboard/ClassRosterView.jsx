@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 export default function ClassRosterView() {
   const { id: classId } = useParams();
@@ -11,6 +12,8 @@ export default function ClassRosterView() {
   const [studentToRemove, setStudentToRemove] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  const [classroom, setClassroom] = useState(null);
+
   useEffect(() => {
     fetchRoster();
   }, [classId]);
@@ -18,18 +21,14 @@ export default function ClassRosterView() {
   const fetchRoster = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/instructor/classes/${classId}/students`);
-      if (!response.ok) throw new Error("Failed to load roster data.");
-      const data = await response.json();
-      setStudents(data);
-    } catch (err) {
-      setError(err.message);
-      // Mock data for UI testing if the backend isn't hooked up yet
-      setStudents([
-        { id: "S101", name: "Alice Johnson", email: "alice@pamsu.edu.ph", enrolledAt: "2023-09-01", submissions: 14 },
-        { id: "S102", name: "Bob Smith", email: "bob@pamsu.edu.ph", enrolledAt: "2023-09-02", submissions: 12 },
-        { id: "S103", name: "Charlie Davis", email: "charlie@pamsu.edu.ph", enrolledAt: "2023-09-03", submissions: 8 },
+      const [classData, membersData] = await Promise.all([
+        api.get(`/classrooms/${classId}`),
+        api.get(`/classrooms/${classId}/members`),
       ]);
+      setClassroom(classData);
+      setStudents(membersData.filter(m => m.status !== "removed") || []);
+    } catch (err) {
+      setError(err.message || "Failed to load roster data.");
     } finally {
       setIsLoading(false);
     }
@@ -39,15 +38,14 @@ export default function ClassRosterView() {
     if (!studentToRemove) return;
     setIsRemoving(true);
     try {
-      const response = await fetch(`/api/instructor/classes/${classId}/students/${studentToRemove.id}`, {
-        method: "DELETE",
+      await api.patch(`/classrooms/enrollments/${studentToRemove.enrollment_id}/status`, {
+        status: "removed",
       });
-      if (!response.ok) throw new Error("Failed to remove student.");
       
-      setStudents((prev) => prev.filter((s) => s.id !== studentToRemove.id));
+      setStudents((prev) => prev.filter((s) => s.enrollment_id !== studentToRemove.enrollment_id));
       setStudentToRemove(null);
     } catch (err) {
-      alert(err.message);
+      alert(err.message || "Failed to remove student.");
     } finally {
       setIsRemoving(false);
     }
@@ -60,13 +58,17 @@ export default function ClassRosterView() {
           <header className="mb-6 flex items-center justify-between">
             <div>
               <button 
-                onClick={() => navigate('/dashboard/instructor')}
+                onClick={() => navigate('/instructor/dashboard')}
                 className="mb-4 flex items-center gap-2 text-xs font-semibold text-emerald-400 transition-colors hover:text-emerald-300"
               >
                 ← Back to Dashboard
               </button>
-              <h1 className="text-2xl font-bold text-white">Class Roster</h1>
-              <p className="mt-1 text-sm text-white/40">Manage enrolled students and view baseline metrics.</p>
+              <h1 className="text-2xl font-bold text-white">
+                {classroom ? `${classroom.subject_code} - ${classroom.section}` : "Class Roster"}
+              </h1>
+              <p className="mt-1 text-sm text-white/40">
+                {classroom ? classroom.name : "Manage enrolled students."}
+              </p>
             </div>
             <div className="text-sm font-semibold text-emerald-400">
               Total Students: {students.length}
@@ -94,14 +96,20 @@ export default function ClassRosterView() {
                     </tr>
                   ) : (
                     students.map((student) => (
-                      <tr key={student.id} className="transition-colors hover:bg-white/[0.02]">
+                      <tr key={student.enrollment_id} className="transition-colors hover:bg-white/[0.02]">
                         <td className="px-6 py-4 font-medium text-white">{student.name}</td>
                         <td className="px-6 py-4">
-                          <div className="text-white/80">{student.id}</div>
+                          <div className="text-white/80">{student.school_id}</div>
                           <div className="text-xs text-white/40">{student.email}</div>
                         </td>
-                        <td className="px-6 py-4 text-white/60">{student.enrolledAt}</td>
-                        <td className="px-6 py-4 text-center font-mono text-emerald-400">{student.submissions}</td>
+                        <td className="px-6 py-4 text-white/60">
+                          {student.status === "active" ? (
+                             <span className="text-emerald-400">Active</span>
+                          ) : (
+                             <span className="text-amber-400">Disabled</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center font-mono text-white/30">0</td>
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => setStudentToRemove(student)}

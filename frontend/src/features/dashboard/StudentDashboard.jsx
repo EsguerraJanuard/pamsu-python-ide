@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
@@ -234,24 +235,79 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const user = getStoredUser();
   
-  // Modal State
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [classrooms, setClassrooms] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const activeActivities = PREVIEW_ACTIVITIES.filter(
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const [classRes, activityRes] = await Promise.all([
+        api.get("/classrooms/mine"),
+        api.get("/activities/")
+      ]);
+      setClassrooms(classRes);
+      
+      const classMap = {};
+      classRes.forEach(c => {
+        classMap[c.classroom.class_id] = c.classroom.subject_code;
+      });
+
+      const mappedActivities = activityRes.map(task => {
+        // Map backend task to the dashboard format
+        const due = task.due_at ? new Date(task.due_at) : null;
+        let status = "in_progress";
+        let dueLabel = "No due date";
+        if (due) {
+          dueLabel = `Due: ${due.toLocaleDateString()}`;
+          if (due < new Date()) {
+            status = "submitted"; // or past_due
+            dueLabel = "Submission closed";
+          } else {
+             // simplified logic
+             status = "in_progress";
+          }
+        }
+        
+        return {
+          id: task.task_id,
+          title: task.title,
+          courseCode: classMap[task.class_id] || "Unknown",
+          dueLabel: dueLabel,
+          status: status,
+          progress: 0,
+          note: task.activity_type === "laboratory" ? "Laboratory activity" : "Homework",
+          actionLabel: status === "submitted" ? "View" : "Open",
+        };
+      });
+      setActivities(mappedActivities);
+    } catch (err) {
+      console.error("Failed to load dashboard data", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const activeActivities = activities.filter(
     (activity) => activity.status !== "submitted",
   );
 
-  const dueTodayCount = PREVIEW_ACTIVITIES.filter(
+  const dueTodayCount = activities.filter(
     (activity) => activity.status === "due_today",
   ).length;
 
   const handleOpenActivity = (activity) => {
-    if (activity.status === "submitted") {
-      navigate(`/submissions/${activity.id}`);
+    if (activity.status === "graded" || activity.status === "submitted") {
+      navigate(`/student/submissions/${activity.id}`);
       return;
     }
 
-    navigate(`/workspace?activity=${activity.id}`);
+    navigate(`/student/workspace?activity=${activity.id}`);
   };
 
   return (
@@ -409,7 +465,7 @@ export default function StudentDashboard() {
 
                   <button
                     type="button"
-                    onClick={() => navigate("/assignments")}
+                    onClick={() => navigate("/student/assignments")}
                     className="text-xs text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
                   >
                     View all
@@ -417,7 +473,12 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className="space-y-3">
-                  {PREVIEW_ACTIVITIES.map(
+                  {activities.length === 0 && !isLoading && (
+                    <div className="text-sm text-white/40 text-center py-8">
+                      No activities found. Join a class to see your assignments.
+                    </div>
+                  )}
+                  {activities.map(
                     (activity, index) => {
                       const status =
                         STATUS_CONFIG[activity.status] ??
@@ -624,7 +685,7 @@ export default function StudentDashboard() {
         onClose={() => setIsJoinModalOpen(false)}
         onSuccess={() => {
           console.log("Successfully joined class!");
-          // Optional: Add logic to fetch updated student assignments/classes later
+          fetchDashboardData();
         }}
       />
     </div>

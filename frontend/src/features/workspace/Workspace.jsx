@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
@@ -42,6 +43,26 @@ const EXECUTION_STATUS = {
     dotClass: "bg-white/30",
     textClass: "text-white/40",
   },
+  running: {
+    label: "Running...",
+    dotClass: "bg-blue-500 animate-pulse",
+    textClass: "text-blue-400",
+  },
+  completed: {
+    label: "Execution complete",
+    dotClass: "bg-green-500",
+    textClass: "text-green-400",
+  },
+  failed: {
+    label: "Execution failed",
+    dotClass: "bg-red-500",
+    textClass: "text-red-400",
+  },
+  unavailable: {
+    label: "Backend not connected",
+    dotClass: "bg-amber-500",
+    textClass: "text-amber-400",
+  },
   unavailable: {
     label: "Backend not connected",
     dotClass: "bg-amber-500",
@@ -66,11 +87,68 @@ function formatEventTime() {
 }
 
 export default function Workspace() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity") || "preview";
   const draftStorageKey = `pamsu-workspace-draft-${activityId}`;
 
   const editorRef = useRef(null);
+  
+  const [activity, setActivity] = useState(PREVIEW_ACTIVITY);
+  const [testCases, setTestCases] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (activityId === "preview") {
+      setIsLoading(false);
+      return;
+    }
+
+    const loadActivity = async () => {
+      try {
+        const [activityRes, testCasesRes] = await Promise.all([
+          api.get(`/activities/${activityId}`),
+          api.get(`/activities/${activityId}/sample-test-cases`)
+        ]);
+
+        const due = activityRes.due_at ? new Date(activityRes.due_at) : null;
+        let dueLabel = "No due date";
+        if (due) {
+          dueLabel = `Due: ${due.toLocaleDateString()}`;
+        }
+
+        setActivity({
+          courseCode: `Class ${activityRes.class_id}`, // In a real app we'd fetch class details
+          title: activityRes.title,
+          fileName: "main.py",
+          activityType: activityRes.activity_type === "laboratory" ? "Graded laboratory" : "Homework",
+          dueLabel: dueLabel,
+          description: activityRes.description || "",
+          requirements: Object.keys(activityRes.required_ast_rules || {}),
+          expectedOutput: testCasesRes.length > 0 ? testCasesRes[0].expected_output : "No expected output provided.",
+        });
+        setTestCases(testCasesRes);
+        
+        // If draft is empty but there's starter code, use starter code
+        const savedDraft = loadDraft(draftStorageKey);
+        if (savedDraft === DEFAULT_CODE && activityRes.starter_code) {
+          setCode(activityRes.starter_code);
+        }
+
+        if (testCasesRes.length > 0 && testCasesRes[0].standard_input) {
+          setStandardInput(testCasesRes[0].standard_input.trim());
+        }
+
+      } catch (err) {
+        console.error("Failed to load activity", err);
+        setNotice("Failed to load activity details.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadActivity();
+  }, [activityId]);
 
   const [code, setCode] = useState(() =>
     loadDraft(draftStorageKey),
@@ -327,37 +405,117 @@ export default function Workspace() {
     }
   };
 
-  const handleRun = () => {
-    setExecutionStatus("unavailable");
+  const handleRun = async () => {
+    if (activityId === "preview") {
+      setExecutionStatus("unavailable");
+      setActivePanel("output");
+      setOutput("Preview mode: Backend isolated.");
+      return;
+    }
+
+    setExecutionStatus("running");
     setActivePanel("output");
+    setOutput("Sending execution request...");
 
-    setOutput(
-      [
-        "Execution request was not sent.",
-        "",
-        "The isolated Python sandbox API is not connected yet.",
-        "Student code will not be executed directly in React or FastAPI.",
-        "",
-        `Standard input prepared: ${
-          standardInput || "(empty)"
-        }`,
-      ].join("\n"),
-    );
+    try {
+      const execRes = await api.post("/execution/requests/", {
+        request_kind: "run",
+        task_id: parseInt(activityId),
+        source_code: code,
+        standard_input: standardInput || ""
+      });
+
+      // Poll for result
+      pollExecution(execRes.execution_id);
+    } catch (err) {
+      setExecutionStatus("failed");
+      setOutput(`Failed to start execution: ${err.message || err.detail || 'Unknown error'}`);
+    }
   };
 
-  const handleCheck = () => {
-    setExecutionStatus("unavailable");
+  const handleCheck = async () => {
+    if (activityId === "preview") {
+      setExecutionStatus("unavailable");
+      setActivePanel("analysis");
+      setNotice("AST checking requires the authenticated backend analysis endpoint.");
+      return;
+    }
+
+    setExecutionStatus("running");
     setActivePanel("analysis");
-    setNotice(
-      "AST checking requires the authenticated backend analysis endpoint.",
-    );
+    
+    try {
+      const execRes = await api.post("/execution/requests/", {
+        request_kind: "check",
+        task_id: parseInt(activityId),
+        source_code: code,
+        standard_input: standardInput || ""
+      });
+
+      pollExecution(execRes.execution_id, true);
+    } catch (err) {
+      setExecutionStatus("failed");
+      setNotice(`Failed to start AST check: ${err.message || err.detail || 'Unknown error'}`);
+    }
   };
 
-  const handleSubmit = () => {
-    setExecutionStatus("unavailable");
-    setNotice(
-      "Submission is not connected yet. Your code remains saved as a local draft.",
-    );
+  const pollExecution = async (executionId, isCheck = false) => {
+    let pollCount = 0;
+    const poll = setInterval(async () => {
+      try {
+        pollCount++;
+        const statusRes = await api.get(`/execution/requests/${executionId}`);
+        if (["completed", "syntax_error", "runtime_error", "timed_out", "memory_limit", "output_limit", "process_limit", "failed"].includes(statusRes.status)) {
+          clearInterval(poll);
+          if (statusRes.status === "completed") {
+            setExecutionStatus("completed");
+          } else {
+            setExecutionStatus("failed");
+          }
+
+          if (isCheck) {
+            setNotice(`Check finished with status: ${statusRes.status}`);
+          } else {
+            setOutput(statusRes.execution_output || "No output returned.");
+          }
+        } else if (pollCount >= 5) {
+          // If the worker isn't running in dev, time it out locally
+          clearInterval(poll);
+          setExecutionStatus("unavailable");
+          const msg = "Execution request was successfully queued, but the backend Python sandbox is not connected. Student code will not be executed directly in React or FastAPI.";
+          if (isCheck) {
+            setNotice(msg);
+          } else {
+            setOutput(msg);
+          }
+        }
+      } catch (err) {
+        clearInterval(poll);
+        setExecutionStatus("failed");
+        if (isCheck) setNotice("Polling failed.");
+        else setOutput("Polling failed.");
+      }
+    }, 1000);
+  };
+
+  const handleSubmit = async () => {
+    if (activityId === "preview") {
+      setExecutionStatus("unavailable");
+      setNotice("Cannot submit in preview mode.");
+      return;
+    }
+
+    try {
+      await api.post("/submissions/", {
+        task_id: parseInt(activityId),
+        raw_code: code,
+      });
+      setNotice("Code submitted successfully!");
+      // Optionally navigate away or update state
+      setTimeout(() => navigate("/student/assignments"), 1500);
+    } catch (err) {
+      setNotice(`Submission failed: ${err.message || err.detail || 'Unknown error'}`);
+    }
   };
 
   const handleResetDraft = () => {
@@ -369,6 +527,7 @@ export default function Workspace() {
       return;
     }
 
+    // Attempt to use activity starter code if available
     setCode(DEFAULT_CODE);
     setOutput("Draft reset to the starter code.");
     setExecutionStatus("idle");
@@ -437,12 +596,12 @@ export default function Workspace() {
 
             <div className="hidden min-w-0 sm:block">
               <p className="truncate text-[9px] uppercase tracking-widest text-white/30">
-                {PREVIEW_ACTIVITY.courseCode} ·{" "}
-                {PREVIEW_ACTIVITY.activityType}
+                {activity.courseCode} ·{" "}
+                {activity.activityType}
               </p>
 
               <h1 className="truncate text-xs font-semibold">
-                {PREVIEW_ACTIVITY.title}
+                {activity.title}
               </h1>
             </div>
           </div>
@@ -561,7 +720,7 @@ export default function Workspace() {
                 </span>
 
                 <h2 className="mt-2 text-sm font-semibold">
-                  {PREVIEW_ACTIVITY.title}
+                  {activity.title}
                 </h2>
               </div>
 
@@ -577,7 +736,7 @@ export default function Workspace() {
 
             <div className="flex-1 space-y-6 overflow-y-auto p-4">
               <span className="inline-block rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[9px] text-amber-400">
-                {PREVIEW_ACTIVITY.dueLabel}
+                {activity.dueLabel}
               </span>
 
               <section>
@@ -586,7 +745,7 @@ export default function Workspace() {
                 </h3>
 
                 <p className="text-[11px] leading-relaxed text-white/50">
-                  {PREVIEW_ACTIVITY.description}
+                  {activity.description}
                 </p>
               </section>
 
@@ -596,7 +755,7 @@ export default function Workspace() {
                 </h3>
 
                 <ul className="space-y-2">
-                  {PREVIEW_ACTIVITY.requirements.map(
+                  {activity.requirements.map(
                     (requirement) => (
                       <li
                         key={requirement}
@@ -620,7 +779,7 @@ export default function Workspace() {
                 </h3>
 
                 <pre className="overflow-x-auto rounded-lg border border-white/[0.08] bg-[#1a1d27] p-3 font-mono text-[10px] text-green-400">
-                  {PREVIEW_ACTIVITY.expectedOutput}
+                  {activity.expectedOutput}
                 </pre>
               </section>
 
@@ -641,7 +800,7 @@ export default function Workspace() {
             <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#11141c]">
               <div className="flex items-center gap-2 border-t-2 border-t-amber-500 bg-[#1a1d27] px-4 py-2 text-xs">
                 <span className="text-amber-400">
-                  {PREVIEW_ACTIVITY.fileName}
+                  {activity.fileName}
                 </span>
 
                 <span
@@ -751,7 +910,7 @@ export default function Workspace() {
                       </p>
                     </div>
 
-                    {PREVIEW_ACTIVITY.requirements.map(
+                    {activity.requirements.map(
                       (requirement) => (
                         <div
                           key={requirement}

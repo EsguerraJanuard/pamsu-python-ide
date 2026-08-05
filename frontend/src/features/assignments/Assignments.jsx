@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
@@ -205,41 +206,95 @@ function isSubmittedActivity(activity) {
 export default function Assignments() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const activeCount = PREVIEW_ACTIVITIES.filter(
-    (activity) => !isSubmittedActivity(activity),
-  ).length;
+  const fetchActivities = async () => {
+    setIsLoading(true);
+    try {
+      const [classRes, activityRes] = await Promise.all([
+        api.get("/classrooms/mine"),
+        api.get("/activities/")
+      ]);
+      
+      const classMap = {};
+      classRes.forEach(c => {
+        classMap[c.classroom.class_id] = c.classroom.subject_code;
+      });
 
-  const submittedCount = PREVIEW_ACTIVITIES.filter(
-    isSubmittedActivity,
-  ).length;
+      const mappedActivities = activityRes.map(task => {
+        const due = task.due_at ? new Date(task.due_at) : null;
+        let status = "in_progress";
+        let dueLabel = "No due date";
+        if (due) {
+          dueLabel = `Due: ${due.toLocaleDateString()}`;
+          if (due < new Date()) {
+            status = "submitted"; 
+            dueLabel = "Submission closed";
+          } else {
+             status = "in_progress";
+          }
+        }
+        
+        return {
+          id: task.task_id,
+          title: task.title,
+          activityType: task.activity_type === "laboratory" ? "Laboratory" : "Homework",
+          courseCode: classMap[task.class_id] || "Unknown",
+          dueLabel: dueLabel,
+          tags: [], 
+          status: status,
+          progress: 0,
+          note: "No official submission has been recorded.",
+          actionLabel: status === "submitted" ? "View submission" : "Open",
+          latestSubmission: null,
+          instructorGrade: null,
+        };
+      });
+      setActivities(mappedActivities);
+    } catch (err) {
+      console.error("Failed to load activities", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const filteredActivities = PREVIEW_ACTIVITIES.filter(
-    (activity) => {
-      if (filter === "active") {
-        return !isSubmittedActivity(activity);
-      }
-
-      if (filter === "submitted") {
-        return isSubmittedActivity(activity);
-      }
-
-      return true;
-    },
-  );
+  useEffect(() => {
+    fetchActivities();
+  }, []);
 
   const handleOpenActivity = (activity) => {
-    if (isSubmittedActivity(activity)) {
-      navigate(`/submissions/${activity.id}`);
+    if (activity.status === "graded" || activity.status === "submitted") {
+      navigate(`/student/submissions/${activity.id}`);
       return;
     }
 
-    navigate(`/workspace?activity=${activity.id}`);
+    navigate(`/student/workspace?activity=${activity.id}`);
   };
+
+  const filteredActivities = activities.filter((activity) => {
+    const matchesSearch =
+      activity.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      activity.courseCode
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+    let matchesFilter = true;
+    if (filter === "active") {
+      matchesFilter = activity.status !== "graded" && activity.status !== "submitted";
+    } else if (filter === "submitted") {
+      matchesFilter = activity.status === "graded" || activity.status === "submitted";
+    }
+
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
-      <Sidebar assignmentCount={activeCount} />
+      <Sidebar assignmentCount={activities.filter(a => !isSubmittedActivity(a)).length} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="assignments-page flex-1 overflow-y-auto px-5 py-6 sm:px-8">
@@ -276,12 +331,12 @@ export default function Assignments() {
           <div className="mx-auto max-w-5xl">
             <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold">
-                  Activities
+                <h1 className="text-2xl font-bold leading-tight">
+                  Assignments
                 </h1>
 
                 <p className="mt-1 text-sm text-white/40">
-                  {activeCount} active · {submittedCount} submitted
+                  {activities.filter(a => !isSubmittedActivity(a)).length} active · {activities.filter(isSubmittedActivity).length} submitted
                 </p>
               </div>
 

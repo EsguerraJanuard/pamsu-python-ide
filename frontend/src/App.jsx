@@ -1,12 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './features/auth/AuthContext';
 
-// ==========================================
-// DEV BYPASS: Route Protection Disabled
-// ==========================================
-const ProtectedRoute = () => <Outlet />;
-const RoleRoute = () => <Outlet />;
-// ==========================================
+import { useAuth } from './features/auth/AuthContext';
+
+const ProtectedRoute = () => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+const RoleRoute = ({ allowedRole }) => {
+  const { role } = useAuth();
+  return role === allowedRole ? <Outlet /> : <Navigate to="/unauthorized" replace />;
+};
 
 // Shared Layouts & Error Pages
 // StudentLayout remains removed since student pages render their own custom Sidebar

@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import api from "../../services/api";
 export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -20,22 +20,15 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/student/classes/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.trim() }),
+      await api.post("/classrooms/join", {
+        class_code: code.trim(),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Invalid class code or class is full.");
-      }
 
       setCode("");
       if (onSuccess) onSuccess(); // Triggers the parent to refresh the class list
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Invalid class code or class is full.");
     } finally {
       setIsLoading(false);
     }

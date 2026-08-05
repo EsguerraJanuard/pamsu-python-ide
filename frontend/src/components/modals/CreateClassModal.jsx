@@ -1,7 +1,7 @@
 import { useState } from "react";
-
+import api from "../../services/api";
 export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
-  const [formData, setFormData] = useState({ name: "", section: "", description: "" });
+  const [formData, setFormData] = useState({ name: "", subject_code: "", section: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedCode, setGeneratedCode] = useState(null);
@@ -18,26 +18,18 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/instructor/classes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) throw new Error("Failed to create class. Please try again.");
-
-      const data = await response.json();
-      setGeneratedCode(data.enrollmentCode); 
+      const data = await api.post("/classrooms/", formData);
+      setGeneratedCode(data.class_code); 
       onSuccess(); 
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to create class. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResetAndClose = () => {
-    setFormData({ name: "", section: "", description: "" });
+    setFormData({ name: "", subject_code: "", section: "" });
     setGeneratedCode(null);
     setError(null);
     onClose();
@@ -67,25 +59,27 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                 />
               </div>
               <div>
+                <label className="mb-1.5 block text-xs font-semibold text-white/70">Subject Code</label>
+                <input
+                  type="text"
+                  name="subject_code"
+                  value={formData.subject_code}
+                  onChange={handleChange}
+                  placeholder="e.g. CCS101"
+                  className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
                 <label className="mb-1.5 block text-xs font-semibold text-white/70">Section / Schedule</label>
                 <input
                   type="text"
                   name="section"
                   value={formData.section}
                   onChange={handleChange}
-                  placeholder="e.g. CCS101 - Block A"
+                  placeholder="e.g. Block A"
                   className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
                   required
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-white/70">Description (Optional)</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -105,7 +99,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading || !formData.name || !formData.section}
+                  disabled={isLoading || !formData.name || !formData.subject_code || !formData.section}
                   className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-emerald-500"
                 >
                   {isLoading ? "Creating..." : "Create Class"}

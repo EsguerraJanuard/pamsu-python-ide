@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
@@ -458,8 +460,73 @@ export default function Submissions() {
   const navigate = useNavigate();
   const { id } = useParams();
 
+  const [submissions, setSubmissions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        const [subRes, actRes, classRes] = await Promise.all([
+          api.get("/submissions/"),
+          api.get("/activities/"),
+          api.get("/classrooms/mine"),
+        ]);
+
+        const classMap = {};
+        classRes.forEach(c => {
+          classMap[c.classroom.class_id] = c.classroom.subject_code;
+        });
+
+        const actMap = {};
+        actRes.forEach(a => {
+          actMap[a.task_id] = {
+            title: a.title,
+            type: a.activity_type === "laboratory" ? "Laboratory" : "Homework",
+            course: classMap[a.class_id] || "Unknown",
+          };
+        });
+
+        const mappedSubs = subRes.map((sub) => {
+          const act = actMap[sub.task_id] || { title: "Unknown", type: "Unknown", course: "Unknown" };
+          return {
+            id: sub.sub_id,
+            activityTitle: act.title,
+            activityType: act.type,
+            courseCode: act.course,
+            status: sub.status,
+            latestAttempt: sub.attempt_number,
+            totalAttempts: sub.attempt_number,
+            submittedLabel: new Date(sub.submitted_at).toLocaleString(),
+            isOfficial: sub.is_official,
+            astIndicators: { met: 0, total: 0 },
+            testCases: { passed: 0, total: 0 },
+            similarityIndicator: { percentage: 0, label: "Not available" },
+            instructorGrade: null,
+            instructorFeedback: "Awaiting instructor review.",
+            attempts: [
+              {
+                attemptNumber: sub.attempt_number,
+                submittedLabel: new Date(sub.submitted_at).toLocaleString(),
+                isOfficial: sub.is_official,
+              }
+            ],
+            rawCode: sub.raw_code
+          };
+        });
+
+        setSubmissions(mappedSubs);
+      } catch (err) {
+        console.error("Failed to load submissions", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSubmissions();
+  }, []);
+
   const selectedSubmission = id
-    ? PREVIEW_SUBMISSIONS.find(
+    ? submissions.find(
         (submission) => submission.id === Number(id),
       )
     : null;
@@ -510,16 +577,13 @@ export default function Submissions() {
                     </h1>
 
                     <p className="mt-1 text-sm text-white/40">
-                      {PREVIEW_SUBMISSIONS.length} submitted{" "}
-                      {PREVIEW_SUBMISSIONS.length === 1
+                      {submissions.length} submitted{" "}
+                      {submissions.length === 1
                         ? "activity"
                         : "activities"}
                     </p>
                   </div>
 
-                  <span className="w-fit rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
-                    Preview data
-                  </span>
                 </header>
 
                 <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
@@ -531,9 +595,9 @@ export default function Submissions() {
                 </section>
 
                 <SubmissionList
-                  submissions={PREVIEW_SUBMISSIONS}
+                  submissions={submissions}
                   onOpen={(submissionId) =>
-                    navigate(`/submissions/${submissionId}`)
+                    navigate(`/student/submissions/${submissionId}`)
                   }
                 />
               </>
@@ -542,7 +606,7 @@ export default function Submissions() {
             {id && selectedSubmission && (
               <SubmissionDetails
                 submission={selectedSubmission}
-                onBack={() => navigate("/submissions")}
+                onBack={() => navigate("/student/submissions")}
               />
             )}
 
@@ -559,7 +623,7 @@ export default function Submissions() {
 
                 <button
                   type="button"
-                  onClick={() => navigate("/submissions")}
+                  onClick={() => navigate("/student/submissions")}
                   className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold transition-colors hover:bg-blue-500"
                 >
                   Return to submissions

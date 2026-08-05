@@ -18,6 +18,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { api, ApiError } from "../../services/api";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const SCHOOL_ID_PATTERN = /^\d{10}$/;
@@ -158,51 +159,37 @@ export default function Register() {
     try {
       // POST /registration/start
       // Body must match RegistrationStartRequest (extends UserCreate)
-      const response = await fetch(`${BASE_URL}/registration/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: normalizedName,
-          school_id: form.schoolId, // string, preserves leading zeros
-          email: normalizedEmail,
-          password: form.password,
-          confirm_password: form.confirmPassword,
-          data_collection_acknowledged: true, // must be exactly true (Literal[True])
-        }),
+      const data = await api.post("/registration/start", {
+        name: normalizedName,
+        school_id: form.schoolId, // string, preserves leading zeros
+        email: normalizedEmail,
+        password: form.password,
+        confirm_password: form.confirmPassword,
+        data_collection_acknowledged: true, // must be exactly true (Literal[True])
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          setError(data?.detail || "This email or school ID is already registered.");
-          return;
-        }
-        if (response.status === 422) {
-          // Pydantic validation error — extract readable message
-          if (Array.isArray(data?.detail)) {
-            const msg = data.detail.map((e) => e.msg).join(". ");
-            setError(msg);
-          } else {
-            setError(data?.detail || "Please check your details and try again.");
-          }
-          return;
-        }
-        if (response.status === 503) {
-          setError("Email verification service is temporarily unavailable. Try again later.");
-          return;
-        }
-        setError(data?.detail || "Registration failed. Please try again.");
-        return;
-      }
 
       // Success — move to OTP step
       setChallengeId(data.challenge_id);
       setResendCooldown(data.resend_after_seconds || 60);
       setStep(2);
       setSuccessMessage(data.message || `A 6-digit verification code was sent to ${normalizedEmail}.`);
-    } catch {
-      if (!navigator.onLine) {
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 409) {
+          setError(err.data?.detail || "This email or school ID is already registered.");
+        } else if (err.status === 422) {
+          if (Array.isArray(err.data?.detail)) {
+            const msg = err.data.detail.map((e) => e.msg).join(". ");
+            setError(msg);
+          } else {
+            setError(err.data?.detail || "Please check your details and try again.");
+          }
+        } else if (err.status === 503) {
+          setError("Email verification service is temporarily unavailable. Try again later.");
+        } else {
+          setError(err.data?.detail || err.message || "Registration failed. Please try again.");
+        }
+      } else if (!navigator.onLine) {
         setError("Cannot connect to the server. Check your internet connection.");
       } else {
         setError("Something went wrong. Please try again.");
@@ -226,52 +213,36 @@ export default function Register() {
 
     try {
       // POST /registration/verify
-      const response = await fetch(`${BASE_URL}/registration/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          challenge_id: challengeId,
-          otp_code: otpCode,
-        }),
+      const data = await api.post("/registration/verify", {
+        challenge_id: challengeId,
+        otp_code: otpCode,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 400) {
-          // Invalid OTP — backend returns remaining_attempts
-          const remaining = data?.detail?.remaining_attempts;
-          setError(
-            remaining !== undefined
-              ? `Incorrect code. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
-              : "Incorrect verification code."
-          );
-          setOtpCode("");
-          return;
-        }
-        if (response.status === 410) {
-          setError("Your verification code has expired. Please request a new one.");
-          return;
-        }
-        if (response.status === 429) {
-          setError("Too many incorrect attempts. Please start registration again.");
-          return;
-        }
-        if (response.status === 409) {
-          setError(data?.detail || "This account may already exist. Try signing in.");
-          return;
-        }
-        setError(data?.detail || "Verification failed. Please try again.");
-        return;
-      }
 
       // Account created successfully — go to login
       navigate("/login", {
         state: { registrationSuccess: true, email: form.email.trim().toLowerCase() },
         replace: true,
       });
-    } catch {
-      if (!navigator.onLine) {
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 400) {
+          const remaining = err.data?.detail?.remaining_attempts;
+          setError(
+            remaining !== undefined
+              ? `Incorrect code. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
+              : "Incorrect verification code."
+          );
+          setOtpCode("");
+        } else if (err.status === 410) {
+          setError("Your verification code has expired. Please request a new one.");
+        } else if (err.status === 429) {
+          setError("Too many incorrect attempts. Please start registration again.");
+        } else if (err.status === 409) {
+          setError(err.data?.detail || "This account may already exist. Try signing in.");
+        } else {
+          setError(err.data?.detail || err.message || "Verification failed. Please try again.");
+        }
+      } else if (!navigator.onLine) {
         setError("Cannot connect to the server. Check your internet connection.");
       } else {
         setError("Something went wrong. Please try again.");
@@ -291,38 +262,29 @@ export default function Register() {
 
     try {
       // POST /registration/resend
-      const response = await fetch(`${BASE_URL}/registration/resend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challenge_id: challengeId }),
-      });
+      const data = await api.post("/registration/resend", { challenge_id: challengeId });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          const retryAfter = data?.detail?.retry_after_seconds;
+      setResendCooldown(data.resend_after_seconds || 60);
+      setSuccessMessage("A new verification code was sent to your email.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 429) {
+          const retryAfter = err.data?.detail?.retry_after_seconds;
           if (retryAfter) {
             setResendCooldown(retryAfter);
             setError(`Please wait ${retryAfter} seconds before resending.`);
           } else {
-            setError(data?.detail || "Resend limit reached. Please start registration again.");
+            setError(err.data?.detail || "Resend limit reached. Please start registration again.");
           }
-          return;
-        }
-        if (response.status === 404) {
+        } else if (err.status === 404) {
           setError("Your session has expired. Please start registration again.");
           setStep(1);
-          return;
+        } else {
+          setError(err.data?.detail || err.message || "Could not resend the code. Please try again.");
         }
-        setError(data?.detail || "Could not resend the code. Please try again.");
-        return;
+      } else {
+        setError("Could not resend the code. Please try again.");
       }
-
-      setResendCooldown(data.resend_after_seconds || 60);
-      setSuccessMessage("A new verification code was sent to your email.");
-    } catch {
-      setError("Could not resend the code. Please try again.");
     } finally {
       setIsLoading(false);
     }

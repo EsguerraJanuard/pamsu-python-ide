@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
+import api from "../../services/api";
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 import Statusbar from "../../components/layout/Statusbar";
 import CreateClassModal from "../../components/modals/CreateClassModal";
@@ -155,14 +156,123 @@ export default function InstructorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  // Data State
+  const [classes, setClasses] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const instructorName = user?.name || user?.fullName || "Faculty Member";
-  const courseCode = user?.courseCode || "CCS101";
-  const courseName = user?.courseName || "Object-Oriented Programming";
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const [classRes, tasksRes] = await Promise.all([
+        api.get("/classrooms/"),
+        api.get("/instructors/tasks/")
+      ]);
+      setClasses(classRes || []);
+      setActivities(tasksRes || []);
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const activeActivitiesCount = PREVIEW_ACTIVITIES.filter((a) => a.status !== "submitted").length;
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const instructorName = user?.name || user?.fullName || "Faculty Member";
+  
+  // Use the first active class for the header context, or a fallback
+  const primaryClass = classes.find((c) => c.is_active) || classes[0];
+  const courseCode = primaryClass ? primaryClass.subject_code : "Faculty";
+  const courseName = primaryClass ? primaryClass.name : "Dashboard";
+
+  // Compute stats
+  const activeClassesCount = classes.filter((c) => c.is_active).length;
+  const activitiesAuthoredCount = activities.length;
+
+  const dynamicStats = useMemo(() => [
+    {
+      value: activeClassesCount.toString(),
+      label: "Active classes",
+      description: "Enrolled laboratory sections",
+      progress: activeClassesCount > 0 ? 100 : 0,
+      color: "#10b981", 
+    },
+    {
+      value: "0",
+      label: "Students monitored",
+      description: "Across active laboratory sessions",
+      progress: 0,
+      color: "#3b82f6",
+    },
+    {
+      value: activitiesAuthoredCount.toString(),
+      label: "Activities authored",
+      description: "Published programming labs",
+      progress: activitiesAuthoredCount > 0 ? 100 : 0,
+      color: "#f59e0b",
+    },
+    {
+      value: "0%",
+      label: "Submission compliance",
+      description: "Passing automated test thresholds",
+      progress: 0,
+      color: "#a78bfa",
+    },
+  ], [activeClassesCount, activitiesAuthoredCount]);
+
+  // Map activities to UI format
+  const mappedActivities = useMemo(() => {
+    return activities.map((act) => {
+      // Find associated class
+      const cls = classes.find(c => c.class_id === act.class_id);
+      
+      // Determine status
+      let status = "in_progress";
+      let actionLabel = "Manage";
+      let dueLabel = "No deadline";
+
+      if (act.due_at) {
+        const dueDate = new Date(act.due_at);
+        const now = new Date();
+        dueLabel = `Due ${dueDate.toLocaleDateString()}`;
+        
+        if (dueDate < now) {
+          status = "submitted";
+          actionLabel = "View Roster";
+          dueLabel = "Grading closed";
+        } else if (dueDate.toDateString() === now.toDateString()) {
+          status = "due_today";
+          actionLabel = "Grade Bench";
+          dueLabel = "Due today";
+        }
+      }
+
+      if (!act.is_published) {
+         dueLabel = "Draft";
+      }
+
+      return {
+        id: act.task_id,
+        title: act.title,
+        courseCode: cls ? `${cls.subject_code} - ${cls.section}` : "Global",
+        dueLabel,
+        status,
+        progress: act.is_published ? 50 : 0, // Placeholder progress
+        note: act.is_published ? "Published to students." : "Currently hidden from students.",
+        actionLabel,
+      };
+    });
+  }, [activities, classes]);
+
+  const activeActivitiesCount = mappedActivities.filter((a) => a.status !== "submitted").length;
 
   const handleOpenActivity = (activity) => {
     // This now correctly routes to the ClassRosterView we just added to App.jsx!
@@ -235,7 +345,7 @@ export default function InstructorDashboard() {
               </section>
 
               <section className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Faculty summary metrics">
-                {PREVIEW_STATS.map((stat, index) => (
+                {dynamicStats.map((stat, index) => (
                   <article
                     key={stat.label}
                     className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
@@ -269,7 +379,25 @@ export default function InstructorDashboard() {
                 </div>
 
                 <div className="space-y-3">
-                  {PREVIEW_ACTIVITIES.map((activity, index) => {
+                  {isLoading ? (
+                    <div className="flex h-32 items-center justify-center rounded-xl border border-white/[0.06] bg-[#1a1d27]">
+                      <p className="text-sm text-white/40">Loading activities...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="flex h-32 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10">
+                      <p className="text-sm text-red-400">{error}</p>
+                    </div>
+                  ) : mappedActivities.length === 0 ? (
+                    <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-white/[0.06] bg-[#1a1d27]">
+                      <p className="text-sm text-white/40">No activities found.</p>
+                      <button 
+                        onClick={() => navigate("/instructor/activities")}
+                        className="mt-2 text-xs text-emerald-400 hover:text-emerald-300"
+                      >
+                        Create your first activity
+                      </button>
+                    </div>
+                  ) : mappedActivities.map((activity, index) => {
                     const status = STATUS_CONFIG[activity.status] ?? STATUS_CONFIG.in_progress;
                     return (
                       <article
@@ -387,7 +515,7 @@ export default function InstructorDashboard() {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => {
           console.log("Class created successfully!");
-          // Optional: Add logic to fetch updated class list here later
+          fetchDashboardData();
         }}
       />
     </div>

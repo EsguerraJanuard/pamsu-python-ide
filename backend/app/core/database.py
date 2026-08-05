@@ -10,7 +10,6 @@ from sqlalchemy.orm import (
 
 from app.core.config import get_settings
 
-
 settings = get_settings()
 
 SQLALCHEMY_DATABASE_URL = settings.database_url.get_secret_value()

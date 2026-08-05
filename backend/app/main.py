@@ -34,7 +34,6 @@ from app.routers import (
     submissions,
 )
 
-
 APP_TITLE = "PAMSU Python IDE Backend"
 APP_VERSION = "1.0.0"
 

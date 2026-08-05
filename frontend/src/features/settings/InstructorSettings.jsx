@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../features/auth/AuthContext";
 
 export default function InstructorSettings() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [saved, setSaved] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -14,6 +16,16 @@ export default function InstructorSettings() {
     emailNotifications: true,
     liveMonitoringAlerts: true,
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.name || user.fullName || "Faculty Instructor",
+        email: user.email || "instructor@pamsu.edu.ph",
+      }));
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
