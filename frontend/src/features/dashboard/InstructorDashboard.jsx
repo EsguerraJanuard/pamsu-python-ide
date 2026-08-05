@@ -70,32 +70,7 @@ const PREVIEW_ACTIVITIES = [
   },
 ];
 
-const PREVIEW_ACTIVITY_LOG = [
-  {
-    id: 1,
-    message: "New submission batch processed for Lab 3",
-    time: "10 mins ago",
-    type: "run",
-  },
-  {
-    id: 2,
-    message: "Behavior anomaly detected for 2 sessions",
-    time: "25 mins ago",
-    type: "analysis",
-  },
-  {
-    id: 3,
-    message: "Activity publication updated for Homework 2",
-    time: "2 hours ago",
-    type: "submission",
-  },
-  {
-    id: 4,
-    message: "Final grades posted for Lab Activity 2",
-    time: "Yesterday",
-    type: "grade",
-  },
-];
+
 
 const STATUS_CONFIG = {
   due_today: {
@@ -161,6 +136,7 @@ export default function InstructorDashboard() {
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reviewQueue, setReviewQueue] = useState([]);
 
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -168,12 +144,15 @@ export default function InstructorDashboard() {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      const [classRes, tasksRes] = await Promise.all([
+      const [classRes, tasksRes, reviewRes] = await Promise.all([
         api.get("/classrooms/"),
-        api.get("/instructors/tasks/")
+        api.get("/instructors/tasks/"),
+        api.get("/instructors/review-queue")
       ]);
       setClasses(classRes || []);
       setActivities(tasksRes || []);
+      const parsedReview = Array.isArray(reviewRes) ? reviewRes : (reviewRes?.items || []);
+      setReviewQueue(parsedReview);
       setError(null);
     } catch (err) {
       setError(err.message || "Failed to load dashboard data");
@@ -206,10 +185,10 @@ export default function InstructorDashboard() {
       color: "#10b981", 
     },
     {
-      value: "0",
-      label: "Students monitored",
-      description: "Across active laboratory sessions",
-      progress: 0,
+      value: reviewQueue.length.toString(),
+      label: "Pending Reviews",
+      description: "Submissions awaiting grade",
+      progress: reviewQueue.length > 0 ? 100 : 0,
       color: "#3b82f6",
     },
     {
@@ -229,6 +208,18 @@ export default function InstructorDashboard() {
   ], [activeClassesCount, activitiesAuthoredCount]);
 
   // Map activities to UI format
+  const auditLogs = useMemo(() => {
+    return reviewQueue.slice(0, 5).map((sub) => {
+      const time = new Date(sub.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return {
+        id: sub.sub_id,
+        message: `New submission from ${sub.student?.name || 'Unknown'} for ${sub.activity?.title || 'Unknown'}`,
+        time: time,
+        type: "submission"
+      };
+    });
+  }, [reviewQueue]);
+
   const mappedActivities = useMemo(() => {
     return activities.map((act) => {
       // Find associated class
@@ -322,11 +313,11 @@ export default function InstructorDashboard() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                    className="whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
                   >
                     + Create Class
                   </button>
-                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-300">
+                  <span className="whitespace-nowrap rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-300">
                     Faculty Portal
                   </span>
                   <div
@@ -470,16 +461,16 @@ export default function InstructorDashboard() {
                 <div className="relative h-32 w-32">
                   <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90" aria-label="Class online 88 percent">
                     <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
-                    <circle cx="60" cy="60" r="48" fill="none" stroke="#10b981" strokeWidth="10" strokeLinecap="round" strokeDasharray="265.4 301.59" />
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="#10b981" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${Math.min(reviewQueue.length * 10, 301.59)} 301.59`} />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold">88%</span>
-                    <span className="text-[10px] text-white/30">active</span>
+                    <span className="text-2xl font-bold">{reviewQueue.length}</span>
+                    <span className="text-[10px] text-white/30">new</span>
                   </div>
                 </div>
-                <p className="mt-3 text-sm font-semibold">Labs Operational</p>
+                <p className="mt-3 text-sm font-semibold">Submissions Active</p>
                 <p className="mt-1 text-center text-[10px] leading-relaxed text-white/35">
-                  124 students currently authenticated in active coding containers.
+                  Recent activities in your lab sessions.
                 </p>
               </div>
             </section>
@@ -489,7 +480,7 @@ export default function InstructorDashboard() {
             <section>
               <h2 className="mb-4 text-xs font-semibold">System Audit Trail</h2>
               <ul className="space-y-4">
-                {PREVIEW_ACTIVITY_LOG.map((item) => (
+                {auditLogs.map((item) => (
                   <li key={item.id} className="flex items-start gap-2.5">
                     <span
                       className="mt-1 h-2 w-2 shrink-0 rounded-full"

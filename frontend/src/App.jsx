@@ -31,6 +31,13 @@ import Analytics from './features/dashboard/Analytics';
 import Workspace from './features/workspace/Workspace';
 import Settings from './features/settings/Settings';
 import ClassRosterView from './features/dashboard/ClassRosterView';
+import ClassManagement from './features/instructor/ClassManagement';
+import ActivityEditor from './features/instructor/ActivityEditor';
+import ActivityDetails from './features/instructor/ActivityDetails';
+import InstructorReviewQueue from './features/instructor/InstructorReviewQueue';
+import InstructorGradebook from './features/instructor/InstructorGradebook';
+import GradingWorkspace from './features/instructor/GradingWorkspace';
+import LiveMonitoring from './features/instructor/LiveMonitoring';
 
 const PlaceholderView = ({ title, description }) => (
   <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-center">
@@ -73,13 +80,14 @@ export const App = () => {
             {/* Instructor Role Tree */}
             <Route element={<RoleRoute allowedRole="instructor" />}>
               <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
-              <Route path="/instructor/classes" element={<PlaceholderView title="Class Management" description="Create new classes and generate enrollment codes." />} />
+              <Route path="/instructor/classes" element={<ClassManagement />} />
               <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
-              <Route path="/instructor/activities" element={<PlaceholderView title="Activity Authoring" description="Configure starter code, AST rules, and hidden test cases." />} />
-              <Route path="/instructor/activities/:id" element={<PlaceholderView title="Activity Details" description="Edit publication state and paste policy modes." />} />
-              <Route path="/instructor/submissions" element={<PlaceholderView title="Grading Bench" description="Review student source code, execution results, and similarity indicators." />} />
-              <Route path="/instructor/submissions/:id" element={<PlaceholderView title="Manual Grading" description="Assign official grades and feedback." />} />
-              <Route path="/instructor/monitoring" element={<PlaceholderView title="Live Student Monitoring" description="Controlled 5-10s polling of active IDE sessions and tab switches." />} />
+              <Route path="/instructor/activities" element={<ActivityEditor />} />
+              <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
+              <Route path="/instructor/submissions" element={<InstructorReviewQueue />} />
+              <Route path="/instructor/gradebook" element={<InstructorGradebook />} />
+              <Route path="/instructor/submissions/:id" element={<GradingWorkspace />} />
+              <Route path="/instructor/monitoring" element={<LiveMonitoring />} />
               <Route path="/instructor/settings" element={<InstructorSettings />} />
               </Route>
 

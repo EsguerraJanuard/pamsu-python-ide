@@ -32,6 +32,11 @@ const INSTRUCTOR_NAV = [
         path: "/instructor/submissions",
       },
       {
+        icon: "list",
+        label: "Gradebook",
+        path: "/instructor/gradebook",
+      },
+      {
         icon: "terminal",
         label: "Live Monitoring",
         path: "/instructor/monitoring",
@@ -73,6 +78,11 @@ function Icon({ name, size = 15 }) {
     check: (
       <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    list: (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M5 4h8M5 8h8M5 12h8M3 4h.01M3 8h.01M3 12h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
     terminal: (
