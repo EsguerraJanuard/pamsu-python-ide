@@ -8,7 +8,7 @@ const INSTRUCTOR_NAV = [
       {
         icon: "grid",
         label: "Overview",
-        path: "/instructor/dashboard", // Updated
+        path: "/instructor/dashboard",
         end: true,
       },
       {
@@ -44,8 +44,18 @@ const INSTRUCTOR_NAV = [
     ],
   },
   {
-    label: "ACCOUNT",
+    label: "ACCOUNT & SYSTEM",
     links: [
+      {
+        icon: "bell",
+        label: "Notifications",
+        path: "/instructor/notifications",
+      },
+      {
+        icon: "shield",
+        label: "Security Audit Logs",
+        path: "/instructor/audit-logs",
+      },
       {
         icon: "settings",
         label: "Settings",
@@ -90,6 +100,16 @@ function Icon({ name, size = 15 }) {
         <path d="M2 3l5 5-5 5M9 13h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
+    bell: (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1.5a3.5 3.5 0 00-3.5 3.5v2.793l-.707.707A1 1 0 003.5 10h9a1 1 0 00.707-1.707l-.707-.707V5A3.5 3.5 0 008 1.5zM6.5 12a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    shield: (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1.5L2.5 4v4.5c0 3.5 2.5 6 5.5 6.5 3-.5 5.5-3 5.5-6.5V4L8 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
     settings: (
       <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.3" />
@@ -108,39 +128,42 @@ function Icon({ name, size = 15 }) {
 export default function InstructorSidebar() {
   const navigate = useNavigate();
   const auth = useAuth() || {};
-  const user = auth.user || {};
-  const logout = auth.logout || (() => {});
+  const { user, logout } = auth;
 
   const name = user?.name || user?.fullName || "Instructor Account";
-  const initials = "IN";
+  const initials = user?.initials || name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "INST";
+  const role = user?.role || "Instructor";
 
   const handleSignOut = () => {
-    logout();
+    if (logout) logout();
     navigate("/login", { replace: true });
   };
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col justify-between overflow-y-auto border-r border-white/[0.06] bg-[#0f1117] px-3 py-4 select-none">
+    <aside className="flex w-[220px] shrink-0 flex-col justify-between overflow-y-auto border-r border-white/[0.06] bg-[#0d1017] px-3 py-4 select-none">
       <div>
         <div className="mb-6 flex items-center gap-2 px-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white">
-            IN
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#10b981] font-mono text-xs font-bold text-white">
+            &gt;_
           </div>
           <span className="text-sm font-semibold tracking-wide text-white">
-            PAMSU Faculty
+            PAMSU IDE
+          </span>
+          <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-emerald-400">
+            PRO
           </span>
         </div>
 
         <div className="mb-6 flex items-center gap-2.5 border-b border-white/[0.06] px-2 pb-4">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#10b981] text-xs font-bold text-white">
             {initials}
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-white">
               {name}
             </p>
-            <p className="truncate text-[10px] text-emerald-400">
-              Instructor Portal
+            <p className="truncate text-[10px] text-white/40">
+              {role}
             </p>
           </div>
         </div>
@@ -159,15 +182,17 @@ export default function InstructorSidebar() {
                     end={link.end}
                     className={({ isActive }) =>
                       [
-                        "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors duration-200",
+                        "flex w-full items-center justify-between gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors duration-200",
                         isActive
-                          ? "bg-emerald-500/[0.15] text-emerald-400 font-medium"
+                          ? "bg-[#10b981]/[0.12] text-[#10b981]"
                           : "text-white/45 hover:bg-white/[0.04] hover:text-white/80",
                       ].join(" ")
                     }
                   >
-                    <Icon name={link.icon} />
-                    <span>{link.label}</span>
+                    <span className="flex items-center gap-2.5">
+                      <Icon name={link.icon} />
+                      <span>{link.label}</span>
+                    </span>
                   </NavLink>
                 ))}
               </div>
