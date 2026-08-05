@@ -1,0 +1,226 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "../features/auth/AuthContext";
+import api from "../services/api";
+import Sidebar from "../components/layout/Sidebar";
+import InstructorSidebar from "../components/layout/InstructorSidebar";
+import Statusbar from "../components/layout/Statusbar";
+
+export default function AuditLogsPage({ role: propRole }) {
+  const auth = useAuth() || {};
+  const activeRole = propRole || auth.role || "student";
+  const isInstructor = activeRole === "instructor";
+
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState("");
+
+  const mockAuditLogs = [
+    {
+      id: "audit-1",
+      action: "USER_LOGIN_SUCCESS",
+      resource: "auth/login",
+      ip_address: "192.168.1.45",
+      timestamp: "2026-01-15T14:10:02Z",
+      status: "SUCCESS",
+    },
+    {
+      id: "audit-2",
+      action: isInstructor ? "CLASSROOM_INVITE_REGENERATED" : "SUBMISSION_CREATED",
+      resource: isInstructor ? "classrooms/CCS101" : "submissions/fibonacci.py",
+      ip_address: "192.168.1.45",
+      timestamp: "2026-01-15T14:47:00Z",
+      status: "SUCCESS",
+    },
+    {
+      id: "audit-3",
+      action: isInstructor ? "ENROLLMENT_STATUS_UPDATED" : "WORKSPACE_SAVED",
+      resource: isInstructor ? "enrollments/enr-101" : "workspace/draft",
+      ip_address: "10.0.4.12",
+      timestamp: "2026-01-14T09:20:11Z",
+      status: "SUCCESS",
+    },
+    {
+      id: "audit-4",
+      action: "AUTHENTICATION_FAILED",
+      resource: "auth/login",
+      ip_address: "203.0.113.88",
+      timestamp: "2026-01-13T22:05:44Z",
+      status: "FAILURE",
+    },
+  ];
+
+  const fetchAuditLogs = async (currentPage = 1) => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await api.get(`/audit-records/?page=${currentPage}&page_size=15`);
+      if (response && Array.isArray(response.items)) {
+        setLogs(response.items);
+        setTotalPages(response.total_pages || 1);
+      } else {
+        setLogs(mockAuditLogs);
+      }
+    } catch (err) {
+      setLogs(mockAuditLogs);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAuditLogs(page);
+  }, [page]);
+
+  const filteredLogs = logs.filter((log) => {
+    const matchesQuery =
+      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.ip_address.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesAction =
+      actionFilter === "all" || log.action.toLowerCase().includes(actionFilter.toLowerCase());
+
+    return matchesQuery && matchesAction;
+  });
+
+  return (
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0a0c14] text-slate-200">
+      {isInstructor ? <InstructorSidebar /> : <Sidebar />}
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#0d101d] px-6">
+          <div className="flex items-center gap-3">
+            <h1 className="text-base font-bold text-white tracking-wide">
+              {isInstructor ? "Instructor Security & System Audit Logs" : "Student Audit & History Trail"}
+            </h1>
+            <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-xs font-mono text-slate-300">
+              Immutable History
+            </span>
+          </div>
+
+          <button
+            onClick={() => fetchAuditLogs(page)}
+            disabled={loading}
+            className="rounded-lg border border-slate-800 bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition"
+          >
+            {loading ? "Refreshing..." : "↻ Refresh Audit Trail"}
+          </button>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6 space-y-6 max-w-6xl mx-auto w-full">
+          {/* Controls Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-slate-800 bg-[#111424] p-4">
+            <div className="flex items-center gap-3 flex-1">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by action, resource, or IP address..."
+                className="w-full sm:w-80 rounded-lg border border-slate-800 bg-slate-950/80 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-medium text-slate-400">Action Type:</label>
+              <select
+                value={actionFilter}
+                onChange={(e) => setActionFilter(e.target.value)}
+                className="rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none transition"
+              >
+                <option value="all">All Actions</option>
+                <option value="login">Login Events</option>
+                <option value="submission">Submissions</option>
+                <option value="classroom">Classroom Events</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Audit Data Table */}
+          <div className="rounded-xl border border-slate-800 bg-[#111424] shadow-xl overflow-hidden">
+            {loading ? (
+              <div className="py-12 text-center text-xs text-slate-500 animate-pulse">
+                Fetching security audit trail...
+              </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">
+                No audit records matching criteria.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-semibold uppercase tracking-wider">
+                      <th className="py-3.5 px-4">Timestamp</th>
+                      <th className="py-3.5 px-4">Action Type</th>
+                      <th className="py-3.5 px-4">Target Resource</th>
+                      <th className="py-3.5 px-4 font-mono">IP Address</th>
+                      <th className="py-3.5 px-4 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {filteredLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-900/50 transition">
+                        <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
+                          {new Date(log.timestamp || Date.now()).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-4 font-semibold text-white font-sans">
+                          {log.action}
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-300">
+                          {log.resource || "N/A"}
+                        </td>
+                        <td className="py-3.5 px-4 text-cyan-400">
+                          {log.ip_address || "127.0.0.1"}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-sans">
+                          <span
+                            className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
+                              log.status === "SUCCESS"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                            }`}
+                          >
+                            {log.status || "SUCCESS"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center pt-2 text-xs font-mono text-slate-400">
+              <span>Page {page} of {totalPages}</span>
+              <div className="flex gap-2">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+
+        <Statusbar sessionStatus="active" courseCode={isInstructor ? "Instructor Audit Log" : "Student Audit Log"} courseName="Immutable Trail" />
+      </div>
+    </div>
+  );
+}

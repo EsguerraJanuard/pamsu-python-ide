@@ -1,23 +1,27 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider } from './features/auth/AuthContext';
+import { AuthProvider, useAuth } from './features/auth/AuthContext';
 
-import { useAuth } from './features/auth/AuthContext';
+// --- AUTHENTICATION CONTROLS ---
+const DEV_BYPASS = false;          // Production authentication enabled
 
 const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
+  if (DEV_BYPASS) return <Outlet />;
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
 const RoleRoute = ({ allowedRole }) => {
   const { role } = useAuth();
+  if (DEV_BYPASS) return <Outlet />;
   return role === allowedRole ? <Outlet /> : <Navigate to="/unauthorized" replace />;
 };
 
 // Shared Layouts & Error Pages
-// StudentLayout remains removed since student pages render their own custom Sidebar
 import InstructorLayout from './components/layout/InstructorLayout';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
+import NotificationsPage from './pages/NotificationsPage';
+import AuditLogsPage from './pages/AuditLogsPage';
 
 // Feature Components
 import Login from './features/auth/Login';
@@ -27,6 +31,7 @@ import InstructorDashboard from './features/dashboard/InstructorDashboard';
 import InstructorSettings from "./features/settings/InstructorSettings";
 import Assignments from './features/assignments/Assignments';
 import Submissions from './features/submissions/Submissions';
+import SubmissionDetails from './features/submissions/SubmissionDetails';
 import Analytics from './features/dashboard/Analytics';
 import Workspace from './features/workspace/Workspace';
 import Settings from './features/settings/Settings';
@@ -55,8 +60,8 @@ export const App = () => {
 
            {/* Protected Route Tree - Requires Valid JWT/Session */}
           <Route element={<ProtectedRoute />}>
-            
-            {/* Student Role Tree (Standalone Pages without StudentLayout) */}
+
+            {/* Student Role Tree */}
             <Route element={<RoleRoute allowedRole="student" />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/classes" element={<PlaceholderView title="My Classes" description="Join classrooms using 6-character instructor codes." />} />
@@ -65,10 +70,12 @@ export const App = () => {
               <Route path="/student/workspace" element={<Workspace />} />
               <Route path="/student/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
               <Route path="/student/submissions" element={<Submissions />} />
-              <Route path="/student/submissions/:id" element={<PlaceholderView title="Submission Details" description="Review AST feedback, test cases, and instructor grades." />} />
+              <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
+              <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
+              <Route path="/student/audit-logs" element={<AuditLogsPage role="student" />} />
               <Route path="/student/analytics" element={<Analytics />} />
               <Route path="/student/settings" element={<Settings />} />
-              </Route>
+            </Route>
 
             {/* Instructor Role Tree */}
             <Route element={<RoleRoute allowedRole="instructor" />}>
@@ -79,9 +86,11 @@ export const App = () => {
               <Route path="/instructor/activities/:id" element={<PlaceholderView title="Activity Details" description="Edit publication state and paste policy modes." />} />
               <Route path="/instructor/submissions" element={<PlaceholderView title="Grading Bench" description="Review student source code, execution results, and similarity indicators." />} />
               <Route path="/instructor/submissions/:id" element={<PlaceholderView title="Manual Grading" description="Assign official grades and feedback." />} />
+              <Route path="/instructor/notifications" element={<NotificationsPage role="instructor" />} />
+              <Route path="/instructor/audit-logs" element={<AuditLogsPage role="instructor" />} />
               <Route path="/instructor/monitoring" element={<PlaceholderView title="Live Student Monitoring" description="Controlled 5-10s polling of active IDE sessions and tab switches." />} />
               <Route path="/instructor/settings" element={<InstructorSettings />} />
-              </Route>
+            </Route>
 
           </Route>
 

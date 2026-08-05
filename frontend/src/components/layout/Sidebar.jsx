@@ -8,28 +8,28 @@ const NAV_SECTIONS = [
       {
         icon: "grid",
         label: "Dashboard",
-        path: "/student/dashboard", // Updated
+        path: "/student/dashboard",
         end: true,
       },
       {
         icon: "list",
         label: "Assignments",
-        path: "/student/assignments", // Updated
+        path: "/student/assignments",
       },
       {
         icon: "code",
         label: "Workspace",
-        path: "/student/workspace", // Updated
+        path: "/student/workspace",
       },
       {
         icon: "book",
         label: "My Classes",
-        path: "/student/classes", // Updated
+        path: "/student/classes",
       },
       {
         icon: "terminal",
         label: "Solo Practice",
-        path: "/student/practice", // Updated
+        path: "/student/practice",
       },
     ],
   },
@@ -39,22 +39,32 @@ const NAV_SECTIONS = [
       {
         icon: "chart",
         label: "My Analytics",
-        path: "/student/analytics", // Updated
+        path: "/student/analytics",
       },
       {
         icon: "file",
         label: "Submissions",
-        path: "/student/submissions", // Updated
+        path: "/student/submissions",
       },
     ],
   },
   {
-    label: "ACCOUNT",
+    label: "ACCOUNT & SYSTEM",
     links: [
+      {
+        icon: "bell",
+        label: "Notifications",
+        path: "/student/notifications",
+      },
+      {
+        icon: "shield",
+        label: "Audit History",
+        path: "/student/audit-logs",
+      },
       {
         icon: "settings",
         label: "Settings",
-        path: "/student/settings", // Updated
+        path: "/student/settings",
       },
     ],
   },
@@ -99,6 +109,16 @@ function Icon({ name, size = 15 }) {
       <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <rect x="3" y="1" width="10" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
         <path d="M6 5h4M6 8h4M6 11h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+    ),
+    bell: (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1.5a3.5 3.5 0 00-3.5 3.5v2.793l-.707.707A1 1 0 003.5 10h9a1 1 0 00.707-1.707l-.707-.707V5A3.5 3.5 0 008 1.5zM6.5 12a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    shield: (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1.5L2.5 4v4.5c0 3.5 2.5 6 5.5 6.5 3-.5 5.5-3 5.5-6.5V4L8 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
     settings: (
