@@ -73,10 +73,10 @@ export default function ClassRosterView() {
           <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-6">
             <div>
               <button 
-                onClick={() => navigate('/instructor/dashboard')}
-                className="mb-3 flex items-center gap-2 text-xs font-semibold text-emerald-400 transition-colors hover:text-emerald-300"
+                onClick={() => navigate('/instructor/classes')}
+                className="mb-4 flex items-center gap-2 text-xs font-semibold text-emerald-400 transition-colors hover:text-emerald-300"
               >
-                ← Back to Dashboard
+                ← Back to Classrooms
               </button>
               <h1 className="text-2xl font-bold text-white">
                 {classroom ? `${classroom.subject_code || classroom.name} ${classroom.section ? `- ${classroom.section}` : ''}` : "Class Roster"}
