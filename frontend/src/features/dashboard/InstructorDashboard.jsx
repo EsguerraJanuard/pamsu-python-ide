@@ -286,7 +286,7 @@ export default function InstructorDashboard() {
               <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="mb-2 font-mono text-xs text-emerald-400">
-                    {courseCode} — {courseName}
+                    MANAGEMENT
                   </p>
                   <h1 className="text-2xl font-bold">
                     {getGreeting()}, {getFirstName(instructorName)}

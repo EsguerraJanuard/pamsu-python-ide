@@ -97,7 +97,7 @@ export default function ClassManagement() {
             <div className="mx-auto max-w-6xl ">
               <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-emerald-400">CLASS MANAGEMENT</p>
+                  <p className="mb-1 font-mono text-xs text-emerald-400">MANAGEMENT</p>
                   <h1 className="text-2xl font-bold">My Classrooms</h1>
                   <p className="mt-1 text-sm text-white/40">
                     Create and manage your classes, generate enrollment codes, and monitor students.
