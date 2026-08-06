@@ -314,7 +314,7 @@ export default function Settings() {
 
 
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
 
         <main className="settings-page flex-1 overflow-y-auto px-5 py-6 sm:px-8">
 

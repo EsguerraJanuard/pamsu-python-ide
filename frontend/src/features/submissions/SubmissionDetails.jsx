@@ -97,7 +97,7 @@ export default function SubmissionDetails() {
     <div className="flex h-screen w-screen overflow-hidden bg-[#0a0c14] text-slate-200">
       <Sidebar />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="animate-page-fade flex flex-1 flex-col overflow-hidden">
         {/* Top Context Navigation Bar */}
         <header className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#0d101d] px-6">
           <div className="flex items-center gap-3">

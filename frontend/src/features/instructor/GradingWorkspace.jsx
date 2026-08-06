@@ -75,24 +75,11 @@ const GradingWorkspace = () => {
     return (
     <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
       <InstructorSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
-          <main className="dashboard-page min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-                        <style>
-              {`
-                @keyframes dashboardFadeUp {
-                  from { opacity: 0; transform: translateY(10px); }
-                  to { opacity: 1; transform: translateY(0); }
-                }
-                .dashboard-page {
-                  animation: dashboardFadeUp 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-                }
-                @media (prefers-reduced-motion: reduce) {
-                  .dashboard-page, .dashboard-card { animation: none !important; }
-                }
-              `}
-            </style>
-            <div className="mx-auto max-w-6xl dashboard-page">
+          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+                        
+            <div className="mx-auto max-w-6xl ">
             <div className="flex h-screen bg-[#0f1117] text-white/80 font-sans">
             {/* Left Side: Details & Grading Form */}
             <div className="w-1/2 p-6 overflow-y-auto border-r border-white/[0.06] flex flex-col gap-6">

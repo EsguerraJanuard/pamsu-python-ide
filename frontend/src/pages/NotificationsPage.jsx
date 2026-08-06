@@ -100,113 +100,121 @@ export default function NotificationsPage({ role: propRole }) {
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
     }
-  };
-
-  return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0a0c14] text-slate-200">
+  };  return (
+    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
       {isInstructor ? <InstructorSidebar /> : <Sidebar />}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#0d101d] px-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-base font-bold text-white tracking-wide">
-              {isInstructor ? "Instructor System Alerts" : "Student Notifications"}
-            </h1>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 text-xs font-mono">
-                {unreadCount} Unread
-              </span>
-            )}
-          </div>
-
-          <button
-            onClick={handleMarkAllRead}
-            disabled={actionLoading || unreadCount === 0}
-            className="rounded-lg border border-slate-800 bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-700 hover:bg-slate-800 transition disabled:opacity-50"
-          >
-            {actionLoading ? "Updating..." : "✓ Mark all as read"}
-          </button>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full">
-          {error && (
-            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
-              {error}
-            </div>
-          )}
-
-          {loading ? (
-            <div className="py-12 text-center text-xs text-slate-500 animate-pulse">
-              Loading notifications...
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="rounded-xl border border-slate-800 bg-[#111424] p-12 text-center text-xs text-slate-400">
-              No notifications found.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {notifications.map((notif) => (
-                <div
-                  key={notif.id}
-                  onClick={() => !notif.is_read && handleMarkAsRead(notif.id)}
-                  className={`rounded-xl border p-4 transition cursor-pointer ${
-                    !notif.is_read
-                      ? "border-blue-500/40 bg-blue-950/20 shadow-md"
-                      : "border-slate-800 bg-[#111424]/60 hover:bg-[#111424]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {!notif.is_read && (
-                          <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
-                        )}
-                        <h2 className={`text-sm font-bold ${!notif.is_read ? "text-white" : "text-slate-300"}`}>
-                          {notif.title}
-                        </h2>
-                      </div>
-                      <p className="text-xs text-slate-400 pl-4">{notif.message}</p>
-                    </div>
-
-                    <span className="text-[11px] font-mono text-slate-500 shrink-0">
-                      {new Date(notif.created_at || Date.now()).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1">
+          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+            <div className="mx-auto max-w-6xl">
+              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold tracking-wide">
+                      {isInstructor ? "Instructor System Alerts" : "Student Notifications"}
+                    </h1>
+                    {unreadCount > 0 && (
+                      <span className="rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 text-xs font-mono">
+                        {unreadCount} Unread
+                      </span>
+                    )}
                   </div>
+                  <p className="mt-1 text-sm text-white/40">
+                    View your recent alerts and system messages.
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-between items-center pt-4 text-xs font-mono text-slate-400">
-              <span>Page {page} of {totalPages}</span>
-              <div className="flex gap-2">
                 <button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
+                  onClick={handleMarkAllRead}
+                  disabled={actionLoading || unreadCount === 0}
+                  className="rounded-lg border border-slate-800 bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-700 hover:bg-slate-800 transition disabled:opacity-50"
                 >
-                  Previous
+                  {actionLoading ? "Updating..." : "✓ Mark all as read"}
                 </button>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
-                >
-                  Next
-                </button>
+              </header>
+
+              <div className="space-y-4">
+                {error && (
+                  <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+                    {error}
+                  </div>
+                )}
+
+                {loading ? (
+                  <div className="py-12 text-center text-xs text-slate-500 animate-pulse">
+                    Loading notifications...
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-12 text-center text-xs text-slate-400">
+                    No notifications found.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => !notif.is_read && handleMarkAsRead(notif.id)}
+                        className={`rounded-xl border p-4 transition cursor-pointer ${
+                          !notif.is_read
+                            ? "border-blue-500/40 bg-blue-950/20 shadow-md"
+                            : "border-white/[0.06] bg-[#1a1d27] hover:bg-slate-800/50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              {!notif.is_read && (
+                                <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
+                              )}
+                              <h2 className={`text-sm font-bold ${!notif.is_read ? "text-white" : "text-slate-300"}`}>
+                                {notif.title}
+                              </h2>
+                            </div>
+                            <p className="text-xs text-slate-400 pl-4">{notif.message}</p>
+                          </div>
+
+                          <span className="text-[11px] font-mono text-slate-500 shrink-0">
+                            {new Date(notif.created_at || Date.now()).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-between items-center pt-4 text-xs font-mono text-slate-400">
+                    <span>Page {page} of {totalPages}</span>
+                    <div className="flex gap-2">
+                      <button
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => p - 1)}
+                        className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                        className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </main>
-
-        <Statusbar sessionStatus="active" courseCode={isInstructor ? "Instructor" : "Student"} courseName="Alert History" />
+          </main>
+        </div>
       </div>
     </div>
   );

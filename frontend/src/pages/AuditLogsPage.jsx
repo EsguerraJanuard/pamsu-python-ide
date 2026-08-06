@@ -88,138 +88,148 @@ export default function AuditLogsPage({ role: propRole }) {
   });
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0a0c14] text-slate-200">
+    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
       {isInstructor ? <InstructorSidebar /> : <Sidebar />}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#0d101d] px-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-base font-bold text-white tracking-wide">
-              {isInstructor ? "Instructor Security & System Audit Logs" : "Student Audit & History Trail"}
-            </h1>
-            <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-xs font-mono text-slate-300">
-              Immutable History
-            </span>
-          </div>
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1">
+          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+            <div className="mx-auto max-w-6xl">
+              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold tracking-wide">
+                      {isInstructor ? "Instructor Security & System Audit Logs" : "Student Audit & History Trail"}
+                    </h1>
+                    <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-xs font-mono text-slate-300">
+                      Immutable History
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-white/40">
+                    Review system events and security logs.
+                  </p>
+                </div>
 
-          <button
-            onClick={() => fetchAuditLogs(page)}
-            disabled={loading}
-            className="rounded-lg border border-slate-800 bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition"
-          >
-            {loading ? "Refreshing..." : "↻ Refresh Audit Trail"}
-          </button>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-6 space-y-6 max-w-6xl mx-auto w-full">
-          {/* Controls Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-slate-800 bg-[#111424] p-4">
-            <div className="flex items-center gap-3 flex-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by action, resource, or IP address..."
-                className="w-full sm:w-80 rounded-lg border border-slate-800 bg-slate-950/80 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label className="text-xs font-medium text-slate-400">Action Type:</label>
-              <select
-                value={actionFilter}
-                onChange={(e) => setActionFilter(e.target.value)}
-                className="rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none transition"
-              >
-                <option value="all">All Actions</option>
-                <option value="login">Login Events</option>
-                <option value="submission">Submissions</option>
-                <option value="classroom">Classroom Events</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Audit Data Table */}
-          <div className="rounded-xl border border-slate-800 bg-[#111424] shadow-xl overflow-hidden">
-            {loading ? (
-              <div className="py-12 text-center text-xs text-slate-500 animate-pulse">
-                Fetching security audit trail...
-              </div>
-            ) : filteredLogs.length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400">
-                No audit records matching criteria.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-semibold uppercase tracking-wider">
-                      <th className="py-3.5 px-4">Timestamp</th>
-                      <th className="py-3.5 px-4">Action Type</th>
-                      <th className="py-3.5 px-4">Target Resource</th>
-                      <th className="py-3.5 px-4 font-mono">IP Address</th>
-                      <th className="py-3.5 px-4 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
-                    {filteredLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-900/50 transition">
-                        <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
-                          {new Date(log.timestamp || Date.now()).toLocaleString()}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-white font-sans">
-                          {log.action}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-300">
-                          {log.resource || "N/A"}
-                        </td>
-                        <td className="py-3.5 px-4 text-cyan-400">
-                          {log.ip_address || "127.0.0.1"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-sans">
-                          <span
-                            className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
-                              log.status === "SUCCESS"
-                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                : "border-rose-500/30 bg-rose-500/10 text-rose-400"
-                            }`}
-                          >
-                            {log.status || "SUCCESS"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-between items-center pt-2 text-xs font-mono text-slate-400">
-              <span>Page {page} of {totalPages}</span>
-              <div className="flex gap-2">
                 <button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
+                  onClick={() => fetchAuditLogs(page)}
+                  disabled={loading}
+                  className="rounded-lg border border-slate-800 bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition"
                 >
-                  Previous
+                  {loading ? "Refreshing..." : "↻ Refresh Audit Trail"}
                 </button>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded border border-slate-800 px-3 py-1 bg-slate-900 disabled:opacity-40"
-                >
-                  Next
-                </button>
+              </header>
+
+              <div className="space-y-6">
+                {/* Controls Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4">
+                  <div className="flex items-center gap-3 flex-1">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by action, resource, or IP address..."
+                      className="w-full sm:w-80 rounded-lg border border-white/[0.06] bg-black/20 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none transition"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs font-medium text-slate-400">Action Type:</label>
+                    <select
+                      value={actionFilter}
+                      onChange={(e) => setActionFilter(e.target.value)}
+                      className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-xs text-white focus:border-emerald-500/50 focus:outline-none transition"
+                    >
+                      <option value="all">All Actions</option>
+                      <option value="login">Login Events</option>
+                      <option value="submission">Submissions</option>
+                      <option value="classroom">Classroom Events</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Audit Data Table */}
+                <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] shadow-xl overflow-hidden">
+                  {loading ? (
+                    <div className="py-12 text-center text-xs text-slate-500 animate-pulse">
+                      Fetching security audit trail...
+                    </div>
+                  ) : filteredLogs.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-slate-400">
+                      No audit records matching criteria.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/[0.06] bg-black/20 text-slate-400 font-semibold uppercase tracking-wider">
+                            <th className="py-3.5 px-4">Timestamp</th>
+                            <th className="py-3.5 px-4">Action Type</th>
+                            <th className="py-3.5 px-4">Target Resource</th>
+                            <th className="py-3.5 px-4 font-mono">IP Address</th>
+                            <th className="py-3.5 px-4 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.06] font-mono">
+                          {filteredLogs.map((log) => (
+                            <tr key={log.id} className="hover:bg-slate-800/20 transition">
+                              <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
+                                {new Date(log.timestamp || Date.now()).toLocaleString()}
+                              </td>
+                              <td className="py-3.5 px-4 font-semibold text-white font-sans">
+                                {log.action}
+                              </td>
+                              <td className="py-3.5 px-4 text-slate-300">
+                                {log.resource || "N/A"}
+                              </td>
+                              <td className="py-3.5 px-4 text-cyan-400">
+                                {log.ip_address || "127.0.0.1"}
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-sans">
+                                <span
+                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
+                                    log.status === "SUCCESS"
+                                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                      : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                                  }`}
+                                >
+                                  {log.status || "SUCCESS"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-between items-center pt-2 text-xs font-mono text-slate-400">
+                    <span>Page {page} of {totalPages}</span>
+                    <div className="flex gap-2">
+                      <button
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => p - 1)}
+                        className="rounded border border-slate-800 px-3 py-1 bg-[#1a1d27] disabled:opacity-40"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                        className="rounded border border-slate-800 px-3 py-1 bg-[#1a1d27] disabled:opacity-40"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </main>
-
-        <Statusbar sessionStatus="active" courseCode={isInstructor ? "Instructor Audit Log" : "Student Audit Log"} courseName="Immutable Trail" />
+          </main>
+        </div>
       </div>
     </div>
   );

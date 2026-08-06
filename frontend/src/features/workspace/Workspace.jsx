@@ -565,7 +565,7 @@ export default function Workspace() {
         <Sidebar />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-3 py-2 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             <button

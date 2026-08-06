@@ -296,7 +296,7 @@ export default function Assignments() {
     <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
       <Sidebar assignmentCount={activities.filter(a => !isSubmittedActivity(a)).length} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <main className="assignments-page flex-1 overflow-y-auto px-5 py-6 sm:px-8">
           <style>
             {`
