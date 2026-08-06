@@ -49,6 +49,8 @@ export default function NotificationsPage({ role: propRole }) {
     },
   ];
 
+  const [selectedNotification, setSelectedNotification] = useState(null);
+
   const fetchNotifications = async (currentPage = 1) => {
     setLoading(true);
     setError("");
@@ -99,6 +101,13 @@ export default function NotificationsPage({ role: propRole }) {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
+    }
+  };
+
+  const handleNotificationClick = (notif) => {
+    setSelectedNotification(notif);
+    if (!notif.is_read) {
+      handleMarkAsRead(notif.id);
     }
   };  return (
     <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">

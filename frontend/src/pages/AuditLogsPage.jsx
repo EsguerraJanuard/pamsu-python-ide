@@ -77,12 +77,12 @@ export default function AuditLogsPage({ role: propRole }) {
 
   const filteredLogs = logs.filter((log) => {
     const matchesQuery =
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.ip_address.toLowerCase().includes(searchQuery.toLowerCase());
+      (log.action || log.action_type || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.resource || log.resource_type || log.resource_id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.ip_address || log.audit_data?.ip_address || "127.0.0.1").toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesAction =
-      actionFilter === "all" || log.action.toLowerCase().includes(actionFilter.toLowerCase());
+      actionFilter === "all" || (log.action || log.action_type || "").toLowerCase().includes(actionFilter.toLowerCase());
 
     return matchesQuery && matchesAction;
   });
@@ -174,26 +174,26 @@ export default function AuditLogsPage({ role: propRole }) {
                           {filteredLogs.map((log) => (
                             <tr key={log.id} className="hover:bg-slate-800/20 transition">
                               <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
-                                {new Date(log.timestamp || Date.now()).toLocaleString()}
+                                {new Date(log.timestamp || log.occurred_at || log.created_at || Date.now()).toLocaleString()}
                               </td>
                               <td className="py-3.5 px-4 font-semibold text-white font-sans">
-                                {log.action}
+                                {log.action || log.action_type}
                               </td>
                               <td className="py-3.5 px-4 text-slate-300">
-                                {log.resource || "N/A"}
+                                {log.resource || log.resource_type || log.resource_id || "N/A"}
                               </td>
                               <td className="py-3.5 px-4 text-cyan-400">
-                                {log.ip_address || "127.0.0.1"}
+                                {log.ip_address || log.audit_data?.ip_address || "127.0.0.1"}
                               </td>
                               <td className="py-3.5 px-4 text-right font-sans">
                                 <span
                                   className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
-                                    log.status === "SUCCESS"
+                                    (log.status === "SUCCESS" || log.outcome === "succeeded")
                                       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                                       : "border-rose-500/30 bg-rose-500/10 text-rose-400"
                                   }`}
                                 >
-                                  {log.status || "SUCCESS"}
+                                  {log.status || log.outcome || "SUCCESS"}
                                 </span>
                               </td>
                             </tr>
