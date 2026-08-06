@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
+import SignOutModal from "./SignOutModal";
 
 const NAV_SECTIONS = [
   {
@@ -140,92 +142,100 @@ function Icon({ name, size = 15 }) {
 export default function Sidebar({ assignmentCount = 0 }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   const name = user?.name || user?.fullName || "Student Account";
   const initials = user?.initials || name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "SA";
   const role = user?.role || "Student";
   const course = user?.courseCode || user?.course || "No active class";
 
-  const handleSignOut = () => {
-    if (window.confirm("Are you sure you want to sign out?")) {
-      logout();
-      navigate("/login", { replace: true });
-    }
+  const handleConfirmSignOut = () => {
+    setIsSignOutOpen(false);
+    logout();
+    navigate("/login", { replace: true });
   };
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col justify-between overflow-y-auto border-r border-white/[0.06] bg-[#0f1117] px-3 py-4 select-none">
-      <div>
-        <div className="mb-6 flex items-center gap-2 px-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
-            &gt;_
+    <>
+      <aside className="flex w-[220px] shrink-0 flex-col justify-between overflow-y-auto border-r border-white/[0.06] bg-[#0f1117] px-3 py-4 select-none">
+        <div>
+          <div className="mb-6 flex items-center gap-2 px-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
+              &gt;_
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-white">
+              PAMSU IDE
+            </span>
           </div>
-          <span className="text-sm font-semibold tracking-wide text-white">
-            PAMSU IDE
-          </span>
-        </div>
 
-        <div className="mb-6 flex items-center gap-2.5 border-b border-white/[0.06] px-2 pb-4">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3b82f6] text-xs font-bold text-white">
-            {initials}
+          <div className="mb-6 flex items-center gap-2.5 border-b border-white/[0.06] px-2 pb-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3b82f6] text-xs font-bold text-white">
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-white">
+                {name}
+              </p>
+              <p className="truncate text-[10px] text-white/40">
+                {role} · {course}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-white">
-              {name}
-            </p>
-            <p className="truncate text-[10px] text-white/40">
-              {role} · {course}
-            </p>
-          </div>
-        </div>
 
-        <nav aria-label="Student navigation">
-          {NAV_SECTIONS.map((section) => (
-            <section key={section.label} className="mb-4">
-              <h2 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/25">
-                {section.label}
-              </h2>
-              <div className="space-y-0.5">
-                {section.links.map((link) => (
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    end={link.end}
-                    className={({ isActive }) =>
-                      [
-                        "flex w-full items-center justify-between gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors duration-200",
-                        isActive
-                          ? "bg-[#3b82f6]/[0.12] text-[#3b82f6]"
-                          : "text-white/45 hover:bg-white/[0.04] hover:text-white/80",
-                      ].join(" ")
-                    }
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Icon name={link.icon} />
-                      <span>{link.label}</span>
-                    </span>
-
-                    {link.path === "/student/assignments" && assignmentCount > 0 && (
-                      <span className="rounded-full bg-[#3b82f6] px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                        {assignmentCount}
+          <nav aria-label="Student navigation">
+            {NAV_SECTIONS.map((section) => (
+              <section key={section.label} className="mb-4">
+                <h2 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+                  {section.label}
+                </h2>
+                <div className="space-y-0.5">
+                  {section.links.map((link) => (
+                    <NavLink
+                      key={link.path}
+                      to={link.path}
+                      end={link.end}
+                      className={({ isActive }) =>
+                        [
+                          "flex w-full items-center justify-between gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors duration-200",
+                          isActive
+                            ? "bg-[#3b82f6]/[0.12] text-[#3b82f6]"
+                            : "text-white/45 hover:bg-white/[0.04] hover:text-white/80",
+                        ].join(" ")
+                      }
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Icon name={link.icon} />
+                        <span>{link.label}</span>
                       </span>
-                    )}
-                  </NavLink>
-                ))}
-              </div>
-            </section>
-          ))}
-        </nav>
-      </div>
 
-      <button
-        type="button"
-        onClick={handleSignOut}
-        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-white/35 transition-colors duration-200 hover:bg-red-500/[0.08] hover:text-red-400"
-      >
-        <Icon name="logout" />
-        <span>Sign out</span>
-      </button>
-    </aside>
+                      {link.path === "/student/assignments" && assignmentCount > 0 && (
+                        <span className="rounded-full bg-[#3b82f6] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          {assignmentCount}
+                        </span>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </nav>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsSignOutOpen(true)}
+          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-white/35 transition-colors duration-200 hover:bg-red-500/[0.08] hover:text-red-400"
+        >
+          <Icon name="logout" />
+          <span>Sign out</span>
+        </button>
+      </aside>
+
+      <SignOutModal 
+        isOpen={isSignOutOpen} 
+        onClose={() => setIsSignOutOpen(false)} 
+        onConfirm={handleConfirmSignOut} 
+      />
+    </>
   );
 }
