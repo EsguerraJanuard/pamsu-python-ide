@@ -135,8 +135,10 @@ export default function InstructorSidebar() {
   const role = user?.role || "Instructor";
 
   const handleSignOut = () => {
-    if (logout) logout();
-    navigate("/login", { replace: true });
+    if (window.confirm("Are you sure you want to sign out?")) {
+      if (logout) logout();
+      navigate("/login", { replace: true });
+    }
   };
 
   return (

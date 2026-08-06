@@ -130,7 +130,7 @@ export default function NotificationsPage({ role: propRole }) {
                   <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
                   <div className="flex items-center gap-3">
                     <h1 className="text-2xl font-bold tracking-wide">
-                      {isInstructor ? "Instructor System Alerts" : "Student Notifications"}
+                      {isInstructor ? "System Alerts" : "Student Notifications"}
                     </h1>
                     {unreadCount > 0 && (
                       <span className="rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 text-xs font-mono">

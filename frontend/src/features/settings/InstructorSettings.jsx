@@ -52,7 +52,7 @@ export default function InstructorSettings() {
         <header className="mb-6 flex items-center justify-between">
           <div>
             <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
-            <h1 className="text-2xl font-bold">Instructor Settings</h1>
+            <h1 className="text-2xl font-bold">Settings</h1>
             <p className="mt-1 text-sm text-white/40">
               Manage your faculty profile and evaluation preferences.
             </p>

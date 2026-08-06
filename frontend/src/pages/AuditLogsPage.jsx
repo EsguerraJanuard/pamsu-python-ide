@@ -100,7 +100,7 @@ export default function AuditLogsPage({ role: propRole }) {
                   <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
                   <div className="flex items-center gap-3">
                     <h1 className="text-2xl font-bold tracking-wide">
-                      {isInstructor ? "Instructor Security & System Audit Logs" : "Student Audit & History Trail"}
+                      {isInstructor ? "Security & System Audit Logs" : "Student Audit & History Trail"}
                     </h1>
                     <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-xs font-mono text-slate-300">
                       Immutable History

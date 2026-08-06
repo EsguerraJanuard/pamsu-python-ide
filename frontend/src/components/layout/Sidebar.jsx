@@ -147,8 +147,10 @@ export default function Sidebar({ assignmentCount = 0 }) {
   const course = user?.courseCode || user?.course || "No active class";
 
   const handleSignOut = () => {
-    logout();
-    navigate("/login", { replace: true });
+    if (window.confirm("Are you sure you want to sign out?")) {
+      logout();
+      navigate("/login", { replace: true });
+    }
   };
 
   return (

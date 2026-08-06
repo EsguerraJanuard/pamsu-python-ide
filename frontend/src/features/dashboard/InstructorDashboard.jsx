@@ -285,7 +285,7 @@ export default function InstructorDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="mb-2 font-mono text-xs text-emerald-400">
+                  <p className="mb-1 font-mono text-xs text-emerald-400">
                     MANAGEMENT
                   </p>
                   <h1 className="text-2xl font-bold">
