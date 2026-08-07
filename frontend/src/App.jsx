@@ -45,6 +45,7 @@ import GradingWorkspace from './features/instructor/GradingWorkspace';
 import LiveMonitoring from './features/instructor/LiveMonitoring';
 import MyClasses from './features/classes/MyClasses';
 import ClassDetails from './features/classes/ClassDetails';
+import SoloPractice from './features/practice/SoloPractice';
 
 const PlaceholderView = ({ title, description }) => (
   <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-center">
@@ -77,7 +78,7 @@ export const App = () => {
               <Route path="/student/classes/:id" element={<ClassDetails />} />
               <Route path="/student/assignments" element={<Assignments />} />
               <Route path="/student/workspace" element={<Workspace />} />
-              <Route path="/student/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
+              <Route path="/student/practice" element={<SoloPractice />} />
               <Route path="/student/submissions" element={<Submissions />} />
               <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
               <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
