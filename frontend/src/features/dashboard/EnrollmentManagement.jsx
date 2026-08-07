@@ -8,22 +8,7 @@ export default function EnrollmentManagement({ classId, onEnrollmentUpdated }) {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const mockPendingRequests = [
-    {
-      id: "enr-101",
-      studentName: "Dela Cruz, Juan",
-      email: "juan.delacruz@university.edu",
-      requestedAt: "Jan 14, 2026, 09:30 AM",
-      status: "pending",
-    },
-    {
-      id: "enr-102",
-      studentName: "Santos, Maria",
-      email: "maria.santos@university.edu",
-      requestedAt: "Jan 14, 2026, 11:15 AM",
-      status: "pending",
-    },
-  ];
+  const mockPendingRequests = [];
 
   const fetchPendingRequests = async () => {
     setLoading(true);
