@@ -59,20 +59,25 @@ export default function ClassDetails() {
   const [classroom, setClassroom] = useState(null);
   const [activities, setActivities] = useState([]);
   const [totalActivitiesCount, setTotalActivitiesCount] = useState(0);
+  const [membersCount, setMembersCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [classRes, activityRes] = await Promise.all([
+        const [classRes, activityRes, membersRes] = await Promise.all([
           api.get("/classrooms/mine"),
-          api.get("/activities/")
+          api.get("/activities/"),
+          api.get(`/classrooms/${id}/members`).catch(() => [])
         ]);
         
         const currentClass = classRes.find(c => String(c.classroom.class_id) === String(id));
         if (currentClass) {
           setClassroom(currentClass.classroom);
         }
+        
+        // Members count includes instructor + students (or just students). We can just show the total array length.
+        setMembersCount(membersRes.length);
 
         const activeCount = activityRes.filter(task => {
           if (!task.due_at) return true;
@@ -262,12 +267,12 @@ export default function ClassDetails() {
                             <span className="font-mono text-white/80">{classroom.class_id}</span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-white/40">Semester</span>
-                            <span className="text-white/80">First Semester</span>
+                            <span className="text-white/40">Instructor</span>
+                            <span className="text-white/80">{classroom.instructor_name}</span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-white/40">Department</span>
-                            <span className="text-white/80">Computer Science</span>
+                            <span className="text-white/40">Classmates</span>
+                            <span className="text-white/80">{membersCount > 0 ? membersCount - 1 : 0} student{membersCount - 1 === 1 ? '' : 's'}</span>
                           </div>
                         </div>
                       </div>
