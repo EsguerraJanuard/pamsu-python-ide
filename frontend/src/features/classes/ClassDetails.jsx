@@ -185,7 +185,11 @@ export default function ClassDetails() {
                         </span>
                       </div>
                       <h1 className="text-3xl font-bold text-white mb-2">{classroom.subject_name || "Classroom"}</h1>
-                      <p className="text-sm font-medium text-white/50">Instructor: <span className="text-white/80">{classroom.instructor_name}</span></p>
+                      {classroom.instructor_name && (
+                        <p className="text-sm font-medium text-white/50">
+                          Instructor: <span className="text-white/80">{classroom.instructor_name}</span>
+                        </p>
+                      )}
                     </div>
                   </header>
 

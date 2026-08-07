@@ -185,10 +185,14 @@ export default function MyClasses() {
                             <span className="text-sm font-medium text-white/70">
                               {cls.classroom.section}
                             </span>
-                            <span className="text-white/20">•</span>
-                            <span className="text-sm text-white/50">
-                              {cls.classroom.instructor_name}
-                            </span>
+                            {cls.classroom.instructor_name && (
+                              <>
+                                <span className="text-white/20">•</span>
+                                <span className="text-sm text-white/50">
+                                  {cls.classroom.instructor_name}
+                                </span>
+                              </>
+                            )}
                           </div>
                           
                           <div className="flex items-center gap-4 border-t border-white/[0.06] pt-4 mt-auto">

@@ -103,7 +103,7 @@ export default function NotificationsPage({ role: propRole }) {
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
                     <BellIcon className="h-6 w-6 text-emerald-400" />
-                    {isInstructor ? "System Alerts" : "Student Notifications"}
+                    {isInstructor ? "System Alerts" : "Notifications"}
                   </h1>
                   <p className="mt-1 text-sm text-white/40">
                     View your recent alerts and system messages.
