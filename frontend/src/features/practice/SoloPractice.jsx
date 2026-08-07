@@ -77,11 +77,16 @@ export default function SoloPractice() {
       <div className="flex min-w-0 flex-1 flex-col animate-page-fade">
         <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 sm:py-12">
           <div className="mx-auto max-w-5xl">
-            <header className="mb-10">
-              <h1 className="text-2xl font-bold text-white sm:text-3xl">Solo Practice</h1>
-              <p className="mt-2 text-sm text-white/50">
-                Independent coding sandbox for practice lessons and ungraded modules. AST structural analysis is fully supported.
-              </p>
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+              <div>
+                <h1 className="text-2xl font-bold flex items-center gap-3">
+                  <CodeIcon className="h-6 w-6 text-violet-500" />
+                  Solo Practice
+                </h1>
+                <p className="mt-1 text-sm text-white/40">
+                  Independent coding sandbox for practice lessons and ungraded modules. AST structural analysis is fully supported.
+                </p>
+              </div>
             </header>
 
             {isLoading ? (

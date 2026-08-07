@@ -88,6 +88,12 @@ function getStoredProfile() {
 
 
 
+function SettingsIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+  );
+}
+
 export default function Settings() {
 
   const [profile, setProfile] = useState(getStoredProfile);
@@ -378,34 +384,16 @@ export default function Settings() {
 
           <div className="mx-auto max-w-2xl">
 
-            <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
               <div>
-
-                <h1 className="text-2xl font-bold">
-
+                <h1 className="text-2xl font-bold flex items-center gap-3">
+                  <SettingsIcon className="h-6 w-6 text-slate-400" />
                   Account Settings
-
                 </h1>
-
-
-
                 <p className="mt-1 text-sm text-white/40">
-
                   Manage your profile and account security.
-
                 </p>
-
               </div>
-
-
-
-              <span className="w-fit rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
-
-                Preview account data
-
-              </span>
-
             </header>
 
 

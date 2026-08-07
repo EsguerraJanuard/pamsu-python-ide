@@ -134,6 +134,12 @@ function isSubmittedActivity(activity) {
   );
 }
 
+function ClipboardListIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+  );
+}
+
 export default function Assignments() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
@@ -260,20 +266,16 @@ export default function Assignments() {
           </style>
 
           <div className="mx-auto max-w-5xl">
-            <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
               <div>
-                <h1 className="text-2xl font-bold leading-tight">
+                <h1 className="text-2xl font-bold flex items-center gap-3">
+                  <ClipboardListIcon className="h-6 w-6 text-blue-500" />
                   Assignments
                 </h1>
-
                 <p className="mt-1 text-sm text-white/40">
                   {activities.filter(a => !isSubmittedActivity(a)).length} active · {activities.filter(isSubmittedActivity).length} submitted
                 </p>
               </div>
-
-              <span className="w-fit rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
-                Preview data
-              </span>
             </header>
 
             <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">

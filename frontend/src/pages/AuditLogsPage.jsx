@@ -5,6 +5,12 @@ import Sidebar from "../components/layout/Sidebar";
 import InstructorSidebar from "../components/layout/InstructorSidebar";
 import Statusbar from "../components/layout/Statusbar";
 
+function ShieldIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+  );
+}
+
 export default function AuditLogsPage({ role: propRole }) {
   const auth = useAuth() || {};
   const activeRole = propRole || auth.role || "student";
@@ -95,17 +101,12 @@ export default function AuditLogsPage({ role: propRole }) {
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
             <div className="mx-auto max-w-6xl">
-              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold tracking-wide">
-                      {isInstructor ? "Security & System Audit Logs" : "Student Audit & History Trail"}
-                    </h1>
-                    <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-xs font-mono text-slate-300">
-                      Immutable History
-                    </span>
-                  </div>
+                  <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
+                    <ShieldIcon className="h-6 w-6 text-emerald-400" />
+                    {isInstructor ? "Security & System Audit Logs" : "Student Audit & History Trail"}
+                  </h1>
                   <p className="mt-1 text-sm text-white/40">
                     Review system events and security logs.
                   </p>

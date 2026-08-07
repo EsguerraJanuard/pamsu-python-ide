@@ -231,6 +231,12 @@ function ClockIcon() {
   );
 }
 
+function LayoutDashboardIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+  );
+}
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const user = getStoredUser();
@@ -328,19 +334,12 @@ export default function StudentDashboard() {
             
 
             <div className="mx-auto max-w-6xl">
-              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
                 <div>
-                  <p className="mb-2 font-mono text-xs text-white/30">
-                    {user.courseCode}
-                    {user.courseName
-                      ? ` — ${user.courseName}`
-                      : ""}
-                  </p>
-
-                  <h1 className="text-2xl font-bold">
+                  <h1 className="text-2xl font-bold flex items-center gap-3">
+                    <LayoutDashboardIcon className="h-6 w-6 text-blue-500" />
                     {getGreeting()}, {getFirstName(user.name)}
                   </h1>
-
                   <p className="mt-1 text-sm text-white/40">
                     You have {activeActivities.length} active{" "}
                     {activeActivities.length === 1
@@ -353,17 +352,14 @@ export default function StudentDashboard() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="rounded-lg bg-[#3b82f6] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
+                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
                   >
-                    + Join Class
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Join a Class
                   </button>
 
-                  <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
-                    Preview data
-                  </span>
-
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3b82f6] text-xs font-bold"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1a1d27] border border-white/[0.06] text-xs font-bold shadow-sm"
                     aria-label={`Signed in as ${user.name}`}
                   >
                     {user.initials}

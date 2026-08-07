@@ -1,94 +1,13 @@
+import { useState, useEffect } from "react";
+import api from "../../services/api";
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
 
-const SUMMARY_CARDS = [
-  {
-    value: "72%",
-    label: "Learning Progress",
-    description: "Based on your completed activities",
-    progress: 72,
-    color: "#3b82f6",
-  },
-  {
-    value: "68%",
-    label: "AST Indicators Met",
-    description: "Across checked submissions",
-    progress: 68,
-    color: "#f59e0b",
-  },
-  {
-    value: "84%",
-    label: "Test Cases Passed",
-    description: "Across recent runs and checks",
-    progress: 84,
-    color: "#22c55e",
-  },
-  {
-    value: "8 / 11",
-    label: "Activities Completed",
-    description: "Laboratory and homework activities",
-    progress: 73,
-    color: "#a78bfa",
-  },
-];
-
-const WEEKLY_PROGRESS = [
-  { week: "Week 1", ast: 55, tests: 62 },
-  { week: "Week 2", ast: 61, tests: 70 },
-  { week: "Week 3", ast: 65, tests: 78 },
-  { week: "Week 4", ast: 68, tests: 84 },
-];
-
-const CONCEPT_PROGRESS = [
-  {
-    label: "Variables and expressions",
-    value: 92,
-  },
-  {
-    label: "Conditional statements",
-    value: 86,
-  },
-  {
-    label: "Loops",
-    value: 78,
-  },
-  {
-    label: "Functions",
-    value: 70,
-  },
-  {
-    label: "Lists and collections",
-    value: 64,
-  },
-  {
-    label: "Exception handling",
-    value: 42,
-  },
-];
-
-const RECENT_GROWTH = [
-  {
-    title: "AST indicators",
-    current: "68%",
-    previous: "61%",
-    change: "+7%",
-    positive: true,
-  },
-  {
-    title: "Test cases passed",
-    current: "84%",
-    previous: "76%",
-    change: "+8%",
-    positive: true,
-  },
-  {
-    title: "Average run attempts",
-    current: "6",
-    previous: "8",
-    change: "-2",
-    positive: true,
-  },
-];
+function LineChartIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+  );
+}
 
 function getProgressColor(value) {
   if (value >= 80) {
@@ -103,6 +22,35 @@ function getProgressColor(value) {
 }
 
 export default function Analytics() {
+  const [metrics, setMetrics] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const [subRes, actRes] = await Promise.all([
+          api.get("/submissions/"),
+          api.get("/activities/")
+        ]);
+        
+        const completed = subRes.filter(s => s.status === 'submitted' || s.status === 'graded').length;
+        const total = actRes.length;
+        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        setMetrics({
+          learningProgress: progress,
+          completedActivities: `${completed} / ${total}`,
+          completionPercentage: progress,
+        });
+      } catch (err) {
+        console.error("Failed to load analytics data", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
       <Sidebar />
@@ -139,21 +87,17 @@ export default function Analytics() {
           </style>
 
           <div className="mx-auto max-w-6xl">
-            <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
               <div>
-                <h1 className="text-2xl font-bold text-white">
+                <h1 className="text-2xl font-bold flex items-center gap-3">
+                  <LineChartIcon className="h-6 w-6 text-blue-500" />
                   My Learning Progress
                 </h1>
-
                 <p className="mt-1 text-sm text-white/40">
                   Review your activity completion, structural indicators,
                   test results, and personal improvement.
                 </p>
               </div>
-
-              <span className="w-fit rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300">
-                Preview data
-              </span>
             </header>
 
             <section
@@ -167,197 +111,130 @@ export default function Analytics() {
               </p>
             </section>
 
+            {isLoading ? (
+              <div className="flex justify-center py-20">
+                 <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500"></div>
+              </div>
+            ) : (
             <section
               className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
               aria-label="Progress summary"
             >
-              {SUMMARY_CARDS.map((card) => (
                 <article
-                  key={card.label}
                   className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
                 >
                   <p
-                    className="mb-1 text-3xl font-bold"
-                    style={{ color: card.color }}
+                    className="mb-1 text-3xl font-bold text-blue-500"
                   >
-                    {card.value}
+                    {metrics?.learningProgress || 0}%
                   </p>
 
                   <h2 className="text-xs font-medium text-white/70">
-                    {card.label}
+                    Learning Progress
                   </h2>
 
                   <p className="mb-3 text-[10px] text-white/30">
-                    {card.description}
+                    Based on your completed activities
                   </p>
 
                   <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
                     <div
-                      className="h-full rounded-full"
+                      className="h-full rounded-full bg-blue-500"
                       style={{
-                        width: `${card.progress}%`,
-                        backgroundColor: card.color,
+                        width: `${metrics?.learningProgress || 0}%`
                       }}
                     />
                   </div>
                 </article>
-              ))}
-            </section>
-
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
-                <h2 className="text-sm font-semibold text-white">
-                  Weekly Progress
-                </h2>
-
-                <p className="mb-5 mt-1 text-[11px] text-white/30">
-                  AST indicators and passed test cases from recent activities
-                </p>
-
-                <div
-                  className="flex h-40 items-end gap-4"
-                  aria-label="Weekly progress chart"
+                <article
+                  className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
                 >
-                  {WEEKLY_PROGRESS.map((item) => (
+                  <p
+                    className="mb-1 text-3xl font-bold text-amber-500"
+                  >
+                    --
+                  </p>
+
+                  <h2 className="text-xs font-medium text-white/70">
+                    AST Indicators Met
+                  </h2>
+
+                  <p className="mb-3 text-[10px] text-white/30">
+                    Awaiting backend data integration
+                  </p>
+
+                  <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
                     <div
-                      key={item.week}
-                      className="flex flex-1 flex-col items-center gap-2"
-                    >
-                      <div className="flex h-28 w-full items-end gap-1">
-                        <div
-                          className="flex-1 rounded-t-sm bg-[#f59e0b]"
-                          style={{ height: `${item.ast}%` }}
-                          title={`${item.week} AST indicators: ${item.ast}%`}
-                        />
-
-                        <div
-                          className="flex-1 rounded-t-sm bg-[#22c55e]"
-                          style={{ height: `${item.tests}%` }}
-                          title={`${item.week} test cases passed: ${item.tests}%`}
-                        />
-                      </div>
-
-                      <span className="text-[9px] text-white/30">
-                        {item.week}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="h-2 w-2 rounded-sm bg-[#f59e0b]"
-                      aria-hidden="true"
+                      className="h-full rounded-full bg-amber-500"
+                      style={{
+                        width: `0%`
+                      }}
                     />
-
-                    <span className="text-[10px] text-white/40">
-                      AST indicators
-                    </span>
                   </div>
+                </article>
+                <article
+                  className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                >
+                  <p
+                    className="mb-1 text-3xl font-bold text-green-500"
+                  >
+                    --
+                  </p>
 
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="h-2 w-2 rounded-sm bg-[#22c55e]"
-                      aria-hidden="true"
+                  <h2 className="text-xs font-medium text-white/70">
+                    Test Cases Passed
+                  </h2>
+
+                  <p className="mb-3 text-[10px] text-white/30">
+                    Awaiting backend data integration
+                  </p>
+
+                  <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-green-500"
+                      style={{
+                        width: `0%`
+                      }}
                     />
-
-                    <span className="text-[10px] text-white/40">
-                      Test cases passed
-                    </span>
                   </div>
-                </div>
-              </section>
+                </article>
+                <article
+                  className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                >
+                  <p
+                    className="mb-1 text-3xl font-bold text-purple-400"
+                  >
+                    {metrics?.completedActivities || "0 / 0"}
+                  </p>
 
-              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
-                <h2 className="text-sm font-semibold text-white">
-                  Programming Concept Progress
-                </h2>
+                  <h2 className="text-xs font-medium text-white/70">
+                    Activities Completed
+                  </h2>
 
-                <p className="mb-5 mt-1 text-[11px] text-white/30">
-                  Structural concepts detected in your checked code
-                </p>
+                  <p className="mb-3 text-[10px] text-white/30">
+                    Laboratory and homework activities
+                  </p>
 
-                <div className="space-y-4">
-                  {CONCEPT_PROGRESS.map((item) => {
-                    const color = getProgressColor(item.value);
+                  <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-purple-400"
+                      style={{
+                        width: `${metrics?.completionPercentage || 0}%`
+                      }}
+                    />
+                  </div>
+                </article>
+            </section>
+            )}
 
-                    return (
-                      <div key={item.label}>
-                        <div className="mb-1.5 flex items-center justify-between gap-4">
-                          <span className="text-[11px] text-white/60">
-                            {item.label}
-                          </span>
-
-                          <span
-                            className="font-mono text-[11px] font-semibold"
-                            style={{ color }}
-                          >
-                            {item.value}%
-                          </span>
-                        </div>
-
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${item.value}%`,
-                              backgroundColor: color,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5 xl:col-span-2">
-                <h2 className="text-sm font-semibold text-white">
-                  Growth Compared with Previous Activities
-                </h2>
-
-                <p className="mb-5 mt-1 text-[11px] text-white/30">
-                  Your recent results compared with your own earlier
-                  performance
-                </p>
-
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  {RECENT_GROWTH.map((item) => (
-                    <article
-                      key={item.title}
-                      className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
-                    >
-                      <h3 className="text-[11px] font-medium text-white/60">
-                        {item.title}
-                      </h3>
-
-                      <div className="mt-3 flex items-end justify-between gap-3">
-                        <div>
-                          <p className="text-2xl font-bold text-white">
-                            {item.current}
-                          </p>
-
-                          <p className="text-[10px] text-white/30">
-                            Previous: {item.previous}
-                          </p>
-                        </div>
-
-                        <span
-                          className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
-                            item.positive
-                              ? "bg-green-500/10 text-green-400"
-                              : "bg-red-500/10 text-red-400"
-                          }`}
-                        >
-                          {item.change}
-                        </span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            </div>
+            {!isLoading && (
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <section className="rounded-xl border border-dashed border-white/[0.08] bg-transparent p-12 flex flex-col items-center justify-center text-center xl:col-span-2">
+                   <h2 className="text-base font-semibold text-white/70 mb-2">More Analytics Coming Soon</h2>
+                   <p className="text-xs text-white/40 max-w-md">Detailed programming concept progress, weekly tracking, and comparative growth charts require additional backend support. This feature will be available in a future update.</p>
+                </section>
+              </div>
+            )}
           </div>
         </main>
 

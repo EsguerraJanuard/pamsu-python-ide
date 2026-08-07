@@ -380,6 +380,19 @@ function SubmissionDetails({ submission, onBack }) {
   );
 }
 
+function isSubmittedActivity(activity) {
+  return (
+    activity.status === "submitted" ||
+    activity.status === "graded"
+  );
+}
+
+function ArchiveIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+  );
+}
+
 export default function Submissions() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -494,12 +507,12 @@ export default function Submissions() {
           <div className="mx-auto max-w-5xl">
             {!id && (
               <>
-                <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
                   <div>
-                    <h1 className="text-2xl font-bold">
+                    <h1 className="text-2xl font-bold flex items-center gap-3">
+                      <ArchiveIcon className="h-6 w-6 text-green-500" />
                       My Submissions
                     </h1>
-
                     <p className="mt-1 text-sm text-white/40">
                       {submissions.length} submitted{" "}
                       {submissions.length === 1
@@ -507,7 +520,6 @@ export default function Submissions() {
                         : "activities"}
                     </p>
                   </div>
-
                 </header>
 
                 <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
