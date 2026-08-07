@@ -40,15 +40,6 @@ function SubmissionList({ submissions, onOpen }) {
           STATUS_CONFIG[submission.status] ??
           STATUS_CONFIG.awaiting_review;
 
-        const astPercentage = getPercentage(
-          submission.astIndicators.met,
-          submission.astIndicators.total,
-        );
-
-        const testPercentage = getPercentage(
-          submission.testCases.passed,
-          submission.testCases.total,
-        );
 
         return (
           <article
@@ -113,43 +104,9 @@ function SubmissionList({ submissions, onOpen }) {
               </span>
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
-                <p className="text-lg font-bold text-amber-400">
-                  {submission.astIndicators.met} /{" "}
-                  {submission.astIndicators.total}
-                </p>
 
-                <p className="mt-0.5 text-[10px] text-white/40">
-                  AST indicators met
-                </p>
 
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                  <div
-                    className="h-full rounded-full bg-amber-500"
-                    style={{ width: `${astPercentage}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
-                <p className="text-lg font-bold text-green-400">
-                  {submission.testCases.passed} /{" "}
-                  {submission.testCases.total}
-                </p>
-
-                <p className="mt-0.5 text-[10px] text-white/40">
-                  Test cases passed
-                </p>
-
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                  <div
-                    className="h-full rounded-full bg-green-500"
-                    style={{ width: `${testPercentage}%` }}
-                  />
-                </div>
-              </div>
-
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-1">
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
                 {submission.instructorGrade ? (
                   <>
@@ -203,15 +160,7 @@ function SubmissionDetails({ submission, onBack }) {
     STATUS_CONFIG[submission.status] ??
     STATUS_CONFIG.awaiting_review;
 
-  const astPercentage = getPercentage(
-    submission.astIndicators.met,
-    submission.astIndicators.total,
-  );
 
-  const testPercentage = getPercentage(
-    submission.testCases.passed,
-    submission.testCases.total,
-  );
 
   return (
     <div className="space-y-5">
@@ -299,72 +248,7 @@ function SubmissionDetails({ submission, onBack }) {
           </div>
         </section>
 
-        <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-xs font-medium text-white/60">
-                AST indicators
-              </h2>
 
-              <span className="font-mono text-xs font-semibold text-amber-400">
-                {submission.astIndicators.met} /{" "}
-                {submission.astIndicators.total}
-              </span>
-            </div>
-
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-              <div
-                className="h-full rounded-full bg-amber-500"
-                style={{ width: `${astPercentage}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-xs font-medium text-white/60">
-                Test cases
-              </h2>
-
-              <span className="font-mono text-xs font-semibold text-green-400">
-                {submission.testCases.passed} /{" "}
-                {submission.testCases.total}
-              </span>
-            </div>
-
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-              <div
-                className="h-full rounded-full bg-green-500"
-                style={{ width: `${testPercentage}%` }}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="mb-5 rounded-lg border border-amber-500/15 bg-amber-500/[0.05] p-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xs font-semibold text-amber-300">
-                Structural similarity indicator
-              </h2>
-
-              <p className="mt-1 text-[11px] text-white/40">
-                {submission.similarityIndicator.label}
-              </p>
-            </div>
-
-            <span className="font-mono text-lg font-bold text-amber-400">
-              {submission.similarityIndicator.percentage}%
-            </span>
-          </div>
-
-          <p className="mt-3 text-[10px] leading-relaxed text-white/30">
-            This automated result is only a review indicator. It does
-            not independently prove copying, plagiarism, or academic
-            misconduct. Final interpretation belongs to the authorized
-            instructor.
-          </p>
-        </section>
 
         <section className="rounded-lg border-l-2 border-violet-500/30 bg-violet-500/[0.05] px-4 py-3">
           <h2 className="mb-1 text-xs font-semibold text-violet-300">
@@ -435,9 +319,6 @@ export default function Submissions() {
             totalAttempts: sub.attempt_number,
             submittedLabel: new Date(sub.submitted_at).toLocaleString(),
             isOfficial: sub.is_official,
-            astIndicators: { met: 0, total: 0 },
-            testCases: { passed: 0, total: 0 },
-            similarityIndicator: { percentage: 0, label: "Not available" },
             instructorGrade: null,
             instructorFeedback: "Awaiting instructor review.",
             attempts: [
@@ -473,7 +354,7 @@ export default function Submissions() {
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <main className="submissions-page flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+        <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
           <style>
             {`
               @keyframes submissionsFadeUp {
@@ -504,7 +385,7 @@ export default function Submissions() {
             `}
           </style>
 
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-6xl">
             {!id && (
               <>
                 <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
@@ -522,13 +403,7 @@ export default function Submissions() {
                   </div>
                 </header>
 
-                <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
-                  <p className="text-xs leading-relaxed text-blue-200/80">
-                    System-generated AST, test-case, and similarity
-                    results are review indicators only. Official grades
-                    and academic decisions are made by your instructor.
-                  </p>
-                </section>
+
 
                 <SubmissionList
                   submissions={submissions}

@@ -1,36 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { useAuth } from "../../features/auth/AuthContext";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
 
-const DEFAULT_USER = {
-  name: "Student",
-  initials: "ST",
-  courseCode: "No active class",
-  courseName: "",
-};
 
-function getStoredUser() {
-  try {
-    const storedUser = sessionStorage.getItem("user");
-    if (!storedUser) return DEFAULT_USER;
-
-    const user = JSON.parse(storedUser);
-    const name = user.name || user.fullName || user.full_name || DEFAULT_USER.name;
-    const generatedInitials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
-
-    return {
-      name,
-      initials: user.initials || generatedInitials || DEFAULT_USER.initials,
-      courseCode: user.courseCode || user.course_code || user.course || DEFAULT_USER.courseCode,
-      courseName: user.courseName || user.course_name || DEFAULT_USER.courseName,
-    };
-  } catch {
-    return DEFAULT_USER;
-  }
-}
 
 function ArrowLeftIcon(props) {
   return (
@@ -53,7 +29,22 @@ function MegaphoneIcon(props) {
 export default function ClassDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const user = getStoredUser();
+  const { user: authUser } = useAuth();
+  
+  const userName = authUser?.name || "Student";
+  const userInitials = userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "ST";
+    
+  const user = {
+    name: userName,
+    initials: userInitials,
+    courseCode: "No active class",
+    courseName: "",
+  };
 
   const [isLoading, setIsLoading] = useState(true);
   const [classroom, setClassroom] = useState(null);

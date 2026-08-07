@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
+
+const fs = require("fs");
+const file = "frontend/src/pages/NotificationsPage.jsx";
+const content = `import { useState, useEffect } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import api from "../services/api";
 import Sidebar from "../components/layout/Sidebar";
 import InstructorSidebar from "../components/layout/InstructorSidebar";
 import { useNavigate } from "react-router-dom";
-
-function BellIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-  );
-}
 
 export default function NotificationsPage({ role: propRole }) {
   const auth = useAuth() || {};
@@ -26,23 +23,55 @@ export default function NotificationsPage({ role: propRole }) {
   const [error, setError] = useState("");
   const [selectedNotification, setSelectedNotification] = useState(null);
 
-
+  const mockNotifications = [
+    {
+      id: "notif-1",
+      title: "Submission received",
+      message: "John Doe submitted Lab Activity 3 - Fibonacci Sequence, attempt 1.",
+      created_at: new Date().toISOString(),
+      is_read: false,
+      type: "submission",
+      reference_id: "123",
+    },
+    {
+      id: "notif-2",
+      title: isInstructor ? "New Student Join Request" : "Lab Activity 3 Graded",
+      message: isInstructor
+        ? "Juan Dela Cruz requested to join CS101 — Intro to Programming."
+        : "Instructor posted official AST and manual score evaluation for Fibonacci Sequence.",
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+      is_read: false,
+      type: isInstructor ? "classroom" : "grade",
+      reference_id: "456",
+    },
+    {
+      id: "notif-3",
+      title: isInstructor ? "Submission Threshold Alert" : "Classroom Enrollment Approved",
+      message: isInstructor
+        ? "82% of students submitted Lab Activity 3 before the deadline."
+        : "You have been officially enrolled in CCS101 — Intro to Computer Science.",
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      is_read: false,
+      type: "system",
+    },
+  ];
 
   const fetchNotifications = async (currentPage = 1) => {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get(`/notifications/?page=${currentPage}&page_size=10`);
+      const response = await api.get(\`/notifications/?page=\${currentPage}&page_size=10\`);
       if (response && Array.isArray(response.items)) {
         setNotifications(response.items);
         setTotalPages(response.total_pages || 1);
         setUnreadCount(response.unread_count || response.items.filter((n) => !n.is_read).length);
-        setNotifications([]);
-        setUnreadCount(0);
+      } else {
+        setNotifications(mockNotifications);
+        setUnreadCount(mockNotifications.filter((n) => !n.is_read).length);
       }
     } catch (err) {
-      setNotifications([]);
-      setUnreadCount(0);
+      setNotifications(mockNotifications);
+      setUnreadCount(mockNotifications.filter((n) => !n.is_read).length);
     } finally {
       setLoading(false);
     }
@@ -67,7 +96,7 @@ export default function NotificationsPage({ role: propRole }) {
 
   const handleMarkAsRead = async (id) => {
     try {
-      await api.patch(`/notifications/${id}/read`);
+      await api.patch(\`/notifications/\${id}/read\`);
     } catch (err) {
        console.log("Mock mark read");
     } finally {
@@ -86,9 +115,9 @@ export default function NotificationsPage({ role: propRole }) {
   };
 
   const handleAction = (type, refId) => {
-    if (type === "submission") navigate(`/instructor/submissions/${refId || ""}`);
-    else if (type === "classroom") navigate(`/instructor/classes/${refId || ""}`);
-    else if (type === "grade") navigate(`/student/submissions/${refId || ""}`);
+    if (type === "submission") navigate(\`/instructor/submissions/\${refId || ""}\`);
+    else if (type === "classroom") navigate(\`/instructor/classes/\${refId || ""}\`);
+    else if (type === "grade") navigate(\`/student/submissions/\${refId || ""}\`);
   };
 
   return (
@@ -99,12 +128,19 @@ export default function NotificationsPage({ role: propRole }) {
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
             <div className="mx-auto max-w-6xl h-full flex flex-col">
-              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6 shrink-0">
+              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between shrink-0">
                 <div>
-                  <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
-                    <BellIcon className="h-6 w-6 text-emerald-400" />
-                    {isInstructor ? "System Alerts" : "Student Notifications"}
-                  </h1>
+                  <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold tracking-wide">
+                      {isInstructor ? "Instructor System Alerts" : "Student Notifications"}
+                    </h1>
+                    {unreadCount > 0 && (
+                      <span className="rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 text-xs font-mono">
+                        {unreadCount} Unread
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 text-sm text-white/40">
                     View your recent alerts and system messages.
                   </p>
@@ -121,7 +157,7 @@ export default function NotificationsPage({ role: propRole }) {
 
               <div className="flex-1 flex gap-6 overflow-hidden pb-4">
                 {/* Left Pane: Notification List */}
-                <div className={`flex-col flex w-full lg:w-1/3 rounded-xl border border-white/[0.06] bg-[#1a1d27] overflow-hidden ${selectedNotification ? "hidden lg:flex" : "flex"}`}>
+                <div className={\`flex-col flex w-full lg:w-1/3 rounded-xl border border-white/[0.06] bg-[#1a1d27] overflow-hidden \${selectedNotification ? "hidden lg:flex" : "flex"}\`}>
                   <div className="border-b border-white/[0.06] p-4 bg-[#1a1d27]">
                     <h2 className="text-sm font-semibold">Inbox</h2>
                   </div>
@@ -139,20 +175,20 @@ export default function NotificationsPage({ role: propRole }) {
                             <div
                               key={notif.id}
                               onClick={() => handleNotificationClick(notif)}
-                              className={`p-4 cursor-pointer transition-colors ${
+                              className={\`p-4 cursor-pointer transition-colors \${
                                 isSelected 
                                   ? "bg-white/[0.04]" 
                                   : !notif.is_read 
                                     ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.06]" 
                                     : "hover:bg-white/[0.02]"
-                              }`}
+                              }\`}
                             >
                               <div className="flex items-start gap-3">
                                 {!notif.is_read && (
                                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
                                 )}
-                                <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
-                                  <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-white" : "font-medium text-white/70"}`}>
+                                <div className={\`min-w-0 flex-1 \${notif.is_read ? "ml-4.5" : ""}\`}>
+                                  <h3 className={\`truncate text-sm \${!notif.is_read ? "font-semibold text-white" : "font-medium text-white/70"}\`}>
                                     {notif.title}
                                   </h3>
                                   <p className="mt-1 line-clamp-2 text-xs text-white/40 leading-relaxed">
@@ -172,7 +208,7 @@ export default function NotificationsPage({ role: propRole }) {
                 </div>
 
                 {/* Right Pane: Notification Details */}
-                <div className={`flex-col flex w-full lg:w-2/3 rounded-xl border border-white/[0.06] bg-[#1a1d27] overflow-hidden ${!selectedNotification ? "hidden lg:flex" : "flex"}`}>
+                <div className={\`flex-col flex w-full lg:w-2/3 rounded-xl border border-white/[0.06] bg-[#1a1d27] overflow-hidden \${!selectedNotification ? "hidden lg:flex" : "flex"}\`}>
                   {selectedNotification ? (
                     <div className="flex h-full flex-col">
                       <div className="border-b border-white/[0.06] p-4 bg-[#1a1d27] flex items-center gap-3">
@@ -245,3 +281,7 @@ export default function NotificationsPage({ role: propRole }) {
     </div>
   );
 }
+\`;
+
+fs.writeFileSync(file, content);
+console.log("Updated NotificationsPage with Master-Detail View!");

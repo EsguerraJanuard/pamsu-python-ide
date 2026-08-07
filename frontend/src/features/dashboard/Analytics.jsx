@@ -117,7 +117,7 @@ export default function Analytics() {
               </div>
             ) : (
             <section
-              className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+              className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2"
               aria-label="Progress summary"
             >
                 <article
@@ -146,58 +146,7 @@ export default function Analytics() {
                     />
                   </div>
                 </article>
-                <article
-                  className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
-                >
-                  <p
-                    className="mb-1 text-3xl font-bold text-amber-500"
-                  >
-                    --
-                  </p>
 
-                  <h2 className="text-xs font-medium text-white/70">
-                    AST Indicators Met
-                  </h2>
-
-                  <p className="mb-3 text-[10px] text-white/30">
-                    Awaiting backend data integration
-                  </p>
-
-                  <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                    <div
-                      className="h-full rounded-full bg-amber-500"
-                      style={{
-                        width: `0%`
-                      }}
-                    />
-                  </div>
-                </article>
-                <article
-                  className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
-                >
-                  <p
-                    className="mb-1 text-3xl font-bold text-green-500"
-                  >
-                    --
-                  </p>
-
-                  <h2 className="text-xs font-medium text-white/70">
-                    Test Cases Passed
-                  </h2>
-
-                  <p className="mb-3 text-[10px] text-white/30">
-                    Awaiting backend data integration
-                  </p>
-
-                  <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                    <div
-                      className="h-full rounded-full bg-green-500"
-                      style={{
-                        width: `0%`
-                      }}
-                    />
-                  </div>
-                </article>
                 <article
                   className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
                 >

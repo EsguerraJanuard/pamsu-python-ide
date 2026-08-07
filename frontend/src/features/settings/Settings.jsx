@@ -322,7 +322,7 @@ export default function Settings() {
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
 
-        <main className="settings-page flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+        <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
 
           <style>
 
@@ -382,12 +382,18 @@ export default function Settings() {
 
 
 
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto max-w-6xl">
+
+
 
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+
               <div>
+
                 <h1 className="text-2xl font-bold flex items-center gap-3">
+
                   <SettingsIcon className="h-6 w-6 text-slate-400" />
+
                   Account Settings
                 </h1>
                 <p className="mt-1 text-sm text-white/40">

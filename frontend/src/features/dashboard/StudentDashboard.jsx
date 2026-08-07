@@ -5,104 +5,7 @@ import api from "../../services/api";
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
 import JoinClassModal from "../../components/modals/JoinClassModal";
-
-const DEFAULT_USER = {
-  name: "Student",
-  initials: "ST",
-  courseCode: "No active class",
-  courseName: "",
-};
-
-const PREVIEW_STATS = [
-  {
-    value: "2",
-    label: "Active activities",
-    description: "Laboratory and homework tasks",
-    progress: 50,
-    color: "#3b82f6",
-  },
-  {
-    value: "8 / 11",
-    label: "Activities completed",
-    description: "Based on submitted activities",
-    progress: 73,
-    color: "#22c55e",
-  },
-  {
-    value: "68%",
-    label: "AST indicators met",
-    description: "Across recent checked code",
-    progress: 68,
-    color: "#f59e0b",
-  },
-  {
-    value: "84%",
-    label: "Test cases passed",
-    description: "Across recent runs and checks",
-    progress: 84,
-    color: "#a78bfa",
-  },
-];
-
-const PREVIEW_ACTIVITIES = [
-  {
-    id: 1,
-    title: "Lab Activity 3 — Fibonacci Sequence",
-    courseCode: "CCS101",
-    dueLabel: "Due today, 11:59 PM",
-    status: "due_today",
-    progress: 70,
-    note: "A saved draft is available.",
-    actionLabel: "Continue",
-  },
-  {
-    id: 2,
-    title: "Homework 2 — Lists and File Processing",
-    courseCode: "CCS101",
-    dueLabel: "Due in 3 days",
-    status: "in_progress",
-    progress: 30,
-    note: "No official submission has been recorded.",
-    actionLabel: "Open",
-  },
-  {
-    id: 3,
-    title: "Lab Activity 2 — Control Flow and Functions",
-    courseCode: "CCS101",
-    dueLabel: "Submission closed",
-    status: "submitted",
-    progress: 100,
-    note: "Attempt 2 is the latest official submission.",
-    actionLabel: "View submission",
-  },
-];
-
-const PREVIEW_ACTIVITY_LOG = [
-  {
-    id: 1,
-    message: "Python execution completed successfully",
-    time: "Recently",
-    type: "run",
-  },
-  {
-    id: 2,
-    message: "AST check identified a missing required loop",
-    time: "Recently",
-    type: "analysis",
-  },
-  {
-    id: 3,
-    message: "Lab Activity 2 was submitted as Attempt 2",
-    time: "Yesterday",
-    type: "submission",
-  },
-  {
-    id: 4,
-    message: "Instructor grade posted for Lab Activity 1",
-    time: "Earlier",
-    type: "grade",
-  },
-];
+import { useAuth } from "../../features/auth/AuthContext";
 
 const STATUS_CONFIG = {
   due_today: {
@@ -127,49 +30,6 @@ const STATUS_CONFIG = {
     buttonClass: "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
   },
 };
-
-function getStoredUser() {
-  try {
-    const storedUser = sessionStorage.getItem("user");
-
-    if (!storedUser) {
-      return DEFAULT_USER;
-    }
-
-    const user = JSON.parse(storedUser);
-    const name =
-      user.name ||
-      user.fullName ||
-      user.full_name ||
-      DEFAULT_USER.name;
-
-    const generatedInitials = name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("");
-
-    return {
-      name,
-      initials:
-        user.initials ||
-        generatedInitials ||
-        DEFAULT_USER.initials,
-      courseCode:
-        user.courseCode ||
-        user.course_code ||
-        user.course ||
-        DEFAULT_USER.courseCode,
-      courseName:
-        user.courseName ||
-        user.course_name ||
-        DEFAULT_USER.courseName,
-    };
-  } catch {
-    return DEFAULT_USER;
-  }
-}
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -239,21 +99,41 @@ function LayoutDashboardIcon(props) {
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-  const user = getStoredUser();
+  const { user: authUser } = useAuth();
+  
+  const userName = authUser?.name || "Student";
+  const userInitials = userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "ST";
+    
+  const user = {
+    name: userName,
+    initials: userInitials,
+    courseCode: "No active class",
+    courseName: "",
+  };
   
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [classrooms, setClassrooms] = useState([]);
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [completedCount, setCompletedCount] = useState(0);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      const [classRes, activityRes] = await Promise.all([
+      const [classRes, activityRes, subRes] = await Promise.all([
         api.get("/classrooms/mine"),
-        api.get("/activities/")
+        api.get("/activities/"),
+        api.get("/submissions/")
       ]);
       setClassrooms(classRes);
+      
+      const completed = subRes.filter(s => s.status === 'submitted' || s.status === 'graded').length;
+      setCompletedCount(completed);
       
       const classMap = {};
       classRes.forEach(c => {
@@ -377,45 +257,62 @@ export default function StudentDashboard() {
               </section>
 
               <section
-                className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+                className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2"
                 aria-label="Student progress summary"
               >
-                {PREVIEW_STATS.map((stat, index) => (
                   <article
-                    key={stat.label}
                     className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
-                    style={{
-                      animation: `dashboardFadeUp 400ms ease ${
-                        index * 70
-                      }ms both`,
-                    }}
                   >
                     <p
-                      className="mb-1 text-3xl font-bold"
-                      style={{ color: stat.color }}
+                      className="mb-1 text-3xl font-bold text-blue-500"
                     >
-                      {stat.value}
+                      {activeActivities.length}
                     </p>
 
                     <h2 className="text-xs font-medium text-white/70">
-                      {stat.label}
+                      Active activities
                     </h2>
 
                     <p className="mb-3 text-[10px] text-white/30">
-                      {stat.description}
+                      Laboratory and homework tasks
                     </p>
 
                     <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
                       <div
-                        className="h-full rounded-full"
+                        className="h-full rounded-full bg-blue-500"
                         style={{
-                          width: `${stat.progress}%`,
-                          backgroundColor: stat.color,
+                          width: `${activities.length > 0 ? (activeActivities.length / activities.length) * 100 : 0}%`,
                         }}
                       />
                     </div>
                   </article>
-                ))}
+                  
+                  <article
+                    className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                  >
+                    <p
+                      className="mb-1 text-3xl font-bold text-green-500"
+                    >
+                      {completedCount} / {activities.length}
+                    </p>
+
+                    <h2 className="text-xs font-medium text-white/70">
+                      Activities completed
+                    </h2>
+
+                    <p className="mb-3 text-[10px] text-white/30">
+                      Based on submitted activities
+                    </p>
+
+                    <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                      <div
+                        className="h-full rounded-full bg-green-500"
+                        style={{
+                          width: `${activities.length > 0 ? (completedCount / activities.length) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </article>
               </section>
 
               <section>
@@ -545,7 +442,7 @@ export default function StudentDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => navigate("/analytics")}
+                  onClick={() => navigate("/student/analytics")}
                   className="text-[10px] text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
                 >
                   Details
@@ -582,7 +479,7 @@ export default function StudentDashboard() {
 
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-2xl font-bold">
-                      72%
+                      {activities.length > 0 ? Math.round((completedCount / activities.length) * 100) : 0}%
                     </span>
 
                     <span className="text-[10px] text-white/30">
@@ -609,34 +506,11 @@ export default function StudentDashboard() {
                 Recent Learning Activity
               </h2>
 
-              <ul className="space-y-4">
-                {PREVIEW_ACTIVITY_LOG.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-start gap-2.5"
-                  >
-                    <span
-                      className="mt-1 h-2 w-2 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: getActivityColor(
-                          item.type,
-                        ),
-                      }}
-                      aria-hidden="true"
-                    />
-
-                    <div>
-                      <p className="text-[11px] leading-snug text-white/60">
-                        {item.message}
-                      </p>
-
-                      <p className="mt-0.5 text-[10px] text-white/25">
-                        {item.time}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className="flex items-center justify-center py-6 text-center">
+                <p className="text-xs text-white/30">
+                  No recent activity logged yet.
+                </p>
+              </div>
             </section>
           </aside>
         </div>

@@ -24,64 +24,32 @@ function ChevronRightIcon(props) {
   );
 }
 import api from "../../services/api";
+import { useAuth } from "../../features/auth/AuthContext";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
 import JoinClassModal from "../../components/modals/JoinClassModal";
 
-const DEFAULT_USER = {
-  name: "Student",
-  initials: "ST",
-  courseCode: "No active class",
-  courseName: "",
-};
 
-function getStoredUser() {
-  try {
-    const storedUser = sessionStorage.getItem("user");
-
-    if (!storedUser) {
-      return DEFAULT_USER;
-    }
-
-    const user = JSON.parse(storedUser);
-    const name =
-      user.name ||
-      user.fullName ||
-      user.full_name ||
-      DEFAULT_USER.name;
-
-    const generatedInitials = name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("");
-
-    return {
-      name,
-      initials:
-        user.initials ||
-        generatedInitials ||
-        DEFAULT_USER.initials,
-      courseCode:
-        user.courseCode ||
-        user.course_code ||
-        user.course ||
-        DEFAULT_USER.courseCode,
-      courseName:
-        user.courseName ||
-        user.course_name ||
-        DEFAULT_USER.courseName,
-    };
-  } catch {
-    return DEFAULT_USER;
-  }
-}
 
 export default function MyClasses() {
   const navigate = useNavigate();
-  const user = getStoredUser();
+  const { user: authUser } = useAuth();
+  
+  const userName = authUser?.name || "Student";
+  const userInitials = userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "ST";
+    
+  const user = {
+    name: userName,
+    initials: userInitials,
+    courseCode: "No active class",
+    courseName: "",
+  };
   
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [classrooms, setClassrooms] = useState([]);
@@ -108,35 +76,6 @@ export default function MyClasses() {
       setClassrooms(classRes);
     } catch (err) {
       console.error("Failed to load classes data", err);
-      // Fallback for preview
-      if (classrooms.length === 0) {
-        setClassrooms([
-          {
-            classroom: {
-              class_id: "preview-1",
-              subject_code: "CCS101",
-              subject_name: "Computer Programming 1",
-              instructor_name: "Dr. Maria Santos",
-              section: "BSCS-1A",
-              join_code: "XYZ123"
-            },
-            role: "student",
-            joined_at: new Date().toISOString()
-          },
-          {
-            classroom: {
-              class_id: "preview-2",
-              subject_code: "CCS102",
-              subject_name: "Computer Programming 2",
-              instructor_name: "Prof. Juan Dela Cruz",
-              section: "BSCS-1B",
-              join_code: "ABC987"
-            },
-            role: "student",
-            joined_at: new Date().toISOString()
-          }
-        ]);
-      }
     } finally {
       setIsLoading(false);
     }

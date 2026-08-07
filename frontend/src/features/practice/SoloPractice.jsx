@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { useAuth } from "../../features/auth/AuthContext";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
@@ -17,35 +18,24 @@ function CodeIcon(props) {
   );
 }
 
-const DEFAULT_USER = {
-  name: "Student",
-  initials: "ST",
-  courseCode: "No active class",
-  courseName: "",
-};
-
-function getStoredUser() {
-  try {
-    const storedUser = sessionStorage.getItem("user");
-    if (!storedUser) return DEFAULT_USER;
-    
-    const user = JSON.parse(storedUser);
-    const name = user.name || user.fullName || "Student";
-    
-    return {
-      name,
-      initials: name.substring(0, 2).toUpperCase(),
-      courseCode: "No active class",
-      courseName: "",
-    };
-  } catch {
-    return DEFAULT_USER;
-  }
-}
-
 export default function SoloPractice() {
   const navigate = useNavigate();
-  const [user] = useState(getStoredUser);
+  const { user: authUser } = useAuth();
+  
+  const userName = authUser?.name || "Student";
+  const userInitials = userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "ST";
+    
+  const user = {
+    name: userName,
+    initials: userInitials,
+    courseCode: "No active class",
+    courseName: "",
+  };
   const [practiceActivities, setPracticeActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -75,8 +65,8 @@ export default function SoloPractice() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col animate-page-fade">
-        <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 sm:py-12">
-          <div className="mx-auto max-w-5xl">
+        <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+          <div className="mx-auto max-w-6xl">
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3">

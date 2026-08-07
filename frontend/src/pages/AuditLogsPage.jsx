@@ -24,40 +24,7 @@ export default function AuditLogsPage({ role: propRole }) {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState("");
 
-  const mockAuditLogs = [
-    {
-      id: "audit-1",
-      action: "USER_LOGIN_SUCCESS",
-      resource: "auth/login",
-      ip_address: "192.168.1.45",
-      timestamp: "2026-01-15T14:10:02Z",
-      status: "SUCCESS",
-    },
-    {
-      id: "audit-2",
-      action: isInstructor ? "CLASSROOM_INVITE_REGENERATED" : "SUBMISSION_CREATED",
-      resource: isInstructor ? "classrooms/CCS101" : "submissions/fibonacci.py",
-      ip_address: "192.168.1.45",
-      timestamp: "2026-01-15T14:47:00Z",
-      status: "SUCCESS",
-    },
-    {
-      id: "audit-3",
-      action: isInstructor ? "ENROLLMENT_STATUS_UPDATED" : "WORKSPACE_SAVED",
-      resource: isInstructor ? "enrollments/enr-101" : "workspace/draft",
-      ip_address: "10.0.4.12",
-      timestamp: "2026-01-14T09:20:11Z",
-      status: "SUCCESS",
-    },
-    {
-      id: "audit-4",
-      action: "AUTHENTICATION_FAILED",
-      resource: "auth/login",
-      ip_address: "203.0.113.88",
-      timestamp: "2026-01-13T22:05:44Z",
-      status: "FAILURE",
-    },
-  ];
+
 
   const fetchAuditLogs = async (currentPage = 1) => {
     setLoading(true);
@@ -68,10 +35,10 @@ export default function AuditLogsPage({ role: propRole }) {
         setLogs(response.items);
         setTotalPages(response.total_pages || 1);
       } else {
-        setLogs(mockAuditLogs);
+        setLogs([]);
       }
     } catch (err) {
-      setLogs(mockAuditLogs);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
