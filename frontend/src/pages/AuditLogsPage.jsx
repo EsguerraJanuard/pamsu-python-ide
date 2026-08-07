@@ -72,7 +72,7 @@ export default function AuditLogsPage({ role: propRole }) {
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
                     <ShieldIcon className="h-6 w-6 text-emerald-400" />
-                    {isInstructor ? "Security & System Audit Logs" : "Student Audit & History Trail"}
+                    {isInstructor ? "System Audit Logs" : "Audit History"}
                   </h1>
                   <p className="mt-1 text-sm text-white/40">
                     Review system events and security logs.

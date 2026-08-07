@@ -392,7 +392,7 @@ export default function Submissions() {
                   <div>
                     <h1 className="text-2xl font-bold flex items-center gap-3">
                       <ArchiveIcon className="h-6 w-6 text-green-500" />
-                      My Submissions
+                      Submissions
                     </h1>
                     <p className="mt-1 text-sm text-white/40">
                       {submissions.length} submitted{" "}

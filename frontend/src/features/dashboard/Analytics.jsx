@@ -91,7 +91,7 @@ export default function Analytics() {
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
                   <LineChartIcon className="h-6 w-6 text-blue-500" />
-                  My Learning Progress
+                  My Analytics
                 </h1>
                 <p className="mt-1 text-sm text-white/40">
                   Review your activity completion, structural indicators,

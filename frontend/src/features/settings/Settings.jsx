@@ -394,7 +394,7 @@ export default function Settings() {
 
                   <SettingsIcon className="h-6 w-6 text-slate-400" />
 
-                  Account Settings
+                  Settings
                 </h1>
                 <p className="mt-1 text-sm text-white/40">
                   Manage your profile and account security.
