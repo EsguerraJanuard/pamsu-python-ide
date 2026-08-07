@@ -16,6 +16,13 @@ const RoleRoute = ({ allowedRole }) => {
   return role === allowedRole ? <Outlet /> : <Navigate to="/unauthorized" replace />;
 };
 
+// Redirects already-authenticated users away from login/register
+const GuestRoute = () => {
+  const { isAuthenticated, role } = useAuth();
+  if (!isAuthenticated) return <Outlet />;
+  return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
+};
+
 // Shared Layouts & Error Pages
 import InstructorLayout from './components/layout/InstructorLayout';
 import Unauthorized from './pages/Unauthorized';
@@ -62,10 +69,14 @@ export const App = () => {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Authentication Routes */}
+          {/* Root redirect */}
           <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+
+          {/* Public Authentication Routes — redirect to dashboard if already logged in */}
+          <Route element={<GuestRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Route>
           <Route path="/unauthorized" element={<Unauthorized />} />
 
            {/* Protected Route Tree - Requires Valid JWT/Session */}

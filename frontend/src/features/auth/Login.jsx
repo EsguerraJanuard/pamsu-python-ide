@@ -11,7 +11,7 @@
  * Returns: { access_token, token_type, expires_in, user: { user_id, name, school_id, email, role, email_verified } }
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { api, ApiError } from "../../services/api";
@@ -73,6 +73,17 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [capsLock, setCapsLock] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => setCapsLock(e.getModifierState("CapsLock"));
+    window.addEventListener("keydown", handler);
+    window.addEventListener("keyup", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("keyup", handler);
+    };
+  }, []);
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -162,14 +173,14 @@ export default function Login() {
         style={{ animation: "loginFadeLeft 700ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
         aria-label="Platform introduction"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 select-none cursor-default">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
             &gt;_
           </div>
           <span className="font-semibold tracking-wide text-white">PAMSU Python IDE</span>
         </div>
 
-        <div className="max-w-md">
+        <div className="max-w-md select-none cursor-default">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-[#3b82f6]">
             Python Learning Platform
           </p>
@@ -197,7 +208,7 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className="font-mono text-xs text-white/25">
+        <p className="font-mono text-xs text-white/25 select-none cursor-default">
           Python 3 · FastAPI · Isolated execution
         </p>
       </section>
@@ -208,7 +219,7 @@ export default function Login() {
           className="login-animated w-full max-w-[380px]"
           style={{ animation: "loginFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
         >
-          <div className="mb-7 text-center">
+          <div className="mb-7 text-center select-none cursor-default">
             <h2 className="text-lg font-semibold text-white">
               Sign in to your workspace
             </h2>
@@ -233,12 +244,15 @@ export default function Login() {
             <div>
               <label
                 htmlFor="school-email"
-                className="mb-1.5 block text-xs font-medium text-white/60"
+                className="mb-1.5 block text-xs font-medium text-white/60 select-none cursor-default"
               >
                 School email
               </label>
-              <div className="flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#1a1d27] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60">
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-white/30" aria-hidden="true">
+              <div
+                className="auth-input-wrap flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#1a1d27] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60"
+                onClick={(e) => e.currentTarget.querySelector('input').focus()}
+              >
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-white/30 pointer-events-none" aria-hidden="true">
                   <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                 </svg>
                 <input
@@ -258,14 +272,28 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-xs font-medium text-white/60"
+              <div className="mb-1.5 flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="text-xs font-medium text-white/60 select-none cursor-default"
+                >
+                  Password
+                </label>
+                {capsLock && (
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 select-none">
+                    <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
+                      <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
+                      <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
+                    </svg>
+                    Caps Lock is on
+                  </span>
+                )}
+              </div>
+              <div
+                className="auth-input-wrap flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#1a1d27] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60"
+                onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
-                Password
-              </label>
-              <div className="flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#1a1d27] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30 pointer-events-none" aria-hidden="true">
                   <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                   <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
@@ -284,7 +312,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="shrink-0 text-white/30 transition-colors hover:text-white/70"
+                  className="shrink-0 cursor-pointer text-white/30 transition-colors hover:text-white/70"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
@@ -308,7 +336,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-2.5 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              className="w-full rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-2.5 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 select-none"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -323,7 +351,7 @@ export default function Login() {
               )}
             </button>
 
-            <p className="text-center text-xs text-white/40">
+            <p className="text-center text-xs text-white/40 select-none cursor-default">
               Need a verified university account?{" "}
               <button
                 type="button"
