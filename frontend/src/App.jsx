@@ -43,6 +43,8 @@ import InstructorReviewQueue from './features/instructor/InstructorReviewQueue';
 import InstructorGradebook from './features/instructor/InstructorGradebook';
 import GradingWorkspace from './features/instructor/GradingWorkspace';
 import LiveMonitoring from './features/instructor/LiveMonitoring';
+import MyClasses from './features/classes/MyClasses';
+import ClassDetails from './features/classes/ClassDetails';
 
 const PlaceholderView = ({ title, description }) => (
   <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-center">
@@ -71,8 +73,8 @@ export const App = () => {
             {/* Student Role Tree */}
             <Route element={<RoleRoute allowedRole="student" />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
-              <Route path="/student/classes" element={<PlaceholderView title="My Classes" description="Join classrooms using 6-character instructor codes." />} />
-              <Route path="/student/classes/:id" element={<PlaceholderView title="Classroom Details" description="View active laboratory activities and announcements." />} />
+              <Route path="/student/classes" element={<MyClasses />} />
+              <Route path="/student/classes/:id" element={<ClassDetails />} />
               <Route path="/student/assignments" element={<Assignments />} />
               <Route path="/student/workspace" element={<Workspace />} />
               <Route path="/student/practice" element={<PlaceholderView title="Solo Python Practice" description="Independent coding sandbox without graded AST monitoring." />} />
