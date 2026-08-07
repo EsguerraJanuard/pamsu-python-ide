@@ -99,8 +99,8 @@ export default function MyClasses() {
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-            <div className="mx-auto max-w-6xl">
+          <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+            <div className="w-full">
               
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
                 <div>

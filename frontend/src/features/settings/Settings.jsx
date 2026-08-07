@@ -322,67 +322,37 @@ export default function Settings() {
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
 
-        <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-
+        <main className="settings-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">
           <style>
-
             {`
-
               @keyframes settingsFadeUp {
-
                 from {
-
                   opacity: 0;
-
                   transform: translateY(10px);
-
                 }
-
-
 
                 to {
-
                   opacity: 1;
-
                   transform: translateY(0);
-
                 }
-
               }
-
-
 
               .settings-page {
-
                 animation:
-
                   settingsFadeUp 450ms
-
                   cubic-bezier(0.25, 0.46, 0.45, 0.94)
-
                   both;
-
               }
-
-
 
               @media (prefers-reduced-motion: reduce) {
-
                 .settings-page {
-
                   animation: none;
-
                 }
-
               }
-
             `}
-
           </style>
 
-
-
-          <div className="mx-auto max-w-6xl">
+          <div className="w-full">
 
 
 

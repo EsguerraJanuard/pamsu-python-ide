@@ -60,13 +60,13 @@ export default function SoloPractice() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
-      <div className="hidden lg:flex">
+      <div className="hidden lg:flex h-full">
         <Sidebar user={user} activeItem="Solo Practice" />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col animate-page-fade">
-        <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-          <div className="mx-auto max-w-6xl">
+        <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+          <div className="w-full">
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
@@ -131,14 +131,11 @@ export default function SoloPractice() {
             )}
           </div>
         </main>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50">
         <Statusbar
-          status="online"
-          connectionQuality="excellent"
-          env="Python 3"
-          role="Student"
+          sessionStatus="unknown"
+          studentName={userName}
+          pythonVersion="Python 3"
         />
       </div>
     </div>
