@@ -354,7 +354,7 @@ export default function Submissions() {
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+        <main className="submissions-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">
           <style>
             {`
               @keyframes submissionsFadeUp {
@@ -385,7 +385,7 @@ export default function Submissions() {
             `}
           </style>
 
-          <div className="mx-auto max-w-6xl">
+          <div className="w-full">
             {!id && (
               <>
                 <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">

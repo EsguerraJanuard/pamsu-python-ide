@@ -158,9 +158,33 @@ export default function Workspace() {
     "The editor is ready. Code execution will appear here after the sandbox API is connected.",
   );
   const [activePanel, setActivePanel] = useState("output");
-  const [executionStatus, setExecutionStatus] =
-    useState("idle");
+  const [executionStatus, setExecutionStatus] = useState("idle");
   const [notice, setNotice] = useState("");
+  const [visibleNotice, setVisibleNotice] = useState("");
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  // Silky-smooth auto-dismiss fade animation for notice message
+  useEffect(() => {
+    if (!notice) return;
+
+    setVisibleNotice(notice);
+    setIsFadingOut(false);
+
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true);
+    }, 2500);
+
+    const clearTimer = setTimeout(() => {
+      setVisibleNotice("");
+      setNotice("");
+      setIsFadingOut(false);
+    }, 3000);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(clearTimer);
+    };
+  }, [notice]);
   const [internalClipboard, setInternalClipboard] =
     useState("");
   const [blockedPasteCount, setBlockedPasteCount] =
@@ -176,6 +200,34 @@ export default function Workspace() {
   );
   const [showReviewPanel, setShowReviewPanel] =
     useState(false);
+
+  // Resizable Problem Panel State
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem("pamsu_problem_panel_width");
+    return saved ? parseInt(saved, 10) : 320;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  const startResizing = (mouseDownEvent) => {
+    mouseDownEvent.preventDefault();
+    setIsResizing(true);
+
+    const handleMouseMove = (moveEvent) => {
+      const sidebarWidth = document.querySelector("aside")?.getBoundingClientRect().width || 64;
+      const newWidth = Math.max(200, Math.min(650, moveEvent.clientX - sidebarWidth));
+      setPanelWidth(newWidth);
+      localStorage.setItem("pamsu_problem_panel_width", String(newWidth));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
 
   const lineCount = code.split("\n").length;
   const status =
@@ -346,14 +398,9 @@ export default function Workspace() {
   };
 
   const recordBlockedPaste = () => {
-    setBlockedPasteCount(
-      (currentCount) => currentCount + 1,
-    );
+    setBlockedPasteCount((currentCount) => currentCount + 1);
     setLastBlockedPasteAt(formatEventTime());
-    setShowBehaviorNotice(true);
-    setNotice(
-      "External clipboard paste was blocked. Use the internal IDE buffer.",
-    );
+    setNotice("External clipboard paste was blocked. Use the internal IDE copy/paste controls.");
   };
 
   const handleNativeCopy = (event) => {
@@ -561,95 +608,97 @@ export default function Workspace() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
-      <div className="hidden lg:flex">
+      <div className="hidden lg:flex h-full">
         <Sidebar />
       </div>
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-3 py-2 sm:px-4">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleProblemPanel}
-              aria-pressed={showProblemPanel}
-              className={`rounded-md border px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
-                showProblemPanel
-                  ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                  : "border-white/[0.08] text-white/40 hover:text-white/70"
-              }`}
-            >
-              Problem
-            </button>
+        <header className="flex min-h-13 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#0f1117] px-5 sm:px-6 py-2 select-none">
+          {/* Left: Section Segment Control & Activity Info */}
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex items-center gap-1 rounded-lg bg-white/[0.04] p-1 border border-white/[0.06]">
+              <button
+                type="button"
+                onClick={toggleProblemPanel}
+                aria-pressed={showProblemPanel}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                  showProblemPanel
+                    ? "bg-[#3b82f6] text-white shadow-sm"
+                    : "text-white/50 hover:bg-white/[0.06] hover:text-white"
+                }`}
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M2 3h12M2 7h12M2 11h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                Problem
+              </button>
 
-            <button
-              type="button"
-              onClick={toggleReviewPanel}
-              aria-pressed={showReviewPanel}
-              className={`rounded-md border px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
-                showReviewPanel
-                  ? "border-violet-500/30 bg-violet-500/10 text-violet-400"
-                  : "border-white/[0.08] text-white/40 hover:text-white/70"
-              }`}
-            >
-              Session Review
-            </button>
-
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-[9px] uppercase tracking-widest text-white/30">
-                {activity.courseCode} ·{" "}
-                {activity.activityType}
-              </p>
-
-              <h1 className="truncate text-xs font-semibold">
+              <button
+                type="button"
+                onClick={toggleReviewPanel}
+                aria-pressed={showReviewPanel}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                  showReviewPanel
+                    ? "bg-violet-600 text-white shadow-sm"
+                    : "text-white/50 hover:bg-white/[0.06] hover:text-white"
+                }`}
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                Review
+              </button>
+            </div>
+            <div className="hidden min-w-0 sm:block border-l border-white/[0.08] pl-3">
+              <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-blue-400 mr-2">
+                {activity.courseCode}
+              </span>
+              <span className="truncate text-xs font-bold text-white tracking-wide">
                 {activity.title}
-              </h1>
+              </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div
-              className={`hidden items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5 text-[10px] sm:flex ${status.textClass}`}
-              role="status"
-              aria-live="polite"
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`}
-                aria-hidden="true"
-              />
-
-              {status.label}
+          {/* Right: Execution Status & Action Buttons */}
+          <div className="flex items-center gap-2.5">
+            {/* Status Indicator */}
+            <div className="hidden sm:flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-xs font-medium">
+              <span className={`h-2 w-2 rounded-full ${status.dotClass}`} />
+              <span className={status.textClass}>{status.label}</span>
             </div>
 
+            {/* Check Code Button */}
             <button
               type="button"
               onClick={handleCheck}
-              className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-blue-400 transition-colors hover:bg-blue-500/20 sm:px-3 sm:text-xs"
+              disabled={executionStatus === "running"}
+              className="flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-white/[0.08] hover:border-white/[0.2] active:scale-95 disabled:opacity-50 cursor-pointer"
             >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               Check
             </button>
 
+            {/* Run Code Button */}
             <button
               type="button"
               onClick={handleRun}
-              className="flex items-center gap-1.5 rounded-md border border-green-500/30 bg-green-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-green-400 transition-colors hover:bg-green-500/20 sm:px-3 sm:text-xs"
+              disabled={executionStatus === "running"}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M5 3l14 9-14 9V3z" />
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M4 2.5v11l9-5.5-9-5.5z" />
               </svg>
-
               Run
             </button>
 
+            {/* Submit Button */}
             <button
               type="button"
               onClick={handleSubmit}
-              className="rounded-md bg-violet-500 px-2.5 py-1.5 text-[10px] font-bold text-[#0f1117] transition-colors hover:bg-violet-400 sm:px-3 sm:text-xs"
+              disabled={executionStatus === "running"}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               Submit
             </button>
@@ -658,7 +707,7 @@ export default function Workspace() {
 
         {showBehaviorNotice && (
           <div
-            className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/20 bg-amber-500/[0.07] px-4 py-2 text-[10px] text-amber-300"
+            className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/20 bg-amber-500/[0.07] px-4 py-2 text-[10px] text-amber-300 select-none"
             role="status"
           >
             <span className="truncate">
@@ -672,29 +721,22 @@ export default function Workspace() {
             <button
               type="button"
               onClick={() => setShowBehaviorNotice(false)}
-              className="shrink-0 text-amber-300 hover:text-white"
+              className="shrink-0 font-semibold text-amber-300 hover:text-white transition-colors cursor-pointer"
             >
               Dismiss
             </button>
           </div>
         )}
 
-        {notice && (
+        {visibleNotice && (
           <div
-            className="flex shrink-0 items-center justify-between gap-3 border-b border-blue-500/10 bg-blue-500/[0.04] px-4 py-2 text-[10px] text-blue-300"
+            className={`flex shrink-0 items-center justify-between gap-3 border-b border-blue-500/20 bg-blue-500/[0.06] px-4 py-1.5 text-xs text-blue-300 select-none transition-all duration-500 ease-out ${
+              isFadingOut ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
+            }`}
             role="status"
             aria-live="polite"
           >
-            <span className="truncate">{notice}</span>
-
-            <button
-              type="button"
-              onClick={() => setNotice("")}
-              className="shrink-0 text-blue-300/60 hover:text-blue-200"
-              aria-label="Dismiss notice"
-            >
-              ×
-            </button>
+            <span className="truncate text-[11px] font-medium">{visibleNotice}</span>
           </div>
         )}
 
@@ -709,17 +751,18 @@ export default function Workspace() {
 
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside
-            className={`fixed inset-y-0 left-0 z-50 w-[88vw] max-w-[300px] flex-col overflow-hidden border-r border-white/[0.08] bg-[#0f1117] xl:static xl:z-auto xl:w-[240px] xl:max-w-none ${
+            style={{ width: showProblemPanel ? `${panelWidth}px` : "0px" }}
+            className={`fixed inset-y-0 left-0 z-50 flex-col overflow-hidden border-r border-white/[0.08] bg-[#0f1117] xl:static xl:z-auto transition-[width] duration-75 ${
               showProblemPanel ? "flex" : "hidden"
             }`}
           >
             <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] p-4">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                  Problem
+                  Problem Statement
                 </span>
 
-                <h2 className="mt-2 text-sm font-semibold">
+                <h2 className="mt-1 text-sm font-bold text-white tracking-tight">
                   {activity.title}
                 </h2>
               </div>
@@ -734,111 +777,146 @@ export default function Workspace() {
               </button>
             </div>
 
-            <div className="flex-1 space-y-6 overflow-y-auto p-4">
-              <span className="inline-block rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[9px] text-amber-400">
-                {activity.dueLabel}
-              </span>
+            <div className="flex-1 space-y-5 overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center justify-between">
+                <span className="inline-block rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
+                  {activity.dueLabel}
+                </span>
+                <span className="rounded bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 text-[10px] font-mono text-white/50">
+                  Python 3
+                </span>
+              </div>
 
-              <section>
-                <h3 className="mb-2 text-xs font-semibold text-white/70">
+              <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                <h3 className="mb-1.5 text-xs font-bold text-white/80">
                   Instructions
                 </h3>
 
-                <p className="text-[11px] leading-relaxed text-white/50">
+                <p className="text-xs leading-relaxed text-white/60">
                   {activity.description}
                 </p>
               </section>
 
-              <section>
-                <h3 className="mb-3 text-xs font-semibold text-white/70">
-                  Requirements
+              <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                <h3 className="mb-2 text-xs font-bold text-white/80">
+                  Requirements Checklist
                 </h3>
 
                 <ul className="space-y-2">
-                  {activity.requirements.map(
-                    (requirement) => (
-                      <li
-                        key={requirement}
-                        className="flex items-start gap-2 text-[11px] text-white/50"
-                      >
-                        <span
-                          className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"
-                          aria-hidden="true"
-                        />
-
-                        {requirement}
-                      </li>
-                    ),
-                  )}
+                  {activity.requirements.map((requirement) => (
+                    <li
+                      key={requirement}
+                      className="flex items-center gap-2 text-xs text-white/70 font-medium"
+                    >
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-blue-400 border border-blue-500/20">
+                        ✓
+                      </span>
+                      {requirement}
+                    </li>
+                  ))}
                 </ul>
               </section>
 
-              <section>
-                <h3 className="mb-2 text-xs font-semibold text-white/70">
-                  Expected output
+              <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                <h3 className="mb-1.5 text-xs font-bold text-white/80">
+                  Expected Output
                 </h3>
 
-                <pre className="overflow-x-auto rounded-lg border border-white/[0.08] bg-[#1a1d27] p-3 font-mono text-[10px] text-green-400">
+                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-[#161b26] p-2.5 font-mono text-[11px] text-emerald-400">
                   {activity.expectedOutput}
                 </pre>
               </section>
 
-              <section className="rounded-lg border border-blue-500/15 bg-blue-500/[0.05] p-3">
-                <h3 className="text-[11px] font-semibold text-blue-300">
-                  Paste policy
+              <section className="rounded-lg border border-blue-500/15 bg-blue-500/[0.04] p-3">
+                <h3 className="text-xs font-bold text-blue-300">
+                  Clipboard Policy
                 </h3>
 
-                <p className="mt-1 text-[10px] leading-relaxed text-white/40">
-                  Native clipboard paste is blocked. Use the internal
-                  IDE copy, cut, and paste controls.
+                <p className="mt-1 text-[11px] leading-relaxed text-white/50">
+                  Native paste is restricted for academic integrity. Use internal IDE copy/paste controls.
                 </p>
               </section>
             </div>
           </aside>
 
+          {/* Draggable Resizer Handle Bar */}
+          {showProblemPanel && (
+            <div
+              onMouseDown={startResizing}
+              title="Drag to resize Problem Panel"
+              className={`group relative z-30 hidden w-1.5 shrink-0 cursor-col-resize select-none bg-transparent hover:bg-blue-500/40 active:bg-blue-500 transition-colors xl:flex items-center justify-center ${
+                isResizing ? "bg-blue-500" : ""
+              }`}
+            >
+              <div className="h-8 w-1 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
+
           <main className="flex min-w-0 flex-1 flex-col bg-[#0f1117]">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#11141c]">
-              <div className="flex items-center gap-2 border-t-2 border-t-amber-500 bg-[#1a1d27] px-4 py-2 text-xs">
-                <span className="text-amber-400">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#11141c] px-3 py-1">
+              <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-[#1a1d27] px-3 py-1.5 text-xs font-semibold rounded-t-md">
+                <span className="text-blue-400">
                   {activity.fileName}
                 </span>
 
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                  className="h-1.5 w-1.5 rounded-full bg-blue-400"
                   title="Local draft"
                 />
               </div>
 
-              <div className="flex items-center gap-0.5 overflow-x-auto px-2">
+              <div className="flex items-center gap-1.5 px-1">
                 <button
                   type="button"
                   onClick={copySelectionToInternalBuffer}
-                  className="rounded px-2 py-1 text-[9px] text-white/40 hover:bg-white/[0.05] hover:text-white/80"
+                  className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] font-medium text-white/50 transition-all hover:bg-white/[0.06] hover:text-white active:scale-95 cursor-pointer"
+                  title="Copy selection"
                 >
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <rect x="5" y="5" width="8" height="9" rx="1" stroke="currentColor" strokeWidth="1.3" />
+                    <path d="M3 11V3h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                  </svg>
                   Copy
                 </button>
 
                 <button
                   type="button"
                   onClick={cutSelectionToInternalBuffer}
-                  className="rounded px-2 py-1 text-[9px] text-white/40 hover:bg-white/[0.05] hover:text-white/80"
+                  className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] font-medium text-white/50 transition-all hover:bg-white/[0.06] hover:text-white active:scale-95 cursor-pointer"
+                  title="Cut selection"
                 >
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <circle cx="5" cy="5" r="2" stroke="currentColor" strokeWidth="1.3" />
+                    <circle cx="5" cy="11" r="2" stroke="currentColor" strokeWidth="1.3" />
+                    <path d="M7 6l6 6M7 10l6-6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                  </svg>
                   Cut
                 </button>
 
                 <button
                   type="button"
                   onClick={pasteFromInternalBuffer}
-                  className="whitespace-nowrap rounded px-2 py-1 text-[9px] text-white/40 hover:bg-white/[0.05] hover:text-white/80"
+                  className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] font-medium text-white/50 transition-all hover:bg-white/[0.06] hover:text-white active:scale-95 cursor-pointer"
+                  title="Paste selection"
                 >
-                  Paste internal
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <rect x="3" y="3" width="10" height="11" rx="1" stroke="currentColor" strokeWidth="1.3" />
+                    <path d="M6 1h4v2H6V1z" stroke="currentColor" strokeWidth="1.3" />
+                  </svg>
+                  Paste
                 </button>
+
+                <div className="h-3.5 w-px bg-white/[0.08] mx-0.5" />
 
                 <button
                   type="button"
                   onClick={handleResetDraft}
-                  className="rounded px-2 py-1 text-[9px] text-red-400/70 hover:bg-red-500/[0.08] hover:text-red-400"
+                  className="flex items-center gap-1 rounded-md border border-red-500/20 bg-red-500/5 px-2 py-1 text-[10px] font-medium text-red-400/80 transition-all hover:bg-red-500/15 hover:text-red-300 active:scale-95 cursor-pointer"
+                  title="Reset code draft"
                 >
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M2.5 8a5.5 5.5 0 111.6 3.9M2.5 4v4h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                   Reset
                 </button>
               </div>
