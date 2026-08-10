@@ -127,21 +127,29 @@ const ActivityEditor = () => {
                   <label htmlFor="class_id" className="block text-xs font-semibold text-white/70 mb-1.5">
                     Target Classroom <span className="text-emerald-400">*</span>
                   </label>
-                  <select
-                    id="class_id"
-                    name="class_id"
-                    value={formData.class_id}
-                    onChange={handleChange}
-                    required
-                    className="w-full bg-[#0f1117] border border-white/[0.08] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                  >
-                    <option value="" disabled>Select a classroom</option>
-                    {classrooms.map(cls => (
-                      <option key={cls.class_id} value={cls.class_id}>
-                        {cls.subject_code} - {cls.section}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative group">
+                    <select
+                      id="class_id"
+                      name="class_id"
+                      value={formData.class_id}
+                      onChange={handleChange}
+                      required
+                      className="w-full bg-black/40 border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner cursor-pointer"
+                    >
+                      <option value="" disabled className="bg-[#0f1117] text-white/50">Select a classroom</option>
+                      {classrooms.map(cls => (
+                        <option key={cls.class_id} value={cls.class_id} className="bg-[#0f1117] text-white">
+                          {cls.subject_code} - {cls.section}
+                        </option>
+                      ))}
+                    </select>
+                    {/* Custom Chevron */}
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/30 group-hover:text-emerald-400 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
