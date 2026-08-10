@@ -42,7 +42,7 @@ const ActivityEditor = () => {
       };
 
       const response = await api.post('/instructors/tasks/', payload);
-      navigate(`/instructor/activities/${response.data.id}`);
+      navigate(`/instructor/activities/${response.task_id}`);
     } catch (err) {
       console.error('Error creating activity:', err);
       setError('Failed to create activity. Please try again.');

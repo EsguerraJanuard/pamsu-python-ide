@@ -28,7 +28,7 @@ const ActivityDetails = () => {
   const fetchActivityDetails = async () => {
     try {
       const response = await api.get(`/instructors/tasks/${id}`);
-      setActivity(response.data);
+      setActivity(response);
     } catch (err) {
       setError('Failed to fetch activity details.');
       console.error(err);
@@ -38,7 +38,7 @@ const ActivityDetails = () => {
   const fetchTestCases = async () => {
     try {
       const response = await api.get(`/instructors/tasks/${id}/test-cases`);
-      setTestCases(response.data);
+      setTestCases(response);
     } catch (err) {
       console.error('Failed to fetch test cases', err);
     } finally {
@@ -218,20 +218,23 @@ const ActivityDetails = () => {
                       </div>
                     </div>
                   </div>
-                    <button 
-                      onClick={() => promptDeleteTestCase(tc.id)}
-                      className="text-red-400 hover:text-red-300 px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
-                    >
-                    Delete
-                  </button>
+                    {!activity.is_published && (
+                      <button 
+                        onClick={() => promptDeleteTestCase(tc.id)}
+                        className="text-red-400 hover:text-red-300 px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
+                      >
+                        Delete
+                      </button>
+                    )}
                 </div>
               ))
             )}
           </div>
 
           {/* Add Test Case Form */}
-          <form onSubmit={handleAddTestCase} className="mt-8 border-t border-white/[0.06] pt-6 space-y-4">
-            <h3 className="text-lg font-medium text-white">Add New Test Case</h3>
+          {!activity.is_published ? (
+            <form onSubmit={handleAddTestCase} className="mt-8 border-t border-white/[0.06] pt-6 space-y-4">
+              <h3 className="text-lg font-medium text-white">Add New Test Case</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Input Data</label>
@@ -268,9 +271,16 @@ const ActivityDetails = () => {
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
               >
                 Add Test Case
-              </button>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="mt-8 border-t border-white/[0.06] pt-6">
+              <p className="text-sm text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded p-4">
+                This activity is currently published. You must unpublish it before you can add or delete test cases.
+              </p>
             </div>
-          </form>
+          )}
         </div>
 
       </div>

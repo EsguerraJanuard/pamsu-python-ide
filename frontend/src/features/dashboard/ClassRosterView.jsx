@@ -240,10 +240,10 @@ export default function ClassRosterView() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => navigate(`/instructor/activity-editor/${task.task_id}`)}
+                      onClick={() => navigate(`/instructor/activities/${task.task_id}`)}
                       className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/[0.06] hover:text-emerald-400"
                     >
-                      Edit Activity
+                      {task.is_published ? "View Activity" : "Edit Activity"}
                     </button>
                   </div>
                 ))
