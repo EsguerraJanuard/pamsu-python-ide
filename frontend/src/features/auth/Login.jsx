@@ -162,32 +162,38 @@ export default function Login() {
           from { opacity: 0; transform: translateX(-8px); }
           to { opacity: 1; transform: translateX(0); }
         }
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
         @media (prefers-reduced-motion: reduce) {
           .login-animated { animation: none !important; }
         }
       `}</style>
 
+      {/* Premium Background Grid */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+
       {/* Left panel — platform info */}
       <section
-        className="login-animated hidden w-[52%] flex-col justify-between border-r border-white/[0.06] px-16 py-10 lg:flex"
+        className="login-animated hidden w-[52%] flex-col justify-between border-r border-white/[0.06] px-16 py-10 lg:flex relative z-10"
         style={{ animation: "loginFadeLeft 700ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
         aria-label="Platform introduction"
       >
         <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
             &gt;_
           </div>
           <span className="font-semibold tracking-wide text-white">PAMSU Python IDE</span>
         </div>
 
         <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-[#3b82f6]">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
             Python Learning Platform
           </p>
-          <h1 className="mb-1 text-4xl font-bold leading-tight text-white">
+          <h1 className="mb-1 text-4xl font-extrabold leading-tight text-white">
             Code with integrity.
           </h1>
-          <h2 className="mb-6 text-4xl font-bold leading-tight text-[#3b82f6]">
+          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
             Learn to think.
           </h2>
           <p className="mb-8 text-sm leading-relaxed text-white/50">
@@ -198,10 +204,10 @@ export default function Login() {
             {features.map((feature, index) => (
               <li
                 key={feature.label}
-                className="login-animated flex items-center gap-3 text-sm text-white/70"
+                className="login-animated flex items-center gap-3 text-sm text-white/70 transition-all duration-300 hover:translate-x-2 hover:text-white group"
                 style={{ animation: `featureFadeIn 450ms ease ${250 + index * 100}ms both` }}
               >
-                <span className="shrink-0">{feature.icon}</span>
+                <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{feature.icon}</span>
                 <span>{feature.label}</span>
               </li>
             ))}
@@ -214,16 +220,20 @@ export default function Login() {
       </section>
 
       {/* Right panel — login form */}
-      <section className="flex flex-1 items-center justify-center px-6 py-12">
+      <section className="relative flex flex-1 items-center justify-center px-6 py-12 z-10">
+        {/* Glow effects */}
+        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
+
         <div
-          className="login-animated w-full max-w-[380px]"
+          className="login-animated w-full max-w-[420px] rounded-2xl border border-white/[0.08] bg-[#1a1d27]/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
           style={{ animation: "loginFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
         >
-          <div className="mb-7 text-center select-none cursor-default">
-            <h2 className="text-lg font-semibold text-white">
+          <div className="mb-8 text-center select-none cursor-default">
+            <h2 className="text-xl font-bold text-white">
               Sign in to your workspace
             </h2>
-            <p className="mt-1 text-sm text-white/40">
+            <p className="mt-2 text-sm text-white/50">
               Use your verified university account
             </p>
           </div>
@@ -249,7 +259,7 @@ export default function Login() {
                 School email
               </label>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#1a1d27] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60"
+                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-black/40"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-white/30 pointer-events-none" aria-hidden="true">
@@ -265,7 +275,7 @@ export default function Login() {
                   required
                   disabled={isLoading}
                   className="flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20 disabled:opacity-50"
-                  style={{ caretColor: "#3b82f6" }}
+                  style={{ caretColor: "#10b981" }}
                 />
               </div>
             </div>
@@ -290,7 +300,7 @@ export default function Login() {
                 )}
               </div>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#1a1d27] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60"
+                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-black/40"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30 pointer-events-none" aria-hidden="true">
@@ -307,7 +317,7 @@ export default function Login() {
                   required
                   disabled={isLoading}
                   className="flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20 disabled:opacity-50"
-                  style={{ caretColor: "#3b82f6" }}
+                  style={{ caretColor: "#10b981" }}
                 />
                 <button
                   type="button"
@@ -336,19 +346,23 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-2.5 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 select-none"
+              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                  Signing in...
-                </span>
-              ) : (
-                "Sign in"
-              )}
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
+              
+              <span className="relative flex items-center justify-center gap-2">
+                {isLoading ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
+              </span>
             </button>
 
             <p className="text-center text-xs text-white/40 select-none cursor-default">
@@ -356,7 +370,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
+                className="font-medium text-emerald-400 transition-colors hover:text-emerald-300 hover:underline"
                 disabled={isLoading}
               >
                 Create one

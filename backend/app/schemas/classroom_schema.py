@@ -178,6 +178,10 @@ class ClassroomResponse(ClassroomBase):
         gt=0,
         description="Authenticated instructor who owns the classroom.",
     )
+    instructor_name: str | None = Field(
+        None,
+        description="Name of the instructor who owns the classroom.",
+    )
     class_code: str = Field(
         ...,
         min_length=6,
