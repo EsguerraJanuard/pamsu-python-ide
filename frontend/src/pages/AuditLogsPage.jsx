@@ -119,12 +119,26 @@ export default function AuditLogsPage({ role: propRole }) {
                 {/* Audit Data Table */}
                 <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] shadow-xl overflow-hidden">
                   {loading ? (
-                    <div className="py-12 text-center text-xs text-slate-500 animate-pulse">
-                      Fetching security audit trail...
+                    <div className="divide-y divide-white/[0.06] w-full text-left text-xs font-mono">
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="flex px-4 py-3.5 animate-pulse items-center">
+                          <div className="w-1/4 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/5 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/5 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/6 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/12 h-4 rounded bg-white/[0.06] ml-auto"></div>
+                        </div>
+                      ))}
                     </div>
                   ) : filteredLogs.length === 0 ? (
-                    <div className="py-12 text-center text-xs text-slate-400">
-                      No audit records matching criteria.
+                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center transition-all hover:bg-white/[0.02]">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-slate-400 ring-4 ring-slate-500/5">
+                        <ShieldIcon className="h-7 w-7" />
+                      </div>
+                      <h3 className="mb-2 text-lg font-semibold text-white/90">No Audit Records Found</h3>
+                      <p className="text-xs text-slate-400 max-w-sm">
+                        No security events or actions match your current search criteria.
+                      </p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">

@@ -95,7 +95,26 @@ const ActivityDetails = () => {
   };
 
   if (loading) {
-    return <div className="text-white/80 p-6">Loading activity details...</div>;
+    return (
+      <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+        <InstructorSidebar />
+        <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+            <div className="mx-auto max-w-6xl animate-pulse">
+              <div className="mb-4 h-6 w-24 rounded-md bg-white/[0.06]"></div>
+              <div className="mb-8 h-8 w-64 rounded-md bg-white/[0.06]"></div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="h-40 rounded-xl bg-white/[0.06]"></div>
+                  <div className="h-64 rounded-xl bg-white/[0.06]"></div>
+                </div>
+                <div className="h-80 rounded-xl bg-white/[0.06]"></div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
   }
 
   if (error || !activity) {

@@ -260,6 +260,23 @@ export default function StudentDashboard() {
                 className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2"
                 aria-label="Student progress summary"
               >
+                {isLoading ? (
+                  <>
+                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
+                      <div className="mb-1 h-8 w-16 bg-white/[0.06] rounded-md"></div>
+                      <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
+                      <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
+                      <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]"></div>
+                    </article>
+                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
+                      <div className="mb-1 h-8 w-24 bg-white/[0.06] rounded-md"></div>
+                      <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
+                      <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
+                      <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]"></div>
+                    </article>
+                  </>
+                ) : (
+                  <>
                   <article
                     className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
                   >
@@ -313,6 +330,8 @@ export default function StudentDashboard() {
                       />
                     </div>
                   </article>
+                  </>
+                )}
               </section>
 
               <section>
@@ -338,9 +357,26 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className="space-y-3">
+                  {isLoading && (
+                    [1, 2, 3].map(i => (
+                      <article key={i} className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse flex items-center justify-between">
+                        <div className="space-y-2">
+                          <div className="h-5 w-48 bg-white/[0.06] rounded-md"></div>
+                          <div className="h-4 w-32 bg-white/[0.06] rounded-md"></div>
+                        </div>
+                        <div className="h-8 w-20 bg-white/[0.06] rounded-md"></div>
+                      </article>
+                    ))
+                  )}
                   {activities.length === 0 && !isLoading && (
-                    <div className="text-sm text-white/40 text-center py-8">
-                      No activities found. Join a class to see your assignments.
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-white/[0.02]">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-blue-400">
+                        <LayoutDashboardIcon className="h-6 w-6" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white/90">No Activities Found</h3>
+                      <p className="mt-1 text-sm text-white/50">
+                        Join a class to see your assignments and practice modules.
+                      </p>
                     </div>
                   )}
                   {activities.map(

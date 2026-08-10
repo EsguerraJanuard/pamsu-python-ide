@@ -143,8 +143,8 @@ export default function ClassDetails() {
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-            <div className="mx-auto max-w-6xl">
+          <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+            <div className="w-full">
               
               <button 
                 onClick={() => navigate("/student/classes")}
@@ -156,17 +156,24 @@ export default function ClassDetails() {
 
               {isLoading ? (
                 <div className="animate-pulse">
-                  <div className="h-24 w-full bg-[#1a1d27] rounded-xl border border-white/[0.06] mb-8"></div>
+                  <div className="h-32 w-full bg-[#1a1d27] rounded-xl border border-white/[0.06] mb-8"></div>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 h-64 bg-[#1a1d27] rounded-xl border border-white/[0.06]"></div>
+                    <div className="lg:col-span-2 space-y-4">
+                      <div className="h-8 w-48 bg-white/[0.06] rounded-md mb-4"></div>
+                      <div className="h-20 w-full bg-[#1a1d27] rounded-xl border border-white/[0.06]"></div>
+                      <div className="h-20 w-full bg-[#1a1d27] rounded-xl border border-white/[0.06]"></div>
+                    </div>
                     <div className="h-64 bg-[#1a1d27] rounded-xl border border-white/[0.06]"></div>
                   </div>
                 </div>
               ) : !classroom ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] py-20 px-6 text-center">
-                  <h3 className="text-lg font-semibold text-white">Classroom Not Found</h3>
-                  <p className="mt-2 text-sm text-white/40 mb-6">
-                    We couldn't find the details for this classroom. You may not be enrolled.
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] py-24 px-6 text-center transition-all hover:bg-white/[0.02]">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4 ring-4 ring-red-500/5 text-red-400">
+                    <MegaphoneIcon className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white/90">Classroom Not Found</h3>
+                  <p className="mt-2 text-sm text-white/50 mb-6 max-w-md">
+                    We couldn't find the details for this classroom. You may not be enrolled or the class was deleted.
                   </p>
                 </div>
               ) : (

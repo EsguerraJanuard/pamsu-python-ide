@@ -54,8 +54,27 @@ const GradingWorkspace = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-[#0f1117] text-white">
-                Loading workspace...
+            <div className="flex h-screen overflow-hidden bg-[#0f1117]">
+                <div className="flex w-full flex-col lg:flex-row animate-pulse">
+                    <div className="flex flex-1 flex-col border-b border-white/[0.06] lg:border-b-0 lg:border-r">
+                        <div className="flex h-12 items-center border-b border-white/[0.06] bg-[#1a1d27] px-4">
+                            <div className="h-4 w-32 rounded bg-white/[0.06]"></div>
+                        </div>
+                        <div className="flex-1 bg-[#0f1117] p-4">
+                            <div className="h-full w-full rounded bg-white/[0.06]"></div>
+                        </div>
+                    </div>
+                    <div className="flex w-full flex-col bg-[#1a1d27] lg:w-[400px]">
+                        <div className="flex h-12 items-center border-b border-white/[0.06] px-6">
+                            <div className="h-4 w-24 rounded bg-white/[0.06]"></div>
+                        </div>
+                        <div className="flex-1 p-6 space-y-6">
+                            <div className="h-24 w-full rounded bg-white/[0.06]"></div>
+                            <div className="h-40 w-full rounded bg-white/[0.06]"></div>
+                            <div className="h-10 w-full rounded bg-white/[0.06]"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

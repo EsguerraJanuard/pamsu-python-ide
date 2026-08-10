@@ -66,9 +66,30 @@ const InstructorReviewQueue = () => {
 
       <div className="bg-[#1a1d27] border border-white/[0.06] rounded-lg overflow-hidden">
         {loading ? (
-          <div className="p-6 text-center text-white/60">Loading queue...</div>
+          <div className="divide-y divide-white/[0.06] w-full text-left text-xs font-mono">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex px-4 py-4 animate-pulse items-center">
+                <div className="w-1/4 h-3 rounded bg-white/[0.06] mr-4"></div>
+                <div className="w-1/4 h-3 rounded bg-white/[0.06] mr-4"></div>
+                <div className="w-1/6 h-3 rounded bg-white/[0.06] mr-4"></div>
+                <div className="w-1/12 h-3 rounded bg-white/[0.06] mr-4"></div>
+                <div className="w-1/6 h-3 rounded bg-white/[0.06] mr-4"></div>
+                <div className="w-1/12 h-6 rounded bg-white/[0.06] ml-auto"></div>
+              </div>
+            ))}
+          </div>
         ) : submissions.length === 0 ? (
-          <div className="p-6 text-center text-white/60">No pending submissions to review.</div>
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 ring-4 ring-emerald-500/5">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-white/90">All Caught Up!</h3>
+            <p className="text-sm text-slate-400 max-w-sm">
+              There are no pending submissions to review. You can check back later.
+            </p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

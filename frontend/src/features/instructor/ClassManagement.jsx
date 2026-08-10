@@ -120,23 +120,35 @@ export default function ClassManagement() {
               )}
 
               {loading ? (
-                <div className="flex justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5 flex flex-col animate-pulse">
+                      <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.06]"></div>
+                      <div className="mb-4 h-4 w-1/2 rounded-md bg-white/[0.06]"></div>
+                      <div className="mb-6 h-10 w-full rounded-md bg-white/[0.06]"></div>
+                      <div className="mt-auto flex justify-between">
+                        <div className="h-4 w-1/3 rounded-md bg-white/[0.06]"></div>
+                        <div className="h-4 w-1/4 rounded-md bg-white/[0.06]"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : classes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.06] bg-[#1a1d27] py-16 text-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                  <h3 className="text-lg font-medium text-white mb-2">No classrooms yet</h3>
-                  <p className="text-sm text-white/40 mb-6 max-w-md">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-white/[0.02]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-emerald-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white/90 mb-1">No Classrooms Yet</h3>
+                  <p className="text-sm text-white/50 mb-6 max-w-md">
                     You haven't created any classes. Create your first class to generate an enrollment code for your students.
                   </p>
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500"
+                    className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
                   >
-                    Create New Class
+                    + Create New Class
                   </button>
                 </div>
               ) : (

@@ -128,9 +128,28 @@ export default function NotificationsPage({ role: propRole }) {
                   
                   <div className="flex-1 overflow-y-auto">
                     {loading ? (
-                      <div className="p-8 text-center text-xs text-white/40 animate-pulse">Loading...</div>
+                      <div className="divide-y divide-white/[0.06]">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="p-4 flex items-start gap-3 animate-pulse">
+                            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-white/[0.06]"></div>
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 w-3/4 rounded-md bg-white/[0.06]"></div>
+                              <div className="h-3 w-full rounded-md bg-white/[0.06]"></div>
+                              <div className="h-3 w-5/6 rounded-md bg-white/[0.06]"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     ) : notifications.length === 0 ? (
-                      <div className="p-8 text-center text-xs text-white/40">No notifications.</div>
+                      <div className="flex flex-col items-center justify-center p-12 text-center">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.03] text-white/20">
+                          <BellIcon className="h-6 w-6" />
+                        </div>
+                        <h3 className="text-sm font-semibold text-white/70">No Notifications</h3>
+                        <p className="mt-1 text-xs text-white/40">
+                          You're all caught up.
+                        </p>
+                      </div>
                     ) : (
                       <div className="divide-y divide-white/[0.06]">
                         {notifications.map((notif) => {

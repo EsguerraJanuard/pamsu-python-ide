@@ -133,21 +133,23 @@ export default function MyClasses() {
                 {isLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-6 animate-pulse">
-                        <div className="h-4 w-24 bg-white/[0.06] rounded-md mb-2"></div>
-                        <div className="h-6 w-48 bg-white/[0.06] rounded-md mb-4"></div>
-                        <div className="h-3 w-32 bg-white/[0.06] rounded-md mb-8"></div>
-                        <div className="h-10 w-full bg-white/[0.06] rounded-lg mt-4"></div>
+                      <div key={i} className="flex flex-col rounded-xl border border-white/[0.06] bg-[#1a1d27] p-6 animate-pulse">
+                        <div className="mb-4 h-5 w-16 bg-white/[0.06] rounded-full"></div>
+                        <div className="mb-2 h-6 w-3/4 bg-white/[0.06] rounded-md"></div>
+                        <div className="mb-6 h-4 w-1/2 bg-white/[0.06] rounded-md"></div>
+                        <div className="mt-auto border-t border-white/[0.06] pt-4 flex gap-2">
+                          <div className="h-6 w-1/3 bg-white/[0.06] rounded-md"></div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : classrooms.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] py-20 px-6 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4">
-                      <BookOpenIcon className="h-8 w-8 text-blue-400" />
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.01] py-24 px-6 text-center transition-all hover:bg-white/[0.02]">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4 ring-4 ring-blue-500/5 text-blue-400">
+                      <BookOpenIcon className="h-8 w-8" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">No active classes</h3>
-                    <p className="mt-2 max-w-sm text-sm text-white/40 mb-6">
+                    <h3 className="text-xl font-semibold text-white/90">No Active Classes</h3>
+                    <p className="mt-2 max-w-md text-sm text-white/50 mb-6">
                       You haven't joined any classrooms yet. Use the 6-character code provided by your instructor to join one.
                     </p>
                     <button

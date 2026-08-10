@@ -112,9 +112,20 @@ export default function Analytics() {
             </section>
 
             {isLoading ? (
-              <div className="flex justify-center py-20">
-                 <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500"></div>
-              </div>
+              <section className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2">
+                <article className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
+                  <div className="mb-1 h-8 w-20 bg-white/[0.06] rounded-md"></div>
+                  <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
+                  <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
+                  <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]"></div>
+                </article>
+                <article className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
+                  <div className="mb-1 h-8 w-16 bg-white/[0.06] rounded-md"></div>
+                  <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
+                  <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
+                  <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]"></div>
+                </article>
+              </section>
             ) : (
             <section
               className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2"

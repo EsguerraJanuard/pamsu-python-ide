@@ -137,14 +137,16 @@ export default function InstructorGradebook() {
                     </thead>
                     <tbody className="divide-y divide-white/[0.06]">
                       {loading ? (
-                        <tr>
-                          <td colSpan="6" className="px-6 py-12 text-center text-white/40">
-                            <div className="flex justify-center mb-2">
-                              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                            Loading gradebook...
-                          </td>
-                        </tr>
+                        [1, 2, 3, 4, 5].map(i => (
+                          <tr key={i} className="animate-pulse">
+                            <td className="px-6 py-4"><div className="h-4 w-32 bg-white/[0.06] rounded-md"></div></td>
+                            <td className="px-6 py-4"><div className="h-4 w-24 bg-white/[0.06] rounded-md"></div></td>
+                            <td className="px-6 py-4"><div className="h-4 w-40 bg-white/[0.06] rounded-md"></div></td>
+                            <td className="px-6 py-4 text-center"><div className="h-4 w-8 mx-auto bg-white/[0.06] rounded-md"></div></td>
+                            <td className="px-6 py-4 text-center"><div className="h-6 w-20 mx-auto bg-white/[0.06] rounded-full"></div></td>
+                            <td className="px-6 py-4 text-right"><div className="h-8 w-16 ml-auto bg-white/[0.06] rounded-md"></div></td>
+                          </tr>
+                        ))
                       ) : error ? (
                         <tr>
                           <td colSpan="6" className="px-6 py-12 text-center text-red-400 bg-red-500/5">
@@ -153,8 +155,18 @@ export default function InstructorGradebook() {
                         </tr>
                       ) : grades.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="px-6 py-12 text-center text-white/40">
-                            No grades found for the selected filters.
+                          <td colSpan="6" className="px-6 py-20 text-center">
+                            <div className="flex flex-col items-center justify-center">
+                              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 ring-4 ring-emerald-500/5">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                              </div>
+                              <h3 className="mb-1 text-base font-semibold text-white/90">No Grades Found</h3>
+                              <p className="text-sm text-slate-400">
+                                There are no graded submissions matching your current filters.
+                              </p>
+                            </div>
                           </td>
                         </tr>
                       ) : (

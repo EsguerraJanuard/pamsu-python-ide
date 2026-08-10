@@ -29,7 +29,33 @@ function getPercentage(value, maximum) {
   return Math.round((value / maximum) * 100);
 }
 
-function SubmissionList({ submissions, onOpen }) {
+function SubmissionList({ submissions, onOpen, isLoading }) {
+  if (isLoading) {
+    return (
+      <section className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <article key={i} className="cursor-pointer overflow-hidden rounded-xl border border-white/[0.04] bg-[#1a1d27] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-white/[0.08] hover:bg-[#1f2330] hover:shadow-lg animate-pulse">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex-1">
+                <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.05]"></div>
+                <div className="mb-4 h-4 w-1/2 rounded-md bg-white/[0.05]"></div>
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-16 rounded-full bg-white/[0.05]"></div>
+                  <div className="h-5 w-24 rounded-full bg-white/[0.05]"></div>
+                </div>
+              </div>
+              <div className="h-10 w-24 rounded-lg bg-white/[0.05]"></div>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 sm:grid-cols-4">
+              <div className="h-12 w-full rounded-md bg-white/[0.05]"></div>
+              <div className="h-12 w-full rounded-md bg-white/[0.05]"></div>
+            </div>
+          </article>
+        ))}
+      </section>
+    );
+  }
+
   return (
     <section
       className="space-y-4"
@@ -145,9 +171,13 @@ function SubmissionList({ submissions, onOpen }) {
       })}
 
       {submissions.length === 0 && (
-        <div className="rounded-xl border border-dashed border-white/[0.08] py-16 text-center">
-          <p className="text-sm text-white/30">
-            No submissions have been recorded yet.
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.08] py-20 px-6 text-center transition-all hover:bg-white/[0.02]">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-blue-400 ring-4 ring-blue-500/5">
+            <ArchiveIcon className="h-8 w-8" />
+          </div>
+          <h3 className="mb-2 text-xl font-semibold text-white/90">No Submissions Yet</h3>
+          <p className="max-w-md text-sm text-white/50">
+            You haven't submitted any activities. Your completed laboratory and homework modules will appear here for review.
           </p>
         </div>
       )}
@@ -407,6 +437,7 @@ export default function Submissions() {
 
                 <SubmissionList
                   submissions={submissions}
+                  isLoading={isLoading}
                   onOpen={(submissionId) =>
                     navigate(`/student/submissions/${submissionId}`)
                   }

@@ -80,8 +80,17 @@ export default function SoloPractice() {
             </header>
 
             {isLoading ? (
-              <div className="flex justify-center py-20">
-                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-violet-500"></div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 animate-pulse">
+                    <div className="mb-4 h-10 w-10 rounded-xl bg-white/[0.05]"></div>
+                    <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.05]"></div>
+                    <div className="mb-6 h-4 w-full rounded-md bg-white/[0.05]"></div>
+                    <div className="mt-auto border-t border-white/[0.05] pt-4">
+                      <div className="h-4 w-1/2 rounded-md bg-white/[0.05]"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : practiceActivities.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,12 +128,12 @@ export default function SoloPractice() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.05] bg-white/[0.01] px-6 py-24 text-center">
-                <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.03] text-white/20">
-                  <CodeIcon className="h-7 w-7" />
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] px-6 py-24 text-center transition-all hover:bg-white/[0.02]">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-500/10 text-violet-400 ring-4 ring-violet-500/5">
+                  <CodeIcon className="h-8 w-8" />
                 </div>
-                <h3 className="mb-1 text-lg font-semibold text-white/80">No Practice Modules Yet</h3>
-                <p className="max-w-md text-sm text-white/40">
+                <h3 className="mb-2 text-xl font-semibold text-white/90">No Practice Modules Yet</h3>
+                <p className="max-w-md text-sm text-white/50">
                   You don't have any practice lessons available at the moment. When instructors publish ungraded modules in your classes, they will appear here.
                 </p>
               </div>

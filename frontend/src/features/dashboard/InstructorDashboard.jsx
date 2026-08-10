@@ -292,21 +292,35 @@ export default function InstructorDashboard() {
 
                 <div className="space-y-3">
                   {isLoading ? (
-                    <div className="flex h-32 items-center justify-center rounded-xl border border-white/[0.06] bg-[#1a1d27]">
-                      <p className="text-sm text-white/40">Loading activities...</p>
-                    </div>
+                    [1, 2, 3].map(i => (
+                      <article key={i} className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse flex items-center justify-between">
+                        <div className="space-y-2">
+                          <div className="h-5 w-48 bg-white/[0.06] rounded-md"></div>
+                          <div className="h-4 w-32 bg-white/[0.06] rounded-md"></div>
+                        </div>
+                        <div className="h-8 w-20 bg-white/[0.06] rounded-md"></div>
+                      </article>
+                    ))
                   ) : error ? (
                     <div className="flex h-32 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10">
                       <p className="text-sm text-red-400">{error}</p>
                     </div>
                   ) : mappedActivities.length === 0 ? (
-                    <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-white/[0.06] bg-[#1a1d27]">
-                      <p className="text-sm text-white/40">No activities found.</p>
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-white/[0.02]">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-emerald-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white/90 mb-1">No Managed Activities</h3>
+                      <p className="text-sm text-white/50 mb-6 max-w-sm">
+                        You haven't authored any activities. Create your first assignment or lab exercise.
+                      </p>
                       <button 
                         onClick={() => navigate("/instructor/activities")}
-                        className="mt-2 text-xs text-emerald-400 hover:text-emerald-300"
+                        className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
                       >
-                        Create your first activity
+                        + Create Activity
                       </button>
                     </div>
                   ) : mappedActivities.map((activity, index) => {
