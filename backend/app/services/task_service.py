@@ -9,6 +9,8 @@ from app.models.domain_models import (
     Enrollment,
     Task,
     TaskTestCase,
+    Submission,
+    InstructorGrade,
 )
 from app.schemas.task_schema import (
     TaskCreate,
@@ -349,10 +351,52 @@ def list_instructor_tasks(
 
         query = query.filter(Task.class_id == class_id)
 
-    return query.order_by(
+    tasks = query.order_by(
         Task.created_at.desc(),
         Task.task_id.desc(),
     ).all()
+
+    if class_id is not None and tasks:
+        from sqlalchemy import func
+
+        student_count = db.query(Enrollment).filter(
+            Enrollment.class_id == class_id,
+            Enrollment.status == "active",
+        ).count()
+
+        task_ids = [t.task_id for t in tasks]
+
+        submitted_counts = db.query(
+            Submission.task_id,
+            func.count(func.distinct(Submission.student_id))
+        ).filter(
+            Submission.task_id.in_(task_ids),
+            Submission.is_official.is_(True)
+        ).group_by(Submission.task_id).all()
+        submitted_map = {row[0]: row[1] for row in submitted_counts}
+
+        graded_counts = db.query(
+            Submission.task_id,
+            func.count(func.distinct(Submission.student_id))
+        ).join(
+            InstructorGrade, InstructorGrade.submission_id == Submission.sub_id
+        ).filter(
+            Submission.task_id.in_(task_ids),
+            Submission.is_official.is_(True)
+        ).group_by(Submission.task_id).all()
+        graded_map = {row[0]: row[1] for row in graded_counts}
+
+        for task in tasks:
+            t_id = task.task_id
+            turned_in = submitted_map.get(t_id, 0)
+            graded = graded_map.get(t_id, 0)
+            
+            # Use setattr so Pydantic from_attributes works
+            setattr(task, "assigned_count", max(0, student_count - turned_in))
+            setattr(task, "turned_in_count", turned_in)
+            setattr(task, "graded_count", graded)
+
+    return tasks
 
 
 def update_task(

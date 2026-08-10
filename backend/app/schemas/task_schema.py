@@ -319,6 +319,10 @@ class TaskResponseBase(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    assigned_count: int | None = None
+    turned_in_count: int | None = None
+    graded_count: int | None = None
+
     model_config = ConfigDict(
         from_attributes=True,
         extra="forbid",

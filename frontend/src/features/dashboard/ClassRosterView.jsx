@@ -239,12 +239,36 @@ export default function ClassRosterView() {
                         </div>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => navigate(`/instructor/activities/${task.task_id}`)}
-                      className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/[0.06] hover:text-emerald-400"
-                    >
-                      {task.is_published ? "View Activity" : "Edit Activity"}
-                    </button>
+                    
+                    <div className="flex items-center gap-6">
+                      {task.is_published ? (
+                        <div className="flex items-center gap-6 mr-4 border-r border-white/[0.06] pr-8">
+                          <div className="flex flex-col items-center">
+                            <span className="text-xl font-semibold text-white">{task.turned_in_count || 0}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Turned In</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-xl font-semibold text-white">{task.assigned_count || 0}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Assigned</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-xl font-semibold text-emerald-400">{task.graded_count || 0}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-emerald-400/60 mt-1">Graded</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mr-6 text-xs italic text-white/30 border-r border-white/[0.06] pr-8">
+                          Students cannot see drafts
+                        </div>
+                      )}
+                      
+                      <button 
+                        onClick={() => navigate(`/instructor/activities/${task.task_id}`)}
+                        className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/[0.06] hover:text-emerald-400"
+                      >
+                        {task.is_published ? "View Activity" : "Edit Activity"}
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
