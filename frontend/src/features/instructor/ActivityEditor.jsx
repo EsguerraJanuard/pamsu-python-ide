@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import CustomSelect from '../../components/ui/CustomSelect';
+import Flatpickr from 'react-flatpickr';
+import 'flatpickr/dist/themes/dark.css';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 
@@ -127,29 +130,15 @@ const ActivityEditor = () => {
                   <label htmlFor="class_id" className="block text-xs font-semibold text-white/70 mb-1.5">
                     Target Classroom <span className="text-emerald-400">*</span>
                   </label>
-                  <div className="relative group">
-                    <select
-                      id="class_id"
-                      name="class_id"
-                      value={formData.class_id}
-                      onChange={handleChange}
-                      required
-                      className="w-full bg-black/40 border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner cursor-pointer"
-                    >
-                      <option value="" disabled className="bg-[#0f1117] text-white/50">Select a classroom</option>
-                      {classrooms.map(cls => (
-                        <option key={cls.class_id} value={cls.class_id} className="bg-[#0f1117] text-white">
-                          {cls.subject_code} - {cls.section}
-                        </option>
-                      ))}
-                    </select>
-                    {/* Custom Chevron */}
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/30 group-hover:text-emerald-400 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
+                  <CustomSelect
+                    options={classrooms.map(cls => ({
+                      value: cls.class_id,
+                      label: `${cls.subject_code} - ${cls.section}`
+                    }))}
+                    value={formData.class_id}
+                    onChange={(val) => setFormData(prev => ({ ...prev, class_id: val }))}
+                    placeholder="Select a classroom"
+                  />
                 </div>
 
                 <div>
@@ -267,15 +256,19 @@ const ActivityEditor = () => {
                           <label htmlFor="scheduled_publish_at" className="block text-xs font-semibold text-white/70 mb-1.5 flex items-center justify-between">
                             <span>Scheduled Publish Date <span className="text-white/40 font-normal ml-1">(Optional)</span></span>
                           </label>
-                          <div className="relative group">
-                            <input
-                              type="datetime-local"
-                              id="scheduled_publish_at"
-                              name="scheduled_publish_at"
+                          <div className="relative group flex">
+                            <Flatpickr
+                              data-enable-time
                               value={formData.scheduled_publish_at}
-                              onChange={handleChange}
-                              className="w-full bg-black/40 border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner"
-                              style={{ colorScheme: 'dark' }}
+                              onChange={([date]) => setFormData(prev => ({ ...prev, scheduled_publish_at: date }))}
+                              className="w-full bg-black/40 border border-white/[0.06] rounded-xl pl-4 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner cursor-pointer"
+                              placeholder="Select date and time"
+                              options={{
+                                dateFormat: "Y-m-d H:i",
+                                time_24hr: false,
+                                altInput: true,
+                                altFormat: "M j, Y h:i K"
+                              }}
                             />
                             {/* Calendar icon overlay to make it look premium */}
                             <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30 group-hover:text-emerald-400 transition-colors">
@@ -292,15 +285,19 @@ const ActivityEditor = () => {
                         <label htmlFor="due_at" className="block text-xs font-semibold text-white/70 mb-1.5 flex items-center justify-between">
                           <span>Deadline / Due Date <span className="text-white/40 font-normal ml-1">(Optional)</span></span>
                         </label>
-                        <div className="relative group">
-                          <input
-                            type="datetime-local"
-                            id="due_at"
-                            name="due_at"
+                        <div className="relative group flex">
+                          <Flatpickr
+                            data-enable-time
                             value={formData.due_at}
-                            onChange={handleChange}
-                            className="w-full bg-black/40 border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner"
-                            style={{ colorScheme: 'dark' }}
+                            onChange={([date]) => setFormData(prev => ({ ...prev, due_at: date }))}
+                            className="w-full bg-black/40 border border-white/[0.06] rounded-xl pl-4 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner cursor-pointer"
+                            placeholder="Select deadline"
+                            options={{
+                              dateFormat: "Y-m-d H:i",
+                              time_24hr: false,
+                              altInput: true,
+                              altFormat: "M j, Y h:i K"
+                            }}
                           />
                           <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30 group-hover:text-emerald-400 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

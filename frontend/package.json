@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "flatpickr": "^4.6.13",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-flatpickr": "^4.0.11",
     "react-router-dom": "^6.30.4"
   },
   "devDependencies": {

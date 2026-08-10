@@ -45,3 +45,40 @@ input:-webkit-autofill:active {
   border-color: rgba(59, 130, 246, 0.55) !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
 }
+
+/* Flatpickr Custom Overrides */
+.flatpickr-calendar {
+  background: #1a1d27 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+}
+.flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months {
+  background: #1a1d27 !important;
+  color: #fff !important;
+}
+.flatpickr-day {
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-radius: 8px !important;
+}
+.flatpickr-day:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: transparent !important;
+}
+.flatpickr-day.selected, .flatpickr-day.selected:hover {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #fff !important;
+}
+.flatpickr-time {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.flatpickr-time input {
+  color: #fff !important;
+}
+.flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.flatpickr-time .flatpickr-am-pm {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
