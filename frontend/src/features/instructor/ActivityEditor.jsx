@@ -176,27 +176,33 @@ const ActivityEditor = () => {
                 <div className="bg-[#1a1d27] p-6 rounded-2xl border border-white/[0.06] space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white/50">Options & Controls</h3>
                   
-                  <div className="flex items-center gap-6">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-white/80">
-                      <input
-                        type="checkbox"
-                        name="is_published"
-                        checked={formData.is_published}
-                        onChange={handleChange}
-                        className="h-4 w-4 rounded bg-[#0f1117] border-white/20 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                      />
-                      Publish immediately
+                  <div className="flex items-center gap-8">
+                    <label className="relative inline-flex items-center gap-3 cursor-pointer group">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          name="is_published"
+                          checked={formData.is_published}
+                          onChange={handleChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                      </div>
+                      <span className="text-xs font-semibold text-white/80 select-none group-hover:text-white transition-colors">Publish immediately</span>
                     </label>
 
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-white/80">
-                      <input
-                        type="checkbox"
-                        name="allow_paste"
-                        checked={formData.allow_paste}
-                        onChange={handleChange}
-                        className="h-4 w-4 rounded bg-[#0f1117] border-white/20 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                      />
-                      Allow Paste
+                    <label className="relative inline-flex items-center gap-3 cursor-pointer group">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          name="allow_paste"
+                          checked={formData.allow_paste}
+                          onChange={handleChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                      </div>
+                      <span className="text-xs font-semibold text-white/80 select-none group-hover:text-white transition-colors">Allow Paste</span>
                     </label>
                   </div>
 
