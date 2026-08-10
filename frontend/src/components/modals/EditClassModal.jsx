@@ -20,7 +20,7 @@ export default function EditClassModal({
     if (classroom) {
       setClassName(classroom.name || classroom.class_name || "");
       setSchedule(classroom.schedule || "");
-      setClassCode(classroom.code || classroom.invite_code || "");
+      setClassCode(classroom.class_code || classroom.code || classroom.invite_code || "");
     }
     setError("");
     setSuccessMsg("");
@@ -64,7 +64,7 @@ export default function EditClassModal({
 
     try {
       const response = await api.post(`/classrooms/${classroom.id}/regenerate-code`);
-      const newCode = response?.code || response?.invite_code;
+      const newCode = response?.class_code || response?.code || response?.invite_code;
       if (newCode) {
         setClassCode(newCode);
         setSuccessMsg(`Invite code regenerated: ${newCode}`);
@@ -140,7 +140,7 @@ export default function EditClassModal({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-slate-300">Student Invite Code</div>
-                <div className="text-[11px] text-slate-400">Share with students to request enrollment.</div>
+                <div className="text-[11px] text-slate-400">Share with students to enroll.</div>
               </div>
               <div className="font-mono text-base font-extrabold text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1 rounded">
                 {classCode || "------"}
