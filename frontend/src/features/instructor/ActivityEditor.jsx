@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 
 const ActivityEditor = () => {
   const navigate = useNavigate();
+  const [classrooms, setClassrooms] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
+    class_id: '',
+    due_at: '',
     description: '',
     instructions: '',
     expected_output: '',
@@ -27,14 +30,32 @@ const ActivityEditor = () => {
     }));
   };
 
+  useEffect(() => {
+    const fetchClassrooms = async () => {
+      try {
+        const response = await api.get('/classrooms/');
+        setClassrooms(response || []);
+      } catch (err) {
+        console.error('Failed to fetch classrooms', err);
+      }
+    };
+    fetchClassrooms();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.class_id) {
+      setError('Please select a classroom.');
+      return;
+    }
     setLoading(true);
     setError('');
 
     try {
       const payload = {
         ...formData,
+        class_id: parseInt(formData.class_id, 10),
+        due_at: formData.due_at ? new Date(formData.due_at).toISOString() : null,
         requirements: formData.requirements
           .split(',')
           .map((req) => req.trim())
@@ -96,6 +117,27 @@ const ActivityEditor = () => {
                     placeholder="e.g. Lab Activity 3 — Fibonacci Sequence"
                     className="w-full bg-[#0f1117] border border-white/[0.08] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="class_id" className="block text-xs font-semibold text-white/70 mb-1.5">
+                    Target Classroom <span className="text-emerald-400">*</span>
+                  </label>
+                  <select
+                    id="class_id"
+                    name="class_id"
+                    value={formData.class_id}
+                    onChange={handleChange}
+                    required
+                    className="w-full bg-[#0f1117] border border-white/[0.08] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  >
+                    <option value="" disabled>Select a classroom</option>
+                    {classrooms.map(cls => (
+                      <option key={cls.class_id} value={cls.class_id}>
+                        {cls.course_code} - {cls.section_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -176,34 +218,51 @@ const ActivityEditor = () => {
                 <div className="bg-[#1a1d27] p-6 rounded-2xl border border-white/[0.06] space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white/50">Options & Controls</h3>
                   
-                  <div className="flex items-center gap-8">
-                    <label className="relative inline-flex items-center gap-3 cursor-pointer group">
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          name="is_published"
-                          checked={formData.is_published}
-                          onChange={handleChange}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
-                      </div>
-                      <span className="text-xs font-semibold text-white/80 select-none group-hover:text-white transition-colors">Publish immediately</span>
-                    </label>
+                  <div className="flex flex-col gap-6">
+                    <div className="flex items-center gap-8">
+                      <label className="relative inline-flex items-center gap-3 cursor-pointer group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            name="is_published"
+                            checked={formData.is_published}
+                            onChange={handleChange}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                        </div>
+                        <span className="text-xs font-semibold text-white/80 select-none group-hover:text-white transition-colors">Publish immediately</span>
+                      </label>
 
-                    <label className="relative inline-flex items-center gap-3 cursor-pointer group">
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          name="allow_paste"
-                          checked={formData.allow_paste}
-                          onChange={handleChange}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
-                      </div>
-                      <span className="text-xs font-semibold text-white/80 select-none group-hover:text-white transition-colors">Allow Paste</span>
-                    </label>
+                      <label className="relative inline-flex items-center gap-3 cursor-pointer group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            name="allow_paste"
+                            checked={formData.allow_paste}
+                            onChange={handleChange}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                        </div>
+                        <span className="text-xs font-semibold text-white/80 select-none group-hover:text-white transition-colors">Allow Paste</span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label htmlFor="due_at" className="block text-xs font-semibold text-white/70 mb-1.5">
+                        Deadline (Optional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        id="due_at"
+                        name="due_at"
+                        value={formData.due_at}
+                        onChange={handleChange}
+                        className="w-full bg-[#0f1117] border border-white/[0.08] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                        style={{ colorScheme: 'dark' }}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.06]">
