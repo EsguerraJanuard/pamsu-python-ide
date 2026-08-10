@@ -550,6 +550,10 @@ class Task(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    scheduled_publish_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

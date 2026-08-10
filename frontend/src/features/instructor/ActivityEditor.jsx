@@ -10,6 +10,7 @@ const ActivityEditor = () => {
     title: '',
     class_id: '',
     due_at: '',
+    scheduled_publish_at: '',
     description: '',
     instructions: '',
     expected_output: '',
@@ -56,6 +57,9 @@ const ActivityEditor = () => {
         ...formData,
         class_id: parseInt(formData.class_id, 10),
         due_at: formData.due_at ? new Date(formData.due_at).toISOString() : null,
+        scheduled_publish_at: (!formData.is_published && formData.scheduled_publish_at) 
+          ? new Date(formData.scheduled_publish_at).toISOString() 
+          : null,
         requirements: formData.requirements
           .split(',')
           .map((req) => req.trim())
@@ -134,7 +138,7 @@ const ActivityEditor = () => {
                     <option value="" disabled>Select a classroom</option>
                     {classrooms.map(cls => (
                       <option key={cls.class_id} value={cls.class_id}>
-                        {cls.course_code} - {cls.section_name}
+                        {cls.subject_code} - {cls.section}
                       </option>
                     ))}
                   </select>
@@ -249,19 +253,54 @@ const ActivityEditor = () => {
                       </label>
                     </div>
 
-                    <div>
-                      <label htmlFor="due_at" className="block text-xs font-semibold text-white/70 mb-1.5">
-                        Deadline (Optional)
-                      </label>
-                      <input
-                        type="datetime-local"
-                        id="due_at"
-                        name="due_at"
-                        value={formData.due_at}
-                        onChange={handleChange}
-                        className="w-full bg-[#0f1117] border border-white/[0.08] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                        style={{ colorScheme: 'dark' }}
-                      />
+                    <div className="flex flex-col gap-4">
+                      {!formData.is_published && (
+                        <div className="animate-fade-in">
+                          <label htmlFor="scheduled_publish_at" className="block text-xs font-semibold text-white/70 mb-1.5 flex items-center justify-between">
+                            <span>Scheduled Publish Date <span className="text-white/40 font-normal ml-1">(Optional)</span></span>
+                          </label>
+                          <div className="relative group">
+                            <input
+                              type="datetime-local"
+                              id="scheduled_publish_at"
+                              name="scheduled_publish_at"
+                              value={formData.scheduled_publish_at}
+                              onChange={handleChange}
+                              className="w-full bg-black/40 border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner"
+                              style={{ colorScheme: 'dark' }}
+                            />
+                            {/* Calendar icon overlay to make it look premium */}
+                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30 group-hover:text-emerald-400 transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-white/40 mt-1.5 ml-1">The activity will automatically publish at this time.</p>
+                        </div>
+                      )}
+
+                      <div>
+                        <label htmlFor="due_at" className="block text-xs font-semibold text-white/70 mb-1.5 flex items-center justify-between">
+                          <span>Deadline / Due Date <span className="text-white/40 font-normal ml-1">(Optional)</span></span>
+                        </label>
+                        <div className="relative group">
+                          <input
+                            type="datetime-local"
+                            id="due_at"
+                            name="due_at"
+                            value={formData.due_at}
+                            onChange={handleChange}
+                            className="w-full bg-black/40 border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner"
+                            style={{ colorScheme: 'dark' }}
+                          />
+                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30 group-hover:text-emerald-400 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

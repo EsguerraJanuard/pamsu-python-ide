@@ -179,8 +179,12 @@ class TaskCreate(TaskBase):
         default=None,
         description=("Optional timezone-aware deadline normalized to UTC."),
     )
+    scheduled_publish_at: datetime | None = Field(
+        default=None,
+        description=("Optional timezone-aware scheduled publish time normalized to UTC."),
+    )
 
-    @field_validator("due_at")
+    @field_validator("due_at", "scheduled_publish_at")
     @classmethod
     def validate_due_at(
         cls,
@@ -222,6 +226,10 @@ class TaskUpdate(BaseModel):
     due_at: datetime | None = Field(
         default=None,
         description=("Optional timezone-aware deadline normalized to UTC."),
+    )
+    scheduled_publish_at: datetime | None = Field(
+        default=None,
+        description=("Optional timezone-aware scheduled publish time normalized to UTC."),
     )
 
     model_config = ConfigDict(
@@ -316,6 +324,7 @@ class TaskResponseBase(BaseModel):
     due_at: datetime | None = None
     is_published: bool
     published_at: datetime | None = None
+    scheduled_publish_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -331,6 +340,7 @@ class TaskResponseBase(BaseModel):
     @field_validator(
         "due_at",
         "published_at",
+        "scheduled_publish_at",
         "created_at",
         "updated_at",
         mode="before",
