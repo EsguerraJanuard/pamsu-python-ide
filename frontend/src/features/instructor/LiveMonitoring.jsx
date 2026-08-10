@@ -9,6 +9,20 @@ const LiveMonitoring = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [classrooms, setClassrooms] = useState([]);
+  const [selectedClassroom, setSelectedClassroom] = useState('All');
+
+  useEffect(() => {
+    const fetchClassrooms = async () => {
+      try {
+        const response = await api.get('/classrooms');
+        setClassrooms(response.data || []);
+      } catch (err) {
+        console.error('Error fetching classrooms:', err);
+      }
+    };
+    fetchClassrooms();
+  }, []);
 
   useEffect(() => {
     let intervalId;
@@ -89,16 +103,33 @@ const LiveMonitoring = () => {
                   Specific Task
                 </button>
               </div>
+              
+              <div className="flex items-center gap-3">
+                {mode === 'global' && (
+                  <select
+                    value={selectedClassroom}
+                    onChange={(e) => setSelectedClassroom(e.target.value)}
+                    className="bg-[#0f1117] border border-white/[0.06] text-white/80 text-sm font-medium rounded-lg px-4 py-1.5 focus:outline-none focus:border-emerald-500 transition-colors"
+                  >
+                    <option value="All">All Classrooms</option>
+                    {classrooms.map((c) => (
+                      <option key={c.class_id || c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
 
-              {(mode === 'global' || activeTaskId) && (
-                <div className="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                  Live Updates Active
-                </div>
-              )}
+                {(mode === 'global' || activeTaskId) && (
+                  <div className="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    Live Updates Active
+                  </div>
+                )}
+              </div>
             </div>
           </header>
         
@@ -167,24 +198,31 @@ const LiveMonitoring = () => {
           </div>
         )}
 
-        {(mode === 'global' || (mode === 'task' && activeTaskId)) && !loading && sessions.length === 0 && !error && (
-          <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-xl border border-white/[0.06]/50 bg-slate-900/30">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-slate-400 ring-4 ring-slate-500/5">
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-            </div>
-            <h3 className="mb-2 text-lg font-semibold text-white/90">No Active Sessions</h3>
-            <p className="text-sm text-slate-400 max-w-sm">
-              {mode === 'global' 
-                ? "No students are currently active in any of your classrooms." 
-                : `No students are currently active in Task ${activeTaskId}.`}
-            </p>
-          </div>
-        )}
+        {(() => {
+          const filteredSessions = mode === 'global' && selectedClassroom !== 'All' 
+            ? sessions.filter(s => s.classroom_name === selectedClassroom)
+            : sessions;
+          
+          return (
+            <>
+              {(mode === 'global' || (mode === 'task' && activeTaskId)) && !loading && filteredSessions.length === 0 && !error && (
+                <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-xl border border-white/[0.06]/50 bg-slate-900/30">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-slate-400 ring-4 ring-slate-500/5">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-white/90">No Active Sessions</h3>
+                  <p className="text-sm text-slate-400 max-w-sm">
+                    {mode === 'global' 
+                      ? (selectedClassroom === 'All' ? "No students are currently active in any of your classrooms." : `No students are currently active in ${selectedClassroom}.`)
+                      : `No students are currently active in Task ${activeTaskId}.`}
+                  </p>
+                </div>
+              )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sessions.map((session) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredSessions.map((session) => {
             const hasWarning = session.tab_switches > 3;
             
             return (
@@ -273,6 +311,9 @@ const LiveMonitoring = () => {
             );
           })}
         </div>
+        </>
+        );
+      })()}
       </div>
                 </div>
           </main>
