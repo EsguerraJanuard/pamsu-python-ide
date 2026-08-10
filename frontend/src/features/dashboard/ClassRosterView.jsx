@@ -2,16 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import EditClassModal from "../../components/modals/EditClassModal";
-import EnrollmentManagement from "./EnrollmentManagement";
-
 export default function ClassRosterView() {
   const { id: classId } = useParams();
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("roster"); // "roster" | "requests"
-
   const [studentToRemove, setStudentToRemove] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -100,36 +96,7 @@ export default function ClassRosterView() {
             </div>
           </header>
 
-          {/* Navigation Tabs */}
-          <div className="flex gap-4 border-b border-white/[0.06] text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab("roster")}
-              className={`pb-3 px-1 transition border-b-2 ${
-                activeTab === "roster"
-                  ? "border-emerald-400 text-emerald-400"
-                  : "border-transparent text-white/50 hover:text-white"
-              }`}
-            >
-              Enrolled Roster ({students.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("requests")}
-              className={`pb-3 px-1 transition border-b-2 ${
-                activeTab === "requests"
-                  ? "border-emerald-400 text-emerald-400"
-                  : "border-transparent text-white/50 hover:text-white"
-              }`}
-            >
-              Pending Approvals
-            </button>
-          </div>
-
-          {activeTab === "requests" ? (
-            <EnrollmentManagement
-              classId={classId}
-              onEnrollmentUpdated={fetchRoster}
-            />
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="flex h-40 items-center justify-center text-sm text-white/40">Loading roster...</div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#1a1d27]">
