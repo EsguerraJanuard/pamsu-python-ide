@@ -143,25 +143,34 @@ const ActivityDetails = () => {
               Back
             </button>
           </div>
-
-          <div className="mt-6 flex items-center space-x-6">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={!!activity.is_published}
-                onChange={togglePublication}
-                className="rounded border-white/[0.06] bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-              />
-              <span>Published</span>
+          <div className="mt-6 flex items-center space-x-8">
+            <label className="relative inline-flex items-center gap-3 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={!!activity.is_published}
+                  onChange={togglePublication}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+              </div>
+              <span className="text-sm font-semibold text-white/80 select-none group-hover:text-white transition-colors">
+                {activity.is_published ? "Published" : "Draft"}
+              </span>
             </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={!!activity.allow_paste}
-                onChange={toggleAllowPaste}
-                className="rounded border-white/[0.06] bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-              />
-              <span>Allow Paste</span>
+
+            <label className={`relative inline-flex items-center gap-3 group ${activity.is_published ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={!!activity.allow_paste}
+                  onChange={toggleAllowPaste}
+                  disabled={activity.is_published}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-emerald-500"></div>
+              </div>
+              <span className="text-sm font-semibold text-white/80 select-none group-hover:text-white transition-colors">Allow Paste</span>
             </label>
           </div>
         </div>
@@ -257,14 +266,17 @@ const ActivityDetails = () => {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={newTestCase.is_hidden}
-                  onChange={e => setNewTestCase({...newTestCase, is_hidden: e.target.checked})}
-                  className="rounded border-white/[0.06] bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-                />
-                <span>Hidden Test Case</span>
+              <label className="relative inline-flex items-center gap-3 cursor-pointer group">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={newTestCase.is_hidden}
+                    onChange={e => setNewTestCase({...newTestCase, is_hidden: e.target.checked})}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                </div>
+                <span className="text-sm font-semibold text-white/80 select-none group-hover:text-white transition-colors">Hidden Test Case</span>
               </label>
               <button 
                 type="submit"
