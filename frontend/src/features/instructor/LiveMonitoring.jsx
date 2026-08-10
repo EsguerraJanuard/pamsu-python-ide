@@ -3,6 +3,7 @@ import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 
 const LiveMonitoring = () => {
+  const [mode, setMode] = useState('global'); // 'global' or 'task'
   const [taskIdInput, setTaskIdInput] = useState('');
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -13,31 +14,39 @@ const LiveMonitoring = () => {
     let intervalId;
 
     const fetchSessions = async () => {
-      if (!activeTaskId) return;
+      if (mode === 'task' && !activeTaskId) {
+        setSessions([]);
+        return;
+      }
+      
       try {
-        const response = await api.get(`/instructors/tasks/${activeTaskId}/coding-sessions`);
+        const url = mode === 'global' 
+          ? `/instructors/coding-sessions/live`
+          : `/instructors/tasks/${activeTaskId}/coding-sessions`;
+          
+        const response = await api.get(url);
         // Handle both possible wrapper object or direct array
         const data = response.data?.sessions || response.data || [];
         setSessions(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
         console.error('Error fetching sessions:', err);
-        setError('Failed to fetch coding sessions. Please check the Task ID and try again.');
+        setError(`Failed to fetch coding sessions. ${mode === 'task' ? 'Please check the Task ID.' : ''}`);
       }
     };
 
-    if (activeTaskId) {
+    if (mode === 'global' || (mode === 'task' && activeTaskId)) {
       setLoading(true);
       fetchSessions().finally(() => setLoading(false));
       intervalId = setInterval(fetchSessions, 5000);
+    } else {
+      setSessions([]);
     }
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      if (intervalId) clearInterval(intervalId);
     };
-  }, [activeTaskId]);
+  }, [mode, activeTaskId]);
 
   const handleMonitor = (e) => {
     e.preventDefault();
@@ -64,41 +73,61 @@ const LiveMonitoring = () => {
                 Monitor real-time student activity and execution metrics.
               </p>
             </div>
-            {activeTaskId && (
-            <div className="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              Live Updates Active
+            
+            <div className="flex flex-col items-end gap-3">
+              <div className="flex bg-[#1a1d27] rounded-lg p-1 border border-white/[0.06]">
+                <button
+                  onClick={() => setMode('global')}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/50 hover:text-white/80'}`}
+                >
+                  All Active Students
+                </button>
+                <button
+                  onClick={() => setMode('task')}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/50 hover:text-white/80'}`}
+                >
+                  Specific Task
+                </button>
+              </div>
+
+              {(mode === 'global' || activeTaskId) && (
+                <div className="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  Live Updates Active
+                </div>
+              )}
             </div>
-          )}
           </header>
         
-        <div className="bg-[#1a1d27] p-6 rounded-xl border border-white/[0.06] mb-8 shadow-sm">
-          <form onSubmit={handleMonitor} className="flex gap-4 items-end">
-            <div className="flex-1 max-w-md">
-              <label htmlFor="taskId" className="block text-sm font-medium text-white/70 mb-2">
-                Task ID to Monitor
-              </label>
-              <input
-                type="text"
-                id="taskId"
-                value={taskIdInput}
-                onChange={(e) => setTaskIdInput(e.target.value)}
-                className="w-full bg-[#0f1117] border border-white/[0.06] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-                placeholder="Enter Task ID (e.g., 123)"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!taskIdInput.trim()}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-white/50 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
-            >
-              Monitor
-            </button>
-          </form>
-        </div>
+        {mode === 'task' && (
+          <div className="bg-[#1a1d27] p-6 rounded-xl border border-white/[0.06] mb-8 shadow-sm">
+            <form onSubmit={handleMonitor} className="flex gap-4 items-end">
+              <div className="flex-1 max-w-md">
+                <label htmlFor="taskId" className="block text-sm font-medium text-white/70 mb-2">
+                  Task ID to Monitor
+                </label>
+                <input
+                  type="text"
+                  id="taskId"
+                  value={taskIdInput}
+                  onChange={(e) => setTaskIdInput(e.target.value)}
+                  className="w-full bg-[#0f1117] border border-white/[0.06] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                  placeholder="Enter Task ID (e.g., 123)"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!taskIdInput.trim()}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-white/50 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
+              >
+                Monitor
+              </button>
+            </form>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-900/20 border border-red-500/50 text-red-300 p-4 rounded-lg mb-8 flex items-center gap-3">
@@ -138,7 +167,7 @@ const LiveMonitoring = () => {
           </div>
         )}
 
-        {activeTaskId && !loading && sessions.length === 0 && !error && (
+        {(mode === 'global' || (mode === 'task' && activeTaskId)) && !loading && sessions.length === 0 && !error && (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-xl border border-white/[0.06]/50 bg-slate-900/30">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-slate-400 ring-4 ring-slate-500/5">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,7 +176,9 @@ const LiveMonitoring = () => {
             </div>
             <h3 className="mb-2 text-lg font-semibold text-white/90">No Active Sessions</h3>
             <p className="text-sm text-slate-400 max-w-sm">
-              No students are currently active in Task {activeTaskId}.
+              {mode === 'global' 
+                ? "No students are currently active in any of your classrooms." 
+                : `No students are currently active in Task ${activeTaskId}.`}
             </p>
           </div>
         )}
@@ -174,6 +205,20 @@ const LiveMonitoring = () => {
                     <h3 className="text-lg font-semibold text-slate-100 truncate">
                       {session.student_name || 'Unknown Student'}
                     </h3>
+                    {mode === 'global' && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {session.classroom_name && (
+                          <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                            {session.classroom_name}
+                          </span>
+                        )}
+                        {session.task_title && (
+                          <span className="inline-flex items-center rounded-md bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-400 ring-1 ring-inset ring-purple-500/20">
+                            {session.task_title}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 bg-[#0f1117] px-2 py-1 rounded-xl border border-white/[0.06]">
                     <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">

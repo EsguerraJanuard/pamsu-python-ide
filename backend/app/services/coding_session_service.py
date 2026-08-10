@@ -8,6 +8,7 @@ from app.models.domain_models import (
     CodingSession,
     Enrollment,
     Task,
+    User,
 )
 from app.schemas.coding_session_schema import (
     CodingSessionActivityUpdate,
@@ -462,6 +463,46 @@ def list_instructor_task_coding_sessions(
         CodingSession.started_at.desc(),
         CodingSession.session_id.desc(),
     ).all()
+
+
+def get_all_active_instructor_sessions(
+    db: Session,
+    *,
+    instructor_id: int,
+) -> list[dict]:
+    """
+    Get all active sessions across all classrooms owned by the instructor.
+    Returns a list of dictionaries that can be validated by GlobalCodingSessionResponse.
+    """
+    rows = (
+        db.query(
+            CodingSession,
+            User.name.label("student_name"),
+            Task.title.label("task_title"),
+            Classroom.name.label("classroom_name"),
+        )
+        .join(User, CodingSession.student_id == User.user_id)
+        .join(Task, CodingSession.task_id == Task.task_id)
+        .join(Classroom, Task.class_id == Classroom.class_id)
+        .filter(
+            Classroom.instructor_id == instructor_id,
+            CodingSession.ended_at.is_(None)
+        )
+        .order_by(
+            CodingSession.started_at.desc(),
+        )
+        .all()
+    )
+
+    results = []
+    for session, student_name, task_title, classroom_name in rows:
+        session_dict = {column.name: getattr(session, column.name) for column in session.__table__.columns}
+        session_dict["student_name"] = student_name
+        session_dict["task_title"] = task_title
+        session_dict["classroom_name"] = classroom_name
+        results.append(session_dict)
+    
+    return results
 
 
 def get_instructor_coding_session(

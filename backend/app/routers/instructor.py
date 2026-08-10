@@ -21,6 +21,7 @@ from app.models.domain_models import (
 )
 from app.schemas.coding_session_schema import (
     InstructorCodingSessionResponse,
+    GlobalCodingSessionResponse,
 )
 from app.schemas.execution_schema import (
     ExecutionRequestKind,
@@ -58,6 +59,7 @@ from app.services.coding_session_service import (
     CodingSessionNotFoundError,
     CodingSessionPersistenceError,
     CodingSessionServiceError,
+    get_all_active_instructor_sessions,
     get_instructor_coding_session as get_instructor_coding_session_service,
     list_instructor_task_coding_sessions,
 )
@@ -1203,6 +1205,28 @@ def get_submission_endpoint(
         raise_submission_service_http_exception(exc)
 
     return InstructorSubmissionResponse.model_validate(submission)
+
+
+@router.get(
+    "/coding-sessions/live",
+    response_model=list[GlobalCodingSessionResponse],
+    status_code=status.HTTP_200_OK,
+    operation_id="list_global_active_coding_sessions",
+    summary="List all active coding sessions for instructor's classrooms",
+    description=(
+        "Returns active coding sessions globally across all tasks "
+        "and classrooms owned by the authenticated instructor."
+    ),
+)
+def list_global_active_coding_sessions_endpoint(
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> list[GlobalCodingSessionResponse]:
+    sessions = get_all_active_instructor_sessions(
+        db,
+        instructor_id=current_instructor.user_id,
+    )
+    return [GlobalCodingSessionResponse.model_validate(session) for session in sessions]
 
 
 @router.get(

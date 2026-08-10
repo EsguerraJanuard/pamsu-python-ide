@@ -216,6 +216,26 @@ class InstructorCodingSessionResponse(CodingSessionResponseBase):
         description=("Student who owns the coding session."),
     )
 
+class GlobalCodingSessionResponse(InstructorCodingSessionResponse):
+    """
+    Global instructor review response for all active sessions.
+
+    Includes additional contextual information to identify where the
+    student is working.
+    """
+    student_name: str | None = Field(
+        default=None,
+        description="Name of the student owning the session.",
+    )
+    task_title: str | None = Field(
+        default=None,
+        description="Title of the activity being worked on.",
+    )
+    classroom_name: str | None = Field(
+        default=None,
+        description="Name of the classroom the task belongs to.",
+    )
+
 
 # Compatibility aliases for concise imports and future adapters.
 CodingSessionCreate = CodingSessionStartRequest
