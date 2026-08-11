@@ -124,19 +124,19 @@ export default function Settings() {
 
   const inputWrap =
 
-    "flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#0f1117] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
+    "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
 
 
 
   const inputClass =
 
-    "flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20";
+    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20";
 
 
 
   const readonlyInputClass =
 
-    "flex-1 cursor-not-allowed bg-transparent text-sm text-white/40 outline-none";
+    "flex-1 cursor-not-allowed bg-transparent text-sm text-text-muted outline-none";
 
 
 
@@ -314,7 +314,7 @@ export default function Settings() {
 
   return (
 
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
 
       <Sidebar />
 
@@ -356,17 +356,17 @@ export default function Settings() {
 
 
 
-            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
 
               <div>
 
                 <h1 className="text-2xl font-bold flex items-center gap-3">
 
-                  <SettingsIcon className="h-6 w-6 text-slate-400" />
+                  <SettingsIcon className="h-6 w-6 text-text-muted" />
 
                   Settings
                 </h1>
-                <p className="mt-1 text-sm text-white/40">
+                <p className="mt-1 text-sm text-text-muted">
                   Manage your profile and account security.
                 </p>
               </div>
@@ -376,7 +376,7 @@ export default function Settings() {
 
             <div className="space-y-6">
 
-              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
+              <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
 
                 <div className="mb-4">
 
@@ -388,7 +388,7 @@ export default function Settings() {
 
 
 
-                  <p className="mt-1 text-[11px] text-white/30">
+                  <p className="mt-1 text-[11px] text-text-muted">
 
                     Verified identity details cannot be changed from
 
@@ -434,7 +434,7 @@ export default function Settings() {
 
                       htmlFor="settings-full-name"
 
-                      className="mb-1.5 block text-xs font-medium text-white/60"
+                      className="mb-1.5 block text-xs font-medium text-text-muted"
 
                     >
 
@@ -482,7 +482,7 @@ export default function Settings() {
 
                       htmlFor="settings-school-id"
 
-                      className="mb-1.5 block text-xs font-medium text-white/60"
+                      className="mb-1.5 block text-xs font-medium text-text-muted"
 
                     >
 
@@ -510,7 +510,7 @@ export default function Settings() {
 
 
 
-                      <span className="shrink-0 text-[10px] text-white/30">
+                      <span className="shrink-0 text-[10px] text-text-muted">
 
                         Verified
 
@@ -520,7 +520,7 @@ export default function Settings() {
 
 
 
-                    <p className="mt-1.5 text-[11px] text-white/30">
+                    <p className="mt-1.5 text-[11px] text-text-muted">
 
                       Contact an authorized administrator to correct
 
@@ -538,7 +538,7 @@ export default function Settings() {
 
                       htmlFor="settings-email"
 
-                      className="mb-1.5 block text-xs font-medium text-white/60"
+                      className="mb-1.5 block text-xs font-medium text-text-muted"
 
                     >
 
@@ -566,7 +566,7 @@ export default function Settings() {
 
 
 
-                      <span className="shrink-0 text-[10px] text-white/30">
+                      <span className="shrink-0 text-[10px] text-text-muted">
 
                         OTP verified
 
@@ -576,7 +576,7 @@ export default function Settings() {
 
 
 
-                    <p className="mt-1.5 text-[11px] text-white/30">
+                    <p className="mt-1.5 text-[11px] text-text-muted">
 
                       Changing the verified email will require a
 
@@ -596,7 +596,7 @@ export default function Settings() {
 
                         htmlFor="settings-course"
 
-                        className="mb-1.5 block text-xs font-medium text-white/60"
+                        className="mb-1.5 block text-xs font-medium text-text-muted"
 
                       >
 
@@ -634,7 +634,7 @@ export default function Settings() {
 
                         htmlFor="settings-section"
 
-                        className="mb-1.5 block text-xs font-medium text-white/60"
+                        className="mb-1.5 block text-xs font-medium text-text-muted"
 
                       >
 
@@ -674,7 +674,7 @@ export default function Settings() {
 
                       type="submit"
 
-                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-text-main transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
 
                     >
 
@@ -690,7 +690,7 @@ export default function Settings() {
 
 
 
-              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
+              <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
 
                 <div className="mb-4">
 
@@ -702,7 +702,7 @@ export default function Settings() {
 
 
 
-                  <p className="mt-1 text-[11px] text-white/30">
+                  <p className="mt-1 text-[11px] text-text-muted">
 
                     Your current password must be verified by the
 
@@ -764,7 +764,7 @@ export default function Settings() {
 
                       htmlFor="current-password"
 
-                      className="mb-1.5 block text-xs font-medium text-white/60"
+                      className="mb-1.5 block text-xs font-medium text-text-muted"
 
                     >
 
@@ -824,7 +824,7 @@ export default function Settings() {
 
                       htmlFor="new-password"
 
-                      className="mb-1.5 block text-xs font-medium text-white/60"
+                      className="mb-1.5 block text-xs font-medium text-text-muted"
 
                     >
 
@@ -886,7 +886,7 @@ export default function Settings() {
 
                       htmlFor="confirm-new-password"
 
-                      className="mb-1.5 block text-xs font-medium text-white/60"
+                      className="mb-1.5 block text-xs font-medium text-text-muted"
 
                     >
 
@@ -962,7 +962,7 @@ export default function Settings() {
 
 
 
-                    <span className="text-xs text-white/40">
+                    <span className="text-xs text-text-muted">
 
                       Show passwords
 
@@ -978,7 +978,7 @@ export default function Settings() {
 
                       type="submit"
 
-                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-text-main transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
 
                     >
 
@@ -994,7 +994,7 @@ export default function Settings() {
 
 
 
-              <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
+              <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
 
                 <h2 className="text-sm font-semibold">
 
@@ -1004,7 +1004,7 @@ export default function Settings() {
 
 
 
-                <ul className="mt-3 list-inside list-disc space-y-2 text-[11px] leading-relaxed text-white/40">
+                <ul className="mt-3 list-inside list-disc space-y-2 text-[11px] leading-relaxed text-text-muted">
 
                   <li>
 

@@ -19,7 +19,7 @@ const STATUS_CONFIG = {
     badgeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
     accentClass: "border-l-emerald-500",
     progressClass: "bg-emerald-500",
-    buttonClass: "bg-emerald-600 text-white hover:bg-emerald-500",
+    buttonClass: "bg-emerald-600 text-text-main hover:bg-emerald-500",
   },
   submitted: {
     label: "Completed",
@@ -209,7 +209,7 @@ export default function InstructorDashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
@@ -226,7 +226,7 @@ export default function InstructorDashboard() {
                   <h1 className="text-2xl font-bold">
                     {getGreeting()}, {getFirstName(instructorName)}
                   </h1>
-                  <p className="mt-1 text-sm text-white/40">
+                  <p className="mt-1 text-sm text-text-muted">
                     You have {activeActivitiesCount} active laboratory activities and active live sessions running.
                   </p>
                 </div>
@@ -234,7 +234,7 @@ export default function InstructorDashboard() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                    className="whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-emerald-500"
                   >
                     + Create Class
                   </button>
@@ -260,14 +260,14 @@ export default function InstructorDashboard() {
                 {dynamicStats.map((stat, index) => (
                   <article
                     key={stat.label}
-                    className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                    className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-4"
                     style={{ animation: `dashboardFadeUp 400ms ease ${index * 70}ms both` }}
                   >
                     <p className="mb-1 text-3xl font-bold" style={{ color: stat.color }}>
                       {stat.value}
                     </p>
-                    <h2 className="text-xs font-medium text-white/70">{stat.label}</h2>
-                    <p className="mb-3 text-[10px] text-white/30">{stat.description}</p>
+                    <h2 className="text-xs font-medium text-text-muted">{stat.label}</h2>
+                    <p className="mb-3 text-[10px] text-text-muted">{stat.description}</p>
                     <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
                       <div className="h-full rounded-full" style={{ width: `${stat.progress}%`, backgroundColor: stat.color }} />
                     </div>
@@ -279,7 +279,7 @@ export default function InstructorDashboard() {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-semibold">Managed Activities</h2>
-                    <p className="mt-1 text-[11px] text-white/30">Review submissions, grade outputs, or update parameters.</p>
+                    <p className="mt-1 text-[11px] text-text-muted">Review submissions, grade outputs, or update parameters.</p>
                   </div>
                   <button
                     type="button"
@@ -293,7 +293,7 @@ export default function InstructorDashboard() {
                 <div className="space-y-3">
                   {isLoading ? (
                     [1, 2, 3].map(i => (
-                      <article key={i} className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse flex items-center justify-between">
+                      <article key={i} className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-4 animate-pulse flex items-center justify-between">
                         <div className="space-y-2">
                           <div className="h-5 w-48 bg-white/[0.06] rounded-md"></div>
                           <div className="h-4 w-32 bg-white/[0.06] rounded-md"></div>
@@ -306,19 +306,19 @@ export default function InstructorDashboard() {
                       <p className="text-sm text-red-400">{error}</p>
                     </div>
                   ) : mappedActivities.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-white/[0.02]">
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-emerald-400">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
                       <h3 className="text-lg font-semibold text-white/90 mb-1">No Managed Activities</h3>
-                      <p className="text-sm text-white/50 mb-6 max-w-sm">
+                      <p className="text-sm text-text-muted mb-6 max-w-sm">
                         You haven't authored any activities. Create your first assignment or lab exercise.
                       </p>
                       <button 
                         onClick={() => navigate("/instructor/activities")}
-                        className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
+                        className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-text-main transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
                       >
                         + Create Activity
                       </button>
@@ -328,7 +328,7 @@ export default function InstructorDashboard() {
                     return (
                       <article
                         key={activity.id}
-                        className={`dashboard-card rounded-xl border border-l-[3px] border-white/[0.06] bg-[#1a1d27] p-4 ${status.accentClass}`}
+                        className={`dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-4 ${status.accentClass}`}
                         style={{ animation: `dashboardFadeUp 400ms ease ${200 + index * 70}ms both` }}
                       >
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -346,7 +346,7 @@ export default function InstructorDashboard() {
                                 {activity.dueLabel}
                               </span>
                             </div>
-                            <p className="rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-white/45">
+                            <p className="rounded-lg border-l-2 border-border-subtle bg-bg-glass px-3 py-2 font-mono text-[11px] text-text-muted">
                               {activity.note}
                             </p>
                           </div>
@@ -361,11 +361,11 @@ export default function InstructorDashboard() {
                         </div>
 
                         <div className="mt-3 flex items-center gap-3">
-                          <span className="shrink-0 text-[10px] text-white/30">Completion Rate</span>
+                          <span className="shrink-0 text-[10px] text-text-muted">Completion Rate</span>
                           <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
                             <div className={`h-full rounded-full ${status.progressClass}`} style={{ width: `${activity.progress}%` }} />
                           </div>
-                          <span className="shrink-0 text-[10px] text-white/40">{activity.progress}%</span>
+                          <span className="shrink-0 text-[10px] text-text-muted">{activity.progress}%</span>
                         </div>
                       </article>
                     );
@@ -375,13 +375,13 @@ export default function InstructorDashboard() {
             </div>
           </main>
 
-          <aside className="hidden w-[300px] shrink-0 overflow-y-auto border-l border-white/[0.06] px-5 py-6 xl:block">
+          <aside className="hidden w-[300px] shrink-0 overflow-y-auto border-l border-border-subtle px-5 py-6 xl:block">
             {/* Sidebar content omitted for brevity, it remains identical to before */}
             <section className="mb-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-xs font-semibold">Live Monitoring Feed</h2>
-                  <p className="mt-1 text-[10px] text-white/30">Active lab session activity</p>
+                  <p className="mt-1 text-[10px] text-text-muted">Active lab session activity</p>
                 </div>
                 <button
                   type="button"
@@ -392,7 +392,7 @@ export default function InstructorDashboard() {
                 </button>
               </div>
 
-              <div className="flex flex-col items-center rounded-xl border border-white/[0.06] bg-[#1a1d27] px-4 py-6">
+              <div className="flex flex-col items-center rounded-xl border border-border-subtle bg-bg-glass px-4 py-6">
                 <div className="relative h-32 w-32">
                   <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90" aria-label="Class online 88 percent">
                     <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
@@ -400,7 +400,7 @@ export default function InstructorDashboard() {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-2xl font-bold">{reviewQueue.length}</span>
-                    <span className="text-[10px] text-white/30">new</span>
+                    <span className="text-[10px] text-text-muted">new</span>
                   </div>
                 </div>
                 <p className="mt-3 text-sm font-semibold">Submissions Active</p>
@@ -423,7 +423,7 @@ export default function InstructorDashboard() {
                       aria-hidden="true"
                     />
                     <div>
-                      <p className="text-[11px] leading-snug text-white/60">{item.message}</p>
+                      <p className="text-[11px] leading-snug text-text-muted">{item.message}</p>
                       <p className="mt-0.5 text-[10px] text-white/25">{item.time}</p>
                     </div>
                   </li>

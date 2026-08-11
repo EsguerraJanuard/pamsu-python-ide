@@ -59,7 +59,7 @@ export default function SoloPractice() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <div className="hidden lg:flex h-full">
         <Sidebar user={user} activeItem="Solo Practice" />
       </div>
@@ -67,13 +67,13 @@ export default function SoloPractice() {
       <div className="flex min-w-0 flex-1 flex-col animate-page-fade">
         <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
           <div className="w-full">
-            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
                   <CodeIcon className="h-6 w-6 text-violet-500" />
                   Solo Practice
                 </h1>
-                <p className="mt-1 text-sm text-white/40">
+                <p className="mt-1 text-sm text-text-muted">
                   Independent coding sandbox for practice lessons and ungraded modules. AST structural analysis is fully supported.
                 </p>
               </div>
@@ -82,7 +82,7 @@ export default function SoloPractice() {
             {isLoading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 animate-pulse">
+                  <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.05] bg-bg-glass p-6 animate-pulse">
                     <div className="mb-4 h-10 w-10 rounded-xl bg-white/[0.05]"></div>
                     <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.05]"></div>
                     <div className="mb-6 h-4 w-full rounded-md bg-white/[0.05]"></div>
@@ -98,7 +98,7 @@ export default function SoloPractice() {
                   <div
                     key={activity.task_id}
                     onClick={() => navigate(`/student/workspace?activity=${activity.task_id}`)}
-                    className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 transition-all hover:-translate-y-1 hover:border-violet-500/30 hover:bg-violet-500/[0.04] hover:shadow-2xl hover:shadow-violet-500/10"
+                    className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-white/[0.05] bg-bg-glass p-6 transition-all hover:-translate-y-1 hover:border-violet-500/30 hover:bg-violet-500/[0.04] hover:shadow-2xl hover:shadow-violet-500/10"
                   >
                     <div className="absolute -right-10 -top-10 opacity-5 transition-opacity group-hover:opacity-20">
                       <CodeIcon className="h-40 w-40 text-violet-500" />
@@ -112,12 +112,12 @@ export default function SoloPractice() {
                       {activity.title}
                     </h3>
                     
-                    <p className="mb-6 flex-1 text-sm text-white/40 line-clamp-3">
+                    <p className="mb-6 flex-1 text-sm text-text-muted line-clamp-3">
                       {activity.description || "No description provided."}
                     </p>
                     
                     <div className="mt-auto flex items-center justify-between border-t border-white/[0.05] pt-4">
-                      <span className="text-xs font-medium text-white/30">
+                      <span className="text-xs font-medium text-text-muted">
                         {activity.activity_type === "laboratory" ? "Laboratory Practice" : "Homework Practice"}
                       </span>
                       <button className="text-xs font-semibold text-violet-400 opacity-0 transition-opacity group-hover:opacity-100">
@@ -128,12 +128,12 @@ export default function SoloPractice() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] px-6 py-24 text-center transition-all hover:bg-white/[0.02]">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] px-6 py-24 text-center transition-all hover:bg-bg-glass">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-500/10 text-violet-400 ring-4 ring-violet-500/5">
                   <CodeIcon className="h-8 w-8" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold text-white/90">No Practice Modules Yet</h3>
-                <p className="max-w-md text-sm text-white/50">
+                <p className="max-w-md text-sm text-text-muted">
                   You don't have any practice lessons available at the moment. When instructors publish ungraded modules in your classes, they will appear here.
                 </p>
               </div>

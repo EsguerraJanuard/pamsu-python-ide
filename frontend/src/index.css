@@ -1,12 +1,49 @@
 @import "tailwindcss";
- 
+
+@theme {
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-glass: var(--bg-glass);
+  --color-bg-glass-hover: var(--bg-glass-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+}
+
+:root {
+  /* Light Mode Variables */
+  --bg-base: #f8fafc; /* slate-50 */
+  --bg-panel: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.6);
+  --bg-glass-hover: rgba(255, 255, 255, 0.8);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.15);
+  --text-main: #0f1117;
+  --text-muted: rgba(15, 17, 23, 0.6);
+}
+
+.dark {
+  /* Dark Mode Variables */
+  --bg-base: #0f1117;
+  --bg-panel: #161b26;
+  --bg-glass: rgba(0, 0, 0, 0.2);
+  --bg-glass-hover: rgba(255, 255, 255, 0.04);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.5);
+}
+
 *, *::before, *::after { box-sizing: border-box; }
- 
+
 html, body, #root {
-  background-color: #0f1117 !important;
+  background-color: var(--bg-base) !important;
+  color: var(--text-main) !important;
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
  
 

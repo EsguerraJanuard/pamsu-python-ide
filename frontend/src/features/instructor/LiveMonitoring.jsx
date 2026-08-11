@@ -70,7 +70,7 @@ const LiveMonitoring = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
@@ -83,22 +83,22 @@ const LiveMonitoring = () => {
             <div>
               <p className="mb-1 font-mono text-xs text-emerald-400">MONITORING & GRADING</p>
               <h1 className="text-2xl font-bold">Live Monitoring</h1>
-              <p className="mt-1 text-sm text-white/40">
+              <p className="mt-1 text-sm text-text-muted">
                 Monitor real-time student activity and execution metrics.
               </p>
             </div>
             
             <div className="flex flex-col items-end gap-3">
-              <div className="flex bg-[#1a1d27] rounded-lg p-1 border border-white/[0.06]">
+              <div className="flex bg-bg-glass rounded-lg p-1 border border-border-subtle">
                 <button
                   onClick={() => setMode('global')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/50 hover:text-white/80'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-emerald-500/20 text-emerald-400' : 'text-text-muted hover:text-text-main'}`}
                 >
                   All Active Students
                 </button>
                 <button
                   onClick={() => setMode('task')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-emerald-500/20 text-emerald-400' : 'text-white/50 hover:text-white/80'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-emerald-500/20 text-emerald-400' : 'text-text-muted hover:text-text-main'}`}
                 >
                   Specific Task
                 </button>
@@ -109,7 +109,7 @@ const LiveMonitoring = () => {
                   <select
                     value={selectedClassroom}
                     onChange={(e) => setSelectedClassroom(e.target.value)}
-                    className="bg-[#0f1117] border border-white/[0.06] text-white/80 text-sm font-medium rounded-lg px-4 py-1.5 focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="bg-bg-base border border-border-subtle text-text-main text-sm font-medium rounded-lg px-4 py-1.5 focus:outline-none focus:border-emerald-500 transition-colors"
                   >
                     <option value="All">All Classrooms</option>
                     {classrooms.map((c) => (
@@ -134,10 +134,10 @@ const LiveMonitoring = () => {
           </header>
         
         {mode === 'task' && (
-          <div className="bg-[#1a1d27] p-6 rounded-xl border border-white/[0.06] mb-8 shadow-sm">
+          <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle mb-8 shadow-sm">
             <form onSubmit={handleMonitor} className="flex gap-4 items-end">
               <div className="flex-1 max-w-md">
-                <label htmlFor="taskId" className="block text-sm font-medium text-white/70 mb-2">
+                <label htmlFor="taskId" className="block text-sm font-medium text-text-muted mb-2">
                   Task ID to Monitor
                 </label>
                 <input
@@ -145,14 +145,14 @@ const LiveMonitoring = () => {
                   id="taskId"
                   value={taskIdInput}
                   onChange={(e) => setTaskIdInput(e.target.value)}
-                  className="w-full bg-[#0f1117] border border-white/[0.06] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                  className="w-full bg-bg-base border border-border-subtle rounded-lg px-4 py-2.5 text-text-main focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
                   placeholder="Enter Task ID (e.g., 123)"
                 />
               </div>
               <button
                 type="submit"
                 disabled={!taskIdInput.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-white/50 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-text-muted text-text-main font-semibold py-2.5 px-6 rounded-lg transition-colors"
               >
                 Monitor
               </button>
@@ -172,8 +172,8 @@ const LiveMonitoring = () => {
         {loading && !sessions.length && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-[#1a1d27] rounded-xl border border-white/[0.06] overflow-hidden flex flex-col h-[280px] animate-pulse">
-                <div className="bg-white/[0.03] p-4 flex justify-between items-start border-b border-white/[0.06]">
+              <div key={i} className="bg-bg-glass rounded-xl border border-border-subtle overflow-hidden flex flex-col h-[280px] animate-pulse">
+                <div className="bg-bg-glass p-4 flex justify-between items-start border-b border-border-subtle">
                   <div>
                     <div className="h-5 w-24 bg-white/[0.06] rounded-md mb-2"></div>
                     <div className="h-3 w-16 bg-white/[0.06] rounded-md"></div>
@@ -206,14 +206,14 @@ const LiveMonitoring = () => {
           return (
             <>
               {(mode === 'global' || (mode === 'task' && activeTaskId)) && !loading && filteredSessions.length === 0 && !error && (
-                <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-xl border border-white/[0.06]/50 bg-slate-900/30">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-slate-400 ring-4 ring-slate-500/5">
+                <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-xl border border-border-subtle/50 bg-bg-glass/30">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-text-muted ring-4 ring-slate-500/5">
                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                   </div>
                   <h3 className="mb-2 text-lg font-semibold text-white/90">No Active Sessions</h3>
-                  <p className="text-sm text-slate-400 max-w-sm">
+                  <p className="text-sm text-text-muted max-w-sm">
                     {mode === 'global' 
                       ? (selectedClassroom === 'All' ? "No students are currently active in any of your classrooms." : `No students are currently active in ${selectedClassroom}.`)
                       : `No students are currently active in Task ${activeTaskId}.`}
@@ -228,10 +228,10 @@ const LiveMonitoring = () => {
             return (
               <div 
                 key={session.id || session.student_id || Math.random()} 
-                className={`bg-[#1a1d27] p-5 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
+                className={`bg-bg-glass p-5 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
                   hasWarning 
                     ? 'border-amber-500/50 bg-amber-900/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
-                    : 'border-white/[0.06] hover:border-white/[0.06]'
+                    : 'border-border-subtle hover:border-border-subtle'
                 }`}
               >
                 {hasWarning && (
@@ -258,8 +258,8 @@ const LiveMonitoring = () => {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1 bg-[#0f1117] px-2 py-1 rounded-xl border border-white/[0.06]">
-                    <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 mt-1 bg-bg-base px-2 py-1 rounded-xl border border-border-subtle">
+                    <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
                       {session.is_active ? 'Active' : 'Idle'}
                     </span>
                     <div className={`w-2 h-2 rounded-full ${session.is_active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-slate-600'}`}></div>
@@ -268,39 +268,39 @@ const LiveMonitoring = () => {
 
                 <div className="space-y-4 flex-1">
                   <div className="flex justify-between items-center group">
-                    <span className="text-sm text-white/70 flex items-center gap-2 group-hover:text-white/70 transition-colors">
+                    <span className="text-sm text-text-muted flex items-center gap-2 group-hover:text-text-muted transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                       </svg>
                       Tab Switches
                     </span>
-                    <span className={`font-mono text-lg font-bold ${hasWarning ? 'text-amber-400' : 'text-slate-200'}`}>
+                    <span className={`font-mono text-lg font-bold ${hasWarning ? 'text-amber-400' : 'text-text-main'}`}>
                       {session.tab_switches || 0}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center group">
-                    <span className="text-sm text-white/70 flex items-center gap-2 group-hover:text-white/70 transition-colors">
+                    <span className="text-sm text-text-muted flex items-center gap-2 group-hover:text-text-muted transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                       </svg>
                       Paste Count
                     </span>
-                    <span className="font-mono text-lg font-semibold text-slate-200">
+                    <span className="font-mono text-lg font-semibold text-text-main">
                       {session.paste_count || 0}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-white/[0.06]/80">
-                  <div className="flex justify-between items-center text-xs text-white/40">
+                <div className="mt-5 pt-4 border-t border-border-subtle/80">
+                  <div className="flex justify-between items-center text-xs text-text-muted">
                     <span className="flex items-center gap-1.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       Last Heartbeat
                     </span>
-                    <span className="font-medium text-white/70">
+                    <span className="font-medium text-text-muted">
                       {session.last_heartbeat 
                         ? new Date(session.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
                         : 'Never'}

@@ -38,7 +38,7 @@ const STATUS_CONFIG = {
     accentClass: "border-l-blue-500",
     progressClass: "bg-blue-500",
     buttonClass:
-      "bg-blue-600 text-white hover:bg-blue-500",
+      "bg-blue-600 text-text-main hover:bg-blue-500",
   },
   submitted: {
     label: "Submitted",
@@ -230,7 +230,7 @@ export default function Assignments() {
   });
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar assignmentCount={activities.filter(a => !isSubmittedActivity(a)).length} />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
@@ -266,13 +266,13 @@ export default function Assignments() {
           </style>
 
           <div className="w-full">
-            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
                   <ClipboardListIcon className="h-6 w-6 text-blue-500" />
                   Assignments
                 </h1>
-                <p className="mt-1 text-sm text-white/40">
+                <p className="mt-1 text-sm text-text-muted">
                   {activities.filter(a => !isSubmittedActivity(a)).length} active · {activities.filter(isSubmittedActivity).length} submitted
                 </p>
               </div>
@@ -287,7 +287,7 @@ export default function Assignments() {
             </section>
 
             <div
-              className="mb-6 flex w-fit gap-1 rounded-lg border border-white/[0.06] bg-black/40 shadow-inner p-1"
+              className="mb-6 flex w-fit gap-1 rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-1"
               role="tablist"
               aria-label="Activity filters"
             >
@@ -307,7 +307,7 @@ export default function Assignments() {
                     className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
                       isSelected
                         ? "bg-white text-[#0f1117] shadow-sm"
-                        : "text-white/40 hover:bg-white/[0.06] hover:text-white/80"
+                        : "text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                     }`}
                   >
                     {filterOption.label}
@@ -328,7 +328,7 @@ export default function Assignments() {
                 return (
                   <article
                     key={activity.id}
-                    className={`assignment-card rounded-xl border border-l-[3px] border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group ${status.accentClass}`}
+                    className={`assignment-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group ${status.accentClass}`}
                     style={{
                       animation: `assignmentsFadeUp 400ms ease ${
                         index * 70
@@ -338,7 +338,7 @@ export default function Assignments() {
                     <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <h2 className="text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
+                          <h2 className="text-sm font-semibold text-white/90 transition-colors group-hover:text-text-main">
                             {activity.title}
                           </h2>
 
@@ -348,24 +348,24 @@ export default function Assignments() {
                             {status.label}
                           </span>
 
-                          <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-white/50 shadow-sm">
+                          <span className="rounded-full border border-border-subtle bg-bg-glass px-2 py-0.5 text-[10px] font-medium text-text-muted shadow-sm">
                             {activity.activityType}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-white/40">
-                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
                             <ClipboardListIcon className="h-3 w-3 text-blue-400" />
                             {activity.courseCode}
                           </span>
 
-                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
                             <ClockIcon className="h-3 w-3" />
                             {activity.dueLabel}
                           </span>
 
                           {activity.tags.length > 0 && (
-                            <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
+                            <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
                               <TagIcon />
                               {activity.tags.join(" · ")}
                             </span>
@@ -407,15 +407,15 @@ export default function Assignments() {
                       </div>
                     )}
 
-                    <div className="mb-4 rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2.5 font-mono text-[11px] text-white/50 shadow-inner">
-                      <span className="text-white/30 uppercase tracking-wider text-[9px] mr-2">
+                    <div className="mb-4 rounded-lg border-l-2 border-border-subtle bg-bg-glass px-3 py-2.5 font-mono text-[11px] text-text-muted shadow-inner">
+                      <span className="text-text-muted uppercase tracking-wider text-[9px] mr-2">
                         Activity status:
                       </span>
                       {activity.note}
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/30">
+                      <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-text-muted">
                         Activity progress
                       </span>
 
@@ -428,7 +428,7 @@ export default function Assignments() {
                         />
                       </div>
 
-                      <span className="shrink-0 text-[10px] font-bold text-white/50">
+                      <span className="shrink-0 text-[10px] font-bold text-text-muted">
                         {activity.progress}%
                       </span>
 
@@ -445,12 +445,12 @@ export default function Assignments() {
               })}
 
               {filteredActivities.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-white/[0.08] bg-black/20 shadow-inner py-20 text-center transition-all hover:bg-black/40 hover:border-white/[0.12]">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.03] mb-4 text-white/30 ring-4 ring-white/[0.02]">
+                <div className="rounded-2xl border border-dashed border-border-subtle bg-bg-glass shadow-inner py-20 text-center transition-all hover:bg-bg-glass hover:border-white/[0.12]">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-bg-glass mb-4 text-text-muted ring-4 ring-white/[0.02]">
                     <ClipboardListIcon className="h-6 w-6" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white/80">No Activities Found</h3>
-                  <p className="mt-1 text-sm text-white/40">
+                  <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
+                  <p className="mt-1 text-sm text-text-muted">
                     No activities match the current filter.
                   </p>
                 </div>

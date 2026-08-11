@@ -148,7 +148,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-screen overflow-hidden bg-[#0f1117] text-white">
+    <main className="flex min-h-screen overflow-hidden bg-bg-base text-text-main">
       <style>{`
         @keyframes loginFadeLeft {
           from { opacity: 0; transform: translateX(-16px); }
@@ -175,28 +175,28 @@ export default function Login() {
 
       {/* Left panel — platform info */}
       <section
-        className="login-animated hidden w-[52%] flex-col justify-between border-r border-white/[0.06] px-16 py-10 lg:flex relative z-10"
+        className="login-animated hidden w-[52%] flex-col justify-between border-r border-border-subtle px-16 py-10 lg:flex relative z-10"
         style={{ animation: "loginFadeLeft 700ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
         aria-label="Platform introduction"
       >
         <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-text-main shadow-[0_0_15px_rgba(16,185,129,0.3)]">
             &gt;_
           </div>
-          <span className="font-semibold tracking-wide text-white">PAMSU Python IDE</span>
+          <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
         </div>
 
         <div className="max-w-md select-none cursor-default">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
             Python Learning Platform
           </p>
-          <h1 className="mb-1 text-4xl font-extrabold leading-tight text-white">
+          <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
             Code with integrity.
           </h1>
           <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
             Learn to think.
           </h2>
-          <p className="mb-8 text-sm leading-relaxed text-white/50">
+          <p className="mb-8 text-sm leading-relaxed text-text-muted">
             A browser-based Python environment that supports structural feedback,
             safe code execution, personal practice, and instructor-guided review.
           </p>
@@ -204,7 +204,7 @@ export default function Login() {
             {features.map((feature, index) => (
               <li
                 key={feature.label}
-                className="login-animated flex items-center gap-3 text-sm text-white/70 transition-all duration-300 hover:translate-x-2 hover:text-white group"
+                className="login-animated flex items-center gap-3 text-sm text-text-muted transition-all duration-300 hover:translate-x-2 hover:text-text-main group"
                 style={{ animation: `featureFadeIn 450ms ease ${250 + index * 100}ms both` }}
               >
                 <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{feature.icon}</span>
@@ -226,14 +226,14 @@ export default function Login() {
         <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
 
         <div
-          className="login-animated w-full max-w-[420px] rounded-2xl border border-white/[0.08] bg-[#1a1d27]/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+          className="login-animated w-full max-w-[420px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
           style={{ animation: "loginFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
         >
           <div className="mb-8 text-center select-none cursor-default">
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-text-main">
               Sign in to your workspace
             </h2>
-            <p className="mt-2 text-sm text-white/50">
+            <p className="mt-2 text-sm text-text-muted">
               Use your verified university account
             </p>
           </div>
@@ -254,15 +254,15 @@ export default function Login() {
             <div>
               <label
                 htmlFor="school-email"
-                className="mb-1.5 block text-xs font-medium text-white/60 select-none cursor-default"
+                className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default"
               >
                 School email
               </label>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-black/40"
+                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-white/30 pointer-events-none" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                   <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                 </svg>
                 <input
@@ -274,7 +274,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20 disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20 disabled:opacity-50"
                   style={{ caretColor: "#10b981" }}
                 />
               </div>
@@ -285,7 +285,7 @@ export default function Login() {
               <div className="mb-1.5 flex items-center justify-between">
                 <label
                   htmlFor="password"
-                  className="text-xs font-medium text-white/60 select-none cursor-default"
+                  className="text-xs font-medium text-text-muted select-none cursor-default"
                 >
                   Password
                 </label>
@@ -300,10 +300,10 @@ export default function Login() {
                 )}
               </div>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-black/40"
+                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30 pointer-events-none" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                   <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                   <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
@@ -316,13 +316,13 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20 disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20 disabled:opacity-50"
                   style={{ caretColor: "#10b981" }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="shrink-0 cursor-pointer text-white/30 transition-colors hover:text-white/70"
+                  className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-text-muted"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
@@ -346,7 +346,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-text-main transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
               
@@ -365,7 +365,7 @@ export default function Login() {
               </span>
             </button>
 
-            <p className="text-center text-xs text-white/40 select-none cursor-default">
+            <p className="text-center text-xs text-text-muted select-none cursor-default">
               Need a verified university account?{" "}
               <button
                 type="button"

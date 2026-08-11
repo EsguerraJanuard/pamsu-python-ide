@@ -130,7 +130,7 @@ export default function ClassDetails() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar
         user={{
           name: user.name,
@@ -148,7 +148,7 @@ export default function ClassDetails() {
               
               <button 
                 onClick={() => navigate("/student/classes")}
-                className="mb-6 flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
+                className="mb-6 flex items-center gap-2 text-sm text-text-muted hover:text-text-main transition-colors"
               >
                 <ArrowLeftIcon className="h-4 w-4" />
                 Back to My Classes
@@ -156,29 +156,29 @@ export default function ClassDetails() {
 
               {isLoading ? (
                 <div className="animate-pulse">
-                  <div className="h-32 w-full bg-black/40 shadow-inner rounded-xl border border-white/[0.06] mb-8"></div>
+                  <div className="h-32 w-full bg-bg-glass shadow-inner rounded-xl border border-border-subtle mb-8"></div>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-4">
                       <div className="h-8 w-48 bg-white/[0.06] rounded-md mb-4"></div>
-                      <div className="h-20 w-full bg-black/40 shadow-inner rounded-xl border border-white/[0.06]"></div>
-                      <div className="h-20 w-full bg-black/40 shadow-inner rounded-xl border border-white/[0.06]"></div>
+                      <div className="h-20 w-full bg-bg-glass shadow-inner rounded-xl border border-border-subtle"></div>
+                      <div className="h-20 w-full bg-bg-glass shadow-inner rounded-xl border border-border-subtle"></div>
                     </div>
-                    <div className="h-64 bg-black/40 shadow-inner rounded-xl border border-white/[0.06]"></div>
+                    <div className="h-64 bg-bg-glass shadow-inner rounded-xl border border-border-subtle"></div>
                   </div>
                 </div>
               ) : !classroom ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-black/20 shadow-inner py-24 px-6 text-center transition-all hover:bg-black/40 hover:border-white/[0.12]">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-white/[0.12]">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4 ring-4 ring-red-500/5 text-red-400">
                     <MegaphoneIcon className="h-8 w-8" />
                   </div>
                   <h3 className="text-xl font-semibold text-white/90">Classroom Not Found</h3>
-                  <p className="mt-2 text-sm text-white/50 mb-6 max-w-md">
+                  <p className="mt-2 text-sm text-text-muted mb-6 max-w-md">
                     We couldn't find the details for this classroom. You may not be enrolled or the class was deleted.
                   </p>
                 </div>
               ) : (
                 <>
-                  <header className="mb-8 relative overflow-hidden rounded-xl border border-blue-500/20 bg-black/40 shadow-inner p-8">
+                  <header className="mb-8 relative overflow-hidden rounded-xl border border-blue-500/20 bg-bg-glass shadow-inner p-8">
                     <div className="absolute top-0 right-0 p-16 opacity-5 pointer-events-none">
                       <MegaphoneIcon className="w-64 h-64 text-blue-500 transform rotate-[-15deg] translate-x-12 -translate-y-12" />
                     </div>
@@ -188,14 +188,14 @@ export default function ClassDetails() {
                         <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold tracking-wide text-blue-400 shadow-sm">
                           {classroom.subject_code}
                         </span>
-                        <span className="rounded-full border border-white/[0.1] bg-white/[0.03] px-3 py-1 text-xs font-semibold text-white/70 shadow-sm">
+                        <span className="rounded-full border border-white/[0.1] bg-bg-glass px-3 py-1 text-xs font-semibold text-text-muted shadow-sm">
                           {classroom.section}
                         </span>
                       </div>
                       <h1 className="text-3xl font-bold text-white/90 mb-3 tracking-tight">{classroom.subject_name || "Classroom"}</h1>
                       {classroom.instructor_name && (
-                        <p className="text-sm font-medium text-white/50">
-                          Instructor: <span className="text-white/80">{classroom.instructor_name}</span>
+                        <p className="text-sm font-medium text-text-muted">
+                          Instructor: <span className="text-text-main">{classroom.instructor_name}</span>
                         </p>
                       )}
                     </div>
@@ -204,10 +204,10 @@ export default function ClassDetails() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column: Activities */}
                     <div className="lg:col-span-2 space-y-4">
-                      <h2 className="text-lg font-semibold mb-4 border-b border-white/[0.06] pb-3 text-white/90">Class Activities</h2>
+                      <h2 className="text-lg font-semibold mb-4 border-b border-border-subtle pb-3 text-white/90">Class Activities</h2>
                       {activities.length === 0 ? (
-                        <div className="rounded-xl border border-white/[0.06] bg-black/20 shadow-inner p-8 text-center">
-                          <p className="text-sm text-white/40">No activities assigned for this class yet.</p>
+                        <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-8 text-center">
+                          <p className="text-sm text-text-muted">No activities assigned for this class yet.</p>
                         </div>
                       ) : (
                         activities.map((activity, index) => {
@@ -215,27 +215,27 @@ export default function ClassDetails() {
                           return (
                             <div
                               key={activity.id}
-                              className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-black/40 shadow-inner p-5 hover:border-white/[0.12] hover:bg-black/60 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
+                              className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-5 hover:border-white/[0.12] hover:bg-black/60 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
                               style={{ animation: `dashboardFadeUp 400ms ease ${index * 70}ms both` }}
                             >
                               <div className="min-w-0">
                                 <div className="flex items-center gap-3 mb-1.5">
-                                  <h3 className="text-base font-semibold truncate text-white/90 group-hover:text-white transition-colors">{activity.title}</h3>
+                                  <h3 className="text-base font-semibold truncate text-white/90 group-hover:text-text-main transition-colors">{activity.title}</h3>
                                   {isSubmitted ? (
                                     <span className="shrink-0 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-green-400">Submitted</span>
                                   ) : (
                                     <span className="shrink-0 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-blue-400">Active</span>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-3 text-xs font-medium text-white/40">
-                                  <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]"><ClockIcon className="h-3 w-3" /> {activity.dueLabel}</span>
+                                <div className="flex items-center gap-3 text-xs font-medium text-text-muted">
+                                  <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]"><ClockIcon className="h-3 w-3" /> {activity.dueLabel}</span>
                                   <span className="text-white/20">•</span>
-                                  <span className="px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">{activity.note}</span>
+                                  <span className="px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">{activity.note}</span>
                                 </div>
                               </div>
                               <button
                                 onClick={() => handleOpenActivity(activity)}
-                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-blue-500/40 text-blue-400 hover:bg-blue-500/10" : "bg-blue-600 text-white hover:bg-blue-500"}`}
+                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-blue-500/40 text-blue-400 hover:bg-blue-500/10" : "bg-blue-600 text-text-main hover:bg-blue-500"}`}
                               >
                                 {activity.actionLabel}
                               </button>
@@ -247,35 +247,35 @@ export default function ClassDetails() {
 
                     {/* Right Column: Static Announcements */}
                     <div className="space-y-4">
-                      <h2 className="text-lg font-semibold mb-4 border-b border-white/[0.06] pb-3 text-white/90">Announcements</h2>
-                      <div className="rounded-xl border border-amber-500/20 bg-black/40 shadow-inner p-5 relative overflow-hidden group hover:border-amber-500/30 transition-colors">
+                      <h2 className="text-lg font-semibold mb-4 border-b border-border-subtle pb-3 text-white/90">Announcements</h2>
+                      <div className="rounded-xl border border-amber-500/20 bg-bg-glass shadow-inner p-5 relative overflow-hidden group hover:border-amber-500/30 transition-colors">
                         <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50 group-hover:bg-amber-500 transition-colors"></div>
                         <div className="flex items-start gap-3 mb-3">
                           <MegaphoneIcon className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
                           <div>
-                            <h3 className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">Welcome to the class!</h3>
-                            <p className="text-[10px] text-white/40 font-medium mt-0.5">Posted by {classroom.instructor_name || "Instructor"}</p>
+                            <h3 className="text-sm font-semibold text-white/90 group-hover:text-text-main transition-colors">Welcome to the class!</h3>
+                            <p className="text-[10px] text-text-muted font-medium mt-0.5">Posted by {classroom.instructor_name || "Instructor"}</p>
                           </div>
                         </div>
-                        <p className="text-xs leading-relaxed text-white/60 group-hover:text-white/80 transition-colors">
+                        <p className="text-xs leading-relaxed text-text-muted group-hover:text-text-main transition-colors">
                           Welcome to the laboratory component! All coding activities for this course will be completed and graded here. Make sure to check the active assignments board regularly. Good luck!
                         </p>
                       </div>
                       
-                      <div className="rounded-xl border border-white/[0.06] bg-black/40 shadow-inner p-5 hover:border-white/[0.1] hover:bg-black/60 transition-all">
-                        <h3 className="text-sm font-semibold text-white mb-2">Class Information</h3>
+                      <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-5 hover:border-white/[0.1] hover:bg-black/60 transition-all">
+                        <h3 className="text-sm font-semibold text-text-main mb-2">Class Information</h3>
                         <div className="space-y-2 mt-4">
                           <div className="flex justify-between text-xs">
-                            <span className="text-white/40">Class ID</span>
-                            <span className="font-mono text-white/80">{classroom.class_id}</span>
+                            <span className="text-text-muted">Class ID</span>
+                            <span className="font-mono text-text-main">{classroom.class_id}</span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-white/40">Instructor</span>
-                            <span className="text-white/80">{classroom.instructor_name}</span>
+                            <span className="text-text-muted">Instructor</span>
+                            <span className="text-text-main">{classroom.instructor_name}</span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-white/40">Classmates</span>
-                            <span className="text-white/80">{membersCount > 0 ? membersCount - 1 : 0} student{membersCount - 1 === 1 ? '' : 's'}</span>
+                            <span className="text-text-muted">Classmates</span>
+                            <span className="text-text-main">{membersCount > 0 ? membersCount - 1 : 0} student{membersCount - 1 === 1 ? '' : 's'}</span>
                           </div>
                         </div>
                       </div>

@@ -36,15 +36,15 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#1a1d27] p-6 shadow-2xl">
-        <h2 className="mb-2 text-lg font-bold text-white">Join a Class</h2>
-        <p className="mb-6 text-sm text-white/50">
+      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl">
+        <h2 className="mb-2 text-lg font-bold text-text-main">Join a Class</h2>
+        <p className="mb-6 text-sm text-text-muted">
           Ask your instructor for the class code and enter it below.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-white/70">
+            <label className="mb-1.5 block text-xs font-semibold text-text-muted">
               Class Code
             </label>
             <input
@@ -52,7 +52,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="e.g. CCS101-XYZ"
-              className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#3b82f6] focus:outline-none"
+              className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main placeholder:text-white/20 focus:border-[#3b82f6] focus:outline-none"
               autoFocus
             />
           </div>
@@ -68,14 +68,14 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="rounded-lg px-4 py-2 text-xs font-semibold text-white/60 transition hover:bg-white/[0.04] hover:text-white"
+              className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted transition hover:bg-bg-glass hover:text-text-main"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading || !code}
-              className="rounded-lg bg-[#3b82f6] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2563eb] disabled:opacity-50"
+              className="rounded-lg bg-[#3b82f6] px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-[#2563eb] disabled:opacity-50"
             >
               {isLoading ? "Joining..." : "Join Class"}
             </button>

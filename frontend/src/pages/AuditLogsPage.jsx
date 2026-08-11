@@ -61,20 +61,20 @@ export default function AuditLogsPage({ role: propRole }) {
   });
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       {isInstructor ? <InstructorSidebar /> : <Sidebar />}
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
             <div className="w-full">
-              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
                     <ShieldIcon className="h-6 w-6 text-emerald-400" />
                     {isInstructor ? "System Audit Logs" : "Audit History"}
                   </h1>
-                  <p className="mt-1 text-sm text-white/40">
+                  <p className="mt-1 text-sm text-text-muted">
                     Review system events and security logs.
                   </p>
                 </div>
@@ -82,7 +82,7 @@ export default function AuditLogsPage({ role: propRole }) {
                 <button
                   onClick={() => fetchAuditLogs(page)}
                   disabled={loading}
-                  className="rounded-lg border border-slate-800 bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition"
+                  className="rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-1.5 text-xs font-medium text-text-muted hover:bg-slate-800 transition"
                 >
                   {loading ? "Refreshing..." : "↻ Refresh Audit Trail"}
                 </button>
@@ -90,23 +90,23 @@ export default function AuditLogsPage({ role: propRole }) {
 
               <div className="space-y-6">
                 {/* Controls Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border-subtle bg-bg-glass p-4">
                   <div className="flex items-center gap-3 flex-1">
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by action, resource, or IP address..."
-                      className="w-full sm:w-80 rounded-lg border border-white/[0.06] bg-black/20 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none transition"
+                      className="w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none transition"
                     />
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <label className="text-xs font-medium text-slate-400">Action Type:</label>
+                    <label className="text-xs font-medium text-text-muted">Action Type:</label>
                     <select
                       value={actionFilter}
                       onChange={(e) => setActionFilter(e.target.value)}
-                      className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-xs text-white focus:border-emerald-500/50 focus:outline-none transition"
+                      className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500/50 focus:outline-none transition"
                     >
                       <option value="all">All Actions</option>
                       <option value="login">Login Events</option>
@@ -117,7 +117,7 @@ export default function AuditLogsPage({ role: propRole }) {
                 </div>
 
                 {/* Audit Data Table */}
-                <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] shadow-xl overflow-hidden">
+                <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-xl overflow-hidden">
                   {loading ? (
                     <div className="divide-y divide-white/[0.06] w-full text-left text-xs font-mono">
                       {[1, 2, 3, 4, 5].map(i => (
@@ -131,12 +131,12 @@ export default function AuditLogsPage({ role: propRole }) {
                       ))}
                     </div>
                   ) : filteredLogs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center transition-all hover:bg-white/[0.02]">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-slate-400 ring-4 ring-slate-500/5">
+                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center transition-all hover:bg-bg-glass">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-text-muted ring-4 ring-slate-500/5">
                         <ShieldIcon className="h-7 w-7" />
                       </div>
                       <h3 className="mb-2 text-lg font-semibold text-white/90">No Audit Records Found</h3>
-                      <p className="text-xs text-slate-400 max-w-sm">
+                      <p className="text-xs text-text-muted max-w-sm">
                         No security events or actions match your current search criteria.
                       </p>
                     </div>
@@ -144,7 +144,7 @@ export default function AuditLogsPage({ role: propRole }) {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="border-b border-white/[0.06] bg-black/20 text-slate-400 font-semibold uppercase tracking-wider">
+                          <tr className="border-b border-border-subtle bg-bg-glass text-text-muted font-semibold uppercase tracking-wider">
                             <th className="py-3.5 px-4">Timestamp</th>
                             <th className="py-3.5 px-4">Action Type</th>
                             <th className="py-3.5 px-4">Target Resource</th>
@@ -155,13 +155,13 @@ export default function AuditLogsPage({ role: propRole }) {
                         <tbody className="divide-y divide-white/[0.06] font-mono">
                           {filteredLogs.map((log) => (
                             <tr key={log.id} className="hover:bg-slate-800/20 transition">
-                              <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
+                              <td className="py-3.5 px-4 text-text-muted whitespace-nowrap">
                                 {new Date(log.timestamp || log.occurred_at || log.created_at || Date.now()).toLocaleString()}
                               </td>
-                              <td className="py-3.5 px-4 font-semibold text-white font-sans">
+                              <td className="py-3.5 px-4 font-semibold text-text-main font-sans">
                                 {log.action || log.action_type}
                               </td>
-                              <td className="py-3.5 px-4 text-slate-300">
+                              <td className="py-3.5 px-4 text-text-muted">
                                 {log.resource || log.resource_type || log.resource_id || "N/A"}
                               </td>
                               <td className="py-3.5 px-4 text-cyan-400">
@@ -188,20 +188,20 @@ export default function AuditLogsPage({ role: propRole }) {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex justify-between items-center pt-2 text-xs font-mono text-slate-400">
+                  <div className="flex justify-between items-center pt-2 text-xs font-mono text-text-muted">
                     <span>Page {page} of {totalPages}</span>
                     <div className="flex gap-2">
                       <button
                         disabled={page <= 1}
                         onClick={() => setPage((p) => p - 1)}
-                        className="rounded border border-slate-800 px-3 py-1 bg-[#1a1d27] disabled:opacity-40"
+                        className="rounded border border-border-subtle px-3 py-1 bg-bg-glass disabled:opacity-40"
                       >
                         Previous
                       </button>
                       <button
                         disabled={page >= totalPages}
                         onClick={() => setPage((p) => p + 1)}
-                        className="rounded border border-slate-800 px-3 py-1 bg-[#1a1d27] disabled:opacity-40"
+                        className="rounded border border-border-subtle px-3 py-1 bg-bg-glass disabled:opacity-40"
                       >
                         Next
                       </button>

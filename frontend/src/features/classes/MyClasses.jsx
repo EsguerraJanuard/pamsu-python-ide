@@ -86,7 +86,7 @@ export default function MyClasses() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar
         user={{
           name: user.name,
@@ -102,13 +102,13 @@ export default function MyClasses() {
           <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
             <div className="w-full">
               
-              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
                     <UsersIcon className="h-6 w-6 text-blue-500" />
                     My Classes
                   </h1>
-                  <p className="mt-1 text-sm text-white/40">
+                  <p className="mt-1 text-sm text-text-muted">
                     View your enrolled classrooms and access specific lab activities.
                   </p>
                 </div>
@@ -116,13 +116,13 @@ export default function MyClasses() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
+                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-text-main transition hover:bg-[#2563eb]"
                   >
                     <PlusIcon className="h-4 w-4" />
                     Join a Class
                   </button>
                   <div
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1a1d27] border border-white/[0.06] text-xs font-bold shadow-sm"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-glass border border-border-subtle text-xs font-bold shadow-sm"
                   >
                     {user.initials}
                   </div>
@@ -133,28 +133,28 @@ export default function MyClasses() {
                 {isLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="flex flex-col rounded-xl border border-white/[0.06] bg-black/40 shadow-inner p-6 animate-pulse">
+                      <div key={i} className="flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-6 animate-pulse">
                         <div className="mb-4 h-5 w-16 bg-white/[0.06] rounded-full"></div>
                         <div className="mb-3 h-6 w-3/4 bg-white/[0.06] rounded-md"></div>
                         <div className="mb-6 h-4 w-1/2 bg-white/[0.06] rounded-md"></div>
-                        <div className="mt-auto border-t border-white/[0.06] pt-5 flex gap-2">
+                        <div className="mt-auto border-t border-border-subtle pt-5 flex gap-2">
                           <div className="h-6 w-1/3 bg-white/[0.06] rounded-md"></div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : classrooms.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-black/20 shadow-inner py-24 px-6 text-center transition-all hover:bg-black/40 hover:border-white/[0.15]">
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-white/[0.15]">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4 ring-4 ring-blue-500/5 text-blue-400">
                       <BookOpenIcon className="h-8 w-8" />
                     </div>
                     <h3 className="text-xl font-semibold text-white/90">No Active Classes</h3>
-                    <p className="mt-2 max-w-md text-sm text-white/50 mb-6">
+                    <p className="mt-2 max-w-md text-sm text-text-muted mb-6">
                       You haven't joined any classrooms yet. Use the 6-character code provided by your instructor to join one.
                     </p>
                     <button
                       onClick={() => setIsJoinModalOpen(true)}
-                      className="rounded-lg bg-black/40 border border-white/[0.1] px-6 py-2.5 text-sm font-medium shadow-sm transition hover:bg-black/60 hover:border-white/[0.2]"
+                      className="rounded-lg bg-bg-glass border border-white/[0.1] px-6 py-2.5 text-sm font-medium shadow-sm transition hover:bg-black/60 hover:border-white/[0.2]"
                     >
                       Enter class code
                     </button>
@@ -165,7 +165,7 @@ export default function MyClasses() {
                       <div 
                         key={cls.classroom.class_id || idx}
                         onClick={() => navigate(`/student/classes/${cls.classroom.class_id}`)}
-                        className="group relative flex flex-col rounded-xl border border-white/[0.06] bg-black/40 shadow-inner hover:border-blue-500/30 hover:bg-black/60 hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                        className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner hover:border-blue-500/30 hover:bg-black/60 hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
                         style={{
                           animation: `dashboardFadeUp 400ms ease ${idx * 70}ms both`,
                         }}
@@ -179,27 +179,27 @@ export default function MyClasses() {
                             </span>
                           </div>
                           
-                          <h3 className="text-lg font-bold text-white/90 mb-2 line-clamp-1 group-hover:text-white transition-colors relative z-10">
+                          <h3 className="text-lg font-bold text-white/90 mb-2 line-clamp-1 group-hover:text-text-main transition-colors relative z-10">
                             {cls.classroom.subject_name || 'Classroom'}
                           </h3>
                           
                           <div className="flex items-center gap-2 mb-6 relative z-10">
-                            <span className="text-sm font-medium text-white/60 group-hover:text-white/80 transition-colors">
+                            <span className="text-sm font-medium text-text-muted group-hover:text-text-main transition-colors">
                               {cls.classroom.section}
                             </span>
                             {cls.classroom.instructor_name && (
                               <>
                                 <span className="text-white/20">•</span>
-                                <span className="text-sm text-white/40 group-hover:text-white/60 transition-colors">
+                                <span className="text-sm text-text-muted group-hover:text-text-muted transition-colors">
                                   {cls.classroom.instructor_name}
                                 </span>
                               </>
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-4 border-t border-white/[0.06] pt-5 mt-auto relative z-10">
+                          <div className="flex items-center gap-4 border-t border-border-subtle pt-5 mt-auto relative z-10">
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider mb-1.5">Status</span>
+                              <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1.5">Status</span>
                               <span className="text-xs font-medium text-emerald-400 flex items-center gap-1.5">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
                                 Enrolled
@@ -207,8 +207,8 @@ export default function MyClasses() {
                             </div>
                             <div className="h-8 w-px bg-white/[0.06]"></div>
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider mb-1.5">Joined</span>
-                              <span className="text-xs font-medium text-white/60">
+                              <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1.5">Joined</span>
+                              <span className="text-xs font-medium text-text-muted">
                                 {cls.joined_at ? new Date(cls.joined_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'}) : 'Recently'}
                               </span>
                             </div>

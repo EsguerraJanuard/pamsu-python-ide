@@ -42,7 +42,7 @@ export default function InstructorSettings() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
@@ -53,7 +53,7 @@ export default function InstructorSettings() {
           <div>
             <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
             <h1 className="text-2xl font-bold">Settings</h1>
-            <p className="mt-1 text-sm text-white/40">
+            <p className="mt-1 text-sm text-text-muted">
               Manage your faculty profile and evaluation preferences.
             </p>
           </div>
@@ -66,61 +66,61 @@ export default function InstructorSettings() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Faculty Profile</h2>
+          <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
+            <h2 className="text-sm font-semibold text-text-main mb-4">Faculty Profile</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-xs text-white/60 mb-1">Full Name</label>
+                <label className="block text-xs text-text-muted mb-1">Full Name</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs text-white/60 mb-1">Email Address</label>
+                <label className="block text-xs text-text-muted mb-1">Email Address</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs text-white/60 mb-1">Department</label>
+                <label className="block text-xs text-text-muted mb-1">Department</label>
                 <input
                   type="text"
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs text-white/60 mb-1">Default Course</label>
+                <label className="block text-xs text-text-muted mb-1">Default Course</label>
                 <input
                   type="text"
                   name="defaultCourse"
                   value={formData.defaultCourse}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
                 />
               </div>
             </div>
           </section>
 
-          <section className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">AST & Automated Grading Policy</h2>
+          <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
+            <h2 className="text-sm font-semibold text-text-main mb-4">AST & Automated Grading Policy</h2>
             <div>
-              <label className="block text-xs text-white/60 mb-1">Default AST Strictness Level</label>
+              <label className="block text-xs text-text-muted mb-1">Default AST Strictness Level</label>
               <select
                 name="astStrictness"
                 value={formData.astStrictness}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-white/[0.08] bg-[#0f1117] px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
               >
                 <option value="lenient">Lenient (Focus on execution output only)</option>
                 <option value="moderate">Moderate (Standard AST pattern checks)</option>
@@ -132,7 +132,7 @@ export default function InstructorSettings() {
           <div className="flex justify-end gap-3">
             <button
               type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition"
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-text-main hover:bg-emerald-500 transition"
             >
               Save Changes
             </button>

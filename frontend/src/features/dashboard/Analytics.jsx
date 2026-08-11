@@ -52,7 +52,7 @@ export default function Analytics() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
@@ -87,13 +87,13 @@ export default function Analytics() {
           </style>
 
           <div className="w-full">
-            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+            <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
                   <LineChartIcon className="h-6 w-6 text-blue-500" />
                   My Analytics
                 </h1>
-                <p className="mt-1 text-sm text-white/40">
+                <p className="mt-1 text-sm text-text-muted">
                   Review your activity completion, structural indicators,
                   test results, and personal improvement.
                 </p>
@@ -113,13 +113,13 @@ export default function Analytics() {
 
             {isLoading ? (
               <section className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                <article className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
+                <article className="rounded-xl border border-border-subtle bg-bg-glass p-4 animate-pulse">
                   <div className="mb-1 h-8 w-20 bg-white/[0.06] rounded-md"></div>
                   <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
                   <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
                   <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]"></div>
                 </article>
-                <article className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
+                <article className="rounded-xl border border-border-subtle bg-bg-glass p-4 animate-pulse">
                   <div className="mb-1 h-8 w-16 bg-white/[0.06] rounded-md"></div>
                   <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
                   <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
@@ -132,7 +132,7 @@ export default function Analytics() {
               aria-label="Progress summary"
             >
                 <article
-                  className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                  className="rounded-xl border border-border-subtle bg-bg-glass p-4"
                 >
                   <p
                     className="mb-1 text-3xl font-bold text-blue-500"
@@ -140,11 +140,11 @@ export default function Analytics() {
                     {metrics?.learningProgress || 0}%
                   </p>
 
-                  <h2 className="text-xs font-medium text-white/70">
+                  <h2 className="text-xs font-medium text-text-muted">
                     Learning Progress
                   </h2>
 
-                  <p className="mb-3 text-[10px] text-white/30">
+                  <p className="mb-3 text-[10px] text-text-muted">
                     Based on your completed activities
                   </p>
 
@@ -159,7 +159,7 @@ export default function Analytics() {
                 </article>
 
                 <article
-                  className="rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                  className="rounded-xl border border-border-subtle bg-bg-glass p-4"
                 >
                   <p
                     className="mb-1 text-3xl font-bold text-purple-400"
@@ -167,11 +167,11 @@ export default function Analytics() {
                     {metrics?.completedActivities || "0 / 0"}
                   </p>
 
-                  <h2 className="text-xs font-medium text-white/70">
+                  <h2 className="text-xs font-medium text-text-muted">
                     Activities Completed
                   </h2>
 
-                  <p className="mb-3 text-[10px] text-white/30">
+                  <p className="mb-3 text-[10px] text-text-muted">
                     Laboratory and homework activities
                   </p>
 
@@ -189,9 +189,9 @@ export default function Analytics() {
 
             {!isLoading && (
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <section className="rounded-xl border border-dashed border-white/[0.08] bg-transparent p-12 flex flex-col items-center justify-center text-center xl:col-span-2">
-                   <h2 className="text-base font-semibold text-white/70 mb-2">More Analytics Coming Soon</h2>
-                   <p className="text-xs text-white/40 max-w-md">Detailed programming concept progress, weekly tracking, and comparative growth charts require additional backend support. This feature will be available in a future update.</p>
+                <section className="rounded-xl border border-dashed border-border-subtle bg-transparent p-12 flex flex-col items-center justify-center text-center xl:col-span-2">
+                   <h2 className="text-base font-semibold text-text-muted mb-2">More Analytics Coming Soon</h2>
+                   <p className="text-xs text-text-muted max-w-md">Detailed programming concept progress, weekly tracking, and comparative growth charts require additional backend support. This feature will be available in a future update.</p>
                 </section>
               </div>
             )}

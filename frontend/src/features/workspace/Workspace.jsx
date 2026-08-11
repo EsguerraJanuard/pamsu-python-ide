@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import MonacoEditor from "@monaco-editor/react";
 import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
+import { ThemeToggle } from "../theme/ThemeToggle";
 import Statusbar from "../../components/layout/Statusbar";
 
 const DEFAULT_CODE = `# Fibonacci Sequence
@@ -41,7 +43,7 @@ const EXECUTION_STATUS = {
   idle: {
     label: "Ready",
     dotClass: "bg-white/30",
-    textClass: "text-white/40",
+    textClass: "text-text-muted",
   },
   running: {
     label: "Running...",
@@ -607,24 +609,24 @@ export default function Workspace() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <div className="hidden lg:flex h-full">
         <Sidebar />
       </div>
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-13 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-black/40 shadow-inner backdrop-blur-md px-5 sm:px-6 py-2 select-none">
+        <header className="flex min-h-13 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-bg-glass shadow-inner backdrop-blur-md px-5 sm:px-6 py-2 select-none">
           {/* Left: Section Segment Control & Activity Info */}
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex items-center gap-1 rounded-lg bg-black/20 shadow-inner p-1 border border-white/[0.06]">
+            <div className="flex items-center gap-1 rounded-lg bg-bg-glass shadow-inner p-1 border border-border-subtle">
               <button
                 type="button"
                 onClick={toggleProblemPanel}
                 aria-pressed={showProblemPanel}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                   showProblemPanel
-                    ? "bg-[#3b82f6] text-white shadow-sm"
-                    : "text-white/50 hover:bg-white/[0.06] hover:text-white"
+                    ? "bg-[#3b82f6] text-text-main shadow-sm"
+                    : "text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 }`}
               >
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -639,8 +641,8 @@ export default function Workspace() {
                 aria-pressed={showReviewPanel}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                   showReviewPanel
-                    ? "bg-violet-600 text-white shadow-sm"
-                    : "text-white/50 hover:bg-white/[0.06] hover:text-white"
+                    ? "bg-violet-600 text-text-main shadow-sm"
+                    : "text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 }`}
               >
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -649,11 +651,11 @@ export default function Workspace() {
                 Review
               </button>
             </div>
-            <div className="hidden min-w-0 sm:block border-l border-white/[0.08] pl-3">
+            <div className="hidden min-w-0 sm:block border-l border-border-subtle pl-3">
               <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-blue-400 mr-2">
                 {activity.courseCode}
               </span>
-              <span className="truncate text-xs font-bold text-white tracking-wide">
+              <span className="truncate text-xs font-bold text-text-main tracking-wide">
                 {activity.title}
               </span>
             </div>
@@ -662,17 +664,21 @@ export default function Workspace() {
           {/* Right: Execution Status & Action Buttons */}
           <div className="flex items-center gap-2.5">
             {/* Status Indicator */}
-            <div className="hidden sm:flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/20 shadow-inner px-2.5 py-1 text-xs font-medium">
+            <div className="hidden sm:flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass shadow-inner px-2.5 py-1 text-xs font-medium">
               <span className={`h-2 w-2 rounded-full ${status.dotClass}`} />
               <span className={status.textClass}>{status.label}</span>
             </div>
+
+            <div className="mx-1 h-5 w-px bg-border-subtle" />
+            <ThemeToggle />
+            <div className="mx-1 h-5 w-px bg-border-subtle" />
 
             {/* Check Code Button */}
             <button
               type="button"
               onClick={handleCheck}
               disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-white/[0.08] hover:border-white/[0.2] active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-bg-glass px-3 py-1.5 text-xs font-semibold text-text-main transition-all hover:bg-bg-glass-hover hover:border-white/[0.2] active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -685,7 +691,7 @@ export default function Workspace() {
               type="button"
               onClick={handleRun}
               disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-text-main shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M4 2.5v11l9-5.5-9-5.5z" />
@@ -698,7 +704,7 @@ export default function Workspace() {
               type="button"
               onClick={handleSubmit}
               disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1.5 text-xs font-bold text-text-main shadow-md shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               Submit
             </button>
@@ -721,7 +727,7 @@ export default function Workspace() {
             <button
               type="button"
               onClick={() => setShowBehaviorNotice(false)}
-              className="shrink-0 font-semibold text-amber-300 hover:text-white transition-colors cursor-pointer"
+              className="shrink-0 font-semibold text-amber-300 hover:text-text-main transition-colors cursor-pointer"
             >
               Dismiss
             </button>
@@ -752,17 +758,17 @@ export default function Workspace() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside
             style={{ width: showProblemPanel ? `${panelWidth}px` : "0px" }}
-            className={`fixed inset-y-0 left-0 z-50 flex-col overflow-hidden border-r border-white/[0.08] bg-black/40 shadow-inner backdrop-blur-xl xl:static xl:z-auto transition-[width] duration-75 ${
+            className={`fixed inset-y-0 left-0 z-50 flex-col overflow-hidden border-r border-border-subtle bg-bg-glass shadow-inner backdrop-blur-xl xl:static xl:z-auto transition-[width] duration-75 ${
               showProblemPanel ? "flex" : "hidden"
             }`}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] p-4">
+            <div className="flex items-start justify-between gap-3 border-b border-border-subtle p-4">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
                   Problem Statement
                 </span>
 
-                <h2 className="mt-1 text-sm font-bold text-white tracking-tight">
+                <h2 className="mt-1 text-sm font-bold text-text-main tracking-tight">
                   {activity.title}
                 </h2>
               </div>
@@ -770,7 +776,7 @@ export default function Workspace() {
               <button
                 type="button"
                 onClick={() => setShowProblemPanel(false)}
-                className="rounded px-2 py-1 text-white/30 hover:bg-white/[0.05] hover:text-white xl:hidden"
+                className="rounded px-2 py-1 text-text-muted hover:bg-bg-glass-hover hover:text-text-main xl:hidden"
                 aria-label="Close problem panel"
               >
                 ×
@@ -782,23 +788,23 @@ export default function Workspace() {
                 <span className="inline-block rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
                   {activity.dueLabel}
                 </span>
-                <span className="rounded bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 text-[10px] font-mono text-white/50">
+                <span className="rounded bg-bg-glass border border-border-subtle px-2 py-0.5 text-[10px] font-mono text-text-muted">
                   Python 3
                 </span>
               </div>
 
-              <section className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
-                <h3 className="mb-1.5 text-xs font-bold text-white/80">
+              <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
+                <h3 className="mb-1.5 text-xs font-bold text-text-main">
                   Instructions
                 </h3>
 
-                <p className="text-xs leading-relaxed text-white/60">
+                <p className="text-xs leading-relaxed text-text-muted">
                   {activity.description}
                 </p>
               </section>
 
-              <section className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
-                <h3 className="mb-2 text-xs font-bold text-white/80">
+              <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
+                <h3 className="mb-2 text-xs font-bold text-text-main">
                   Requirements Checklist
                 </h3>
 
@@ -806,7 +812,7 @@ export default function Workspace() {
                   {activity.requirements.map((requirement) => (
                     <li
                       key={requirement}
-                      className="flex items-center gap-2 text-xs text-white/70 font-medium"
+                      className="flex items-center gap-2 text-xs text-text-muted font-medium"
                     >
                       <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-blue-400 border border-blue-500/20">
                         ✓
@@ -817,12 +823,12 @@ export default function Workspace() {
                 </ul>
               </section>
 
-              <section className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
-                <h3 className="mb-1.5 text-xs font-bold text-white/80">
+              <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
+                <h3 className="mb-1.5 text-xs font-bold text-text-main">
                   Expected Output
                 </h3>
 
-                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-black/40 shadow-inner p-3 font-mono text-[11px] text-emerald-400">
+                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-bg-glass shadow-inner p-3 font-mono text-[11px] text-emerald-400">
                   {activity.expectedOutput}
                 </pre>
               </section>
@@ -832,7 +838,7 @@ export default function Workspace() {
                   Clipboard Policy
                 </h3>
 
-                <p className="mt-1 text-[11px] leading-relaxed text-white/50">
+                <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
                   Native paste is restricted for academic integrity. Use internal IDE copy/paste controls.
                 </p>
               </section>
@@ -852,9 +858,9 @@ export default function Workspace() {
             </div>
           )}
 
-          <main className="flex min-w-0 flex-1 flex-col bg-[#0f1117]">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-black/20 shadow-inner px-3 py-1 backdrop-blur-md">
-              <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-black/40 shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
+          <main className="flex min-w-0 flex-1 flex-col bg-bg-base">
+            <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass shadow-inner px-3 py-1 backdrop-blur-md">
+              <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
                 <span className="text-blue-400">
                   {activity.fileName}
                 </span>
@@ -869,7 +875,7 @@ export default function Workspace() {
                 <button
                   type="button"
                   onClick={copySelectionToInternalBuffer}
-                  className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] font-medium text-white/50 transition-all hover:bg-white/[0.06] hover:text-white active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1 rounded-md border border-border-subtle bg-bg-glass px-2 py-1 text-[10px] font-medium text-text-muted transition-all hover:bg-bg-glass-hover hover:text-text-main active:scale-95 cursor-pointer"
                   title="Copy selection"
                 >
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -882,7 +888,7 @@ export default function Workspace() {
                 <button
                   type="button"
                   onClick={cutSelectionToInternalBuffer}
-                  className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] font-medium text-white/50 transition-all hover:bg-white/[0.06] hover:text-white active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1 rounded-md border border-border-subtle bg-bg-glass px-2 py-1 text-[10px] font-medium text-text-muted transition-all hover:bg-bg-glass-hover hover:text-text-main active:scale-95 cursor-pointer"
                   title="Cut selection"
                 >
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -896,7 +902,7 @@ export default function Workspace() {
                 <button
                   type="button"
                   onClick={pasteFromInternalBuffer}
-                  className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] font-medium text-white/50 transition-all hover:bg-white/[0.06] hover:text-white active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1 rounded-md border border-border-subtle bg-bg-glass px-2 py-1 text-[10px] font-medium text-text-muted transition-all hover:bg-bg-glass-hover hover:text-text-main active:scale-95 cursor-pointer"
                   title="Paste selection"
                 >
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -933,7 +939,7 @@ export default function Workspace() {
                 onPaste={handleNativePaste}
                 spellCheck="false"
                 aria-label="Python code editor"
-                className="h-full w-full resize-none overflow-auto bg-[#0f1117] p-4 font-mono text-[12px] leading-6 text-white/80 outline-none sm:p-5 sm:text-[13px]"
+                className="h-full w-full resize-none overflow-auto bg-bg-base p-4 font-mono text-[12px] leading-6 text-text-main outline-none sm:p-5 sm:text-[13px]"
                 style={{
                   caretColor: "#f59e0b",
                   tabSize: 4,
@@ -946,8 +952,8 @@ export default function Workspace() {
               </div>
             </div>
 
-            <section className="flex h-[clamp(170px,26vh,230px)] shrink-0 flex-col border-t border-white/[0.08]">
-              <div className="flex shrink-0 items-center overflow-x-auto border-b border-white/[0.08] px-2">
+            <section className="flex h-[clamp(170px,26vh,230px)] shrink-0 flex-col border-t border-border-subtle">
+              <div className="flex shrink-0 items-center overflow-x-auto border-b border-border-subtle px-2">
                 {[
                   { id: "output", label: "Output" },
                   { id: "analysis", label: "Structure" },
@@ -959,8 +965,8 @@ export default function Workspace() {
                     onClick={() => setActivePanel(panel.id)}
                     className={`whitespace-nowrap border-b-2 px-3 py-2 text-[10px] transition-colors ${
                       activePanel === panel.id
-                        ? "border-white text-white"
-                        : "border-transparent text-white/40 hover:text-white/70"
+                        ? "border-white text-text-main"
+                        : "border-transparent text-text-muted hover:text-text-muted"
                     }`}
                   >
                     {panel.label}
@@ -970,7 +976,7 @@ export default function Workspace() {
 
               <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
                 {activePanel === "output" && (
-                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-5 text-white/60">
+                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-5 text-text-muted">
                     {output}
                   </pre>
                 )}
@@ -982,7 +988,7 @@ export default function Workspace() {
                         AST analysis not connected
                       </h3>
 
-                      <p className="mt-1 text-[10px] leading-relaxed text-white/40">
+                      <p className="mt-1 text-[10px] leading-relaxed text-text-muted">
                         Verified structure results must come from the
                         backend AST service.
                       </p>
@@ -992,9 +998,9 @@ export default function Workspace() {
                       (requirement) => (
                         <div
                           key={requirement}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2"
                         >
-                          <span className="text-[10px] text-white/50">
+                          <span className="text-[10px] text-text-muted">
                             {requirement}
                           </span>
 
@@ -1011,7 +1017,7 @@ export default function Workspace() {
                   <div className="h-full">
                     <label
                       htmlFor="standard-input"
-                      className="mb-2 block text-[10px] font-medium text-white/50"
+                      className="mb-2 block text-[10px] font-medium text-text-muted"
                     >
                       Input supplied to the Python program
                     </label>
@@ -1024,7 +1030,7 @@ export default function Workspace() {
                       }
                       spellCheck="false"
                       placeholder="Example: 10"
-                      className="h-[120px] w-full resize-none rounded-lg border border-white/[0.08] bg-[#11141c] p-3 font-mono text-[11px] text-white/70 outline-none placeholder-white/20 focus:border-blue-500/40"
+                      className="h-[120px] w-full resize-none rounded-lg border border-border-subtle bg-bg-glass p-3 font-mono text-[11px] text-text-muted outline-none placeholder-white/20 focus:border-blue-500/40"
                     />
                   </div>
                 )}
@@ -1033,19 +1039,19 @@ export default function Workspace() {
           </main>
 
           <aside
-            className={`fixed inset-y-0 right-0 z-50 w-[88vw] max-w-[320px] flex-col overflow-hidden border-l border-white/[0.08] bg-black/40 shadow-inner backdrop-blur-xl xl:static xl:z-auto xl:w-[260px] xl:max-w-none ${
+            className={`fixed inset-y-0 right-0 z-50 w-[88vw] max-w-[320px] flex-col overflow-hidden border-l border-border-subtle bg-bg-glass shadow-inner backdrop-blur-xl xl:static xl:z-auto xl:w-[260px] xl:max-w-none ${
               showReviewPanel ? "flex" : "hidden"
             }`}
           >
-            <div className="flex items-center justify-between border-b border-white/[0.08] p-4">
-              <h2 className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+            <div className="flex items-center justify-between border-b border-border-subtle p-4">
+              <h2 className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
                 Session Review
               </h2>
 
               <button
                 type="button"
                 onClick={() => setShowReviewPanel(false)}
-                className="rounded px-2 py-1 text-white/30 hover:bg-white/[0.05] hover:text-white"
+                className="rounded px-2 py-1 text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 aria-label="Close session review"
               >
                 ×
@@ -1054,11 +1060,11 @@ export default function Workspace() {
 
             <div className="flex-1 space-y-5 overflow-y-auto p-4">
               <section>
-                <h3 className="mb-3 text-xs font-semibold text-white/70">
+                <h3 className="mb-3 text-xs font-semibold text-text-muted">
                   Execution status
                 </h3>
 
-                <div className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
+                <div className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
                   <div className="flex items-center gap-2">
                     <span
                       className={`h-2 w-2 rounded-full ${status.dotClass}`}
@@ -1072,7 +1078,7 @@ export default function Workspace() {
                     </span>
                   </div>
 
-                  <p className="mt-2 text-[10px] leading-relaxed text-white/30">
+                  <p className="mt-2 text-[10px] leading-relaxed text-text-muted">
                     Execution states will include queued, running,
                     completed, runtime error, timeout, output limit,
                     and memory limit.
@@ -1081,13 +1087,13 @@ export default function Workspace() {
               </section>
 
               <section>
-                <h3 className="mb-3 text-xs font-semibold text-white/70">
+                <h3 className="mb-3 text-xs font-semibold text-text-muted">
                   Activity indicators
                 </h3>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-black/20 shadow-inner px-4 py-2.5">
-                    <span className="text-[11px] text-white/45">
+                  <div className="flex items-center justify-between rounded-lg border border-border-subtle bg-bg-glass shadow-inner px-4 py-2.5">
+                    <span className="text-[11px] text-text-muted">
                       Tab switches
                     </span>
 
@@ -1096,8 +1102,8 @@ export default function Workspace() {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-black/20 shadow-inner px-4 py-2.5">
-                    <span className="text-[11px] text-white/45">
+                  <div className="flex items-center justify-between rounded-lg border border-border-subtle bg-bg-glass shadow-inner px-4 py-2.5">
+                    <span className="text-[11px] text-text-muted">
                       Blocked pastes
                     </span>
 
@@ -1106,8 +1112,8 @@ export default function Workspace() {
                     </span>
                   </div>
 
-                  <div className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner px-4 py-2.5">
-                    <p className="text-[11px] text-white/45">
+                  <div className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner px-4 py-2.5">
+                    <p className="text-[11px] text-text-muted">
                       Last blocked paste
                     </p>
 

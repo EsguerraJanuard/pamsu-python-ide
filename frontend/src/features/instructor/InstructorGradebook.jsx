@@ -62,7 +62,7 @@ export default function InstructorGradebook() {
   const getStatusBadge = (grade) => {
     if (!grade.has_manual_grade) {
       return (
-        <span className="inline-flex items-center rounded-md bg-slate-400/10 px-2 py-1 text-[10px] font-medium text-slate-400 ring-1 ring-inset ring-slate-400/20">
+        <span className="inline-flex items-center rounded-md bg-slate-400/10 px-2 py-1 text-[10px] font-medium text-text-muted ring-1 ring-inset ring-slate-400/20">
           Pending Grade
         </span>
       );
@@ -82,7 +82,7 @@ export default function InstructorGradebook() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
@@ -94,7 +94,7 @@ export default function InstructorGradebook() {
                 <div>
                   <p className="mb-1 font-mono text-xs text-emerald-400">MONITORING & GRADING</p>
                   <h1 className="text-2xl font-bold">Gradebook</h1>
-                  <p className="mt-1 text-sm text-white/40">
+                  <p className="mt-1 text-sm text-text-muted">
                     Overview of student grades across all your classes and activities.
                   </p>
                 </div>
@@ -102,7 +102,7 @@ export default function InstructorGradebook() {
                   <select
                     value={selectedClassId}
                     onChange={(e) => setSelectedClassId(e.target.value)}
-                    className="w-full sm:w-48 rounded-lg border border-white/10 bg-[#1a1d27] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className="w-full sm:w-48 rounded-lg border border-white/10 bg-bg-glass px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   >
                     <option value="">All Classrooms</option>
                     {classrooms.map(c => (
@@ -112,7 +112,7 @@ export default function InstructorGradebook() {
                   <select
                     value={selectedTaskId}
                     onChange={(e) => setSelectedTaskId(e.target.value)}
-                    className="w-full sm:w-48 rounded-lg border border-white/10 bg-[#1a1d27] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className="w-full sm:w-48 rounded-lg border border-white/10 bg-bg-glass px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   >
                     <option value="">All Activities</option>
                     {tasks.map(t => (
@@ -122,10 +122,10 @@ export default function InstructorGradebook() {
                 </div>
               </header>
 
-              <div className="rounded-xl border border-white/[0.06] bg-[#1a1d27] overflow-hidden shadow-lg">
+              <div className="rounded-xl border border-border-subtle bg-bg-glass overflow-hidden shadow-lg">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-white/80">
-                    <thead className="bg-[#0f1117]/50 text-xs uppercase text-white/40 border-b border-white/[0.06]">
+                  <table className="w-full text-left text-sm text-text-main">
+                    <thead className="bg-bg-base/50 text-xs uppercase text-text-muted border-b border-border-subtle">
                       <tr>
                         <th className="px-6 py-4 font-semibold">Student</th>
                         <th className="px-6 py-4 font-semibold">Class / Section</th>
@@ -163,7 +163,7 @@ export default function InstructorGradebook() {
                                 </svg>
                               </div>
                               <h3 className="mb-1 text-base font-semibold text-white/90">No Grades Found</h3>
-                              <p className="text-sm text-slate-400">
+                              <p className="text-sm text-text-muted">
                                 There are no graded submissions matching your current filters.
                               </p>
                             </div>
@@ -173,27 +173,27 @@ export default function InstructorGradebook() {
                         grades.map((grade, idx) => (
                           <tr 
                             key={grade.sub_id} 
-                            className="transition-colors hover:bg-white/[0.02]"
+                            className="transition-colors hover:bg-bg-glass"
                             style={{ animation: `dashboardFadeUp 400ms ease ${idx * 40}ms both` }}
                           >
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="font-semibold text-white">{grade.student?.name || 'Unknown'}</div>
-                              <div className="font-mono text-[10px] text-white/40">{grade.student?.school_id || 'N/A'}</div>
+                              <div className="font-semibold text-text-main">{grade.student?.name || 'Unknown'}</div>
+                              <div className="font-mono text-[10px] text-text-muted">{grade.student?.school_id || 'N/A'}</div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-white/80">{grade.activity?.subject_code || 'Unknown'}</div>
-                              <div className="text-xs text-white/40">{grade.activity?.section || 'N/A'}</div>
+                              <div className="text-text-main">{grade.activity?.subject_code || 'Unknown'}</div>
+                              <div className="text-xs text-text-muted">{grade.activity?.section || 'N/A'}</div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="text-white/90 truncate max-w-[200px]">{grade.activity?.title || 'Unknown Task'}</div>
-                              <div className="text-[10px] text-white/40 uppercase tracking-wider">{grade.activity?.activity_type}</div>
+                              <div className="text-[10px] text-text-muted uppercase tracking-wider">{grade.activity?.activity_type}</div>
                             </td>
                             <td className="px-6 py-4 text-center whitespace-nowrap">
                               {grade.has_manual_grade ? (
                                 <div>
-                                  <span className="font-semibold text-white">{grade.score}</span>
-                                  <span className="text-white/40 mx-1">/</span>
-                                  <span className="text-white/60">{grade.max_score}</span>
+                                  <span className="font-semibold text-text-main">{grade.score}</span>
+                                  <span className="text-text-muted mx-1">/</span>
+                                  <span className="text-text-muted">{grade.max_score}</span>
                                   <div className="text-[10px] text-emerald-400 mt-1 font-mono">
                                     {grade.percentage?.toFixed(1)}%
                                   </div>
@@ -208,7 +208,7 @@ export default function InstructorGradebook() {
                             <td className="px-6 py-4 text-right whitespace-nowrap">
                               <button
                                 onClick={() => navigate(`/instructor/submissions/${grade.sub_id}`)}
-                                className="inline-flex items-center justify-center rounded bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500 hover:text-white"
+                                className="inline-flex items-center justify-center rounded bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500 hover:text-text-main"
                               >
                                 View
                               </button>
