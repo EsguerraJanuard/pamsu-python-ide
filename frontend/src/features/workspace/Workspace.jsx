@@ -613,10 +613,10 @@ export default function Workspace() {
       </div>
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-13 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#0f1117] px-5 sm:px-6 py-2 select-none">
+        <header className="flex min-h-13 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-black/40 shadow-inner backdrop-blur-md px-5 sm:px-6 py-2 select-none">
           {/* Left: Section Segment Control & Activity Info */}
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex items-center gap-1 rounded-lg bg-white/[0.04] p-1 border border-white/[0.06]">
+            <div className="flex items-center gap-1 rounded-lg bg-black/20 shadow-inner p-1 border border-white/[0.06]">
               <button
                 type="button"
                 onClick={toggleProblemPanel}
@@ -662,7 +662,7 @@ export default function Workspace() {
           {/* Right: Execution Status & Action Buttons */}
           <div className="flex items-center gap-2.5">
             {/* Status Indicator */}
-            <div className="hidden sm:flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-xs font-medium">
+            <div className="hidden sm:flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/20 shadow-inner px-2.5 py-1 text-xs font-medium">
               <span className={`h-2 w-2 rounded-full ${status.dotClass}`} />
               <span className={status.textClass}>{status.label}</span>
             </div>
@@ -752,7 +752,7 @@ export default function Workspace() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <aside
             style={{ width: showProblemPanel ? `${panelWidth}px` : "0px" }}
-            className={`fixed inset-y-0 left-0 z-50 flex-col overflow-hidden border-r border-white/[0.08] bg-[#0f1117] xl:static xl:z-auto transition-[width] duration-75 ${
+            className={`fixed inset-y-0 left-0 z-50 flex-col overflow-hidden border-r border-white/[0.08] bg-black/40 shadow-inner backdrop-blur-xl xl:static xl:z-auto transition-[width] duration-75 ${
               showProblemPanel ? "flex" : "hidden"
             }`}
           >
@@ -787,7 +787,7 @@ export default function Workspace() {
                 </span>
               </div>
 
-              <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <section className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
                 <h3 className="mb-1.5 text-xs font-bold text-white/80">
                   Instructions
                 </h3>
@@ -797,7 +797,7 @@ export default function Workspace() {
                 </p>
               </section>
 
-              <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <section className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
                 <h3 className="mb-2 text-xs font-bold text-white/80">
                   Requirements Checklist
                 </h3>
@@ -817,17 +817,17 @@ export default function Workspace() {
                 </ul>
               </section>
 
-              <section className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <section className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
                 <h3 className="mb-1.5 text-xs font-bold text-white/80">
                   Expected Output
                 </h3>
 
-                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-[#161b26] p-2.5 font-mono text-[11px] text-emerald-400">
+                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-black/40 shadow-inner p-3 font-mono text-[11px] text-emerald-400">
                   {activity.expectedOutput}
                 </pre>
               </section>
 
-              <section className="rounded-lg border border-blue-500/15 bg-blue-500/[0.04] p-3">
+              <section className="rounded-lg border border-blue-500/15 bg-blue-500/[0.02] shadow-inner p-4">
                 <h3 className="text-xs font-bold text-blue-300">
                   Clipboard Policy
                 </h3>
@@ -853,8 +853,8 @@ export default function Workspace() {
           )}
 
           <main className="flex min-w-0 flex-1 flex-col bg-[#0f1117]">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#11141c] px-3 py-1">
-              <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-[#1a1d27] px-3 py-1.5 text-xs font-semibold rounded-t-md">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-black/20 shadow-inner px-3 py-1 backdrop-blur-md">
+              <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-black/40 shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
                 <span className="text-blue-400">
                   {activity.fileName}
                 </span>
@@ -1033,7 +1033,7 @@ export default function Workspace() {
           </main>
 
           <aside
-            className={`fixed inset-y-0 right-0 z-50 w-[88vw] max-w-[320px] flex-col overflow-hidden border-l border-white/[0.08] bg-[#0f1117] xl:static xl:z-auto xl:w-[260px] xl:max-w-none ${
+            className={`fixed inset-y-0 right-0 z-50 w-[88vw] max-w-[320px] flex-col overflow-hidden border-l border-white/[0.08] bg-black/40 shadow-inner backdrop-blur-xl xl:static xl:z-auto xl:w-[260px] xl:max-w-none ${
               showReviewPanel ? "flex" : "hidden"
             }`}
           >
@@ -1058,7 +1058,7 @@ export default function Workspace() {
                   Execution status
                 </h3>
 
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                <div className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner p-4">
                   <div className="flex items-center gap-2">
                     <span
                       className={`h-2 w-2 rounded-full ${status.dotClass}`}
@@ -1085,8 +1085,8 @@ export default function Workspace() {
                   Activity indicators
                 </h3>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-black/20 shadow-inner px-4 py-2.5">
                     <span className="text-[11px] text-white/45">
                       Tab switches
                     </span>
@@ -1096,7 +1096,7 @@ export default function Workspace() {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-black/20 shadow-inner px-4 py-2.5">
                     <span className="text-[11px] text-white/45">
                       Blocked pastes
                     </span>
@@ -1106,7 +1106,7 @@ export default function Workspace() {
                     </span>
                   </div>
 
-                  <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <div className="rounded-lg border border-white/[0.06] bg-black/20 shadow-inner px-4 py-2.5">
                     <p className="text-[11px] text-white/45">
                       Last blocked paste
                     </p>
@@ -1123,7 +1123,7 @@ export default function Workspace() {
                 </p>
               </section>
 
-              <section className="rounded-lg border border-green-500/15 bg-green-500/[0.05] p-3">
+              <section className="rounded-lg border border-green-500/15 bg-green-500/[0.02] shadow-inner p-4">
                 <h3 className="text-[11px] font-semibold text-green-300">
                   Privacy boundary
                 </h3>
