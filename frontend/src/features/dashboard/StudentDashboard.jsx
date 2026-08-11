@@ -20,7 +20,7 @@ const STATUS_CONFIG = {
     badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-400",
     accentClass: "border-l-blue-500",
     progressClass: "bg-blue-500",
-    buttonClass: "bg-blue-600 text-white hover:bg-blue-500",
+    buttonClass: "bg-blue-600 text-text-main hover:bg-blue-500",
   },
   submitted: {
     label: "Submitted",
@@ -197,7 +197,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar
         user={{
           name: user.name,
@@ -214,13 +214,13 @@ export default function StudentDashboard() {
             
 
             <div className="mx-auto max-w-6xl">
-              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
                     <LayoutDashboardIcon className="h-6 w-6 text-blue-500" />
                     {getGreeting()}, {getFirstName(user.name)}
                   </h1>
-                  <p className="mt-1 text-sm text-white/40">
+                  <p className="mt-1 text-sm text-text-muted">
                     You have {activeActivities.length} active{" "}
                     {activeActivities.length === 1
                       ? "activity"
@@ -232,14 +232,14 @@ export default function StudentDashboard() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
+                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-text-main transition hover:bg-[#2563eb]"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Join a Class
                   </button>
 
                   <div
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1a1d27] border border-white/[0.06] text-xs font-bold shadow-sm"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-glass border border-border-subtle text-xs font-bold shadow-sm"
                     aria-label={`Signed in as ${user.name}`}
                   >
                     {user.initials}
@@ -248,7 +248,7 @@ export default function StudentDashboard() {
               </header>
 
               <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-blue-200/80">
+                <p className="text-xs leading-relaxed text-text-blue">
                   Dashboard indicators support learning reflection.
                   AST checks, test results, and activity progress are
                   not automatic grades. Official grades are assigned
@@ -262,13 +262,13 @@ export default function StudentDashboard() {
               >
                 {isLoading ? (
                   <>
-                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5 animate-pulse">
+                    <article className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 animate-pulse">
                       <div className="mb-2 h-8 w-16 bg-white/[0.06] rounded-md"></div>
                       <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
                       <div className="mb-4 h-3 w-40 bg-white/[0.06] rounded-md"></div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]"></div>
                     </article>
-                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5 animate-pulse">
+                    <article className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 animate-pulse">
                       <div className="mb-2 h-8 w-24 bg-white/[0.06] rounded-md"></div>
                       <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
                       <div className="mb-4 h-3 w-40 bg-white/[0.06] rounded-md"></div>
@@ -278,20 +278,20 @@ export default function StudentDashboard() {
                 ) : (
                   <>
                   <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
                     <p
-                      className="mb-1 text-4xl font-bold text-white tracking-tight"
+                      className="mb-1 text-4xl font-bold text-text-main tracking-tight"
                     >
                       {activeActivities.length}
                     </p>
 
-                    <h2 className="text-sm font-semibold text-white/90">
+                    <h2 className="text-sm font-semibold text-text-main">
                       Active activities
                     </h2>
 
-                    <p className="mb-4 text-[11px] text-white/40 font-medium">
+                    <p className="mb-4 text-[11px] text-text-muted font-medium">
                       Laboratory and homework tasks
                     </p>
 
@@ -306,20 +306,20 @@ export default function StudentDashboard() {
                   </article>
                   
                   <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
                     <p
-                      className="mb-1 text-4xl font-bold text-white tracking-tight flex items-baseline gap-1"
+                      className="mb-1 text-4xl font-bold text-text-main tracking-tight flex items-baseline gap-1"
                     >
-                      {completedCount} <span className="text-lg text-white/30 font-medium">/ {activities.length}</span>
+                      {completedCount} <span className="text-lg text-text-muted font-medium">/ {activities.length}</span>
                     </p>
 
-                    <h2 className="text-sm font-semibold text-white/90">
+                    <h2 className="text-sm font-semibold text-text-main">
                       Activities completed
                     </h2>
 
-                    <p className="mb-4 text-[11px] text-white/40 font-medium">
+                    <p className="mb-4 text-[11px] text-text-muted font-medium">
                       Based on submitted activities
                     </p>
 
@@ -343,7 +343,7 @@ export default function StudentDashboard() {
                       Recent Activities
                     </h2>
 
-                    <p className="mt-1 text-[11px] text-white/30">
+                    <p className="mt-1 text-[11px] text-text-muted">
                       Continue active work or review your latest
                       submission.
                     </p>
@@ -361,7 +361,7 @@ export default function StudentDashboard() {
                 <div className="space-y-3">
                   {isLoading && (
                     [1, 2, 3].map(i => (
-                      <article key={i} className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse flex items-center justify-between">
+                      <article key={i} className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-4 animate-pulse flex items-center justify-between">
                         <div className="space-y-2">
                           <div className="h-5 w-48 bg-white/[0.06] rounded-md"></div>
                           <div className="h-4 w-32 bg-white/[0.06] rounded-md"></div>
@@ -371,12 +371,12 @@ export default function StudentDashboard() {
                     ))
                   )}
                   {activities.length === 0 && !isLoading && (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-white/[0.02]">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-blue-400">
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-text-blue">
                         <LayoutDashboardIcon className="h-6 w-6" />
                       </div>
-                      <h3 className="text-lg font-semibold text-white/90">No Activities Found</h3>
-                      <p className="mt-1 text-sm text-white/50">
+                      <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
+                      <p className="mt-1 text-sm text-text-muted">
                         Join a class to see your assignments and practice modules.
                       </p>
                     </div>
@@ -390,7 +390,7 @@ export default function StudentDashboard() {
                       return (
                         <article
                           key={activity.id}
-                          className={`dashboard-card rounded-xl border border-l-[3px] border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 ${status.accentClass} group`}
+                          className={`dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 ${status.accentClass} group`}
                           style={{
                             animation: `dashboardFadeUp 400ms ease ${
                               200 + index * 70
@@ -400,7 +400,7 @@ export default function StudentDashboard() {
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0 flex-1">
                               <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <h3 className="text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
+                                <h3 className="text-sm font-semibold text-text-main transition-colors group-hover:text-text-main">
                                   {activity.title}
                                 </h3>
 
@@ -411,19 +411,19 @@ export default function StudentDashboard() {
                                 </span>
                               </div>
 
-                              <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-white/40">
-                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
-                                  <BookOpenIcon className="h-3 w-3 text-blue-400" />
+                              <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
+                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
+                                  <BookOpenIcon className="h-3 w-3 text-text-blue" />
                                   {activity.courseCode}
                                 </span>
 
-                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
+                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
                                   <ClockIcon />
                                   {activity.dueLabel}
                                 </span>
                               </div>
 
-                              <p className="rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-white/45 shadow-inner">
+                              <p className="rounded-lg border-l-2 border-border-subtle bg-bg-glass px-3 py-2 font-mono text-[11px] text-text-muted shadow-inner">
                                 {activity.note}
                               </p>
                             </div>
@@ -440,7 +440,7 @@ export default function StudentDashboard() {
                           </div>
 
                           <div className="mt-4 flex items-center gap-3">
-                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/30">
+                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-text-muted">
                               Progress
                             </span>
 
@@ -453,7 +453,7 @@ export default function StudentDashboard() {
                               />
                             </div>
 
-                            <span className="shrink-0 text-[10px] text-white/40">
+                            <span className="shrink-0 text-[10px] text-text-muted">
                               {activity.progress}%
                             </span>
                           </div>
@@ -466,7 +466,7 @@ export default function StudentDashboard() {
             </div>
           </main>
 
-          <aside className="hidden w-[300px] shrink-0 overflow-y-auto border-l border-white/[0.06] px-5 py-6 xl:block">
+          <aside className="hidden w-[300px] shrink-0 overflow-y-auto border-l border-border-subtle px-5 py-6 xl:block">
             <section className="mb-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
@@ -474,7 +474,7 @@ export default function StudentDashboard() {
                     Personal Progress
                   </h2>
 
-                  <p className="mt-1 text-[10px] text-white/30">
+                  <p className="mt-1 text-[10px] text-text-muted">
                     Compared with your earlier work
                   </p>
                 </div>
@@ -488,7 +488,7 @@ export default function StudentDashboard() {
                 </button>
               </div>
 
-              <div className="flex flex-col items-center rounded-xl border border-white/[0.06] bg-[#1a1d27] px-4 py-6">
+              <div className="flex flex-col items-center rounded-xl border border-border-subtle bg-bg-glass px-4 py-6">
                 <div className="relative h-32 w-32">
                   <svg
                     viewBox="0 0 120 120"
@@ -521,7 +521,7 @@ export default function StudentDashboard() {
                       {activities.length > 0 ? Math.round((completedCount / activities.length) * 100) : 0}%
                     </span>
 
-                    <span className="text-[10px] text-white/30">
+                    <span className="text-[10px] text-text-muted">
                       progress
                     </span>
                   </div>
@@ -531,7 +531,7 @@ export default function StudentDashboard() {
                   Improving
                 </p>
 
-                <p className="mt-1 text-center text-[10px] leading-relaxed text-white/35">
+                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-muted">
                   Based on your activity completion, AST indicators,
                   and test results.
                 </p>
@@ -546,7 +546,7 @@ export default function StudentDashboard() {
               </h2>
 
               <div className="flex items-center justify-center py-6 text-center">
-                <p className="text-xs text-white/30">
+                <p className="text-xs text-text-muted">
                   No recent activity logged yet.
                 </p>
               </div>

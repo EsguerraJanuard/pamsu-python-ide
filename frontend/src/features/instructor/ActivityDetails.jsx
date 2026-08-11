@@ -96,7 +96,7 @@ const ActivityDetails = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
         <InstructorSidebar />
         <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
           <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
@@ -118,11 +118,11 @@ const ActivityDetails = () => {
   }
 
   if (error || !activity) {
-    return <div className="text-red-400 p-6">{error || 'Activity not found'}</div>;
+    return <div className="text-text-rose p-6">{error || 'Activity not found'}</div>;
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
@@ -133,13 +133,13 @@ const ActivityDetails = () => {
       <div className="w-full space-y-8">
         
         {/* Header section */}
-        <div className="bg-[#1a1d27] p-6 rounded-xl border border-white/[0.06]">
+        <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle">
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-2xl font-bold mb-2">{activity.title}</h1>
-              <p className="text-white/70">{activity.description}</p>
+              <p className="text-text-muted">{activity.description}</p>
             </div>
-            <button onClick={() => navigate(-1)} className="text-emerald-400 hover:text-emerald-300">
+            <button onClick={() => navigate(-1)} className="text-text-emerald hover:text-text-emerald">
               Back
             </button>
           </div>
@@ -154,7 +154,7 @@ const ActivityDetails = () => {
                 />
                 <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
               </div>
-              <span className="text-sm font-semibold text-white/80 select-none group-hover:text-white transition-colors">
+              <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">
                 {activity.is_published ? "Published" : "Draft"}
               </span>
             </label>
@@ -170,67 +170,67 @@ const ActivityDetails = () => {
                 />
                 <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-emerald-500"></div>
               </div>
-              <span className="text-sm font-semibold text-white/80 select-none group-hover:text-white transition-colors">Allow Paste</span>
+              <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
             </label>
           </div>
         </div>
 
         {/* Content Details */}
-        <div className="bg-[#1a1d27] p-6 rounded-xl border border-white/[0.06] space-y-4">
-          <h2 className="text-xl font-semibold text-white border-b border-white/[0.06] pb-2">Details</h2>
+        <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle space-y-4">
+          <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Details</h2>
           
           <div>
-            <h3 className="text-sm font-medium text-emerald-400">Instructions</h3>
-            <div className="mt-1 bg-slate-950/50 p-3 rounded border border-white/[0.06] whitespace-pre-wrap">
+            <h3 className="text-sm font-medium text-text-emerald">Instructions</h3>
+            <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.instructions || 'No instructions provided.'}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-emerald-400">Requirements</h3>
-            <div className="mt-1 bg-slate-950/50 p-3 rounded border border-white/[0.06] whitespace-pre-wrap">
+            <h3 className="text-sm font-medium text-text-emerald">Requirements</h3>
+            <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.requirements || 'No requirements provided.'}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-emerald-400">Expected Output (Global)</h3>
-            <div className="mt-1 bg-slate-950/50 p-3 rounded border border-white/[0.06] whitespace-pre-wrap">
+            <h3 className="text-sm font-medium text-text-emerald">Expected Output (Global)</h3>
+            <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.expected_output || 'No expected output provided.'}
             </div>
           </div>
         </div>
 
         {/* Test Cases Section */}
-        <div className="bg-[#1a1d27] p-6 rounded-xl border border-white/[0.06] space-y-6">
-          <h2 className="text-xl font-semibold text-white border-b border-white/[0.06] pb-2">Test Cases</h2>
+        <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle space-y-6">
+          <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Test Cases</h2>
           
           <div className="space-y-4">
             {testCases.length === 0 ? (
-              <p className="text-white/70">No test cases found.</p>
+              <p className="text-text-muted">No test cases found.</p>
             ) : (
               testCases.map((tc, idx) => (
-                <div key={tc.id || idx} className="bg-slate-950 p-4 rounded border border-white/[0.06] flex flex-col md:flex-row gap-4 justify-between items-start">
+                <div key={tc.id || idx} className="bg-bg-glass p-4 rounded border border-border-subtle flex flex-col md:flex-row gap-4 justify-between items-start">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center space-x-2">
-                      <span className="font-semibold text-white">Test Case #{idx + 1}</span>
-                      {tc.is_hidden && <span className="bg-slate-800 text-xs px-2 py-1 rounded text-white/70">Hidden</span>}
+                      <span className="font-semibold text-text-main">Test Case #{idx + 1}</span>
+                      {tc.is_hidden && <span className="bg-bg-glass border border-border-subtle text-xs px-2 py-1 rounded text-text-muted">Hidden</span>}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <div className="text-xs text-white/40 mb-1">Input Data</div>
-                        <pre className="text-sm bg-[#0f1117] p-2 rounded border border-white/[0.06] overflow-x-auto">{tc.input_data || '-'}</pre>
+                        <div className="text-xs text-text-muted mb-1">Input Data</div>
+                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.input_data || '-'}</pre>
                       </div>
                       <div>
-                        <div className="text-xs text-white/40 mb-1">Expected Output</div>
-                        <pre className="text-sm bg-[#0f1117] p-2 rounded border border-white/[0.06] overflow-x-auto">{tc.expected_output || '-'}</pre>
+                        <div className="text-xs text-text-muted mb-1">Expected Output</div>
+                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.expected_output || '-'}</pre>
                       </div>
                     </div>
                   </div>
                     {!activity.is_published && (
                       <button 
                         onClick={() => promptDeleteTestCase(tc.id)}
-                        className="text-red-400 hover:text-red-300 px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
+                        className="text-text-rose hover:text-text-rose px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
                       >
                         Delete
                       </button>
@@ -242,15 +242,15 @@ const ActivityDetails = () => {
 
           {/* Add Test Case Form */}
           {!activity.is_published ? (
-            <form onSubmit={handleAddTestCase} className="mt-8 border-t border-white/[0.06] pt-6 space-y-4">
-              <h3 className="text-lg font-medium text-white">Add New Test Case</h3>
+            <form onSubmit={handleAddTestCase} className="mt-8 border-t border-border-subtle pt-6 space-y-4">
+              <h3 className="text-lg font-medium text-text-main">Add New Test Case</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Input Data</label>
                 <textarea 
                   value={newTestCase.input_data}
                   onChange={e => setNewTestCase({...newTestCase, input_data: e.target.value})}
-                  className="w-full bg-slate-950 border border-white/[0.06] rounded p-2 text-white/90 focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
                   placeholder="Enter input data..."
                 />
               </div>
@@ -259,7 +259,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.expected_output}
                   onChange={e => setNewTestCase({...newTestCase, expected_output: e.target.value})}
-                  className="w-full bg-slate-950 border border-white/[0.06] rounded p-2 text-white/90 focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
                   required
                   placeholder="Enter expected output..."
                 />
@@ -276,19 +276,19 @@ const ActivityDetails = () => {
                   />
                   <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
                 </div>
-                <span className="text-sm font-semibold text-white/80 select-none group-hover:text-white transition-colors">Hidden Test Case</span>
+                <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Hidden Test Case</span>
               </label>
               <button 
                 type="submit"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-text-main rounded transition-colors"
               >
                 Add Test Case
                 </button>
               </div>
             </form>
           ) : (
-            <div className="mt-8 border-t border-white/[0.06] pt-6">
-              <p className="text-sm text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded p-4">
+            <div className="mt-8 border-t border-border-subtle pt-6">
+              <p className="text-sm text-text-amber/80 bg-amber-500/10 border border-amber-500/20 rounded p-4">
                 This activity is currently published. You must unpublish it before you can add or delete test cases.
               </p>
             </div>

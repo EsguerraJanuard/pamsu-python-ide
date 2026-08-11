@@ -17,13 +17,13 @@ const GradingWorkspace = () => {
         const fetchSubmission = async () => {
             try {
                 const response = await api.get(`/evaluation/submissions/${id}`);
-                setSubmissionData(response.data);
+                setSubmissionData(response);
                 // Pre-fill if already graded
-                if (response.data.submission?.grade_score !== null && response.data.submission?.grade_score !== undefined) {
-                    setGradeScore(response.data.submission.grade_score);
+                if (response.submission?.grade_score !== null && response.submission?.grade_score !== undefined) {
+                    setGradeScore(response.submission.grade_score);
                 }
-                if (response.data.submission?.feedback_text) {
-                    setFeedbackText(response.data.submission.feedback_text);
+                if (response.submission?.feedback_text) {
+                    setFeedbackText(response.submission.feedback_text);
                 }
             } catch (err) {
                 console.error(err);
@@ -54,18 +54,18 @@ const GradingWorkspace = () => {
 
     if (loading) {
         return (
-            <div className="flex h-screen overflow-hidden bg-[#0f1117]">
+            <div className="flex h-screen overflow-hidden bg-bg-base">
                 <div className="flex w-full flex-col lg:flex-row animate-pulse">
-                    <div className="flex flex-1 flex-col border-b border-white/[0.06] lg:border-b-0 lg:border-r">
-                        <div className="flex h-12 items-center border-b border-white/[0.06] bg-[#1a1d27] px-4">
+                    <div className="flex flex-1 flex-col border-b border-border-subtle lg:border-b-0 lg:border-r">
+                        <div className="flex h-12 items-center border-b border-border-subtle bg-bg-glass px-4">
                             <div className="h-4 w-32 rounded bg-white/[0.06]"></div>
                         </div>
-                        <div className="flex-1 bg-[#0f1117] p-4">
+                        <div className="flex-1 bg-bg-base p-4">
                             <div className="h-full w-full rounded bg-white/[0.06]"></div>
                         </div>
                     </div>
-                    <div className="flex w-full flex-col bg-[#1a1d27] lg:w-[400px]">
-                        <div className="flex h-12 items-center border-b border-white/[0.06] px-6">
+                    <div className="flex w-full flex-col bg-bg-glass lg:w-[400px]">
+                        <div className="flex h-12 items-center border-b border-border-subtle px-6">
                             <div className="h-4 w-24 rounded bg-white/[0.06]"></div>
                         </div>
                         <div className="flex-1 p-6 space-y-6">
@@ -81,7 +81,7 @@ const GradingWorkspace = () => {
 
     if (error) {
         return (
-            <div className="flex items-center justify-center h-screen bg-[#0f1117] text-red-400">
+            <div className="flex items-center justify-center h-screen bg-bg-base text-text-rose">
                 {error}
             </div>
         );
@@ -92,35 +92,43 @@ const GradingWorkspace = () => {
     const { submission, evaluation_result, ast_feedback } = submissionData;
 
     return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
                         
             <div className="mx-auto max-w-6xl ">
-            <div className="flex h-screen bg-[#0f1117] text-white/80 font-sans">
+            <div className="flex h-screen bg-bg-base text-text-main font-sans">
             {/* Left Side: Details & Grading Form */}
-            <div className="w-1/2 p-6 overflow-y-auto border-r border-white/[0.06] flex flex-col gap-6">
+            <div className="w-1/2 p-6 overflow-y-auto border-r border-border-subtle flex flex-col gap-6">
+                <div className="mb-2 -mt-2">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-bg-glass/80 px-3 py-1.5 text-xs font-medium text-text-muted hover:border-border-subtle hover:bg-bg-glass-hover hover:text-text-main transition inline-flex w-fit"
+                    >
+                        <span>←</span> Back
+                    </button>
+                </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Grading Workspace</h2>
-                    <p className="text-sm text-white/70">
-                        Student: <span className="text-emerald-400">{submission?.student?.name || submission?.student_id || 'Unknown'}</span>
+                    <h2 className="text-2xl font-bold text-text-main mb-2">Grading Workspace</h2>
+                    <p className="text-sm text-text-muted">
+                        Student: <span className="text-text-emerald">{submission?.student?.name || submission?.student_id || 'Unknown'}</span>
                     </p>
-                    <p className="text-sm text-white/70">
-                        Task: <span className="text-white">{submission?.task?.title || submission?.task_id || 'Unknown'}</span>
+                    <p className="text-sm text-text-muted">
+                        Task: <span className="text-text-main">{submission?.task?.title || submission?.task_id || 'Unknown'}</span>
                     </p>
                 </div>
 
                 {ast_feedback && ast_feedback.length > 0 && (
-                    <div className="bg-[#1a1d27] p-4 rounded-xl border border-white/[0.06]">
-                        <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <div className="bg-bg-glass p-4 rounded-xl border border-border-subtle">
+                        <h3 className="text-lg font-semibold text-text-main mb-3 flex items-center gap-2">
                             <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             AST Feedback
                         </h3>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-white/70">
+                        <ul className="list-disc list-inside space-y-1 text-sm text-text-muted">
                             {ast_feedback.map((fb, idx) => (
                                 <li key={idx}>{fb}</li>
                             ))}
@@ -128,39 +136,39 @@ const GradingWorkspace = () => {
                     </div>
                 )}
 
-                <div className="bg-[#1a1d27] p-4 rounded-xl border border-white/[0.06] flex-1 flex flex-col">
-                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-bg-glass p-4 rounded-xl border border-border-subtle flex-1 flex flex-col">
+                    <h3 className="text-lg font-semibold text-text-main mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-text-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         Execution Output
                     </h3>
-                    <div className="bg-black text-green-400 font-mono text-sm p-4 rounded overflow-auto flex-1 min-h-[12rem] border border-white/[0.06]">
+                    <div className="bg-black text-text-emerald font-mono text-sm p-4 rounded overflow-auto flex-1 min-h-[12rem] border border-border-subtle">
                         {evaluation_result?.stdout && (
                             <div className="mb-4">
-                                <div className="text-white/40 mb-1 select-none"># stdout</div>
+                                <div className="text-slate-400 mb-1 select-none"># stdout</div>
                                 <pre className="whitespace-pre-wrap">{evaluation_result.stdout}</pre>
                             </div>
                         )}
                         {evaluation_result?.stderr && (
                             <div>
-                                <div className="text-white/40 mb-1 select-none"># stderr</div>
-                                <pre className="whitespace-pre-wrap text-red-400">{evaluation_result.stderr}</pre>
+                                <div className="text-slate-400 mb-1 select-none"># stderr</div>
+                                <pre className="whitespace-pre-wrap text-text-rose">{evaluation_result.stderr}</pre>
                             </div>
                         )}
                         {!evaluation_result?.stdout && !evaluation_result?.stderr && (
-                            <span className="text-white/40 italic">No execution output available.</span>
+                            <span className="text-slate-400 italic">No execution output available.</span>
                         )}
                     </div>
                 </div>
 
-                <form onSubmit={handleGradeSubmit} className="bg-[#1a1d27] p-4 rounded-xl border border-white/[0.06] flex flex-col gap-4">
-                    <h3 className="text-lg font-semibold text-white">Manual Grading</h3>
+                <form onSubmit={handleGradeSubmit} className="bg-bg-glass p-4 rounded-xl border border-border-subtle flex flex-col gap-4">
+                    <h3 className="text-lg font-semibold text-text-main">Manual Grading</h3>
                     <div>
-                        <label className="block text-sm font-medium mb-1 text-white/70">Score (0-100)</label>
+                        <label className="block text-sm font-medium mb-1 text-text-muted">Score (0-100)</label>
                         <input 
                             type="number" 
-                            className="w-full bg-[#0f1117] border border-white/[0.06] rounded p-2 text-white focus:outline-none focus:border-emerald-500 transition-colors" 
+                            className="w-full bg-bg-base border border-border-subtle rounded p-2 text-text-main focus:outline-none focus:border-emerald-500 transition-colors" 
                             value={gradeScore} 
                             onChange={(e) => setGradeScore(e.target.value)}
                             required
@@ -169,9 +177,9 @@ const GradingWorkspace = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1 text-white/70">Feedback</label>
+                        <label className="block text-sm font-medium mb-1 text-text-muted">Feedback</label>
                         <textarea 
-                            className="w-full bg-[#0f1117] border border-white/[0.06] rounded p-2 text-white h-24 focus:outline-none focus:border-emerald-500 transition-colors resize-y" 
+                            className="w-full bg-bg-base border border-border-subtle rounded p-2 text-text-main h-24 focus:outline-none focus:border-emerald-500 transition-colors resize-y" 
                             value={feedbackText} 
                             onChange={(e) => setFeedbackText(e.target.value)}
                             placeholder="Provide feedback to the student..."
@@ -188,15 +196,15 @@ const GradingWorkspace = () => {
             </div>
 
             {/* Right Side: Code Editor */}
-            <div className="w-1/2 flex flex-col border-l border-white/[0.06] bg-[#0f1117]">
-                <div className="p-4 border-b border-white/[0.06] bg-[#1a1d27] flex items-center gap-2">
-                    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-1/2 flex flex-col border-l border-border-subtle bg-bg-base">
+                <div className="p-4 border-b border-border-subtle bg-bg-glass flex items-center gap-2">
+                    <svg className="w-5 h-5 text-text-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                     </svg>
-                    <h3 className="text-white font-medium">Submitted Code</h3>
+                    <h3 className="text-text-main font-medium">Submitted Code</h3>
                 </div>
                 <textarea 
-                    className="flex-1 w-full p-6 bg-[#0f1117] text-emerald-300 font-mono text-sm resize-none focus:outline-none"
+                    className="flex-1 w-full p-6 bg-bg-base text-text-emerald font-mono text-sm resize-none focus:outline-none"
                     readOnly
                     value={submission?.raw_code || ''}
                     spellCheck="false"

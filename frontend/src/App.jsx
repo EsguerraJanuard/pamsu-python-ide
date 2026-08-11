@@ -55,72 +55,76 @@ import ClassDetails from './features/classes/ClassDetails';
 import SoloPractice from './features/practice/SoloPractice';
 
 const PlaceholderView = ({ title, description }) => (
-  <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-center">
-    <h2 className="text-xl font-bold text-white">{title}</h2>
-    <p className="mt-2 text-sm text-slate-400">{description}</p>
-    <div className="mt-6 inline-block rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400">
+  <div className="rounded-xl border border-border-subtle bg-bg-glass/50 p-8 text-center">
+    <h2 className="text-xl font-bold text-text-main">{title}</h2>
+    <p className="mt-2 text-sm text-text-muted">{description}</p>
+    <div className="mt-6 inline-block rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-text-blue">
       Scheduled for pipeline integration
     </div>
   </div>
 );
 
+import { ThemeProvider } from './features/theme/ThemeContext';
+
 export const App = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Root redirect */}
-          <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Root redirect */}
+            <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
 
-          {/* Public Authentication Routes — redirect to dashboard if already logged in */}
-          <Route element={<GuestRoute />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-          </Route>
-          <Route path="/unauthorized" element={<Unauthorized />} />
+            {/* Public Authentication Routes — redirect to dashboard if already logged in */}
+            <Route element={<GuestRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+            </Route>
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
-           {/* Protected Route Tree - Requires Valid JWT/Session */}
-          <Route element={<ProtectedRoute />}>
+             {/* Protected Route Tree - Requires Valid JWT/Session */}
+            <Route element={<ProtectedRoute />}>
 
-            {/* Student Role Tree */}
-            <Route element={<RoleRoute allowedRole="student" />}>
-              <Route path="/student/dashboard" element={<StudentDashboard />} />
-              <Route path="/student/classes" element={<MyClasses />} />
-              <Route path="/student/classes/:id" element={<ClassDetails />} />
-              <Route path="/student/assignments" element={<Assignments />} />
-              <Route path="/student/workspace" element={<Workspace />} />
-              <Route path="/student/practice" element={<SoloPractice />} />
-              <Route path="/student/submissions" element={<Submissions />} />
-              <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
-              <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
-              <Route path="/student/audit-logs" element={<AuditLogsPage role="student" />} />
-              <Route path="/student/analytics" element={<Analytics />} />
-              <Route path="/student/settings" element={<Settings />} />
+              {/* Student Role Tree */}
+              <Route element={<RoleRoute allowedRole="student" />}>
+                <Route path="/student/dashboard" element={<StudentDashboard />} />
+                <Route path="/student/classes" element={<MyClasses />} />
+                <Route path="/student/classes/:id" element={<ClassDetails />} />
+                <Route path="/student/assignments" element={<Assignments />} />
+                <Route path="/student/workspace" element={<Workspace />} />
+                <Route path="/student/practice" element={<SoloPractice />} />
+                <Route path="/student/submissions" element={<Submissions />} />
+                <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
+                <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
+                <Route path="/student/audit-logs" element={<AuditLogsPage role="student" />} />
+                <Route path="/student/analytics" element={<Analytics />} />
+                <Route path="/student/settings" element={<Settings />} />
+              </Route>
+
+              {/* Instructor Role Tree */}
+              <Route element={<RoleRoute allowedRole="instructor" />}>
+                <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+                <Route path="/instructor/classes" element={<ClassManagement />} />
+                <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
+                <Route path="/instructor/activities" element={<ActivityEditor />} />
+                <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
+                <Route path="/instructor/submissions" element={<InstructorReviewQueue />} />
+                <Route path="/instructor/gradebook" element={<InstructorGradebook />} />
+                <Route path="/instructor/submissions/:id" element={<GradingWorkspace />} />
+                <Route path="/instructor/notifications" element={<NotificationsPage role="instructor" />} />
+                <Route path="/instructor/audit-logs" element={<AuditLogsPage role="instructor" />} />
+                <Route path="/instructor/monitoring" element={<LiveMonitoring />} />
+                <Route path="/instructor/settings" element={<InstructorSettings />} />
+              </Route>
+
             </Route>
 
-            {/* Instructor Role Tree */}
-            <Route element={<RoleRoute allowedRole="instructor" />}>
-              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
-              <Route path="/instructor/classes" element={<ClassManagement />} />
-              <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
-              <Route path="/instructor/activities" element={<ActivityEditor />} />
-              <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
-              <Route path="/instructor/submissions" element={<InstructorReviewQueue />} />
-              <Route path="/instructor/gradebook" element={<InstructorGradebook />} />
-              <Route path="/instructor/submissions/:id" element={<GradingWorkspace />} />
-              <Route path="/instructor/notifications" element={<NotificationsPage role="instructor" />} />
-              <Route path="/instructor/audit-logs" element={<AuditLogsPage role="instructor" />} />
-              <Route path="/instructor/monitoring" element={<LiveMonitoring />} />
-              <Route path="/instructor/settings" element={<InstructorSettings />} />
-            </Route>
-
-          </Route>
-
-          {/* Fallback 404 Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+            {/* Fallback 404 Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

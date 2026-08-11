@@ -40,7 +40,7 @@ const InstructorReviewQueue = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
@@ -50,21 +50,21 @@ const InstructorReviewQueue = () => {
 
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="mb-1 font-mono text-xs text-emerald-400">MONITORING & GRADING</p>
+          <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
           <h1 className="text-2xl font-bold">Grading Bench</h1>
-          <p className="mt-1 text-sm text-white/40">
+          <p className="mt-1 text-sm text-text-muted">
             Review and grade pending student submissions.
           </p>
         </div>
       </header>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded text-red-200">
+        <div className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded text-text-rose">
           {error}
         </div>
       )}
 
-      <div className="bg-[#1a1d27] border border-white/[0.06] rounded-lg overflow-hidden">
+      <div className="bg-bg-glass border border-border-subtle rounded-lg overflow-hidden">
         {loading ? (
           <div className="divide-y divide-white/[0.06] w-full text-left text-xs font-mono">
             {[1, 2, 3, 4, 5].map(i => (
@@ -80,13 +80,13 @@ const InstructorReviewQueue = () => {
           </div>
         ) : submissions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 ring-4 ring-emerald-500/5">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-text-emerald ring-4 ring-emerald-500/5">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-white/90">All Caught Up!</h3>
-            <p className="text-sm text-slate-400 max-w-sm">
+            <h3 className="mb-2 text-lg font-semibold text-text-main">All Caught Up!</h3>
+            <p className="text-sm text-text-muted max-w-sm">
               There are no pending submissions to review. You can check back later.
             </p>
           </div>
@@ -94,13 +94,13 @@ const InstructorReviewQueue = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-800/50 border-b border-white/[0.06]">
-                  <th className="p-4 text-sm font-semibold text-white/80">Student Name</th>
-                  <th className="p-4 text-sm font-semibold text-white/80">Task Title</th>
-                  <th className="p-4 text-sm font-semibold text-white/80">Status</th>
-                  <th className="p-4 text-sm font-semibold text-white/80">Similarity</th>
-                  <th className="p-4 text-sm font-semibold text-white/80">Submitted At</th>
-                  <th className="p-4 text-sm font-semibold text-white/80">Actions</th>
+                <tr className="bg-bg-glass border-b border-border-subtle">
+                  <th className="p-4 text-sm font-semibold text-text-main">Student Name</th>
+                  <th className="p-4 text-sm font-semibold text-text-main">Task Title</th>
+                  <th className="p-4 text-sm font-semibold text-text-main">Status</th>
+                  <th className="p-4 text-sm font-semibold text-text-main">Similarity</th>
+                  <th className="p-4 text-sm font-semibold text-text-main">Submitted At</th>
+                  <th className="p-4 text-sm font-semibold text-text-main">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,34 +121,34 @@ const InstructorReviewQueue = () => {
                   }
 
                   return (
-                    <tr key={sub.sub_id || sub.id} className="border-b border-white/[0.06] hover:bg-slate-800/20 transition-colors">
-                      <td className="p-4 text-sm text-white">
+                    <tr key={sub.sub_id || sub.id} className="border-b border-border-subtle hover:bg-bg-glass-hover transition-colors">
+                      <td className="p-4 text-sm text-text-main">
                         {sub.student?.name || sub.user?.full_name || 'Unknown Student'}
                       </td>
-                      <td className="p-4 text-sm text-emerald-400">
+                      <td className="p-4 text-sm text-text-emerald">
                         {sub.activity?.title || sub.task?.title || 'Unknown Task'}
                       </td>
                       <td className="p-4 text-sm">
-                        <span className="px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded text-xs capitalize">
+                        <span className="px-2 py-1 bg-yellow-500/10 text-text-amber border border-yellow-500/20 rounded text-xs capitalize">
                           {sub.status || 'pending'}
                         </span>
                       </td>
                       <td className="p-4 text-sm">
                         {similarityScore !== null ? (
-                          <span className={`${isHighSimilarity ? 'text-red-400 font-bold' : 'text-white/80'}`}>
+                          <span className={`${isHighSimilarity ? 'text-text-rose font-bold' : 'text-text-main'}`}>
                             {similarityScore}%
                           </span>
                         ) : (
-                          <span className="text-white/40">N/A</span>
+                          <span className="text-text-muted">N/A</span>
                         )}
                       </td>
-                      <td className="p-4 text-sm text-white/60">
+                      <td className="p-4 text-sm text-text-muted">
                         {formatDate(sub.submitted_at)}
                       </td>
                       <td className="p-4 text-sm">
                         <button
                           onClick={() => navigate(`/instructor/submissions/${sub.sub_id || sub.id}`)}
-                          className="px-3 py-1 bg-emerald-600/10 text-emerald-400 border border-emerald-500/20 rounded hover:bg-emerald-600 hover:text-white transition-colors"
+                          className="px-3 py-1 bg-emerald-600/10 text-text-emerald border border-emerald-500/20 rounded hover:bg-emerald-600 hover:text-text-main transition-colors"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 20h9"></path>

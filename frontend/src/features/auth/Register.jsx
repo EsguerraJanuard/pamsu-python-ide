@@ -19,6 +19,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../../services/api";
+import { ThemeToggle } from "../theme/ThemeToggle";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const SCHOOL_ID_PATTERN = /^\d{10}$/;
@@ -79,7 +80,7 @@ function OtpInput({ value, onChange, disabled }) {
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           disabled={disabled}
-          className="h-12 w-10 rounded-lg border border-white/[0.08] bg-[#1a1d27] text-center text-lg font-bold text-white outline-none transition-colors focus:border-[#3b82f6]/60 disabled:opacity-50"
+          className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-[#3b82f6]/60 disabled:opacity-50"
           style={{ caretColor: "#3b82f6" }}
           aria-label={`OTP digit ${i + 1}`}
         />
@@ -128,9 +129,9 @@ export default function Register() {
   const passwordStrength = getPasswordStrength(form.password);
 
   const inputWrapClass =
-    "auth-input-wrap flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#1a1d27] px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
+    "auth-input-wrap flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
   const inputClass =
-    "flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20";
+    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20";
 
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
@@ -302,7 +303,7 @@ export default function Register() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0f1117] px-4 py-10 text-white">
+    <main className="min-h-screen bg-bg-base px-4 py-10 text-text-main">
       <style>{`
         @keyframes registerFadeUp {
           from { opacity: 0; transform: translateY(16px); }
@@ -316,6 +317,11 @@ export default function Register() {
         }
       `}</style>
 
+      {/* Theme Toggle */}
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
+
       <div className="register-page-card mx-auto w-full max-w-[560px]">
 
         {/* ── Step 1 — Registration details ── */}
@@ -323,42 +329,42 @@ export default function Register() {
           <>
             <header className="mb-6 space-y-5">
               {/* Uniform Top Navigation Bar */}
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-400 shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-blue-300 active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-blue shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-text-blue active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-blue-400 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-blue transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Sign In</span>
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-text-main">
                     &gt;_
                   </div>
-                  <span className="text-xs font-semibold tracking-wide text-white/80">PAMSU Python IDE</span>
+                  <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
                 </div>
               </div>
 
               {/* Title & Step Indicator */}
               <div className="flex items-start justify-between gap-4">
                 <div className="select-none cursor-default">
-                  <h1 className="text-xl font-bold text-white">Create your university account</h1>
-                  <p className="mt-1 text-sm text-white/40">
+                  <h1 className="text-xl font-bold text-text-main">Create your university account</h1>
+                  <p className="mt-1 text-sm text-text-muted">
                     Your email will be verified before the account is activated.
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-300 select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-text-blue select-none cursor-default">
                   Step 1 of 2
                 </div>
               </div>
             </header>
 
             <section className="mb-5 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3 select-none cursor-default">
-              <p className="text-xs leading-relaxed text-blue-200/80">
+              <p className="text-xs leading-relaxed text-text-blue">
                 Your account role is assigned securely by the server. Verified university
                 users register as students unless their email is included in the approved
                 instructor allowlist.
@@ -366,7 +372,7 @@ export default function Register() {
             </section>
 
             {error && (
-              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose">
                 {error}
               </div>
             )}
@@ -374,11 +380,11 @@ export default function Register() {
             <form onSubmit={handleRegistrationSubmit} className="space-y-4" noValidate>
               {/* Full name */}
               <div>
-                <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-white/60 select-none cursor-default">
+                <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
                   Complete name
                 </label>
                 <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
                     <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
                     <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                   </svg>
@@ -399,11 +405,11 @@ export default function Register() {
 
               {/* School ID */}
               <div>
-                <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-white/60 select-none cursor-default">
+                <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
                   School ID
                 </label>
                 <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
                     <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                     <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
                   </svg>
@@ -424,18 +430,18 @@ export default function Register() {
                     style={{ caretColor: "#3b82f6" }}
                   />
                 </div>
-                <p className="mt-1.5 text-[11px] text-white/30 select-none cursor-default">
+                <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">
                   Enter the 10-digit number printed on your school ID. Leading zeros are preserved.
                 </p>
               </div>
 
               {/* Email */}
               <div>
-                <label htmlFor="school-email" className="mb-1.5 block text-xs font-medium text-white/60 select-none cursor-default">
+                <label htmlFor="school-email" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
                   University email
                 </label>
                 <div className={inputWrapClass}>
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-white/30" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
                     <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                   </svg>
                   <input
@@ -451,17 +457,17 @@ export default function Register() {
                     style={{ caretColor: "#3b82f6" }}
                   />
                 </div>
-                <p className="mt-1.5 text-[11px] text-white/30 select-none cursor-default">Personal email accounts are not accepted.</p>
+                <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
               </div>
 
               {/* Password */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="registration-password" className="text-xs font-medium text-white/60 select-none cursor-default">
+                  <label htmlFor="registration-password" className="text-xs font-medium text-text-muted select-none cursor-default">
                     Password
                   </label>
                   {capsLock && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 select-none">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
                       <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
                         <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
                         <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
@@ -471,7 +477,7 @@ export default function Register() {
                   )}
                 </div>
                 <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
                     <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                     <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                   </svg>
@@ -491,7 +497,7 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="shrink-0 cursor-pointer text-xs text-white/40 transition-colors hover:text-white/70"
+                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-muted"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     disabled={isLoading}
                   >
@@ -516,11 +522,11 @@ export default function Register() {
               {/* Confirm password */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="confirm-password" className="text-xs font-medium text-white/60 select-none cursor-default">
+                  <label htmlFor="confirm-password" className="text-xs font-medium text-text-muted select-none cursor-default">
                     Confirm password
                   </label>
                   {capsLock && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 select-none">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
                       <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
                         <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
                         <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
@@ -530,7 +536,7 @@ export default function Register() {
                   )}
                 </div>
                 <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/30" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
                     <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                     <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                   </svg>
@@ -550,7 +556,7 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((v) => !v)}
-                    className="shrink-0 cursor-pointer text-xs text-white/40 transition-colors hover:text-white/70"
+                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-muted"
                     aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                     disabled={isLoading}
                   >
@@ -560,13 +566,13 @@ export default function Register() {
               </div>
 
               {/* Data collection notice */}
-              <section className="rounded-xl border border-white/[0.08] bg-[#1a1d27] p-4">
-                <h2 className="mb-2 text-xs font-semibold text-white select-none cursor-default">Data collection notice</h2>
-                <p className="mb-3 text-[11px] leading-relaxed text-white/50 select-none cursor-default">
+              <section className="rounded-xl border border-border-subtle bg-bg-glass p-4">
+                <h2 className="mb-2 text-xs font-semibold text-text-main select-none cursor-default">Data collection notice</h2>
+                <p className="mb-3 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
                   The platform records limited activity information during controlled
                   programming activities to support instructor review and system operation.
                 </p>
-                <ul className="mb-4 list-inside list-disc space-y-1.5 text-[11px] leading-relaxed text-white/40 select-none cursor-default">
+                <ul className="mb-4 list-inside list-disc space-y-1.5 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
                   <li>Tab switches and activity status may be recorded during graded laboratory sessions.</li>
                   <li>Blocked external paste attempts may be counted, but clipboard contents are not stored.</li>
                   <li>Submitted code may be checked using AST rules, test cases, and Jaccard similarity.</li>
@@ -581,14 +587,14 @@ export default function Register() {
                     className="mt-0.5 h-4 w-4 shrink-0 accent-[#3b82f6]"
                     disabled={isLoading}
                   />
-                  <span className="text-[11px] leading-relaxed text-white/50 select-none cursor-default">
+                  <span className="text-[11px] leading-relaxed text-text-muted select-none cursor-default">
                     I have read and acknowledge the platform's data collection notice.
                   </span>
                 </label>
               </section>
 
               <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-white/40 select-none cursor-default">
+                <p className="text-xs text-text-muted select-none cursor-default">
                   Already have an account?{" "}
                   <button
                     type="button"
@@ -602,7 +608,7 @@ export default function Register() {
                 <button
                   type="submit"
                   disabled={!acknowledged || isLoading}
-                  className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-none disabled:bg-white/[0.06] disabled:text-white/25 disabled:hover:translate-y-0 disabled:hover:opacity-100 select-none"
+                  className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-5 py-2.5 text-sm font-semibold text-text-main transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-none disabled:bg-white/[0.06] disabled:text-white/25 disabled:hover:translate-y-0 disabled:hover:opacity-100 select-none"
                 >
                   {isLoading ? "Sending verification..." : "Continue to email verification"}
                 </button>
@@ -616,56 +622,56 @@ export default function Register() {
           <>
             <header className="mb-6 space-y-5">
               {/* Uniform Top Navigation Bar */}
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
                 <button
                   type="button"
                   onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-400 shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-blue-300 active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-blue shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-text-blue active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-blue-400 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-blue transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Details</span>
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-text-main">
                     &gt;_
                   </div>
-                  <span className="text-xs font-semibold tracking-wide text-white/80">PAMSU Python IDE</span>
+                  <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
                 </div>
               </div>
 
               {/* Title & Step Indicator */}
               <div className="flex items-start justify-between gap-4">
                 <div className="select-none cursor-default">
-                  <h1 className="text-xl font-bold text-white">Verify your email</h1>
-                  <p className="mt-1 text-sm text-white/40">
+                  <h1 className="text-xl font-bold text-text-main">Verify your email</h1>
+                  <p className="mt-1 text-sm text-text-muted">
                     Enter the 6-digit code sent to{" "}
-                    <span className="font-medium text-white/70">{form.email}</span>
+                    <span className="font-medium text-text-muted">{form.email}</span>
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-300 select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-text-blue select-none cursor-default">
                   Step 2 of 2
                 </div>
               </div>
             </header>
 
             {successMessage && !error && (
-              <div role="status" aria-live="polite" className="mb-5 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+              <div role="status" aria-live="polite" className="mb-5 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-text-emerald">
                 {successMessage}
               </div>
             )}
 
             {error && (
-              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleOtpVerify} className="space-y-6" noValidate>
               <div>
-                <label className="mb-4 block text-center text-xs font-medium text-white/60 select-none cursor-default">
+                <label className="mb-4 block text-center text-xs font-medium text-text-muted select-none cursor-default">
                   Verification code
                 </label>
                 <OtpInput
@@ -678,7 +684,7 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={otpCode.length !== 6 || isLoading}
-                className="w-full rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-2.5 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 select-none"
+                className="w-full rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-2.5 text-sm font-semibold text-text-main transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 select-none"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -694,14 +700,14 @@ export default function Register() {
               </button>
 
               <div className="text-center">
-                <p className="mb-2 text-xs text-white/40 select-none cursor-default">
+                <p className="mb-2 text-xs text-text-muted select-none cursor-default">
                   Did not receive the code?
                 </p>
                 <button
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0 || isLoading}
-                  className="text-xs font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa] disabled:cursor-not-allowed disabled:text-white/25"
+                  className="text-xs font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa] disabled:cursor-not-allowed disabled:text-text-muted"
                 >
                   {resendCooldown > 0
                     ? `Resend available in ${resendCooldown}s`
@@ -713,7 +719,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                  className="text-xs text-white/30 transition-colors hover:text-white/60"
+                  className="text-xs text-text-muted transition-colors hover:text-text-muted"
                   disabled={isLoading}
                 >
                   ← Back to registration details

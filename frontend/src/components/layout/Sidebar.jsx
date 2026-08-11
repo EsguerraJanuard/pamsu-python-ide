@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import SignOutModal from "./SignOutModal";
+import { ThemeToggle } from "../../features/theme/ThemeToggle";
 
 const NAV_SECTIONS = [
   {
@@ -176,12 +177,12 @@ export default function Sidebar({ assignmentCount = 0 }) {
   return (
     <>
       <aside
-        className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-white/[0.06] bg-[#0f1117] pt-3.5 pb-3 select-none transition-all duration-300 ${
+        className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-border-subtle bg-bg-base pt-3.5 pb-3 select-none transition-all duration-300 ${
           isCollapsed ? "w-[64px] px-2.5" : "w-[220px] px-3.5"
         }`}
       >
         {/* Dedicated Top Header Bar Container */}
-        <div className="shrink-0 mb-3 border-b border-white/[0.06] pb-3">
+        <div className="shrink-0 mb-3 border-b border-border-subtle pb-3">
           <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between px-0.5"}`}>
             <div className="flex items-center gap-2.5 min-w-0">
               <button
@@ -195,7 +196,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
                 &gt;_
               </button>
               {!isCollapsed && (
-                <span className="truncate text-sm font-bold tracking-wide text-white">
+                <span className="truncate text-sm font-bold tracking-wide text-text-main">
                   PAMSU IDE
                 </span>
               )}
@@ -206,7 +207,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
                 type="button"
                 onClick={toggleCollapse}
                 title="Collapse sidebar"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/45 transition-all duration-200 hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white active:scale-95 cursor-pointer shadow-sm"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-glass text-text-muted transition-all duration-200 hover:border-border-strong hover:bg-bg-glass-hover hover:text-text-main active:scale-95 cursor-pointer shadow-sm"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path d="M10 3L5 8l5 5M14 3v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -221,11 +222,11 @@ export default function Sidebar({ assignmentCount = 0 }) {
           {NAV_SECTIONS.map((section) => (
             <section key={section.label}>
               {!isCollapsed ? (
-                <h2 className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+                <h2 className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
                   {section.label}
                 </h2>
               ) : (
-                <div className="my-1.5 h-px bg-white/[0.06]" />
+                <div className="my-1.5 h-px bg-border-subtle" />
               )}
               <div className="space-y-0.5">
                 {section.links.map((link) =>
@@ -235,7 +236,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
                       type="button"
                       onClick={() => setIsSignOutOpen(true)}
                       title={isCollapsed ? link.label : undefined}
-                      className={`flex w-full items-center gap-2.5 rounded-lg text-xs font-medium text-white/40 transition-colors duration-150 hover:bg-red-500/[0.08] hover:text-red-400 ${
+                      className={`flex w-full items-center gap-2.5 rounded-lg text-xs font-medium text-text-muted transition-colors duration-150 hover:bg-red-500/[0.08] hover:text-text-rose ${
                         isCollapsed ? "justify-center px-0 py-2" : "px-2.5 py-2"
                       }`}
                     >
@@ -253,8 +254,8 @@ export default function Sidebar({ assignmentCount = 0 }) {
                           "flex w-full items-center gap-2.5 rounded-lg text-xs transition-colors duration-150",
                           isCollapsed ? "justify-center px-0 py-2" : "justify-between px-2.5 py-2",
                           isActive
-                            ? "bg-[#3b82f6]/[0.14] text-[#3b82f6] font-semibold"
-                            : "text-white/45 hover:bg-white/[0.04] hover:text-white/80 font-medium",
+                            ? "bg-[#3b82f6]/[0.14] text-text-blue font-semibold"
+                            : "text-text-muted hover:bg-bg-glass hover:text-text-main font-medium",
                         ].join(" ")
                       }
                     >
@@ -284,7 +285,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
         </nav>
 
         {/* Pinned Bottom User Profile Card */}
-        <div className="shrink-0 pt-2.5 pb-1 border-t border-white/[0.06] mt-auto">
+        <div className="shrink-0 pt-2.5 pb-1 border-t border-border-subtle mt-auto space-y-2">
           <div
             className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-1"}`}
             title={isCollapsed ? `${name} (${role})` : undefined}
@@ -294,14 +295,17 @@ export default function Sidebar({ assignmentCount = 0 }) {
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-white tracking-tight">
+                <p className="truncate text-xs font-semibold text-text-main tracking-tight">
                   {name}
                 </p>
-                <p className="truncate text-[10px] text-white/40">
+                <p className="truncate text-[10px] text-text-muted">
                   {role} · {course}
                 </p>
               </div>
             )}
+          </div>
+          <div className={`flex ${isCollapsed ? "justify-center" : "justify-end px-1"}`}>
+            <ThemeToggle />
           </div>
         </div>
       </aside>

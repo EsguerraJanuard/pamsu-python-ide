@@ -22,7 +22,7 @@ const STATUS_CONFIG = {
   unknown: {
     label: "Session status unavailable",
     dotClass: "bg-white/30",
-    textClass: "text-white/40",
+    textClass: "text-text-muted",
   },
 };
 
@@ -42,7 +42,7 @@ export default function Statusbar({
 
   return (
     <footer
-      className="flex h-9 shrink-0 items-center justify-between gap-4 border-t border-white/[0.06] bg-[#0d0f18] px-4"
+      className="flex h-9 shrink-0 items-center justify-between gap-4 border-t border-border-subtle bg-bg-base px-4"
       aria-label="Workspace status"
     >
       <div
@@ -63,7 +63,7 @@ export default function Statusbar({
         </span>
       </div>
 
-      <span className="shrink-0 select-none font-mono text-[10px] text-white/25">
+      <span className="shrink-0 select-none font-mono text-[10px] text-text-muted">
         {pythonVersion}
         {studentName ? ` · ${studentName}` : ""}
       </span>

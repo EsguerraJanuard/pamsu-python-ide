@@ -34,7 +34,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
     return (
       <section className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <article key={i} className="cursor-pointer overflow-hidden rounded-xl border border-white/[0.04] bg-[#1a1d27] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-white/[0.08] hover:bg-[#1f2330] hover:shadow-lg animate-pulse">
+          <article key={i} className="cursor-pointer overflow-hidden rounded-xl border border-white/[0.04] bg-bg-glass p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-subtle hover:bg-bg-glass-hover hover:shadow-lg animate-pulse">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
                 <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.05]"></div>
@@ -46,7 +46,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
               </div>
               <div className="h-10 w-24 rounded-lg bg-white/[0.05]"></div>
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 sm:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 gap-4 rounded-lg border border-border-subtle bg-bg-glass p-4 sm:grid-cols-4">
               <div className="h-12 w-full rounded-md bg-white/[0.05]"></div>
               <div className="h-12 w-full rounded-md bg-white/[0.05]"></div>
             </div>
@@ -70,7 +70,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
         return (
           <article
             key={submission.id}
-            className={`submission-card rounded-xl border border-l-[3px] border-white/[0.06] bg-[#1a1d27] p-5 ${status.accentClass}`}
+            className={`submission-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 ${status.accentClass}`}
             style={{
               animation: `submissionsFadeUp 400ms ease ${
                 index * 70
@@ -91,12 +91,12 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
                   </span>
                 </div>
 
-                <p className="text-[11px] text-white/35">
+                <p className="text-[11px] text-text-muted">
                   {submission.courseCode} ·{" "}
                   {submission.activityType}
                 </p>
 
-                <p className="mt-1 text-[11px] text-white/30">
+                <p className="mt-1 text-[11px] text-text-muted">
                   Submitted {submission.submittedLabel}
                 </p>
               </div>
@@ -104,24 +104,24 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
               <button
                 type="button"
                 onClick={() => onOpen(submission.id)}
-                className="shrink-0 rounded-lg border border-blue-500/40 px-3 py-1.5 text-xs font-semibold text-blue-400 transition duration-150 hover:-translate-y-px hover:bg-blue-500/10 active:translate-y-0 active:scale-[0.98]"
+                className="shrink-0 rounded-lg border border-blue-500/40 px-3 py-1.5 text-xs font-semibold text-text-blue transition duration-150 hover:-translate-y-px hover:bg-blue-500/10 active:translate-y-0 active:scale-[0.98]"
               >
                 View details
               </button>
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-green-400">
+              <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-text-emerald">
                 Attempt {submission.latestAttempt}
               </span>
 
               {submission.isOfficial && (
-                <span className="rounded-full border border-green-500/20 bg-green-500/[0.06] px-2.5 py-1 text-[10px] text-green-300">
+                <span className="rounded-full border border-green-500/20 bg-green-500/[0.06] px-2.5 py-1 text-[10px] text-text-emerald">
                   Latest official submission
                 </span>
               )}
 
-              <span className="text-[10px] text-white/30">
+              <span className="text-[10px] text-text-muted">
                 {submission.totalAttempts}{" "}
                 {submission.totalAttempts === 1
                   ? "attempt"
@@ -133,25 +133,25 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
 
 
             <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-1">
-              <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
+              <div className="rounded-lg border border-border-subtle bg-bg-glass p-3">
                 {submission.instructorGrade ? (
                   <>
-                    <p className="text-lg font-bold text-violet-400">
+                    <p className="text-lg font-bold text-text-violet">
                       {submission.instructorGrade.score} /{" "}
                       {submission.instructorGrade.maximum}
                     </p>
 
-                    <p className="mt-0.5 text-[10px] text-white/40">
+                    <p className="mt-0.5 text-[10px] text-text-muted">
                       Instructor grade
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-blue-400">
+                    <p className="text-sm font-semibold text-text-blue">
                       Pending
                     </p>
 
-                    <p className="mt-1 text-[10px] text-white/40">
+                    <p className="mt-1 text-[10px] text-text-muted">
                       Instructor grade
                     </p>
                   </>
@@ -159,8 +159,8 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
               </div>
             </div>
 
-            <div className="rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-white/45">
-              <span className="text-white/25">
+            <div className="rounded-lg border-l-2 border-border-subtle bg-bg-glass px-3 py-2 font-mono text-[11px] text-text-muted">
+              <span className="text-text-muted">
                 Instructor feedback:{" "}
               </span>
 
@@ -171,12 +171,12 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
       })}
 
       {submissions.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.08] py-20 px-6 text-center transition-all hover:bg-white/[0.02]">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-blue-400 ring-4 ring-blue-500/5">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle py-20 px-6 text-center transition-all hover:bg-bg-glass">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-text-blue ring-4 ring-blue-500/5">
             <ArchiveIcon className="h-8 w-8" />
           </div>
-          <h3 className="mb-2 text-xl font-semibold text-white/90">No Submissions Yet</h3>
-          <p className="max-w-md text-sm text-white/50">
+          <h3 className="mb-2 text-xl font-semibold text-text-main">No Submissions Yet</h3>
+          <p className="max-w-md text-sm text-text-muted">
             You haven't submitted any activities. Your completed laboratory and homework modules will appear here for review.
           </p>
         </div>
@@ -197,13 +197,13 @@ function SubmissionDetails({ submission, onBack }) {
       <button
         type="button"
         onClick={onBack}
-        className="text-xs text-blue-400 transition-colors hover:text-blue-300"
+        className="text-xs text-text-blue transition-colors hover:text-text-blue"
       >
         ← Back to submissions
       </button>
 
       <section
-        className={`rounded-xl border border-l-[3px] border-white/[0.06] bg-[#1a1d27] p-5 ${status.accentClass}`}
+        className={`rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 ${status.accentClass}`}
       >
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -219,24 +219,24 @@ function SubmissionDetails({ submission, onBack }) {
               </span>
             </div>
 
-            <p className="text-xs text-white/35">
+            <p className="text-xs text-text-muted">
               {submission.courseCode} ·{" "}
               {submission.activityType}
             </p>
 
-            <p className="mt-1 text-[11px] text-white/30">
+            <p className="mt-1 text-[11px] text-text-muted">
               Latest submission: {submission.submittedLabel}
             </p>
           </div>
 
           {submission.instructorGrade && (
             <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-center">
-              <p className="text-2xl font-bold text-violet-300">
+              <p className="text-2xl font-bold text-text-violet">
                 {submission.instructorGrade.score} /{" "}
                 {submission.instructorGrade.maximum}
               </p>
 
-              <p className="text-[10px] text-violet-200/60">
+              <p className="text-[10px] text-text-violet">
                 Instructor grade
               </p>
             </div>
@@ -244,7 +244,7 @@ function SubmissionDetails({ submission, onBack }) {
         </div>
 
         <section className="mb-5">
-          <h2 className="mb-3 text-xs font-semibold text-white/70">
+          <h2 className="mb-3 text-xs font-semibold text-text-muted">
             Submission attempts
           </h2>
 
@@ -252,24 +252,24 @@ function SubmissionDetails({ submission, onBack }) {
             {submission.attempts.map((attempt) => (
               <div
                 key={attempt.attemptNumber}
-                className="flex flex-col gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-bg-glass px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="text-xs font-medium text-white/70">
+                  <p className="text-xs font-medium text-text-muted">
                     Attempt {attempt.attemptNumber}
                   </p>
 
-                  <p className="mt-0.5 text-[10px] text-white/30">
+                  <p className="mt-0.5 text-[10px] text-text-muted">
                     Submitted {attempt.submittedLabel}
                   </p>
                 </div>
 
                 {attempt.isOfficial ? (
-                  <span className="w-fit rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-green-400">
+                  <span className="w-fit rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-text-emerald">
                     Latest official submission
                   </span>
                 ) : (
-                  <span className="w-fit rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] text-white/30">
+                  <span className="w-fit rounded-full border border-border-subtle bg-bg-glass px-2.5 py-1 text-[10px] text-text-muted">
                     Previous attempt
                   </span>
                 )}
@@ -281,11 +281,11 @@ function SubmissionDetails({ submission, onBack }) {
 
 
         <section className="rounded-lg border-l-2 border-violet-500/30 bg-violet-500/[0.05] px-4 py-3">
-          <h2 className="mb-1 text-xs font-semibold text-violet-300">
+          <h2 className="mb-1 text-xs font-semibold text-text-violet">
             Instructor feedback
           </h2>
 
-          <p className="text-[11px] leading-relaxed text-white/50">
+          <p className="text-[11px] leading-relaxed text-text-muted">
             {submission.instructorFeedback}
           </p>
         </section>
@@ -380,7 +380,7 @@ export default function Submissions() {
     : null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f1117] text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
@@ -418,13 +418,13 @@ export default function Submissions() {
           <div className="w-full">
             {!id && (
               <>
-                <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-white/[0.06] pb-6">
+                <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                   <div>
                     <h1 className="text-2xl font-bold flex items-center gap-3">
                       <ArchiveIcon className="h-6 w-6 text-green-500" />
                       Submissions
                     </h1>
-                    <p className="mt-1 text-sm text-white/40">
+                    <p className="mt-1 text-sm text-text-muted">
                       {submissions.length} submitted{" "}
                       {submissions.length === 1
                         ? "activity"
@@ -453,12 +453,12 @@ export default function Submissions() {
             )}
 
             {id && !selectedSubmission && (
-              <section className="rounded-xl border border-dashed border-white/[0.08] px-5 py-16 text-center">
+              <section className="rounded-xl border border-dashed border-border-subtle px-5 py-16 text-center">
                 <h1 className="text-lg font-semibold">
                   Submission not found
                 </h1>
 
-                <p className="mt-2 text-sm text-white/35">
+                <p className="mt-2 text-sm text-text-muted">
                   The requested submission does not exist or is not
                   available to this account.
                 </p>
