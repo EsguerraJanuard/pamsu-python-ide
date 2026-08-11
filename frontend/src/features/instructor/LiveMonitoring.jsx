@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
+import CustomSelect from "../../components/ui/CustomSelect";
 
 const LiveMonitoring = () => {
   const [mode, setMode] = useState('global'); // 'global' or 'task'
@@ -106,18 +107,18 @@ const LiveMonitoring = () => {
               
               <div className="flex items-center gap-3">
                 {mode === 'global' && (
-                  <select
+                  <CustomSelect
                     value={selectedClassroom}
-                    onChange={(e) => setSelectedClassroom(e.target.value)}
-                    className="bg-bg-base border border-border-subtle text-text-main text-sm font-medium rounded-lg px-4 py-1.5 focus:outline-none focus:border-emerald-500 transition-colors"
-                  >
-                    <option value="All">All Classrooms</option>
-                    {classrooms.map((c) => (
-                      <option key={c.class_id || c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedClassroom}
+                    className="px-4 py-1.5 w-48 text-sm"
+                    options={[
+                      { value: "All", label: "All Classrooms" },
+                      ...classrooms.map((c) => ({
+                        value: c.name,
+                        label: c.name
+                      }))
+                    ]}
+                  />
                 )}
 
                 {(mode === 'global' || activeTaskId) && (

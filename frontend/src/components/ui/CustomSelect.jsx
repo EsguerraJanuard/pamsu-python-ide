@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export default function CustomSelect({ options, value, onChange, placeholder = "Select an option" }) {
+export default function CustomSelect({ options, value, onChange, placeholder = "Select an option", className = "" }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -19,7 +19,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
   return (
     <div className="relative group" ref={dropdownRef}>
       <div 
-        className="w-full bg-bg-glass border border-border-subtle rounded-xl px-4 py-3 text-sm text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner cursor-pointer flex justify-between items-center"
+        className={`w-full bg-bg-glass border border-border-subtle rounded-xl text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer flex justify-between items-center ${className || 'px-4 py-3 text-sm'}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className={selectedOption ? "text-text-main" : "text-text-muted"}>
@@ -33,7 +33,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
       </div>
       
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-bg-glass border border-border-subtle rounded-xl shadow-xl shadow-black/50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute z-50 w-full mt-2 bg-bg-panel border border-border-subtle rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           <ul className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
             {options.map((opt) => (
               <li 

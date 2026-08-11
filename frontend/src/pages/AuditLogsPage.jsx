@@ -4,6 +4,7 @@ import api from "../services/api";
 import Sidebar from "../components/layout/Sidebar";
 import InstructorSidebar from "../components/layout/InstructorSidebar";
 import Statusbar from "../components/layout/Statusbar";
+import CustomSelect from "../components/ui/CustomSelect";
 
 function ShieldIcon(props) {
   return (
@@ -105,19 +106,21 @@ export default function AuditLogsPage({ role: propRole }) {
 
                   <div className="flex items-center gap-3">
                     <label className="text-xs font-medium text-text-muted">Action Type:</label>
-                    <select
+                    <CustomSelect
                       value={actionFilter}
-                      onChange={(e) => {
-                        setActionFilter(e.target.value);
+                      onChange={(val) => {
+                        setActionFilter(val);
                         setPage(1); // Reset page on filter change
                       }}
-                      className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500/50 focus:outline-none transition"
-                    >
-                      <option value="all">All Actions</option>
-                      <option value="login">Login Events</option>
-                      <option value="submission">Submissions</option>
-                      <option value="classroom">Classroom Events</option>
-                    </select>
+                      options={[
+                        { value: "all", label: "All Actions" },
+                        { value: "login", label: "Login Events" },
+                        { value: "submission", label: "Submissions" },
+                        { value: "classroom", label: "Classroom Events" }
+                      ]}
+                      className="px-3 py-2 text-xs w-48"
+                      placeholder="Select action..."
+                    />
                   </div>
                 </div>
 

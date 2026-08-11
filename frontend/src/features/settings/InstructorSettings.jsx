@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
+import CustomSelect from "../../components/ui/CustomSelect";
 export default function InstructorSettings() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -116,16 +117,16 @@ export default function InstructorSettings() {
             <h2 className="text-sm font-semibold text-text-main mb-4">AST & Automated Grading Policy</h2>
             <div>
               <label className="block text-xs text-text-muted mb-1">Default AST Strictness Level</label>
-              <select
-                name="astStrictness"
+              <CustomSelect
                 value={formData.astStrictness}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
-              >
-                <option value="lenient">Lenient (Focus on execution output only)</option>
-                <option value="moderate">Moderate (Standard AST pattern checks)</option>
-                <option value="strict">Strict (Enforce rigid structural loop/function rules)</option>
-              </select>
+                onChange={(val) => setFormData(prev => ({ ...prev, astStrictness: val }))}
+                className="w-full px-3 py-2 text-xs"
+                options={[
+                  { value: "lenient", label: "Lenient (Focus on execution output only)" },
+                  { value: "moderate", label: "Moderate (Standard AST pattern checks)" },
+                  { value: "strict", label: "Strict (Enforce rigid structural loop/function rules)" }
+                ]}
+              />
             </div>
           </section>
 

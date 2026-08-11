@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import InstructorSidebar from '../../components/layout/InstructorSidebar';
+import CustomSelect from '../../components/ui/CustomSelect';
 import api from '../../services/api';
 
 export default function InstructorGradebook() {
@@ -99,26 +100,24 @@ export default function InstructorGradebook() {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <select
+                  <CustomSelect
                     value={selectedClassId}
-                    onChange={(e) => setSelectedClassId(e.target.value)}
-                    className="w-full sm:w-48 rounded-lg border border-white/10 bg-bg-glass px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="">All Classrooms</option>
-                    {classrooms.map(c => (
-                      <option key={c.id} value={c.id}>{c.subject_code} - {c.section}</option>
-                    ))}
-                  </select>
-                  <select
+                    onChange={setSelectedClassId}
+                    className="w-full sm:w-48 px-3 py-2 text-sm"
+                    options={[
+                      { value: "", label: "All Classrooms" },
+                      ...classrooms.map(c => ({ value: c.id, label: `${c.subject_code} - ${c.section}` }))
+                    ]}
+                  />
+                  <CustomSelect
                     value={selectedTaskId}
-                    onChange={(e) => setSelectedTaskId(e.target.value)}
-                    className="w-full sm:w-48 rounded-lg border border-white/10 bg-bg-glass px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="">All Activities</option>
-                    {tasks.map(t => (
-                      <option key={t.id} value={t.id}>{t.title}</option>
-                    ))}
-                  </select>
+                    onChange={setSelectedTaskId}
+                    className="w-full sm:w-48 px-3 py-2 text-sm"
+                    options={[
+                      { value: "", label: "All Activities" },
+                      ...tasks.map(t => ({ value: t.id, label: t.title }))
+                    ]}
+                  />
                 </div>
               </header>
 
