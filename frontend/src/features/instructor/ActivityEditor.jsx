@@ -137,29 +137,52 @@ const ActivityEditor = () => {
                   <label className="block text-xs font-semibold text-text-muted mb-1.5">
                     Target Classroom(s) <span className="text-text-emerald">*</span>
                   </label>
-                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-3 max-h-48 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-3 max-h-56 overflow-y-auto custom-scrollbar flex flex-col gap-2">
                     {classrooms.length === 0 ? (
                       <div className="text-sm text-text-muted italic py-2 text-center">No classrooms available</div>
                     ) : (
-                      classrooms.map(cls => (
-                        <label key={cls.class_id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors group">
-                          <input 
-                            type="checkbox" 
-                            className="w-4 h-4 rounded border-border-subtle bg-bg-base text-emerald-500 focus:ring-emerald-500/20 cursor-pointer"
-                            checked={formData.class_ids.includes(cls.class_id)}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setFormData(prev => ({
-                                ...prev,
-                                class_ids: checked 
-                                  ? [...prev.class_ids, cls.class_id]
-                                  : prev.class_ids.filter(id => id !== cls.class_id)
-                              }));
-                            }}
-                          />
-                          <span className="text-sm font-medium text-text-main select-none">{cls.subject_code} - {cls.section}</span>
-                        </label>
-                      ))
+                      classrooms.map(cls => {
+                        const isSelected = formData.class_ids.includes(cls.class_id);
+                        return (
+                          <label 
+                            key={cls.class_id} 
+                            className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-emerald-500/10 border-emerald-500/30 shadow-sm'
+                                : 'bg-bg-base border-border-subtle hover:border-border-strong'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className={`text-sm font-medium select-none ${isSelected ? 'text-text-emerald' : 'text-text-main'}`}>
+                                {cls.subject_code} - {cls.section}
+                              </span>
+                            </div>
+                            <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                              isSelected
+                                ? 'bg-emerald-500 border-emerald-500 text-bg-panel'
+                                : 'border border-border-strong bg-transparent'
+                            }`}>
+                              {isSelected && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              )}
+                            </div>
+                            <input 
+                              type="checkbox" 
+                              className="sr-only"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  class_ids: checked 
+                                    ? [...prev.class_ids, cls.class_id]
+                                    : prev.class_ids.filter(id => id !== cls.class_id)
+                                }));
+                              }}
+                            />
+                          </label>
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -253,7 +276,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-black/10 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-black/20 dark:group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
                         </div>
                         <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Publish immediately</span>
                       </label>
@@ -267,7 +290,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-black/10 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-black/20 dark:group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
                         </div>
                         <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
                       </label>
