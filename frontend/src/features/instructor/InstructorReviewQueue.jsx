@@ -59,7 +59,7 @@ const InstructorReviewQueue = () => {
       </header>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded text-red-200">
+        <div className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded text-text-rose">
           {error}
         </div>
       )}
@@ -129,7 +129,7 @@ const InstructorReviewQueue = () => {
                         {sub.activity?.title || sub.task?.title || 'Unknown Task'}
                       </td>
                       <td className="p-4 text-sm">
-                        <span className="px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded text-xs capitalize">
+                        <span className="px-2 py-1 bg-yellow-500/10 text-text-amber border border-yellow-500/20 rounded text-xs capitalize">
                           {sub.status || 'pending'}
                         </span>
                       </td>

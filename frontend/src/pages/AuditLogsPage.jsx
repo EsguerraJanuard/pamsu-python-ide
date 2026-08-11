@@ -164,7 +164,7 @@ export default function AuditLogsPage({ role: propRole }) {
                               <td className="py-3.5 px-4 text-text-muted">
                                 {log.resource || log.resource_type || log.resource_id || "N/A"}
                               </td>
-                              <td className="py-3.5 px-4 text-cyan-400">
+                              <td className="py-3.5 px-4 text-text-blue">
                                 {log.ip_address || log.audit_data?.ip_address || "127.0.0.1"}
                               </td>
                               <td className="py-3.5 px-4 text-right font-sans">

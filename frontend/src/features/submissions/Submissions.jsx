@@ -111,12 +111,12 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-green-400">
+              <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-text-emerald">
                 Attempt {submission.latestAttempt}
               </span>
 
               {submission.isOfficial && (
-                <span className="rounded-full border border-green-500/20 bg-green-500/[0.06] px-2.5 py-1 text-[10px] text-green-300">
+                <span className="rounded-full border border-green-500/20 bg-green-500/[0.06] px-2.5 py-1 text-[10px] text-text-emerald">
                   Latest official submission
                 </span>
               )}
@@ -265,7 +265,7 @@ function SubmissionDetails({ submission, onBack }) {
                 </div>
 
                 {attempt.isOfficial ? (
-                  <span className="w-fit rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-green-400">
+                  <span className="w-fit rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-text-emerald">
                     Latest official submission
                   </span>
                 ) : (

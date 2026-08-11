@@ -142,7 +142,7 @@ export default function EditClassModal({
                 <div className="text-xs font-semibold text-text-muted">Student Invite Code</div>
                 <div className="text-[11px] text-text-muted">Share with students to enroll.</div>
               </div>
-              <div className="font-mono text-base font-extrabold text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1 rounded">
+              <div className="font-mono text-base font-extrabold text-text-blue bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1 rounded">
                 {classCode || "------"}
               </div>
             </div>

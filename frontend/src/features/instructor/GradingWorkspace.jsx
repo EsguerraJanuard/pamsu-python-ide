@@ -135,7 +135,7 @@ const GradingWorkspace = () => {
                         </svg>
                         Execution Output
                     </h3>
-                    <div className="bg-black text-green-400 font-mono text-sm p-4 rounded overflow-auto flex-1 min-h-[12rem] border border-border-subtle">
+                    <div className="bg-black text-text-emerald font-mono text-sm p-4 rounded overflow-auto flex-1 min-h-[12rem] border border-border-subtle">
                         {evaluation_result?.stdout && (
                             <div className="mb-4">
                                 <div className="text-text-muted mb-1 select-none"># stdout</div>

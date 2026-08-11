@@ -400,7 +400,7 @@ export default function Assignments() {
                         </span>
 
                         {activity.latestSubmission.isOfficial && (
-                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-green-400">
+                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-emerald">
                             Latest official submission
                           </span>
                         )}

@@ -162,7 +162,7 @@ export default function Analytics() {
                   className="rounded-xl border border-border-subtle bg-bg-glass p-4"
                 >
                   <p
-                    className="mb-1 text-3xl font-bold text-purple-400"
+                    className="mb-1 text-3xl font-bold text-text-violet"
                   >
                     {metrics?.completedActivities || "0 / 0"}
                   </p>

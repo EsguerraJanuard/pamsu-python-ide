@@ -1130,7 +1130,7 @@ export default function Workspace() {
               </section>
 
               <section className="rounded-lg border border-green-500/15 bg-green-500/[0.02] shadow-inner p-4">
-                <h3 className="text-[11px] font-semibold text-green-300">
+                <h3 className="text-[11px] font-semibold text-text-emerald">
                   Privacy boundary
                 </h3>
 
