@@ -254,7 +254,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
                           "flex w-full items-center gap-2.5 rounded-lg text-xs transition-colors duration-150",
                           isCollapsed ? "justify-center px-0 py-2" : "justify-between px-2.5 py-2",
                           isActive
-                            ? "bg-[#3b82f6]/[0.14] text-[#3b82f6] font-semibold"
+                            ? "bg-[#3b82f6]/[0.14] text-text-blue font-semibold"
                             : "text-text-muted hover:bg-bg-glass hover:text-text-main font-medium",
                         ].join(" ")
                       }
