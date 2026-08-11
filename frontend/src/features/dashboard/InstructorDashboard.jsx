@@ -251,7 +251,7 @@ export default function InstructorDashboard() {
               </header>
 
               <section className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-emerald-200/80">
+                <p className="text-xs leading-relaxed text-text-emerald">
                   Faculty Control Center: Real-time AST compliance flags, execution metrics, and monitoring controls are active. Official student records sync automatically.
                 </p>
               </section>
@@ -312,7 +312,7 @@ export default function InstructorDashboard() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-text-main/90 mb-1">No Managed Activities</h3>
+                      <h3 className="text-lg font-semibold text-text-main mb-1">No Managed Activities</h3>
                       <p className="text-sm text-text-muted mb-6 max-w-sm">
                         You haven't authored any activities. Create your first assignment or lab exercise.
                       </p>
@@ -339,7 +339,7 @@ export default function InstructorDashboard() {
                                 {status.label}
                               </span>
                             </div>
-                            <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-text-main/35">
+                            <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-text-muted">
                               <span>{activity.courseCode}</span>
                               <span className="flex items-center gap-1">
                                 <ClockIcon />
@@ -404,7 +404,7 @@ export default function InstructorDashboard() {
                   </div>
                 </div>
                 <p className="mt-3 text-sm font-semibold">Submissions Active</p>
-                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-main/35">
+                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-muted">
                   Recent activities in your lab sessions.
                 </p>
               </div>
@@ -424,7 +424,7 @@ export default function InstructorDashboard() {
                     />
                     <div>
                       <p className="text-[11px] leading-snug text-text-muted">{item.message}</p>
-                      <p className="mt-0.5 text-[10px] text-text-main/25">{item.time}</p>
+                      <p className="mt-0.5 text-[10px] text-text-muted">{item.time}</p>
                     </div>
                   </li>
                 ))}

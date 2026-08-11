@@ -63,7 +63,7 @@ export default function Statusbar({
         </span>
       </div>
 
-      <span className="shrink-0 select-none font-mono text-[10px] text-text-main/25">
+      <span className="shrink-0 select-none font-mono text-[10px] text-text-muted">
         {pythonVersion}
         {studentName ? ` · ${studentName}` : ""}
       </span>

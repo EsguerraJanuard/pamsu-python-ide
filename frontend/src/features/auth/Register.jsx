@@ -364,7 +364,7 @@ export default function Register() {
             </header>
 
             <section className="mb-5 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3 select-none cursor-default">
-              <p className="text-xs leading-relaxed text-blue-200/80">
+              <p className="text-xs leading-relaxed text-text-blue">
                 Your account role is assigned securely by the server. Verified university
                 users register as students unless their email is included in the approved
                 instructor allowlist.
@@ -707,7 +707,7 @@ export default function Register() {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0 || isLoading}
-                  className="text-xs font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa] disabled:cursor-not-allowed disabled:text-text-main/25"
+                  className="text-xs font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa] disabled:cursor-not-allowed disabled:text-text-muted"
                 >
                   {resendCooldown > 0
                     ? `Resend available in ${resendCooldown}s`

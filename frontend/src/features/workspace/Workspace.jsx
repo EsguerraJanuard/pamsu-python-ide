@@ -946,7 +946,7 @@ export default function Workspace() {
                 }}
               />
 
-              <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-black/30 px-2 py-1 font-mono text-[9px] text-text-main/25">
+              <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-black/30 px-2 py-1 font-mono text-[9px] text-text-muted">
                 {lineCount} {lineCount === 1 ? "line" : "lines"} ·
                 autosave
               </div>
@@ -1004,7 +1004,7 @@ export default function Workspace() {
                             {requirement}
                           </span>
 
-                          <span className="shrink-0 text-[9px] text-text-main/25">
+                          <span className="shrink-0 text-[9px] text-text-muted">
                             Not checked
                           </span>
                         </div>
@@ -1117,13 +1117,13 @@ export default function Workspace() {
                       Last blocked paste
                     </p>
 
-                    <p className="mt-1 font-mono text-[10px] text-text-main/25">
+                    <p className="mt-1 font-mono text-[10px] text-text-muted">
                       {lastBlockedPasteAt || "None recorded"}
                     </p>
                   </div>
                 </div>
 
-                <p className="mt-3 text-[10px] leading-relaxed text-text-main/25">
+                <p className="mt-3 text-[10px] leading-relaxed text-text-muted">
                   These events are review indicators, not automatic
                   behavior scores or proof of misconduct.
                 </p>
@@ -1134,7 +1134,7 @@ export default function Workspace() {
                   Privacy boundary
                 </h3>
 
-                <p className="mt-1 text-[10px] leading-relaxed text-text-main/35">
+                <p className="mt-1 text-[10px] leading-relaxed text-text-muted">
                   Clipboard contents, browsing history, screen,
                   webcam, microphone, and every keystroke are not
                   collected.

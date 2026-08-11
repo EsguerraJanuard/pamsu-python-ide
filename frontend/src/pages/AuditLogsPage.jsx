@@ -135,7 +135,7 @@ export default function AuditLogsPage({ role: propRole }) {
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-text-muted ring-4 ring-slate-500/5">
                         <ShieldIcon className="h-7 w-7" />
                       </div>
-                      <h3 className="mb-2 text-lg font-semibold text-text-main/90">No Audit Records Found</h3>
+                      <h3 className="mb-2 text-lg font-semibold text-text-main">No Audit Records Found</h3>
                       <p className="text-xs text-text-muted max-w-sm">
                         No security events or actions match your current search criteria.
                       </p>

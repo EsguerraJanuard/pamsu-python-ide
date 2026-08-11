@@ -91,7 +91,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
                   </span>
                 </div>
 
-                <p className="text-[11px] text-text-main/35">
+                <p className="text-[11px] text-text-muted">
                   {submission.courseCode} ·{" "}
                   {submission.activityType}
                 </p>
@@ -160,7 +160,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
             </div>
 
             <div className="rounded-lg border-l-2 border-border-subtle bg-bg-glass px-3 py-2 font-mono text-[11px] text-text-muted">
-              <span className="text-text-main/25">
+              <span className="text-text-muted">
                 Instructor feedback:{" "}
               </span>
 
@@ -175,7 +175,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-text-blue ring-4 ring-blue-500/5">
             <ArchiveIcon className="h-8 w-8" />
           </div>
-          <h3 className="mb-2 text-xl font-semibold text-text-main/90">No Submissions Yet</h3>
+          <h3 className="mb-2 text-xl font-semibold text-text-main">No Submissions Yet</h3>
           <p className="max-w-md text-sm text-text-muted">
             You haven't submitted any activities. Your completed laboratory and homework modules will appear here for review.
           </p>
@@ -219,7 +219,7 @@ function SubmissionDetails({ submission, onBack }) {
               </span>
             </div>
 
-            <p className="text-xs text-text-main/35">
+            <p className="text-xs text-text-muted">
               {submission.courseCode} ·{" "}
               {submission.activityType}
             </p>
@@ -236,7 +236,7 @@ function SubmissionDetails({ submission, onBack }) {
                 {submission.instructorGrade.maximum}
               </p>
 
-              <p className="text-[10px] text-violet-200/60">
+              <p className="text-[10px] text-text-violet">
                 Instructor grade
               </p>
             </div>
@@ -458,7 +458,7 @@ export default function Submissions() {
                   Submission not found
                 </h1>
 
-                <p className="mt-2 text-sm text-text-main/35">
+                <p className="mt-2 text-sm text-text-muted">
                   The requested submission does not exist or is not
                   available to this account.
                 </p>

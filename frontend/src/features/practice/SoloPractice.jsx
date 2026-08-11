@@ -108,7 +108,7 @@ export default function SoloPractice() {
                       <BookOpenIcon className="h-5 w-5" />
                     </div>
                     
-                    <h3 className="mb-2 text-lg font-semibold text-text-main/90 line-clamp-2">
+                    <h3 className="mb-2 text-lg font-semibold text-text-main line-clamp-2">
                       {activity.title}
                     </h3>
                     
@@ -132,7 +132,7 @@ export default function SoloPractice() {
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-500/10 text-text-violet ring-4 ring-violet-500/5">
                   <CodeIcon className="h-8 w-8" />
                 </div>
-                <h3 className="mb-2 text-xl font-semibold text-text-main/90">No Practice Modules Yet</h3>
+                <h3 className="mb-2 text-xl font-semibold text-text-main">No Practice Modules Yet</h3>
                 <p className="max-w-md text-sm text-text-muted">
                   You don't have any practice lessons available at the moment. When instructors publish ungraded modules in your classes, they will appear here.
                 </p>

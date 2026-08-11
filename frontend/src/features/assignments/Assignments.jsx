@@ -279,7 +279,7 @@ export default function Assignments() {
             </header>
 
             <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
-              <p className="text-xs leading-relaxed text-blue-200/80">
+              <p className="text-xs leading-relaxed text-text-blue">
                 You may submit an activity more than once while
                 submissions remain open. The latest accepted submission
                 becomes the official version for instructor review.
@@ -338,7 +338,7 @@ export default function Assignments() {
                     <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <h2 className="text-sm font-semibold text-text-main/90 transition-colors group-hover:text-text-main">
+                          <h2 className="text-sm font-semibold text-text-main transition-colors group-hover:text-text-main">
                             {activity.title}
                           </h2>
 
@@ -385,7 +385,7 @@ export default function Assignments() {
                     </div>
 
                     {activity.latestSubmission && (
-                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-green-300/80 shadow-inner">
+                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-text-emerald shadow-inner">
                         <span className="flex items-center gap-1.5 font-medium">
                           <SubmissionIcon className="h-3 w-3" />
                           Attempt{" "}

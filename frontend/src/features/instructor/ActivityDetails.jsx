@@ -250,7 +250,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.input_data}
                   onChange={e => setNewTestCase({...newTestCase, input_data: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main/90 focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
                   placeholder="Enter input data..."
                 />
               </div>
@@ -259,7 +259,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.expected_output}
                   onChange={e => setNewTestCase({...newTestCase, expected_output: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main/90 focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
                   required
                   placeholder="Enter expected output..."
                 />

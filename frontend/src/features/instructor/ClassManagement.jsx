@@ -140,7 +140,7 @@ export default function ClassManagement() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-text-main/90 mb-1">No Classrooms Yet</h3>
+                  <h3 className="text-lg font-semibold text-text-main mb-1">No Classrooms Yet</h3>
                   <p className="text-sm text-text-muted mb-6 max-w-md">
                     You haven't created any classes. Create your first class to generate an enrollment code for your students.
                   </p>
@@ -176,7 +176,7 @@ export default function ClassManagement() {
                         <div>
                           <p className="text-[10px] text-text-muted mb-0.5">Enrollment Code</p>
                           <div className="flex items-center gap-2 group/copy">
-                            <p className="font-mono text-sm text-text-main/90">{cls.class_code}</p>
+                            <p className="font-mono text-sm text-text-main">{cls.class_code}</p>
                             <button
                               onClick={(e) => copyToClipboard(e, cls.class_code, cls.class_id)}
                               className="text-text-muted hover:text-text-emerald transition-colors"

@@ -142,7 +142,7 @@ export default function NotificationsPage({ role: propRole }) {
                       </div>
                     ) : notifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center p-12 text-center">
-                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-bg-glass text-text-main/20">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-bg-glass text-text-muted">
                           <BellIcon className="h-6 w-6" />
                         </div>
                         <h3 className="text-sm font-semibold text-text-muted">No Notifications</h3>

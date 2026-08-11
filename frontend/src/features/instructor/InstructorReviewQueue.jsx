@@ -85,7 +85,7 @@ const InstructorReviewQueue = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-text-main/90">All Caught Up!</h3>
+            <h3 className="mb-2 text-lg font-semibold text-text-main">All Caught Up!</h3>
             <p className="text-sm text-text-muted max-w-sm">
               There are no pending submissions to review. You can check back later.
             </p>

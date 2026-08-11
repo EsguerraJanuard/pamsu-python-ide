@@ -52,7 +52,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="e.g. CCS101-XYZ"
-              className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main placeholder:text-text-main/20 focus:border-[#3b82f6] focus:outline-none"
+              className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-[#3b82f6] focus:outline-none"
               autoFocus
             />
           </div>

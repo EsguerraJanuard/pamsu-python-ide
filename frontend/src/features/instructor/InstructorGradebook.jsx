@@ -162,7 +162,7 @@ export default function InstructorGradebook() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                               </div>
-                              <h3 className="mb-1 text-base font-semibold text-text-main/90">No Grades Found</h3>
+                              <h3 className="mb-1 text-base font-semibold text-text-main">No Grades Found</h3>
                               <p className="text-sm text-text-muted">
                                 There are no graded submissions matching your current filters.
                               </p>
@@ -185,7 +185,7 @@ export default function InstructorGradebook() {
                               <div className="text-xs text-text-muted">{grade.activity?.section || 'N/A'}</div>
                             </td>
                             <td className="px-6 py-4">
-                              <div className="text-text-main/90 truncate max-w-[200px]">{grade.activity?.title || 'Unknown Task'}</div>
+                              <div className="text-text-main truncate max-w-[200px]">{grade.activity?.title || 'Unknown Task'}</div>
                               <div className="text-[10px] text-text-muted uppercase tracking-wider">{grade.activity?.activity_type}</div>
                             </td>
                             <td className="px-6 py-4 text-center whitespace-nowrap">
@@ -199,7 +199,7 @@ export default function InstructorGradebook() {
                                   </div>
                                 </div>
                               ) : (
-                                <span className="text-text-main/20">—</span>
+                                <span className="text-text-muted">—</span>
                               )}
                             </td>
                             <td className="px-6 py-4 text-center whitespace-nowrap">

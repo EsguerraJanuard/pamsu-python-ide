@@ -248,7 +248,7 @@ export default function StudentDashboard() {
               </header>
 
               <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-blue-200/80">
+                <p className="text-xs leading-relaxed text-text-blue">
                   Dashboard indicators support learning reflection.
                   AST checks, test results, and activity progress are
                   not automatic grades. Official grades are assigned
@@ -287,7 +287,7 @@ export default function StudentDashboard() {
                       {activeActivities.length}
                     </p>
 
-                    <h2 className="text-sm font-semibold text-text-main/90">
+                    <h2 className="text-sm font-semibold text-text-main">
                       Active activities
                     </h2>
 
@@ -315,7 +315,7 @@ export default function StudentDashboard() {
                       {completedCount} <span className="text-lg text-text-muted font-medium">/ {activities.length}</span>
                     </p>
 
-                    <h2 className="text-sm font-semibold text-text-main/90">
+                    <h2 className="text-sm font-semibold text-text-main">
                       Activities completed
                     </h2>
 
@@ -375,7 +375,7 @@ export default function StudentDashboard() {
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-text-blue">
                         <LayoutDashboardIcon className="h-6 w-6" />
                       </div>
-                      <h3 className="text-lg font-semibold text-text-main/90">No Activities Found</h3>
+                      <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
                       <p className="mt-1 text-sm text-text-muted">
                         Join a class to see your assignments and practice modules.
                       </p>
@@ -400,7 +400,7 @@ export default function StudentDashboard() {
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0 flex-1">
                               <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <h3 className="text-sm font-semibold text-text-main/90 transition-colors group-hover:text-text-main">
+                                <h3 className="text-sm font-semibold text-text-main transition-colors group-hover:text-text-main">
                                   {activity.title}
                                 </h3>
 
@@ -531,7 +531,7 @@ export default function StudentDashboard() {
                   Improving
                 </p>
 
-                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-main/35">
+                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-muted">
                   Based on your activity completion, AST indicators,
                   and test results.
                 </p>

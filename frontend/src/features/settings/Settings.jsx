@@ -136,7 +136,7 @@ export default function Settings() {
 
   const readonlyInputClass =
 
-    "flex-1 cursor-not-allowed bg-transparent text-sm text-text-muted outline-none";
+    "flex-1 cursor-not-allowed bg-transparent text-sm text-text-main outline-none";
 
 
 
@@ -492,7 +492,7 @@ export default function Settings() {
 
 
 
-                    <div className={`${inputWrap} opacity-70`}>
+                    <div className={`${inputWrap} opacity-100 bg-bg-glass cursor-not-allowed`}>
 
                       <input
 
@@ -548,7 +548,7 @@ export default function Settings() {
 
 
 
-                    <div className={`${inputWrap} opacity-70`}>
+                    <div className={`${inputWrap} opacity-100 bg-bg-glass cursor-not-allowed`}>
 
                       <input
 
@@ -606,7 +606,7 @@ export default function Settings() {
 
 
 
-                      <div className={`${inputWrap} opacity-70`}>
+                      <div className={`${inputWrap} opacity-100 bg-bg-glass cursor-not-allowed`}>
 
                         <input
 
@@ -644,7 +644,7 @@ export default function Settings() {
 
 
 
-                      <div className={`${inputWrap} opacity-70`}>
+                      <div className={`${inputWrap} opacity-100 bg-bg-glass cursor-not-allowed`}>
 
                         <input
 

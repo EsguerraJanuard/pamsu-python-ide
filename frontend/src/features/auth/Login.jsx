@@ -220,7 +220,7 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className="font-mono text-xs text-text-main/25 select-none cursor-default">
+        <p className="font-mono text-xs text-text-muted select-none cursor-default">
           Python 3 · FastAPI · Isolated execution
         </p>
       </section>

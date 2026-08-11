@@ -104,7 +104,7 @@ export default function Analytics() {
               className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3"
               aria-label="Analytics explanation"
             >
-              <p className="text-xs leading-relaxed text-blue-200/80">
+              <p className="text-xs leading-relaxed text-text-blue">
                 These indicators support learning reflection and instructor
                 review. They are not automatic grades. Official grades are
                 assigned by your instructor.

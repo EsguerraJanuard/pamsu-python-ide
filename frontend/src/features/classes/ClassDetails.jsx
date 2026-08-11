@@ -171,7 +171,7 @@ export default function ClassDetails() {
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4 ring-4 ring-red-500/5 text-text-rose">
                     <MegaphoneIcon className="h-8 w-8" />
                   </div>
-                  <h3 className="text-xl font-semibold text-text-main/90">Classroom Not Found</h3>
+                  <h3 className="text-xl font-semibold text-text-main">Classroom Not Found</h3>
                   <p className="mt-2 text-sm text-text-muted mb-6 max-w-md">
                     We couldn't find the details for this classroom. You may not be enrolled or the class was deleted.
                   </p>
@@ -192,7 +192,7 @@ export default function ClassDetails() {
                           {classroom.section}
                         </span>
                       </div>
-                      <h1 className="text-3xl font-bold text-text-main/90 mb-3 tracking-tight">{classroom.subject_name || "Classroom"}</h1>
+                      <h1 className="text-3xl font-bold text-text-main mb-3 tracking-tight">{classroom.subject_name || "Classroom"}</h1>
                       {classroom.instructor_name && (
                         <p className="text-sm font-medium text-text-muted">
                           Instructor: <span className="text-text-main">{classroom.instructor_name}</span>
@@ -204,7 +204,7 @@ export default function ClassDetails() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column: Activities */}
                     <div className="lg:col-span-2 space-y-4">
-                      <h2 className="text-lg font-semibold mb-4 border-b border-border-subtle pb-3 text-text-main/90">Class Activities</h2>
+                      <h2 className="text-lg font-semibold mb-4 border-b border-border-subtle pb-3 text-text-main">Class Activities</h2>
                       {activities.length === 0 ? (
                         <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-8 text-center">
                           <p className="text-sm text-text-muted">No activities assigned for this class yet.</p>
@@ -220,7 +220,7 @@ export default function ClassDetails() {
                             >
                               <div className="min-w-0">
                                 <div className="flex items-center gap-3 mb-1.5">
-                                  <h3 className="text-base font-semibold truncate text-text-main/90 group-hover:text-text-main transition-colors">{activity.title}</h3>
+                                  <h3 className="text-base font-semibold truncate text-text-main group-hover:text-text-main transition-colors">{activity.title}</h3>
                                   {isSubmitted ? (
                                     <span className="shrink-0 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-green-400">Submitted</span>
                                   ) : (
@@ -229,7 +229,7 @@ export default function ClassDetails() {
                                 </div>
                                 <div className="flex items-center gap-3 text-xs font-medium text-text-muted">
                                   <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]"><ClockIcon className="h-3 w-3" /> {activity.dueLabel}</span>
-                                  <span className="text-text-main/20">•</span>
+                                  <span className="text-text-muted">•</span>
                                   <span className="px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">{activity.note}</span>
                                 </div>
                               </div>
@@ -247,13 +247,13 @@ export default function ClassDetails() {
 
                     {/* Right Column: Static Announcements */}
                     <div className="space-y-4">
-                      <h2 className="text-lg font-semibold mb-4 border-b border-border-subtle pb-3 text-text-main/90">Announcements</h2>
+                      <h2 className="text-lg font-semibold mb-4 border-b border-border-subtle pb-3 text-text-main">Announcements</h2>
                       <div className="rounded-xl border border-amber-500/20 bg-bg-glass shadow-inner p-5 relative overflow-hidden group hover:border-amber-500/30 transition-colors">
                         <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50 group-hover:bg-amber-500 transition-colors"></div>
                         <div className="flex items-start gap-3 mb-3">
                           <MegaphoneIcon className="h-5 w-5 text-text-amber shrink-0 mt-0.5" />
                           <div>
-                            <h3 className="text-sm font-semibold text-text-main/90 group-hover:text-text-main transition-colors">Welcome to the class!</h3>
+                            <h3 className="text-sm font-semibold text-text-main group-hover:text-text-main transition-colors">Welcome to the class!</h3>
                             <p className="text-[10px] text-text-muted font-medium mt-0.5">Posted by {classroom.instructor_name || "Instructor"}</p>
                           </div>
                         </div>

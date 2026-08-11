@@ -148,7 +148,7 @@ export default function MyClasses() {
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4 ring-4 ring-blue-500/5 text-text-blue">
                       <BookOpenIcon className="h-8 w-8" />
                     </div>
-                    <h3 className="text-xl font-semibold text-text-main/90">No Active Classes</h3>
+                    <h3 className="text-xl font-semibold text-text-main">No Active Classes</h3>
                     <p className="mt-2 max-w-md text-sm text-text-muted mb-6">
                       You haven't joined any classrooms yet. Use the 6-character code provided by your instructor to join one.
                     </p>
@@ -179,7 +179,7 @@ export default function MyClasses() {
                             </span>
                           </div>
                           
-                          <h3 className="text-lg font-bold text-text-main/90 mb-2 line-clamp-1 group-hover:text-text-main transition-colors relative z-10">
+                          <h3 className="text-lg font-bold text-text-main mb-2 line-clamp-1 group-hover:text-text-main transition-colors relative z-10">
                             {cls.classroom.subject_name || 'Classroom'}
                           </h3>
                           
@@ -189,7 +189,7 @@ export default function MyClasses() {
                             </span>
                             {cls.classroom.instructor_name && (
                               <>
-                                <span className="text-text-main/20">•</span>
+                                <span className="text-text-muted">•</span>
                                 <span className="text-sm text-text-muted group-hover:text-text-muted transition-colors">
                                   {cls.classroom.instructor_name}
                                 </span>
