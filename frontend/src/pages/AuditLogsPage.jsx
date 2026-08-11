@@ -82,7 +82,7 @@ export default function AuditLogsPage({ role: propRole }) {
                 <button
                   onClick={() => fetchAuditLogs(page)}
                   disabled={loading}
-                  className="rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-1.5 text-xs font-medium text-text-muted hover:bg-slate-800 transition"
+                  className="rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-1.5 text-xs font-medium text-text-muted hover:bg-bg-glass-hover transition"
                 >
                   {loading ? "Refreshing..." : "↻ Refresh Audit Trail"}
                 </button>
@@ -154,7 +154,7 @@ export default function AuditLogsPage({ role: propRole }) {
                         </thead>
                         <tbody className="divide-y divide-white/[0.06] font-mono">
                           {filteredLogs.map((log) => (
-                            <tr key={log.id} className="hover:bg-slate-800/20 transition">
+                            <tr key={log.id} className="hover:bg-bg-glass-hover transition">
                               <td className="py-3.5 px-4 text-text-muted whitespace-nowrap">
                                 {new Date(log.timestamp || log.occurred_at || log.created_at || Date.now()).toLocaleString()}
                               </td>

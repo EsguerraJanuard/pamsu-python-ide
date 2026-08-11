@@ -106,7 +106,7 @@ export default function ClassManagement() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-emerald-500"
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
                   >
                     + Create New Class
                   </button>
@@ -146,7 +146,7 @@ export default function ClassManagement() {
                   </p>
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-text-main transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
+                    className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
                   >
                     + Create New Class
                   </button>
@@ -169,7 +169,7 @@ export default function ClassManagement() {
                             {cls.name}
                           </h3>
                         </div>
-                        <div title={cls.is_active ? 'Active' : 'Inactive'} className={`w-2 h-2 rounded-full ${cls.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-red-400/50'} mt-1 flex-shrink-0`}></div>
+                        <div title={cls.is_active ? 'Active' : 'Inactive'} className={`w-2 h-2 rounded-full ${cls.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-red-500/50'} mt-1 flex-shrink-0`}></div>
                       </div>
                       
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-border-subtle">

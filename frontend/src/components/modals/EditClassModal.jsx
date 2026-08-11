@@ -89,7 +89,7 @@ export default function EditClassModal({
           </div>
           <button
             onClick={onClose}
-            className="text-text-muted hover:text-text-main text-lg font-bold p-1 rounded-lg hover:bg-slate-800 transition"
+            className="text-text-muted hover:text-text-main text-lg font-bold p-1 rounded-lg hover:bg-bg-glass-hover transition"
           >
             ✕
           </button>
@@ -162,7 +162,7 @@ export default function EditClassModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-medium text-text-muted hover:bg-slate-800 transition"
+              className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-medium text-text-muted hover:bg-bg-glass-hover transition"
             >
               Cancel
             </button>

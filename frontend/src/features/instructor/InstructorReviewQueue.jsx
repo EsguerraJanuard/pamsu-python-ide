@@ -94,7 +94,7 @@ const InstructorReviewQueue = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-800/50 border-b border-border-subtle">
+                <tr className="bg-bg-glass border-b border-border-subtle">
                   <th className="p-4 text-sm font-semibold text-text-main">Student Name</th>
                   <th className="p-4 text-sm font-semibold text-text-main">Task Title</th>
                   <th className="p-4 text-sm font-semibold text-text-main">Status</th>
@@ -121,7 +121,7 @@ const InstructorReviewQueue = () => {
                   }
 
                   return (
-                    <tr key={sub.sub_id || sub.id} className="border-b border-border-subtle hover:bg-slate-800/20 transition-colors">
+                    <tr key={sub.sub_id || sub.id} className="border-b border-border-subtle hover:bg-bg-glass-hover transition-colors">
                       <td className="p-4 text-sm text-text-main">
                         {sub.student?.name || sub.user?.full_name || 'Unknown Student'}
                       </td>

@@ -90,7 +90,7 @@ export default function ClassRosterView() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="rounded-lg border border-border-subtle bg-slate-800 px-4 py-2 text-xs font-semibold text-text-main shadow hover:bg-slate-700 transition"
+                className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main shadow hover:bg-bg-glass-hover transition"
               >
                 ⚙ Classroom Settings
               </button>
@@ -209,7 +209,7 @@ export default function ClassRosterView() {
             <div className="grid grid-cols-1 gap-4">
               {tasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-border-subtle bg-bg-glass py-16 text-center">
-                  <div className="mb-3 rounded-full bg-slate-800/50 p-4 text-text-muted">
+                  <div className="mb-3 rounded-full bg-bg-glass p-4 text-text-muted">
                     <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
@@ -223,7 +223,7 @@ export default function ClassRosterView() {
                 tasks.map(task => (
                   <div key={task.task_id} className="flex items-center justify-between rounded-xl border border-border-subtle bg-bg-glass p-5 transition hover:border-emerald-500/30 hover:bg-bg-glass/80">
                     <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-emerald-500/10 text-text-emerald' : 'bg-slate-800/50 text-text-muted'}`}>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-emerald-500/10 text-text-emerald' : 'bg-bg-glass border border-border-subtle text-text-muted'}`}>
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>

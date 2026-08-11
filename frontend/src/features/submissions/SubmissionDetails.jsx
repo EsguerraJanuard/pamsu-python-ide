@@ -87,7 +87,7 @@ export default function SubmissionDetails() {
           </div>
           <button
             onClick={() => navigate("/student/submissions")}
-            className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-bg-glass/80 px-3 py-1.5 text-xs font-medium text-text-muted hover:border-border-subtle hover:bg-slate-800 hover:text-text-main transition"
+            className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-bg-glass/80 px-3 py-1.5 text-xs font-medium text-text-muted hover:border-border-subtle hover:bg-bg-glass-hover hover:text-text-main transition"
           >
             <span>←</span> Back to Submissions
           </button>

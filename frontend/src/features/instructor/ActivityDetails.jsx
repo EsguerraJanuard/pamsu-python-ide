@@ -214,7 +214,7 @@ const ActivityDetails = () => {
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center space-x-2">
                       <span className="font-semibold text-text-main">Test Case #{idx + 1}</span>
-                      {tc.is_hidden && <span className="bg-slate-800 text-xs px-2 py-1 rounded text-text-muted">Hidden</span>}
+                      {tc.is_hidden && <span className="bg-bg-glass border border-border-subtle text-xs px-2 py-1 rounded text-text-muted">Hidden</span>}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
