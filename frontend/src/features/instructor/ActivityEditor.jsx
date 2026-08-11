@@ -253,7 +253,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-black/10 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-black/20 dark:group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
                         </div>
                         <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Publish immediately</span>
                       </label>
@@ -267,7 +267,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-black/10 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-black/20 dark:group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
                         </div>
                         <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
                       </label>
