@@ -19,6 +19,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../../services/api";
+import { ThemeToggle } from "../theme/ThemeToggle";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const SCHOOL_ID_PATTERN = /^\d{10}$/;
@@ -315,6 +316,11 @@ export default function Register() {
           .register-page-card { animation: none; }
         }
       `}</style>
+
+      {/* Theme Toggle */}
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
 
       <div className="register-page-card mx-auto w-full max-w-[560px]">
 
