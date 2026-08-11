@@ -267,10 +267,11 @@ def create_task(
     db: Session,
     instructor_id: int,
     task_data: TaskCreate,
+    target_class_id: int,
 ) -> Task:
     get_instructor_classroom(
         db=db,
-        class_id=task_data.class_id,
+        class_id=target_class_id,
         instructor_id=instructor_id,
         require_active=True,
     )
@@ -278,7 +279,7 @@ def create_task(
     occurred_at = get_utc_now()
 
     task = Task(
-        class_id=task_data.class_id,
+        class_id=target_class_id,
         instructor_id=instructor_id,
         title=task_data.title,
         description=task_data.description,
@@ -308,7 +309,7 @@ def create_task(
             action_type="activity_created",
             task_id=task.task_id,
             audit_data={
-                "class_id": task.class_id,
+                "class_id": target_class_id,
                 "activity_type": task.activity_type,
                 "is_graded": bool(task.is_graded),
                 "is_published": False,

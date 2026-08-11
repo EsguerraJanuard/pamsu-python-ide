@@ -611,7 +611,7 @@ def list_gradebook_endpoint(
 
 @router.post(
     "/tasks/",
-    response_model=TaskResponse,
+    response_model=list[TaskResponse],
     status_code=status.HTTP_201_CREATED,
     operation_id="create_instructor_task",
     summary="Create an activity",
@@ -644,13 +644,26 @@ def create_task_endpoint(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
-) -> Task:
+) -> list[Task]:
     try:
-        return create_task_service(
-            db=db,
-            instructor_id=current_instructor.user_id,
-            task_data=task_data,
-        )
+        tasks = []
+        for class_id in task_data.class_ids:
+            # We copy the task_data but overwrite the individual class_id for service processing
+            from app.schemas.task_schema import TaskCreate
+            single_task_data = task_data.model_copy()
+            # Wait, TaskCreate doesn't have class_id anymore, it only has class_ids.
+            # We need to pass the individual class_id to the service.
+            # The service currently expects task_data to have a class_id.
+            
+            # Since create_task_service uses task_data, let's just pass class_id explicitly
+            task = create_task_service(
+                db=db,
+                instructor_id=current_instructor.user_id,
+                task_data=task_data,
+                target_class_id=class_id,
+            )
+            tasks.append(task)
+        return tasks
     except (
         TaskClassNotFoundError,
         TaskClassAccessDeniedError,

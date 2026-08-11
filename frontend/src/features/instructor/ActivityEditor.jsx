@@ -11,7 +11,7 @@ const ActivityEditor = () => {
   const [classrooms, setClassrooms] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
-    class_id: '',
+    class_ids: [],
     due_at: '',
     scheduled_publish_at: '',
     description: '',
@@ -48,8 +48,8 @@ const ActivityEditor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.class_id) {
-      setError('Please select a classroom.');
+    if (!formData.class_ids || formData.class_ids.length === 0) {
+      setError('Please select at least one classroom.');
       return;
     }
     setLoading(true);
@@ -58,7 +58,7 @@ const ActivityEditor = () => {
     try {
       const payload = {
         ...formData,
-        class_id: parseInt(formData.class_id, 10),
+        class_ids: formData.class_ids.map(id => parseInt(id, 10)),
         due_at: formData.due_at ? new Date(formData.due_at).toISOString() : null,
         scheduled_publish_at: (!formData.is_published && formData.scheduled_publish_at) 
           ? new Date(formData.scheduled_publish_at).toISOString() 
@@ -70,7 +70,14 @@ const ActivityEditor = () => {
       };
 
       const response = await api.post('/instructors/tasks/', payload);
-      navigate(`/instructor/activities/${response.task_id}`);
+      
+      // If single classroom was selected, navigate directly to that activity's page
+      if (response && Array.isArray(response) && response.length === 1) {
+        navigate(`/instructor/activities/${response[0].task_id}`);
+      } else {
+        // Multiple activities were created, navigate to dashboard
+        navigate('/instructor/dashboard');
+      }
     } catch (err) {
       console.error('Error creating activity:', err);
       setError('Failed to create activity. Please try again.');
@@ -127,18 +134,34 @@ const ActivityEditor = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="class_id" className="block text-xs font-semibold text-text-muted mb-1.5">
-                    Target Classroom <span className="text-text-emerald">*</span>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                    Target Classroom(s) <span className="text-text-emerald">*</span>
                   </label>
-                  <CustomSelect
-                    options={classrooms.map(cls => ({
-                      value: cls.class_id,
-                      label: `${cls.subject_code} - ${cls.section}`
-                    }))}
-                    value={formData.class_id}
-                    onChange={(val) => setFormData(prev => ({ ...prev, class_id: val }))}
-                    placeholder="Select a classroom"
-                  />
+                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-3 max-h-48 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                    {classrooms.length === 0 ? (
+                      <div className="text-sm text-text-muted italic py-2 text-center">No classrooms available</div>
+                    ) : (
+                      classrooms.map(cls => (
+                        <label key={cls.class_id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors group">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-border-subtle bg-bg-base text-emerald-500 focus:ring-emerald-500/20 cursor-pointer"
+                            checked={formData.class_ids.includes(cls.class_id)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setFormData(prev => ({
+                                ...prev,
+                                class_ids: checked 
+                                  ? [...prev.class_ids, cls.class_id]
+                                  : prev.class_ids.filter(id => id !== cls.class_id)
+                              }));
+                            }}
+                          />
+                          <span className="text-sm font-medium text-text-main select-none">{cls.subject_code} - {cls.section}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -252,7 +275,7 @@ const ActivityEditor = () => {
 
                     <div className="flex flex-col gap-4">
                       {!formData.is_published && (
-                        <div className="animate-fade-in">
+                        <div className={`animate-fade-in ${formData.class_ids.length > 1 ? 'opacity-50' : ''}`}>
                           <label htmlFor="scheduled_publish_at" className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
                             <span>Scheduled Publish Date <span className="text-text-muted font-normal ml-1">(Optional)</span></span>
                           </label>
@@ -261,7 +284,8 @@ const ActivityEditor = () => {
                               data-enable-time
                               value={formData.scheduled_publish_at}
                               onChange={([date]) => setFormData(prev => ({ ...prev, scheduled_publish_at: date }))}
-                              className="w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner cursor-pointer"
+                              disabled={formData.class_ids.length > 1}
+                              className={`w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner ${formData.class_ids.length > 1 ? 'text-text-muted cursor-not-allowed' : 'text-text-main cursor-pointer'}`}
                               placeholder="Select date and time"
                               options={{
                                 dateFormat: "Y-m-d H:i",
@@ -270,17 +294,19 @@ const ActivityEditor = () => {
                                 altFormat: "M j, Y h:i K"
                               }}
                             />
-                            {/* Calendar icon overlay to make it look premium */}
-                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-text-emerald transition-colors">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
+                            {/* Calendar icon */}
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-text-muted">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                             </div>
                           </div>
-                          <p className="text-[10px] text-text-muted mt-1.5 ml-1">The activity will automatically publish at this time.</p>
+                          {formData.class_ids.length > 1 && (
+                            <p className="mt-2 text-xs text-text-amber flex items-center gap-1.5">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                              Scheduling is disabled when assigning to multiple classrooms.
+                            </p>
+                          )}
                         </div>
                       )}
-
                       <div>
                         <label htmlFor="due_at" className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
                           <span>Deadline / Due Date <span className="text-text-muted font-normal ml-1">(Optional)</span></span>

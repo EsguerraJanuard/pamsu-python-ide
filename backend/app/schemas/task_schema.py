@@ -170,10 +170,10 @@ class TaskBase(BaseModel):
 
 
 class TaskCreate(TaskBase):
-    class_id: int = Field(
+    class_ids: list[int] = Field(
         ...,
-        gt=0,
-        description=("Classroom owned by the authenticated instructor."),
+        min_length=1,
+        description=("List of classroom IDs owned by the authenticated instructor."),
     )
     due_at: datetime | None = Field(
         default=None,
@@ -191,6 +191,14 @@ class TaskCreate(TaskBase):
         value: datetime | None,
     ) -> datetime | None:
         return validate_request_due_at(value)
+
+    from pydantic import model_validator
+    
+    @model_validator(mode="after")
+    def validate_scheduling(self):
+        if len(self.class_ids) > 1 and self.scheduled_publish_at is not None:
+            raise ValueError("You cannot schedule an activity for a future date when selecting multiple classrooms.")
+        return self
 
     # Backend-controlled fields intentionally excluded:
     # instructor_id, is_published, and published_at.
