@@ -318,10 +318,10 @@ const ActivityEditor = () => {
                       Cancel
                     </button>
 
-                    <button
+                      <button
                       type="submit"
                       disabled={loading}
-                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-text-main rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
                     >
                       {loading ? "Creating..." : "Create Activity"}
                     </button>

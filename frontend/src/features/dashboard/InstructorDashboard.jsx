@@ -318,7 +318,7 @@ export default function InstructorDashboard() {
                       </p>
                       <button 
                         onClick={() => navigate("/instructor/activities")}
-                        className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-text-main transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
+                        className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
                       >
                         + Create Activity
                       </button>
