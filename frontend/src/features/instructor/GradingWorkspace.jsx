@@ -102,6 +102,14 @@ const GradingWorkspace = () => {
             <div className="flex h-screen bg-bg-base text-text-main font-sans">
             {/* Left Side: Details & Grading Form */}
             <div className="w-1/2 p-6 overflow-y-auto border-r border-border-subtle flex flex-col gap-6">
+                <div className="mb-2 -mt-2">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-bg-glass/80 px-3 py-1.5 text-xs font-medium text-text-muted hover:border-border-subtle hover:bg-bg-glass-hover hover:text-text-main transition inline-flex w-fit"
+                    >
+                        <span>←</span> Back
+                    </button>
+                </div>
                 <div>
                     <h2 className="text-2xl font-bold text-text-main mb-2">Grading Workspace</h2>
                     <p className="text-sm text-text-muted">
@@ -180,7 +188,7 @@ const GradingWorkspace = () => {
                     <button 
                         type="submit" 
                         disabled={submitting}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-text-main py-2 px-4 rounded font-medium transition-colors mt-2"
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-4 rounded font-medium transition-colors mt-2"
                     >
                         {submitting ? 'Submitting...' : 'Submit Grade'}
                     </button>

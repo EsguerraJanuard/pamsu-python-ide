@@ -152,7 +152,7 @@ const LiveMonitoring = () => {
               <button
                 type="submit"
                 disabled={!taskIdInput.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-text-muted text-text-main font-semibold py-2.5 px-6 rounded-lg transition-colors"
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-text-muted text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
               >
                 Monitor
               </button>
