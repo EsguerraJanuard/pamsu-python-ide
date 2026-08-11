@@ -177,7 +177,7 @@ export default function InstructorSidebar() {
                 type="button"
                 onClick={isCollapsed ? toggleCollapse : undefined}
                 title={isCollapsed ? "Expand sidebar" : undefined}
-                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#10b981] font-mono text-xs font-bold text-text-main shadow-sm shadow-emerald-500/20 transition-transform ${
+                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#10b981] font-mono text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition-transform ${
                   isCollapsed ? "hover:scale-105 active:scale-95 cursor-pointer" : ""
                 }`}
               >
@@ -265,7 +265,7 @@ export default function InstructorSidebar() {
             className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-1"}`}
             title={isCollapsed ? `${name} (${role})` : undefined}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#10b981] text-xs font-bold text-text-main shadow-sm ring-1 ring-white/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#10b981] text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
               {initials}
             </div>
             {!isCollapsed && (

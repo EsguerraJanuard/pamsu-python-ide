@@ -12,14 +12,14 @@ const STATUS_CONFIG = {
     badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-400",
     accentClass: "border-l-amber-500",
     progressClass: "bg-amber-500",
-    buttonClass: "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
+    buttonClass: "bg-amber-500 text-white hover:bg-amber-400",
   },
   in_progress: {
     label: "Published",
     badgeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
     accentClass: "border-l-emerald-500",
     progressClass: "bg-emerald-500",
-    buttonClass: "bg-emerald-600 text-text-main hover:bg-emerald-500",
+    buttonClass: "bg-emerald-600 text-white hover:bg-emerald-500",
   },
   submitted: {
     label: "Completed",
@@ -234,7 +234,7 @@ export default function InstructorDashboard() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-emerald-500"
+                    className="whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
                   >
                     + Create Class
                   </button>
@@ -242,7 +242,7 @@ export default function InstructorDashboard() {
                     Faculty Portal
                   </span>
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
                     aria-label={`Signed in as ${instructorName}`}
                   >
                     {instructorName.split(/\s+/).map((p) => p[0]?.toUpperCase()).join("").slice(0, 2)}

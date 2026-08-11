@@ -189,7 +189,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
                 type="button"
                 onClick={isCollapsed ? toggleCollapse : undefined}
                 title={isCollapsed ? "Expand sidebar" : undefined}
-                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#3b82f6] font-mono text-xs font-bold text-text-main shadow-sm shadow-blue-500/20 transition-transform ${
+                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#3b82f6] font-mono text-xs font-bold text-white shadow-sm shadow-blue-500/20 transition-transform ${
                   isCollapsed ? "hover:scale-105 active:scale-95 cursor-pointer" : ""
                 }`}
               >
@@ -266,7 +266,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
 
                       {link.path === "/student/assignments" && assignmentCount > 0 && (
                         <span
-                          className={`rounded-full bg-[#3b82f6] font-semibold text-text-main ${
+                          className={`rounded-full bg-[#3b82f6] font-semibold text-white ${
                             isCollapsed
                               ? "h-1.5 w-1.5 p-0"
                               : "px-1.5 py-0.5 text-[10px]"
@@ -290,7 +290,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
             className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-1"}`}
             title={isCollapsed ? `${name} (${role})` : undefined}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3b82f6] text-xs font-bold text-text-main shadow-sm ring-1 ring-white/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3b82f6] text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
               {initials}
             </div>
             {!isCollapsed && (
