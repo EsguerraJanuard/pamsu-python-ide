@@ -26,11 +26,16 @@ export default function AuditLogsPage({ role: propRole }) {
 
 
 
-  const fetchAuditLogs = async (currentPage = 1) => {
+  const fetchAuditLogs = async (currentPage = 1, currentFilter = "all") => {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get(`/audit-records/?page=${currentPage}&page_size=15`);
+      let url = `/audit-records/?page=${currentPage}&page_size=15`;
+      if (currentFilter === "login") url += "&resource_type=user";
+      else if (currentFilter === "submission") url += "&resource_type=submission";
+      else if (currentFilter === "classroom") url += "&resource_type=classroom";
+
+      const response = await api.get(url);
       if (response && Array.isArray(response.items)) {
         setLogs(response.items);
         setTotalPages(response.total_pages || 1);
@@ -45,8 +50,8 @@ export default function AuditLogsPage({ role: propRole }) {
   };
 
   useEffect(() => {
-    fetchAuditLogs(page);
-  }, [page]);
+    fetchAuditLogs(page, actionFilter);
+  }, [page, actionFilter]);
 
   const filteredLogs = logs.filter((log) => {
     const matchesQuery =
@@ -54,10 +59,7 @@ export default function AuditLogsPage({ role: propRole }) {
       (log.resource || log.resource_type || log.resource_id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (log.ip_address || log.audit_data?.ip_address || "127.0.0.1").toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesAction =
-      actionFilter === "all" || (log.action || log.action_type || "").toLowerCase().includes(actionFilter.toLowerCase());
-
-    return matchesQuery && matchesAction;
+    return matchesQuery;
   });
 
   return (
@@ -80,7 +82,7 @@ export default function AuditLogsPage({ role: propRole }) {
                 </div>
 
                 <button
-                  onClick={() => fetchAuditLogs(page)}
+                  onClick={() => fetchAuditLogs(page, actionFilter)}
                   disabled={loading}
                   className="rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-1.5 text-xs font-medium text-text-muted hover:bg-bg-glass-hover transition"
                 >
@@ -105,7 +107,10 @@ export default function AuditLogsPage({ role: propRole }) {
                     <label className="text-xs font-medium text-text-muted">Action Type:</label>
                     <select
                       value={actionFilter}
-                      onChange={(e) => setActionFilter(e.target.value)}
+                      onChange={(e) => {
+                        setActionFilter(e.target.value);
+                        setPage(1); // Reset page on filter change
+                      }}
                       className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500/50 focus:outline-none transition"
                     >
                       <option value="all">All Actions</option>
