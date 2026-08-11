@@ -17,13 +17,13 @@ const GradingWorkspace = () => {
         const fetchSubmission = async () => {
             try {
                 const response = await api.get(`/evaluation/submissions/${id}`);
-                setSubmissionData(response.data);
+                setSubmissionData(response);
                 // Pre-fill if already graded
-                if (response.data.submission?.grade_score !== null && response.data.submission?.grade_score !== undefined) {
-                    setGradeScore(response.data.submission.grade_score);
+                if (response.submission?.grade_score !== null && response.submission?.grade_score !== undefined) {
+                    setGradeScore(response.submission.grade_score);
                 }
-                if (response.data.submission?.feedback_text) {
-                    setFeedbackText(response.data.submission.feedback_text);
+                if (response.submission?.feedback_text) {
+                    setFeedbackText(response.submission.feedback_text);
                 }
             } catch (err) {
                 console.error(err);

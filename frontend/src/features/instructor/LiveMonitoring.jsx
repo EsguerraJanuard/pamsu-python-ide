@@ -16,7 +16,7 @@ const LiveMonitoring = () => {
     const fetchClassrooms = async () => {
       try {
         const response = await api.get('/classrooms');
-        setClassrooms(response.data || []);
+        setClassrooms(Array.isArray(response) ? response : response.items || []);
       } catch (err) {
         console.error('Error fetching classrooms:', err);
       }
@@ -40,7 +40,7 @@ const LiveMonitoring = () => {
           
         const response = await api.get(url);
         // Handle both possible wrapper object or direct array
-        const data = response.data?.sessions || response.data || [];
+        const data = response?.sessions || response || [];
         setSessions(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {

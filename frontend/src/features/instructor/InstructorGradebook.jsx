@@ -48,7 +48,7 @@ export default function InstructorGradebook() {
       if (queryStr) url += `?${queryStr}`;
 
       const response = await api.get(url);
-      const data = response.data?.items || response.items || response.data || [];
+      const data = response?.items || response || [];
       setGrades(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
