@@ -9,6 +9,11 @@
   --color-border-strong: var(--border-strong);
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
+  --color-text-blue: var(--text-blue);
+  --color-text-emerald: var(--text-emerald);
+  --color-text-amber: var(--text-amber);
+  --color-text-rose: var(--text-rose);
+  --color-text-violet: var(--text-violet);
 }
 
 :root {
@@ -21,6 +26,11 @@
   --border-strong: rgba(0, 0, 0, 0.15);
   --text-main: #0f1117;
   --text-muted: rgba(15, 17, 23, 0.6);
+  --text-blue: #2563eb;
+  --text-emerald: #059669;
+  --text-amber: #d97706;
+  --text-rose: #e11d48;
+  --text-violet: #7c3aed;
 }
 
 .dark {
@@ -33,6 +43,11 @@
   --border-strong: rgba(255, 255, 255, 0.15);
   --text-main: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.5);
+  --text-blue: #60a5fa;
+  --text-emerald: #34d399;
+  --text-amber: #fbbf24;
+  --text-rose: #fb7185;
+  --text-violet: #a78bfa;
 }
 
 *, *::before, *::after { box-sizing: border-box; }

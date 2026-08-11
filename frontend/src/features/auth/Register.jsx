@@ -327,9 +327,9 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-400 shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-blue-300 active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-blue shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-text-blue active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-blue-400 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-blue transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Sign In</span>
@@ -351,7 +351,7 @@ export default function Register() {
                     Your email will be verified before the account is activated.
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-300 select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-text-blue select-none cursor-default">
                   Step 1 of 2
                 </div>
               </div>
@@ -366,7 +366,7 @@ export default function Register() {
             </section>
 
             {error && (
-              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose">
                 {error}
               </div>
             )}
@@ -461,7 +461,7 @@ export default function Register() {
                     Password
                   </label>
                   {capsLock && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 select-none">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
                       <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
                         <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
                         <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
@@ -520,7 +520,7 @@ export default function Register() {
                     Confirm password
                   </label>
                   {capsLock && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 select-none">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
                       <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
                         <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
                         <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
@@ -620,9 +620,9 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-400 shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-blue-300 active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-blue shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-text-blue active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-blue-400 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-blue transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Details</span>
@@ -645,7 +645,7 @@ export default function Register() {
                     <span className="font-medium text-text-muted">{form.email}</span>
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-300 select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-text-blue select-none cursor-default">
                   Step 2 of 2
                 </div>
               </div>
@@ -658,7 +658,7 @@ export default function Register() {
             )}
 
             {error && (
-              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose">
                 {error}
               </div>
             )}
@@ -701,7 +701,7 @@ export default function Register() {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0 || isLoading}
-                  className="text-xs font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa] disabled:cursor-not-allowed disabled:text-white/25"
+                  className="text-xs font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa] disabled:cursor-not-allowed disabled:text-text-main/25"
                 >
                   {resendCooldown > 0
                     ? `Resend available in ${resendCooldown}s`

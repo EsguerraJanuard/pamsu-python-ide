@@ -28,7 +28,7 @@ export default function SignOutModal({ isOpen, onClose, onConfirm }) {
           </button>
           <button
             type="button"
-            className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
+            className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2 text-sm font-medium text-text-rose hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
             onClick={onConfirm}
           >
             Sign Out

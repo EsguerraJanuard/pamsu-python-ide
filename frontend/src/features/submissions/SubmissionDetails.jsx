@@ -110,10 +110,10 @@ export default function SubmissionDetails() {
                 </p>
                 <div className="mt-4 flex gap-4 text-sm font-mono text-text-muted">
                   <div className="bg-bg-glass px-3 py-1.5 rounded border border-border-subtle">
-                    Attempt Number: <span className="text-blue-400 font-bold">{submission.attempt_number}</span>
+                    Attempt Number: <span className="text-text-blue font-bold">{submission.attempt_number}</span>
                   </div>
                   <div className="bg-bg-glass px-3 py-1.5 rounded border border-border-subtle">
-                    Is Official: <span className="text-emerald-400 font-bold">{submission.is_official ? "Yes" : "No"}</span>
+                    Is Official: <span className="text-text-emerald font-bold">{submission.is_official ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </div>
@@ -124,9 +124,9 @@ export default function SubmissionDetails() {
                     {submission.ast_pass_fail === null ? (
                       <span className="text-text-muted font-medium inline-block mt-1">Pending</span>
                     ) : submission.ast_pass_fail ? (
-                      <span className="text-emerald-400 font-bold px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded inline-block mt-1">PASSED</span>
+                      <span className="text-text-emerald font-bold px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded inline-block mt-1">PASSED</span>
                     ) : (
-                      <span className="text-rose-400 font-bold px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded inline-block mt-1">FAILED</span>
+                      <span className="text-text-rose font-bold px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded inline-block mt-1">FAILED</span>
                     )}
                  </div>
               </div>
@@ -137,7 +137,7 @@ export default function SubmissionDetails() {
              <h2 className="text-sm font-bold text-text-main tracking-wide border-b border-border-subtle pb-3">
                Submitted Code
              </h2>
-             <pre className="font-mono text-[11px] p-4 bg-bg-glass rounded-lg border border-border-subtle overflow-x-auto text-blue-300">
+             <pre className="font-mono text-[11px] p-4 bg-bg-glass rounded-lg border border-border-subtle overflow-x-auto text-text-blue">
                 {submission.raw_code}
              </pre>
           </div>

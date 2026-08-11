@@ -51,7 +51,7 @@ export default function InstructorSettings() {
             <div className="mx-auto max-w-6xl ">
         <header className="mb-6 flex items-center justify-between">
           <div>
-            <p className="mb-1 font-mono text-xs text-emerald-400">ACCOUNT & SYSTEM</p>
+            <p className="mb-1 font-mono text-xs text-text-emerald">ACCOUNT & SYSTEM</p>
             <h1 className="text-2xl font-bold">Settings</h1>
             <p className="mt-1 text-sm text-text-muted">
               Manage your faculty profile and evaluation preferences.
@@ -60,7 +60,7 @@ export default function InstructorSettings() {
         </header>
 
         {saved && (
-          <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300">
+          <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-text-emerald">
             Settings updated successfully. Changes have been saved.
           </div>
         )}

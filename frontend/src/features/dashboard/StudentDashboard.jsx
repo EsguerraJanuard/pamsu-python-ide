@@ -287,7 +287,7 @@ export default function StudentDashboard() {
                       {activeActivities.length}
                     </p>
 
-                    <h2 className="text-sm font-semibold text-white/90">
+                    <h2 className="text-sm font-semibold text-text-main/90">
                       Active activities
                     </h2>
 
@@ -315,7 +315,7 @@ export default function StudentDashboard() {
                       {completedCount} <span className="text-lg text-text-muted font-medium">/ {activities.length}</span>
                     </p>
 
-                    <h2 className="text-sm font-semibold text-white/90">
+                    <h2 className="text-sm font-semibold text-text-main/90">
                       Activities completed
                     </h2>
 
@@ -372,10 +372,10 @@ export default function StudentDashboard() {
                   )}
                   {activities.length === 0 && !isLoading && (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-blue-400">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-text-blue">
                         <LayoutDashboardIcon className="h-6 w-6" />
                       </div>
-                      <h3 className="text-lg font-semibold text-white/90">No Activities Found</h3>
+                      <h3 className="text-lg font-semibold text-text-main/90">No Activities Found</h3>
                       <p className="mt-1 text-sm text-text-muted">
                         Join a class to see your assignments and practice modules.
                       </p>
@@ -400,7 +400,7 @@ export default function StudentDashboard() {
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0 flex-1">
                               <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <h3 className="text-sm font-semibold text-white/90 transition-colors group-hover:text-text-main">
+                                <h3 className="text-sm font-semibold text-text-main/90 transition-colors group-hover:text-text-main">
                                   {activity.title}
                                 </h3>
 
@@ -413,7 +413,7 @@ export default function StudentDashboard() {
 
                               <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                                 <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
-                                  <BookOpenIcon className="h-3 w-3 text-blue-400" />
+                                  <BookOpenIcon className="h-3 w-3 text-text-blue" />
                                   {activity.courseCode}
                                 </span>
 
@@ -531,7 +531,7 @@ export default function StudentDashboard() {
                   Improving
                 </p>
 
-                <p className="mt-1 text-center text-[10px] leading-relaxed text-white/35">
+                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-main/35">
                   Based on your activity completion, AST indicators,
                   and test results.
                 </p>

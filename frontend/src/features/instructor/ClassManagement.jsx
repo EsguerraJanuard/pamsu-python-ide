@@ -97,7 +97,7 @@ export default function ClassManagement() {
             <div className="mx-auto max-w-6xl ">
               <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-emerald-400">MANAGEMENT</p>
+                  <p className="mb-1 font-mono text-xs text-text-emerald">MANAGEMENT</p>
                   <h1 className="text-2xl font-bold">My Classrooms</h1>
                   <p className="mt-1 text-sm text-text-muted">
                     Create and manage your classes, generate enrollment codes, and monitor students.
@@ -114,7 +114,7 @@ export default function ClassManagement() {
               </header>
 
               {error && (
-                <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+                <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-text-rose">
                   {error}
                 </div>
               )}
@@ -135,12 +135,12 @@ export default function ClassManagement() {
                 </div>
               ) : classes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-emerald-400">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-text-emerald">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-white/90 mb-1">No Classrooms Yet</h3>
+                  <h3 className="text-lg font-semibold text-text-main/90 mb-1">No Classrooms Yet</h3>
                   <p className="text-sm text-text-muted mb-6 max-w-md">
                     You haven't created any classes. Create your first class to generate an enrollment code for your students.
                   </p>
@@ -162,10 +162,10 @@ export default function ClassManagement() {
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <span className="inline-block px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-mono mb-2">
+                          <span className="inline-block px-2 py-1 bg-emerald-500/10 text-text-emerald border border-emerald-500/20 rounded-md text-[10px] font-mono mb-2">
                             {cls.subject_code} - {cls.section}
                           </span>
-                          <h3 className={`font-semibold text-lg leading-tight group-hover:text-emerald-400 transition-colors ${!cls.is_active ? 'text-text-muted' : ''}`}>
+                          <h3 className={`font-semibold text-lg leading-tight group-hover:text-text-emerald transition-colors ${!cls.is_active ? 'text-text-muted' : ''}`}>
                             {cls.name}
                           </h3>
                         </div>
@@ -176,14 +176,14 @@ export default function ClassManagement() {
                         <div>
                           <p className="text-[10px] text-text-muted mb-0.5">Enrollment Code</p>
                           <div className="flex items-center gap-2 group/copy">
-                            <p className="font-mono text-sm text-white/90">{cls.class_code}</p>
+                            <p className="font-mono text-sm text-text-main/90">{cls.class_code}</p>
                             <button
                               onClick={(e) => copyToClipboard(e, cls.class_code, cls.class_id)}
-                              className="text-text-muted hover:text-emerald-400 transition-colors"
+                              className="text-text-muted hover:text-text-emerald transition-colors"
                               title="Copy to clipboard"
                             >
                               {copiedId === cls.class_id ? (
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-emerald-400">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-text-emerald">
                                   <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               ) : (
@@ -199,8 +199,8 @@ export default function ClassManagement() {
                             onClick={(e) => toggleClassActiveStatus(cls, e)}
                             className={`px-3 py-1.5 text-xs rounded transition-colors ${
                               cls.is_active 
-                                ? 'bg-white/5 text-text-muted hover:bg-red-500/10 hover:text-red-400' 
-                                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                                ? 'bg-white/5 text-text-muted hover:bg-red-500/10 hover:text-text-rose' 
+                                : 'bg-emerald-500/10 text-text-emerald hover:bg-emerald-500/20'
                             }`}
                           >
                             {cls.is_active ? 'Archive' : 'Activate'}

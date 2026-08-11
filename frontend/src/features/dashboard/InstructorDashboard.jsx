@@ -220,7 +220,7 @@ export default function InstructorDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-emerald-400">
+                  <p className="mb-1 font-mono text-xs text-text-emerald">
                     MANAGEMENT
                   </p>
                   <h1 className="text-2xl font-bold">
@@ -238,7 +238,7 @@ export default function InstructorDashboard() {
                   >
                     + Create Class
                   </button>
-                  <span className="whitespace-nowrap rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-300">
+                  <span className="whitespace-nowrap rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-text-emerald">
                     Faculty Portal
                   </span>
                   <div
@@ -284,7 +284,7 @@ export default function InstructorDashboard() {
                   <button
                     type="button"
                     onClick={() => navigate("/instructor/activities")}
-                    className="text-xs text-emerald-400 transition-colors hover:text-emerald-300"
+                    className="text-xs text-text-emerald transition-colors hover:text-text-emerald"
                   >
                     Author new activity
                   </button>
@@ -303,16 +303,16 @@ export default function InstructorDashboard() {
                     ))
                   ) : error ? (
                     <div className="flex h-32 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10">
-                      <p className="text-sm text-red-400">{error}</p>
+                      <p className="text-sm text-text-rose">{error}</p>
                     </div>
                   ) : mappedActivities.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-emerald-400">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-text-emerald">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-white/90 mb-1">No Managed Activities</h3>
+                      <h3 className="text-lg font-semibold text-text-main/90 mb-1">No Managed Activities</h3>
                       <p className="text-sm text-text-muted mb-6 max-w-sm">
                         You haven't authored any activities. Create your first assignment or lab exercise.
                       </p>
@@ -339,7 +339,7 @@ export default function InstructorDashboard() {
                                 {status.label}
                               </span>
                             </div>
-                            <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-white/35">
+                            <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-text-main/35">
                               <span>{activity.courseCode}</span>
                               <span className="flex items-center gap-1">
                                 <ClockIcon />
@@ -386,7 +386,7 @@ export default function InstructorDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/instructor/monitoring")}
-                  className="text-[10px] text-emerald-400 transition-colors hover:text-emerald-300"
+                  className="text-[10px] text-text-emerald transition-colors hover:text-text-emerald"
                 >
                   Live View
                 </button>
@@ -404,7 +404,7 @@ export default function InstructorDashboard() {
                   </div>
                 </div>
                 <p className="mt-3 text-sm font-semibold">Submissions Active</p>
-                <p className="mt-1 text-center text-[10px] leading-relaxed text-white/35">
+                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-main/35">
                   Recent activities in your lab sessions.
                 </p>
               </div>
@@ -424,7 +424,7 @@ export default function InstructorDashboard() {
                     />
                     <div>
                       <p className="text-[11px] leading-snug text-text-muted">{item.message}</p>
-                      <p className="mt-0.5 text-[10px] text-white/25">{item.time}</p>
+                      <p className="mt-0.5 text-[10px] text-text-main/25">{item.time}</p>
                     </div>
                   </li>
                 ))}

@@ -50,7 +50,7 @@ const InstructorReviewQueue = () => {
 
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="mb-1 font-mono text-xs text-emerald-400">MONITORING & GRADING</p>
+          <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
           <h1 className="text-2xl font-bold">Grading Bench</h1>
           <p className="mt-1 text-sm text-text-muted">
             Review and grade pending student submissions.
@@ -80,12 +80,12 @@ const InstructorReviewQueue = () => {
           </div>
         ) : submissions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 ring-4 ring-emerald-500/5">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-text-emerald ring-4 ring-emerald-500/5">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-white/90">All Caught Up!</h3>
+            <h3 className="mb-2 text-lg font-semibold text-text-main/90">All Caught Up!</h3>
             <p className="text-sm text-text-muted max-w-sm">
               There are no pending submissions to review. You can check back later.
             </p>
@@ -125,7 +125,7 @@ const InstructorReviewQueue = () => {
                       <td className="p-4 text-sm text-text-main">
                         {sub.student?.name || sub.user?.full_name || 'Unknown Student'}
                       </td>
-                      <td className="p-4 text-sm text-emerald-400">
+                      <td className="p-4 text-sm text-text-emerald">
                         {sub.activity?.title || sub.task?.title || 'Unknown Task'}
                       </td>
                       <td className="p-4 text-sm">
@@ -135,7 +135,7 @@ const InstructorReviewQueue = () => {
                       </td>
                       <td className="p-4 text-sm">
                         {similarityScore !== null ? (
-                          <span className={`${isHighSimilarity ? 'text-red-400 font-bold' : 'text-text-main'}`}>
+                          <span className={`${isHighSimilarity ? 'text-text-rose font-bold' : 'text-text-main'}`}>
                             {similarityScore}%
                           </span>
                         ) : (
@@ -148,7 +148,7 @@ const InstructorReviewQueue = () => {
                       <td className="p-4 text-sm">
                         <button
                           onClick={() => navigate(`/instructor/submissions/${sub.sub_id || sub.id}`)}
-                          className="px-3 py-1 bg-emerald-600/10 text-emerald-400 border border-emerald-500/20 rounded hover:bg-emerald-600 hover:text-text-main transition-colors"
+                          className="px-3 py-1 bg-emerald-600/10 text-text-emerald border border-emerald-500/20 rounded hover:bg-emerald-600 hover:text-text-main transition-colors"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 20h9"></path>

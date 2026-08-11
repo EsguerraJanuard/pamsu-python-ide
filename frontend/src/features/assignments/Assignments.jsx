@@ -338,7 +338,7 @@ export default function Assignments() {
                     <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <h2 className="text-sm font-semibold text-white/90 transition-colors group-hover:text-text-main">
+                          <h2 className="text-sm font-semibold text-text-main/90 transition-colors group-hover:text-text-main">
                             {activity.title}
                           </h2>
 
@@ -355,7 +355,7 @@ export default function Assignments() {
 
                         <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                           <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
-                            <ClipboardListIcon className="h-3 w-3 text-blue-400" />
+                            <ClipboardListIcon className="h-3 w-3 text-text-blue" />
                             {activity.courseCode}
                           </span>
 
@@ -433,7 +433,7 @@ export default function Assignments() {
                       </span>
 
                       {activity.instructorGrade && (
-                        <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-violet-300 shadow-sm ml-auto">
+                        <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-text-violet shadow-sm ml-auto">
                           Instructor grade:{" "}
                           {activity.instructorGrade.score} /{" "}
                           {activity.instructorGrade.maximum}

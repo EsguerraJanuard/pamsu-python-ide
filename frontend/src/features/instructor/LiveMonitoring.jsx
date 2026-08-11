@@ -81,7 +81,7 @@ const LiveMonitoring = () => {
         <div className="w-full">
           <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="mb-1 font-mono text-xs text-emerald-400">MONITORING & GRADING</p>
+              <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
               <h1 className="text-2xl font-bold">Live Monitoring</h1>
               <p className="mt-1 text-sm text-text-muted">
                 Monitor real-time student activity and execution metrics.
@@ -92,13 +92,13 @@ const LiveMonitoring = () => {
               <div className="flex bg-bg-glass rounded-lg p-1 border border-border-subtle">
                 <button
                   onClick={() => setMode('global')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-emerald-500/20 text-emerald-400' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-emerald-500/20 text-text-emerald' : 'text-text-muted hover:text-text-main'}`}
                 >
                   All Active Students
                 </button>
                 <button
                   onClick={() => setMode('task')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-emerald-500/20 text-emerald-400' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-emerald-500/20 text-text-emerald' : 'text-text-muted hover:text-text-main'}`}
                 >
                   Specific Task
                 </button>
@@ -161,7 +161,7 @@ const LiveMonitoring = () => {
         )}
 
         {error && (
-          <div className="bg-red-900/20 border border-red-500/50 text-red-300 p-4 rounded-lg mb-8 flex items-center gap-3">
+          <div className="bg-red-900/20 border border-red-500/50 text-text-rose p-4 rounded-lg mb-8 flex items-center gap-3">
             <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -212,7 +212,7 @@ const LiveMonitoring = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                   </div>
-                  <h3 className="mb-2 text-lg font-semibold text-white/90">No Active Sessions</h3>
+                  <h3 className="mb-2 text-lg font-semibold text-text-main/90">No Active Sessions</h3>
                   <p className="text-sm text-text-muted max-w-sm">
                     {mode === 'global' 
                       ? (selectedClassroom === 'All' ? "No students are currently active in any of your classrooms." : `No students are currently active in ${selectedClassroom}.`)
@@ -240,13 +240,13 @@ const LiveMonitoring = () => {
                 
                 <div className="flex justify-between items-start mb-5">
                   <div className="flex-1 pr-3">
-                    <h3 className="text-lg font-semibold text-slate-100 truncate">
+                    <h3 className="text-lg font-semibold text-text-main truncate">
                       {session.student_name || 'Unknown Student'}
                     </h3>
                     {mode === 'global' && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {session.classroom_name && (
-                          <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                          <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-text-blue ring-1 ring-inset ring-blue-500/20">
                             {session.classroom_name}
                           </span>
                         )}
@@ -274,7 +274,7 @@ const LiveMonitoring = () => {
                       </svg>
                       Tab Switches
                     </span>
-                    <span className={`font-mono text-lg font-bold ${hasWarning ? 'text-amber-400' : 'text-text-main'}`}>
+                    <span className={`font-mono text-lg font-bold ${hasWarning ? 'text-text-amber' : 'text-text-main'}`}>
                       {session.tab_switches || 0}
                     </span>
                   </div>

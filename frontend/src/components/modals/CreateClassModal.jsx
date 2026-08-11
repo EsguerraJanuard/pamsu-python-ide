@@ -84,7 +84,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
               </div>
 
               {error && (
-                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-text-rose">
                   {error}
                 </div>
               )}
@@ -109,7 +109,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
           </>
         ) : (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-text-emerald">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -119,7 +119,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
               Share this code with your students so they can join the class.
             </p>
             <div className="mb-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
-              <span className="font-mono text-2xl font-bold tracking-wider text-emerald-400">
+              <span className="font-mono text-2xl font-bold tracking-wider text-text-emerald">
                 {generatedCode}
               </span>
             </div>

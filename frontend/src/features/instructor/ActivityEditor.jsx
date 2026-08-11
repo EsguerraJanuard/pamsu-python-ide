@@ -89,7 +89,7 @@ const ActivityEditor = () => {
           <div className="w-full">
             <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-emerald-400">MANAGEMENT</p>
+                <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-text-emerald">MANAGEMENT</p>
                 <h1 className="text-2xl font-bold tracking-tight text-text-main">Create New Activity</h1>
                 <p className="mt-1 text-sm text-text-muted">
                   Author new laboratory activities, code templates, and automated AST testing guidelines.
@@ -98,7 +98,7 @@ const ActivityEditor = () => {
             </header>
             
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl mb-6 text-sm">
+              <div className="bg-red-500/10 border border-red-500/30 text-text-rose p-4 rounded-xl mb-6 text-sm">
                 {error}
               </div>
             )}
@@ -106,13 +106,13 @@ const ActivityEditor = () => {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Column: Details & Instructions (7 cols) */}
               <div className="lg:col-span-7 space-y-5 bg-bg-glass p-6 rounded-2xl border border-border-subtle">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-400 pb-2 border-b border-border-subtle">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-text-emerald pb-2 border-b border-border-subtle">
                   Activity Details
                 </h2>
 
                 <div>
                   <label htmlFor="title" className="block text-xs font-semibold text-text-muted mb-1.5">
-                    Activity Title <span className="text-emerald-400">*</span>
+                    Activity Title <span className="text-text-emerald">*</span>
                   </label>
                   <input
                     type="text"
@@ -128,7 +128,7 @@ const ActivityEditor = () => {
 
                 <div>
                   <label htmlFor="class_id" className="block text-xs font-semibold text-text-muted mb-1.5">
-                    Target Classroom <span className="text-emerald-400">*</span>
+                    Target Classroom <span className="text-text-emerald">*</span>
                   </label>
                   <CustomSelect
                     options={classrooms.map(cls => ({
@@ -177,7 +177,7 @@ const ActivityEditor = () => {
                       onChange={handleChange}
                       rows={3}
                       placeholder="Target output string..."
-                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-emerald-400 focus:outline-none focus:border-emerald-500 transition-colors"
+                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-text-emerald focus:outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
 
@@ -199,7 +199,7 @@ const ActivityEditor = () => {
               {/* Right Column: Code Template & Settings (5 cols) */}
               <div className="lg:col-span-5 flex flex-col gap-5">
                 <div className="flex-1 bg-bg-glass p-6 rounded-2xl border border-border-subtle flex flex-col">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-400 pb-2 border-b border-border-subtle mb-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-text-emerald pb-2 border-b border-border-subtle mb-4">
                     Starter Code Template
                   </h2>
 
@@ -271,7 +271,7 @@ const ActivityEditor = () => {
                               }}
                             />
                             {/* Calendar icon overlay to make it look premium */}
-                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-emerald-400 transition-colors">
+                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-text-emerald transition-colors">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
@@ -299,7 +299,7 @@ const ActivityEditor = () => {
                               altFormat: "M j, Y h:i K"
                             }}
                           />
-                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-emerald-400 transition-colors">
+                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-text-emerald transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>

@@ -187,7 +187,7 @@ export default function Login() {
         </div>
 
         <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-emerald">
             Python Learning Platform
           </p>
           <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
@@ -214,7 +214,7 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className="font-mono text-xs text-white/25 select-none cursor-default">
+        <p className="font-mono text-xs text-text-main/25 select-none cursor-default">
           Python 3 · FastAPI · Isolated execution
         </p>
       </section>
@@ -243,7 +243,7 @@ export default function Login() {
             <div
               role="alert"
               aria-live="polite"
-              className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+              className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose"
             >
               {error}
             </div>
@@ -274,7 +274,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20 disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
                   style={{ caretColor: "#10b981" }}
                 />
               </div>
@@ -290,7 +290,7 @@ export default function Login() {
                   Password
                 </label>
                 {capsLock && (
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 select-none">
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
                     <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
                       <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
                       <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
@@ -316,7 +316,7 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20 disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
                   style={{ caretColor: "#10b981" }}
                 />
                 <button
@@ -370,7 +370,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="font-medium text-emerald-400 transition-colors hover:text-emerald-300 hover:underline"
+                className="font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline"
                 disabled={isLoading}
               >
                 Create one

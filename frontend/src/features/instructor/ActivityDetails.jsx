@@ -118,7 +118,7 @@ const ActivityDetails = () => {
   }
 
   if (error || !activity) {
-    return <div className="text-red-400 p-6">{error || 'Activity not found'}</div>;
+    return <div className="text-text-rose p-6">{error || 'Activity not found'}</div>;
   }
 
   return (
@@ -139,7 +139,7 @@ const ActivityDetails = () => {
               <h1 className="text-2xl font-bold mb-2">{activity.title}</h1>
               <p className="text-text-muted">{activity.description}</p>
             </div>
-            <button onClick={() => navigate(-1)} className="text-emerald-400 hover:text-emerald-300">
+            <button onClick={() => navigate(-1)} className="text-text-emerald hover:text-text-emerald">
               Back
             </button>
           </div>
@@ -180,21 +180,21 @@ const ActivityDetails = () => {
           <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Details</h2>
           
           <div>
-            <h3 className="text-sm font-medium text-emerald-400">Instructions</h3>
+            <h3 className="text-sm font-medium text-text-emerald">Instructions</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.instructions || 'No instructions provided.'}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-emerald-400">Requirements</h3>
+            <h3 className="text-sm font-medium text-text-emerald">Requirements</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.requirements || 'No requirements provided.'}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-emerald-400">Expected Output (Global)</h3>
+            <h3 className="text-sm font-medium text-text-emerald">Expected Output (Global)</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.expected_output || 'No expected output provided.'}
             </div>
@@ -230,7 +230,7 @@ const ActivityDetails = () => {
                     {!activity.is_published && (
                       <button 
                         onClick={() => promptDeleteTestCase(tc.id)}
-                        className="text-red-400 hover:text-red-300 px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
+                        className="text-text-rose hover:text-text-rose px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
                       >
                         Delete
                       </button>
@@ -250,7 +250,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.input_data}
                   onChange={e => setNewTestCase({...newTestCase, input_data: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-white/90 focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main/90 focus:border-emerald-500 focus:outline-none h-24"
                   placeholder="Enter input data..."
                 />
               </div>
@@ -259,7 +259,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.expected_output}
                   onChange={e => setNewTestCase({...newTestCase, expected_output: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-white/90 focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main/90 focus:border-emerald-500 focus:outline-none h-24"
                   required
                   placeholder="Enter expected output..."
                 />
@@ -288,7 +288,7 @@ const ActivityDetails = () => {
             </form>
           ) : (
             <div className="mt-8 border-t border-border-subtle pt-6">
-              <p className="text-sm text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded p-4">
+              <p className="text-sm text-text-amber/80 bg-amber-500/10 border border-amber-500/20 rounded p-4">
                 This activity is currently published. You must unpublish it before you can add or delete test cases.
               </p>
             </div>

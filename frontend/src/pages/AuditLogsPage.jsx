@@ -71,7 +71,7 @@ export default function AuditLogsPage({ role: propRole }) {
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
-                    <ShieldIcon className="h-6 w-6 text-emerald-400" />
+                    <ShieldIcon className="h-6 w-6 text-text-emerald" />
                     {isInstructor ? "System Audit Logs" : "Audit History"}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -97,7 +97,7 @@ export default function AuditLogsPage({ role: propRole }) {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by action, resource, or IP address..."
-                      className="w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none transition"
+                      className="w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:border-emerald-500/50 focus:outline-none transition"
                     />
                   </div>
 
@@ -135,7 +135,7 @@ export default function AuditLogsPage({ role: propRole }) {
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-text-muted ring-4 ring-slate-500/5">
                         <ShieldIcon className="h-7 w-7" />
                       </div>
-                      <h3 className="mb-2 text-lg font-semibold text-white/90">No Audit Records Found</h3>
+                      <h3 className="mb-2 text-lg font-semibold text-text-main/90">No Audit Records Found</h3>
                       <p className="text-xs text-text-muted max-w-sm">
                         No security events or actions match your current search criteria.
                       </p>
@@ -171,8 +171,8 @@ export default function AuditLogsPage({ role: propRole }) {
                                 <span
                                   className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
                                     (log.status === "SUCCESS" || log.outcome === "succeeded")
-                                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                      : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                                      ? "border-emerald-500/30 bg-emerald-500/10 text-text-emerald"
+                                      : "border-rose-500/30 bg-rose-500/10 text-text-rose"
                                   }`}
                                 >
                                   {log.status || log.outcome || "SUCCESS"}

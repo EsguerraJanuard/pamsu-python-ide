@@ -652,7 +652,7 @@ export default function Workspace() {
               </button>
             </div>
             <div className="hidden min-w-0 sm:block border-l border-border-subtle pl-3">
-              <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-blue-400 mr-2">
+              <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-text-blue mr-2">
                 {activity.courseCode}
               </span>
               <span className="truncate text-xs font-bold text-text-main tracking-wide">
@@ -713,7 +713,7 @@ export default function Workspace() {
 
         {showBehaviorNotice && (
           <div
-            className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/20 bg-amber-500/[0.07] px-4 py-2 text-[10px] text-amber-300 select-none"
+            className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/20 bg-amber-500/[0.07] px-4 py-2 text-[10px] text-text-amber select-none"
             role="status"
           >
             <span className="truncate">
@@ -727,7 +727,7 @@ export default function Workspace() {
             <button
               type="button"
               onClick={() => setShowBehaviorNotice(false)}
-              className="shrink-0 font-semibold text-amber-300 hover:text-text-main transition-colors cursor-pointer"
+              className="shrink-0 font-semibold text-text-amber hover:text-text-main transition-colors cursor-pointer"
             >
               Dismiss
             </button>
@@ -736,7 +736,7 @@ export default function Workspace() {
 
         {visibleNotice && (
           <div
-            className={`flex shrink-0 items-center justify-between gap-3 border-b border-blue-500/20 bg-blue-500/[0.06] px-4 py-1.5 text-xs text-blue-300 select-none transition-all duration-500 ease-out ${
+            className={`flex shrink-0 items-center justify-between gap-3 border-b border-blue-500/20 bg-blue-500/[0.06] px-4 py-1.5 text-xs text-text-blue select-none transition-all duration-500 ease-out ${
               isFadingOut ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
             }`}
             role="status"
@@ -785,7 +785,7 @@ export default function Workspace() {
 
             <div className="flex-1 space-y-5 overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex items-center justify-between">
-                <span className="inline-block rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
+                <span className="inline-block rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-text-amber">
                   {activity.dueLabel}
                 </span>
                 <span className="rounded bg-bg-glass border border-border-subtle px-2 py-0.5 text-[10px] font-mono text-text-muted">
@@ -814,7 +814,7 @@ export default function Workspace() {
                       key={requirement}
                       className="flex items-center gap-2 text-xs text-text-muted font-medium"
                     >
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-blue-400 border border-blue-500/20">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-text-blue border border-blue-500/20">
                         ✓
                       </span>
                       {requirement}
@@ -828,13 +828,13 @@ export default function Workspace() {
                   Expected Output
                 </h3>
 
-                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-bg-glass shadow-inner p-3 font-mono text-[11px] text-emerald-400">
+                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-bg-glass shadow-inner p-3 font-mono text-[11px] text-text-emerald">
                   {activity.expectedOutput}
                 </pre>
               </section>
 
               <section className="rounded-lg border border-blue-500/15 bg-blue-500/[0.02] shadow-inner p-4">
-                <h3 className="text-xs font-bold text-blue-300">
+                <h3 className="text-xs font-bold text-text-blue">
                   Clipboard Policy
                 </h3>
 
@@ -861,7 +861,7 @@ export default function Workspace() {
           <main className="flex min-w-0 flex-1 flex-col bg-bg-base">
             <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass shadow-inner px-3 py-1 backdrop-blur-md">
               <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
-                <span className="text-blue-400">
+                <span className="text-text-blue">
                   {activity.fileName}
                 </span>
 
@@ -917,7 +917,7 @@ export default function Workspace() {
                 <button
                   type="button"
                   onClick={handleResetDraft}
-                  className="flex items-center gap-1 rounded-md border border-red-500/20 bg-red-500/5 px-2 py-1 text-[10px] font-medium text-red-400/80 transition-all hover:bg-red-500/15 hover:text-red-300 active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1 rounded-md border border-red-500/20 bg-red-500/5 px-2 py-1 text-[10px] font-medium text-text-rose/80 transition-all hover:bg-red-500/15 hover:text-text-rose active:scale-95 cursor-pointer"
                   title="Reset code draft"
                 >
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -946,7 +946,7 @@ export default function Workspace() {
                 }}
               />
 
-              <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-black/30 px-2 py-1 font-mono text-[9px] text-white/25">
+              <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-black/30 px-2 py-1 font-mono text-[9px] text-text-main/25">
                 {lineCount} {lineCount === 1 ? "line" : "lines"} ·
                 autosave
               </div>
@@ -984,7 +984,7 @@ export default function Workspace() {
                 {activePanel === "analysis" && (
                   <div className="space-y-2">
                     <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.05] p-3">
-                      <h3 className="text-xs font-semibold text-amber-300">
+                      <h3 className="text-xs font-semibold text-text-amber">
                         AST analysis not connected
                       </h3>
 
@@ -1004,7 +1004,7 @@ export default function Workspace() {
                             {requirement}
                           </span>
 
-                          <span className="shrink-0 text-[9px] text-white/25">
+                          <span className="shrink-0 text-[9px] text-text-main/25">
                             Not checked
                           </span>
                         </div>
@@ -1030,7 +1030,7 @@ export default function Workspace() {
                       }
                       spellCheck="false"
                       placeholder="Example: 10"
-                      className="h-[120px] w-full resize-none rounded-lg border border-border-subtle bg-bg-glass p-3 font-mono text-[11px] text-text-muted outline-none placeholder-white/20 focus:border-blue-500/40"
+                      className="h-[120px] w-full resize-none rounded-lg border border-border-subtle bg-bg-glass p-3 font-mono text-[11px] text-text-muted outline-none placeholder:text-text-muted focus:border-blue-500/40"
                     />
                   </div>
                 )}
@@ -1097,7 +1097,7 @@ export default function Workspace() {
                       Tab switches
                     </span>
 
-                    <span className="font-mono text-xs text-amber-400">
+                    <span className="font-mono text-xs text-text-amber">
                       {tabSwitchCount}
                     </span>
                   </div>
@@ -1107,7 +1107,7 @@ export default function Workspace() {
                       Blocked pastes
                     </span>
 
-                    <span className="font-mono text-xs text-amber-400">
+                    <span className="font-mono text-xs text-text-amber">
                       {blockedPasteCount}
                     </span>
                   </div>
@@ -1117,13 +1117,13 @@ export default function Workspace() {
                       Last blocked paste
                     </p>
 
-                    <p className="mt-1 font-mono text-[10px] text-white/25">
+                    <p className="mt-1 font-mono text-[10px] text-text-main/25">
                       {lastBlockedPasteAt || "None recorded"}
                     </p>
                   </div>
                 </div>
 
-                <p className="mt-3 text-[10px] leading-relaxed text-white/25">
+                <p className="mt-3 text-[10px] leading-relaxed text-text-main/25">
                   These events are review indicators, not automatic
                   behavior scores or proof of misconduct.
                 </p>
@@ -1134,7 +1134,7 @@ export default function Workspace() {
                   Privacy boundary
                 </h3>
 
-                <p className="mt-1 text-[10px] leading-relaxed text-white/35">
+                <p className="mt-1 text-[10px] leading-relaxed text-text-main/35">
                   Clipboard contents, browsing history, screen,
                   webcam, microphone, and every keystroke are not
                   collected.

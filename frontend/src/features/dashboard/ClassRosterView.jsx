@@ -75,7 +75,7 @@ export default function ClassRosterView() {
             <div>
               <button 
                 onClick={() => navigate('/instructor/classes')}
-                className="mb-4 flex items-center gap-2 text-xs font-semibold text-emerald-400 transition-colors hover:text-emerald-300"
+                className="mb-4 flex items-center gap-2 text-xs font-semibold text-text-emerald transition-colors hover:text-text-emerald"
               >
                 ← Back to Classrooms
               </button>
@@ -95,7 +95,7 @@ export default function ClassRosterView() {
                 ⚙ Classroom Settings
               </button>
 
-              <div className="text-sm font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+              <div className="text-sm font-semibold text-text-emerald bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
                 Students: {students.length}
               </div>
             </div>
@@ -107,7 +107,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("roster")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "roster"
-                  ? "border-emerald-400 text-emerald-400"
+                  ? "border-emerald-400 text-text-emerald"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >
@@ -117,7 +117,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("activities")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "activities"
-                  ? "border-emerald-400 text-emerald-400"
+                  ? "border-emerald-400 text-text-emerald"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >
@@ -181,16 +181,16 @@ export default function ClassRosterView() {
                           </td>
                           <td className="px-6 py-4 text-text-muted">
                             {student.status === "active" || student.status === "approved" ? (
-                               <span className="text-emerald-400">Active</span>
+                               <span className="text-text-emerald">Active</span>
                             ) : (
-                               <span className="text-amber-400">Disabled</span>
+                               <span className="text-text-amber">Disabled</span>
                             )}
                           </td>
                           <td className="px-6 py-4 text-center font-mono text-text-muted">0</td>
                           <td className="px-6 py-4 text-right">
                             <button
                               onClick={() => setStudentToRemove(student)}
-                              className="rounded p-1.5 text-text-muted transition hover:bg-red-500/10 hover:text-red-400"
+                              className="rounded p-1.5 text-text-muted transition hover:bg-red-500/10 hover:text-text-rose"
                               title="Remove Student"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -223,7 +223,7 @@ export default function ClassRosterView() {
                 tasks.map(task => (
                   <div key={task.task_id} className="flex items-center justify-between rounded-xl border border-border-subtle bg-bg-glass p-5 transition hover:border-emerald-500/30 hover:bg-bg-glass/80">
                     <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800/50 text-text-muted'}`}>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-emerald-500/10 text-text-emerald' : 'bg-slate-800/50 text-text-muted'}`}>
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -252,8 +252,8 @@ export default function ClassRosterView() {
                             <span className="text-[10px] uppercase tracking-wider text-text-muted mt-1">Assigned</span>
                           </div>
                           <div className="flex flex-col items-center">
-                            <span className="text-xl font-semibold text-emerald-400">{task.graded_count || 0}</span>
-                            <span className="text-[10px] uppercase tracking-wider text-emerald-400/60 mt-1">Graded</span>
+                            <span className="text-xl font-semibold text-text-emerald">{task.graded_count || 0}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-text-emerald/60 mt-1">Graded</span>
                           </div>
                         </div>
                       ) : (
@@ -264,7 +264,7 @@ export default function ClassRosterView() {
                       
                       <button 
                         onClick={() => navigate(`/instructor/activities/${task.task_id}`)}
-                        className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-bg-glass-hover hover:text-emerald-400"
+                        className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-bg-glass-hover hover:text-text-emerald"
                       >
                         {task.is_published ? "View Activity" : "Edit Activity"}
                       </button>
@@ -304,7 +304,7 @@ export default function ClassRosterView() {
               <button
                 onClick={handleRemoveConfirm}
                 disabled={isRemoving}
-                className="rounded-lg bg-red-500/20 px-4 py-2 text-xs font-semibold text-red-400 transition disabled:opacity-50 hover:bg-red-500/30"
+                className="rounded-lg bg-red-500/20 px-4 py-2 text-xs font-semibold text-text-rose transition disabled:opacity-50 hover:bg-red-500/30"
               >
                 {isRemoving ? "Removing..." : "Yes, Remove"}
               </button>

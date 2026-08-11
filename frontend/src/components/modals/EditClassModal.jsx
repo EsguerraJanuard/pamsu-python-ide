@@ -96,13 +96,13 @@ export default function EditClassModal({
         </div>
 
         {error && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-text-rose">
             {error}
           </div>
         )}
 
         {successMsg && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-text-emerald">
             {successMsg}
           </div>
         )}
@@ -117,7 +117,7 @@ export default function EditClassModal({
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               placeholder="e.g. CS101 — Intro to Programming"
-              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder-slate-500 focus:border-blue-500 focus:outline-none transition"
+              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
               required
             />
           </div>
@@ -131,7 +131,7 @@ export default function EditClassModal({
               value={schedule}
               onChange={(e) => setSchedule(e.target.value)}
               placeholder="e.g. Mon / Wed 10:00 AM - 12:00 PM"
-              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder-slate-500 focus:border-blue-500 focus:outline-none transition"
+              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
             />
           </div>
 
@@ -151,7 +151,7 @@ export default function EditClassModal({
               type="button"
               onClick={handleRegenerateCode}
               disabled={regenerating}
-              className="w-full mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-300 hover:bg-amber-500/20 transition disabled:opacity-50"
+              className="w-full mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-text-amber hover:bg-amber-500/20 transition disabled:opacity-50"
             >
               {regenerating ? "Regenerating..." : "↻ Regenerate Invite Code"}
             </button>

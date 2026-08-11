@@ -91,7 +91,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
                   </span>
                 </div>
 
-                <p className="text-[11px] text-white/35">
+                <p className="text-[11px] text-text-main/35">
                   {submission.courseCode} ·{" "}
                   {submission.activityType}
                 </p>
@@ -104,7 +104,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
               <button
                 type="button"
                 onClick={() => onOpen(submission.id)}
-                className="shrink-0 rounded-lg border border-blue-500/40 px-3 py-1.5 text-xs font-semibold text-blue-400 transition duration-150 hover:-translate-y-px hover:bg-blue-500/10 active:translate-y-0 active:scale-[0.98]"
+                className="shrink-0 rounded-lg border border-blue-500/40 px-3 py-1.5 text-xs font-semibold text-text-blue transition duration-150 hover:-translate-y-px hover:bg-blue-500/10 active:translate-y-0 active:scale-[0.98]"
               >
                 View details
               </button>
@@ -136,7 +136,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
               <div className="rounded-lg border border-border-subtle bg-bg-glass p-3">
                 {submission.instructorGrade ? (
                   <>
-                    <p className="text-lg font-bold text-violet-400">
+                    <p className="text-lg font-bold text-text-violet">
                       {submission.instructorGrade.score} /{" "}
                       {submission.instructorGrade.maximum}
                     </p>
@@ -147,7 +147,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-blue-400">
+                    <p className="text-sm font-semibold text-text-blue">
                       Pending
                     </p>
 
@@ -160,7 +160,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
             </div>
 
             <div className="rounded-lg border-l-2 border-border-subtle bg-bg-glass px-3 py-2 font-mono text-[11px] text-text-muted">
-              <span className="text-white/25">
+              <span className="text-text-main/25">
                 Instructor feedback:{" "}
               </span>
 
@@ -172,10 +172,10 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
 
       {submissions.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle py-20 px-6 text-center transition-all hover:bg-bg-glass">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-blue-400 ring-4 ring-blue-500/5">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-text-blue ring-4 ring-blue-500/5">
             <ArchiveIcon className="h-8 w-8" />
           </div>
-          <h3 className="mb-2 text-xl font-semibold text-white/90">No Submissions Yet</h3>
+          <h3 className="mb-2 text-xl font-semibold text-text-main/90">No Submissions Yet</h3>
           <p className="max-w-md text-sm text-text-muted">
             You haven't submitted any activities. Your completed laboratory and homework modules will appear here for review.
           </p>
@@ -197,7 +197,7 @@ function SubmissionDetails({ submission, onBack }) {
       <button
         type="button"
         onClick={onBack}
-        className="text-xs text-blue-400 transition-colors hover:text-blue-300"
+        className="text-xs text-text-blue transition-colors hover:text-text-blue"
       >
         ← Back to submissions
       </button>
@@ -219,7 +219,7 @@ function SubmissionDetails({ submission, onBack }) {
               </span>
             </div>
 
-            <p className="text-xs text-white/35">
+            <p className="text-xs text-text-main/35">
               {submission.courseCode} ·{" "}
               {submission.activityType}
             </p>
@@ -231,7 +231,7 @@ function SubmissionDetails({ submission, onBack }) {
 
           {submission.instructorGrade && (
             <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-center">
-              <p className="text-2xl font-bold text-violet-300">
+              <p className="text-2xl font-bold text-text-violet">
                 {submission.instructorGrade.score} /{" "}
                 {submission.instructorGrade.maximum}
               </p>
@@ -281,7 +281,7 @@ function SubmissionDetails({ submission, onBack }) {
 
 
         <section className="rounded-lg border-l-2 border-violet-500/30 bg-violet-500/[0.05] px-4 py-3">
-          <h2 className="mb-1 text-xs font-semibold text-violet-300">
+          <h2 className="mb-1 text-xs font-semibold text-text-violet">
             Instructor feedback
           </h2>
 
@@ -458,7 +458,7 @@ export default function Submissions() {
                   Submission not found
                 </h1>
 
-                <p className="mt-2 text-sm text-white/35">
+                <p className="mt-2 text-sm text-text-main/35">
                   The requested submission does not exist or is not
                   available to this account.
                 </p>

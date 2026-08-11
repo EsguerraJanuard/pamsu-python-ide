@@ -25,7 +25,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
         <span className={selectedOption ? "text-text-main" : "text-text-muted"}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <div className={`text-text-muted transition-transform ${isOpen ? 'rotate-180 text-emerald-400' : 'group-hover:text-emerald-400'}`}>
+        <div className={`text-text-muted transition-transform ${isOpen ? 'rotate-180 text-text-emerald' : 'group-hover:text-text-emerald'}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -38,7 +38,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
             {options.map((opt) => (
               <li 
                 key={opt.value}
-                className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center gap-3 ${String(value) === String(opt.value) ? 'bg-emerald-500/10 text-emerald-400' : 'text-text-main hover:bg-white/5 hover:text-white'}`}
+                className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center gap-3 ${String(value) === String(opt.value) ? 'bg-emerald-500/10 text-text-emerald' : 'text-text-main hover:bg-white/5 hover:text-white'}`}
                 onClick={() => {
                   onChange(opt.value);
                   setIsOpen(false);

@@ -145,10 +145,10 @@ export default function MyClasses() {
                   </div>
                 ) : classrooms.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-white/[0.15]">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4 ring-4 ring-blue-500/5 text-blue-400">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4 ring-4 ring-blue-500/5 text-text-blue">
                       <BookOpenIcon className="h-8 w-8" />
                     </div>
-                    <h3 className="text-xl font-semibold text-white/90">No Active Classes</h3>
+                    <h3 className="text-xl font-semibold text-text-main/90">No Active Classes</h3>
                     <p className="mt-2 max-w-md text-sm text-text-muted mb-6">
                       You haven't joined any classrooms yet. Use the 6-character code provided by your instructor to join one.
                     </p>
@@ -174,12 +174,12 @@ export default function MyClasses() {
                         
                         <div className="p-6 flex-1 flex flex-col">
                           <div className="flex justify-between items-start mb-4 relative z-10">
-                            <span className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-blue-400 shadow-sm">
+                            <span className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-text-blue shadow-sm">
                               {cls.classroom.subject_code}
                             </span>
                           </div>
                           
-                          <h3 className="text-lg font-bold text-white/90 mb-2 line-clamp-1 group-hover:text-text-main transition-colors relative z-10">
+                          <h3 className="text-lg font-bold text-text-main/90 mb-2 line-clamp-1 group-hover:text-text-main transition-colors relative z-10">
                             {cls.classroom.subject_name || 'Classroom'}
                           </h3>
                           
@@ -189,7 +189,7 @@ export default function MyClasses() {
                             </span>
                             {cls.classroom.instructor_name && (
                               <>
-                                <span className="text-white/20">•</span>
+                                <span className="text-text-main/20">•</span>
                                 <span className="text-sm text-text-muted group-hover:text-text-muted transition-colors">
                                   {cls.classroom.instructor_name}
                                 </span>
@@ -200,7 +200,7 @@ export default function MyClasses() {
                           <div className="flex items-center gap-4 border-t border-border-subtle pt-5 mt-auto relative z-10">
                             <div className="flex flex-col">
                               <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1.5">Status</span>
-                              <span className="text-xs font-medium text-emerald-400 flex items-center gap-1.5">
+                              <span className="text-xs font-medium text-text-emerald flex items-center gap-1.5">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
                                 Enrolled
                               </span>

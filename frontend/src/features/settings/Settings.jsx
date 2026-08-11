@@ -130,7 +130,7 @@ export default function Settings() {
 
   const inputClass =
 
-    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20";
+    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
 
 
 
@@ -408,7 +408,7 @@ export default function Settings() {
 
                     aria-live="polite"
 
-                    className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-300"
+                    className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-text-blue"
 
                   >
 
@@ -734,9 +734,9 @@ export default function Settings() {
 
                       passwordMessageType === "error"
 
-                        ? "border-red-500/20 bg-red-500/10 text-red-300"
+                        ? "border-red-500/20 bg-red-500/10 text-text-rose"
 
-                        : "border-blue-500/20 bg-blue-500/10 text-blue-300"
+                        : "border-blue-500/20 bg-blue-500/10 text-text-blue"
 
                     }`}
 

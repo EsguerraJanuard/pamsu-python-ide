@@ -224,7 +224,7 @@ export default function InstructorSidebar() {
                       type="button"
                       onClick={() => setIsSignOutOpen(true)}
                       title={isCollapsed ? link.label : undefined}
-                      className={`flex w-full items-center gap-2.5 rounded-lg text-xs font-medium text-text-muted transition-colors duration-150 hover:bg-red-500/[0.08] hover:text-red-400 ${
+                      className={`flex w-full items-center gap-2.5 rounded-lg text-xs font-medium text-text-muted transition-colors duration-150 hover:bg-red-500/[0.08] hover:text-text-rose ${
                         isCollapsed ? "justify-center px-0 py-2" : "px-2.5 py-2"
                       }`}
                     >

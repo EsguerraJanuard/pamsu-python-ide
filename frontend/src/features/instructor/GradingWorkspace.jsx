@@ -81,7 +81,7 @@ const GradingWorkspace = () => {
 
     if (error) {
         return (
-            <div className="flex items-center justify-center h-screen bg-bg-base text-red-400">
+            <div className="flex items-center justify-center h-screen bg-bg-base text-text-rose">
                 {error}
             </div>
         );
@@ -105,7 +105,7 @@ const GradingWorkspace = () => {
                 <div>
                     <h2 className="text-2xl font-bold text-text-main mb-2">Grading Workspace</h2>
                     <p className="text-sm text-text-muted">
-                        Student: <span className="text-emerald-400">{submission?.student?.name || submission?.student_id || 'Unknown'}</span>
+                        Student: <span className="text-text-emerald">{submission?.student?.name || submission?.student_id || 'Unknown'}</span>
                     </p>
                     <p className="text-sm text-text-muted">
                         Task: <span className="text-text-main">{submission?.task?.title || submission?.task_id || 'Unknown'}</span>
@@ -130,7 +130,7 @@ const GradingWorkspace = () => {
 
                 <div className="bg-bg-glass p-4 rounded-xl border border-border-subtle flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold text-text-main mb-3 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-text-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         Execution Output
@@ -145,7 +145,7 @@ const GradingWorkspace = () => {
                         {evaluation_result?.stderr && (
                             <div>
                                 <div className="text-text-muted mb-1 select-none"># stderr</div>
-                                <pre className="whitespace-pre-wrap text-red-400">{evaluation_result.stderr}</pre>
+                                <pre className="whitespace-pre-wrap text-text-rose">{evaluation_result.stderr}</pre>
                             </div>
                         )}
                         {!evaluation_result?.stdout && !evaluation_result?.stderr && (
@@ -190,13 +190,13 @@ const GradingWorkspace = () => {
             {/* Right Side: Code Editor */}
             <div className="w-1/2 flex flex-col border-l border-border-subtle bg-bg-base">
                 <div className="p-4 border-b border-border-subtle bg-bg-glass flex items-center gap-2">
-                    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-text-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                     </svg>
                     <h3 className="text-text-main font-medium">Submitted Code</h3>
                 </div>
                 <textarea 
-                    className="flex-1 w-full p-6 bg-bg-base text-emerald-300 font-mono text-sm resize-none focus:outline-none"
+                    className="flex-1 w-full p-6 bg-bg-base text-text-emerald font-mono text-sm resize-none focus:outline-none"
                     readOnly
                     value={submission?.raw_code || ''}
                     spellCheck="false"
