@@ -120,13 +120,13 @@ export default function SubmissionDetails() {
 
               <div className="flex flex-col items-end gap-2">
                  <div className="text-right">
-                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">AST Validation</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">AST Validation</p>
                     {submission.ast_pass_fail === null ? (
-                      <span className="text-slate-500 font-medium">Pending</span>
+                      <span className="text-slate-500 font-medium inline-block mt-1">Pending</span>
                     ) : submission.ast_pass_fail ? (
-                      <span className="text-emerald-400 font-bold px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded">PASSED</span>
+                      <span className="text-emerald-400 font-bold px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded inline-block mt-1">PASSED</span>
                     ) : (
-                      <span className="text-rose-400 font-bold px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded">FAILED</span>
+                      <span className="text-rose-400 font-bold px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded inline-block mt-1">FAILED</span>
                     )}
                  </div>
               </div>
