@@ -257,46 +257,47 @@ export default function StudentDashboard() {
               </section>
 
               <section
-                className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2"
+                className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2"
                 aria-label="Student progress summary"
               >
                 {isLoading ? (
                   <>
-                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
-                      <div className="mb-1 h-8 w-16 bg-white/[0.06] rounded-md"></div>
+                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5 animate-pulse">
+                      <div className="mb-2 h-8 w-16 bg-white/[0.06] rounded-md"></div>
                       <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
-                      <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
-                      <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]"></div>
+                      <div className="mb-4 h-3 w-40 bg-white/[0.06] rounded-md"></div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]"></div>
                     </article>
-                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4 animate-pulse">
-                      <div className="mb-1 h-8 w-24 bg-white/[0.06] rounded-md"></div>
+                    <article className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-5 animate-pulse">
+                      <div className="mb-2 h-8 w-24 bg-white/[0.06] rounded-md"></div>
                       <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
-                      <div className="mb-3 h-3 w-40 bg-white/[0.06] rounded-md"></div>
-                      <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]"></div>
+                      <div className="mb-4 h-3 w-40 bg-white/[0.06] rounded-md"></div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]"></div>
                     </article>
                   </>
                 ) : (
                   <>
                   <article
-                    className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
                   >
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
                     <p
-                      className="mb-1 text-3xl font-bold text-blue-500"
+                      className="mb-1 text-4xl font-bold text-white tracking-tight"
                     >
                       {activeActivities.length}
                     </p>
 
-                    <h2 className="text-xs font-medium text-white/70">
+                    <h2 className="text-sm font-semibold text-white/90">
                       Active activities
                     </h2>
 
-                    <p className="mb-3 text-[10px] text-white/30">
+                    <p className="mb-4 text-[11px] text-white/40 font-medium">
                       Laboratory and homework tasks
                     </p>
 
-                    <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                       <div
-                        className="h-full rounded-full bg-blue-500"
+                        className="h-full rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out"
                         style={{
                           width: `${activities.length > 0 ? (activeActivities.length / activities.length) * 100 : 0}%`,
                         }}
@@ -305,25 +306,26 @@ export default function StudentDashboard() {
                   </article>
                   
                   <article
-                    className="dashboard-card rounded-xl border border-white/[0.06] bg-[#1a1d27] p-4"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
                   >
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
                     <p
-                      className="mb-1 text-3xl font-bold text-green-500"
+                      className="mb-1 text-4xl font-bold text-white tracking-tight flex items-baseline gap-1"
                     >
-                      {completedCount} / {activities.length}
+                      {completedCount} <span className="text-lg text-white/30 font-medium">/ {activities.length}</span>
                     </p>
 
-                    <h2 className="text-xs font-medium text-white/70">
+                    <h2 className="text-sm font-semibold text-white/90">
                       Activities completed
                     </h2>
 
-                    <p className="mb-3 text-[10px] text-white/30">
+                    <p className="mb-4 text-[11px] text-white/40 font-medium">
                       Based on submitted activities
                     </p>
 
-                    <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                       <div
-                        className="h-full rounded-full bg-green-500"
+                        className="h-full rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
                         style={{
                           width: `${activities.length > 0 ? (completedCount / activities.length) * 100 : 0}%`,
                         }}
@@ -388,7 +390,7 @@ export default function StudentDashboard() {
                       return (
                         <article
                           key={activity.id}
-                          className={`dashboard-card rounded-xl border border-l-[3px] border-white/[0.06] bg-[#1a1d27] p-4 ${status.accentClass}`}
+                          className={`dashboard-card rounded-xl border border-l-[3px] border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 ${status.accentClass} group`}
                           style={{
                             animation: `dashboardFadeUp 400ms ease ${
                               200 + index * 70
@@ -397,30 +399,31 @@ export default function StudentDashboard() {
                         >
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex flex-wrap items-center gap-2">
-                                <h3 className="text-sm font-semibold">
+                              <div className="mb-2 flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
                                   {activity.title}
                                 </h3>
 
                                 <span
-                                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.badgeClass}`}
+                                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide ${status.badgeClass}`}
                                 >
                                   {status.label}
                                 </span>
                               </div>
 
-                              <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-white/35">
-                                <span>
+                              <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-white/40">
+                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
+                                  <BookOpenIcon className="h-3 w-3 text-blue-400" />
                                   {activity.courseCode}
                                 </span>
 
-                                <span className="flex items-center gap-1">
+                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
                                   <ClockIcon />
                                   {activity.dueLabel}
                                 </span>
                               </div>
 
-                              <p className="rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-white/45">
+                              <p className="rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-white/45 shadow-inner">
                                 {activity.note}
                               </p>
                             </div>
@@ -430,20 +433,20 @@ export default function StudentDashboard() {
                               onClick={() =>
                                 handleOpenActivity(activity)
                               }
-                              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] ${status.buttonClass}`}
+                              className={`shrink-0 rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${status.buttonClass}`}
                             >
                               {activity.actionLabel}
                             </button>
                           </div>
 
-                          <div className="mt-3 flex items-center gap-3">
-                            <span className="shrink-0 text-[10px] text-white/30">
+                          <div className="mt-4 flex items-center gap-3">
+                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/30">
                               Progress
                             </span>
 
-                            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                               <div
-                                className={`h-full rounded-full ${status.progressClass}`}
+                                className={`h-full rounded-full transition-all duration-1000 ease-out ${status.progressClass}`}
                                 style={{
                                   width: `${activity.progress}%`,
                                 }}

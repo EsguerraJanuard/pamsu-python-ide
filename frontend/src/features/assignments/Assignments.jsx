@@ -287,7 +287,7 @@ export default function Assignments() {
             </section>
 
             <div
-              className="mb-6 flex w-fit gap-1 rounded-lg border border-white/[0.06] bg-[#1a1d27] p-1"
+              className="mb-6 flex w-fit gap-1 rounded-lg border border-white/[0.06] bg-black/40 shadow-inner p-1"
               role="tablist"
               aria-label="Activity filters"
             >
@@ -304,10 +304,10 @@ export default function Assignments() {
                     onClick={() =>
                       setFilter(filterOption.value)
                     }
-                    className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                    className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
                       isSelected
-                        ? "bg-white text-[#0f1117]"
-                        : "text-white/40 hover:bg-white/[0.04] hover:text-white/80"
+                        ? "bg-white text-[#0f1117] shadow-sm"
+                        : "text-white/40 hover:bg-white/[0.06] hover:text-white/80"
                     }`}
                   >
                     {filterOption.label}
@@ -317,7 +317,7 @@ export default function Assignments() {
             </div>
 
             <section
-              className="space-y-3"
+              className="space-y-4"
               aria-label="Activity list"
             >
               {filteredActivities.map((activity, index) => {
@@ -328,41 +328,44 @@ export default function Assignments() {
                 return (
                   <article
                     key={activity.id}
-                    className={`assignment-card rounded-xl border border-l-[3px] border-white/[0.06] bg-[#1a1d27] p-4 ${status.accentClass}`}
+                    className={`assignment-card rounded-xl border border-l-[3px] border-white/[0.06] bg-black/40 p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group ${status.accentClass}`}
                     style={{
                       animation: `assignmentsFadeUp 400ms ease ${
                         index * 70
                       }ms both`,
                     }}
                   >
-                    <div className="mb-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex flex-wrap items-center gap-2">
-                          <h2 className="text-sm font-semibold">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <h2 className="text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
                             {activity.title}
                           </h2>
 
                           <span
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.badgeClass}`}
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide ${status.badgeClass}`}
                           >
                             {status.label}
                           </span>
 
-                          <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/40">
+                          <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-white/50 shadow-sm">
                             {activity.activityType}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-white/35">
-                          <span>{activity.courseCode}</span>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-white/40">
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
+                            <ClipboardListIcon className="h-3 w-3 text-blue-400" />
+                            {activity.courseCode}
+                          </span>
 
-                          <span className="flex items-center gap-1">
-                            <ClockIcon />
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
+                            <ClockIcon className="h-3 w-3" />
                             {activity.dueLabel}
                           </span>
 
                           {activity.tags.length > 0 && (
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05]">
                               <TagIcon />
                               {activity.tags.join(" · ")}
                             </span>
@@ -375,16 +378,16 @@ export default function Assignments() {
                         onClick={() =>
                           handleOpenActivity(activity)
                         }
-                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] ${status.buttonClass}`}
+                        className={`shrink-0 rounded-lg px-5 py-2 text-xs font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${status.buttonClass}`}
                       >
                         {activity.actionLabel}
                       </button>
                     </div>
 
                     {activity.latestSubmission && (
-                      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-green-300/80">
-                        <span className="flex items-center gap-1">
-                          <SubmissionIcon />
+                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-green-300/80 shadow-inner">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <SubmissionIcon className="h-3 w-3" />
                           Attempt{" "}
                           {activity.latestSubmission.attemptNumber}
                         </span>
@@ -397,40 +400,40 @@ export default function Assignments() {
                         </span>
 
                         {activity.latestSubmission.isOfficial && (
-                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400">
+                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-green-400">
                             Latest official submission
                           </span>
                         )}
                       </div>
                     )}
 
-                    <div className="mb-3 rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-white/45">
-                      <span className="text-white/25">
-                        Activity status:{" "}
+                    <div className="mb-4 rounded-lg border-l-2 border-white/[0.08] bg-white/[0.03] px-3 py-2.5 font-mono text-[11px] text-white/50 shadow-inner">
+                      <span className="text-white/30 uppercase tracking-wider text-[9px] mr-2">
+                        Activity status:
                       </span>
                       {activity.note}
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <span className="shrink-0 text-[10px] text-white/30">
+                      <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/30">
                         Activity progress
                       </span>
 
-                      <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                         <div
-                          className={`h-full rounded-full ${status.progressClass}`}
+                          className={`h-full rounded-full transition-all duration-1000 ease-out ${status.progressClass}`}
                           style={{
                             width: `${activity.progress}%`,
                           }}
                         />
                       </div>
 
-                      <span className="shrink-0 text-[10px] text-white/40">
+                      <span className="shrink-0 text-[10px] font-bold text-white/50">
                         {activity.progress}%
                       </span>
 
                       {activity.instructorGrade && (
-                        <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-semibold text-violet-300">
+                        <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-violet-300 shadow-sm ml-auto">
                           Instructor grade:{" "}
                           {activity.instructorGrade.score} /{" "}
                           {activity.instructorGrade.maximum}
@@ -442,9 +445,13 @@ export default function Assignments() {
               })}
 
               {filteredActivities.length === 0 && (
-                <div className="rounded-xl border border-dashed border-white/[0.08] py-16 text-center">
-                  <p className="text-sm text-white/30">
-                    No activities found for this filter.
+                <div className="rounded-2xl border border-dashed border-white/[0.08] bg-black/20 shadow-inner py-20 text-center transition-all hover:bg-black/40 hover:border-white/[0.12]">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.03] mb-4 text-white/30 ring-4 ring-white/[0.02]">
+                    <ClipboardListIcon className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white/80">No Activities Found</h3>
+                  <p className="mt-1 text-sm text-white/40">
+                    No activities match the current filter.
                   </p>
                 </div>
               )}

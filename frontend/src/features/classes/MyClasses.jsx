@@ -133,18 +133,18 @@ export default function MyClasses() {
                 {isLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="flex flex-col rounded-xl border border-white/[0.06] bg-[#1a1d27] p-6 animate-pulse">
+                      <div key={i} className="flex flex-col rounded-xl border border-white/[0.06] bg-black/40 shadow-inner p-6 animate-pulse">
                         <div className="mb-4 h-5 w-16 bg-white/[0.06] rounded-full"></div>
-                        <div className="mb-2 h-6 w-3/4 bg-white/[0.06] rounded-md"></div>
+                        <div className="mb-3 h-6 w-3/4 bg-white/[0.06] rounded-md"></div>
                         <div className="mb-6 h-4 w-1/2 bg-white/[0.06] rounded-md"></div>
-                        <div className="mt-auto border-t border-white/[0.06] pt-4 flex gap-2">
+                        <div className="mt-auto border-t border-white/[0.06] pt-5 flex gap-2">
                           <div className="h-6 w-1/3 bg-white/[0.06] rounded-md"></div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : classrooms.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.01] py-24 px-6 text-center transition-all hover:bg-white/[0.02]">
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-black/20 shadow-inner py-24 px-6 text-center transition-all hover:bg-black/40 hover:border-white/[0.15]">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4 ring-4 ring-blue-500/5 text-blue-400">
                       <BookOpenIcon className="h-8 w-8" />
                     </div>
@@ -154,7 +154,7 @@ export default function MyClasses() {
                     </p>
                     <button
                       onClick={() => setIsJoinModalOpen(true)}
-                      className="rounded-lg bg-[#1a1d27] border border-white/[0.1] px-6 py-2.5 text-sm font-medium hover:bg-white/[0.05] transition"
+                      className="rounded-lg bg-black/40 border border-white/[0.1] px-6 py-2.5 text-sm font-medium shadow-sm transition hover:bg-black/60 hover:border-white/[0.2]"
                     >
                       Enter class code
                     </button>
@@ -165,49 +165,49 @@ export default function MyClasses() {
                       <div 
                         key={cls.classroom.class_id || idx}
                         onClick={() => navigate(`/student/classes/${cls.classroom.class_id}`)}
-                        className="group relative flex flex-col rounded-xl border border-white/[0.08] bg-[#1a1d27] hover:border-blue-500/30 hover:bg-[#1f2330] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer cursor-pointer"
+                        className="group relative flex flex-col rounded-xl border border-white/[0.06] bg-black/40 shadow-inner hover:border-blue-500/30 hover:bg-black/60 hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
                         style={{
                           animation: `dashboardFadeUp 400ms ease ${idx * 70}ms both`,
                         }}
                       >
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         
-                        <div className="p-6 flex-1">
-                          <div className="flex justify-between items-start mb-4">
-                            <span className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-400">
+                        <div className="p-6 flex-1 flex flex-col">
+                          <div className="flex justify-between items-start mb-4 relative z-10">
+                            <span className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-blue-400 shadow-sm">
                               {cls.classroom.subject_code}
                             </span>
                           </div>
                           
-                          <h3 className="text-lg font-bold text-white mb-1 line-clamp-1">
+                          <h3 className="text-lg font-bold text-white/90 mb-2 line-clamp-1 group-hover:text-white transition-colors relative z-10">
                             {cls.classroom.subject_name || 'Classroom'}
                           </h3>
                           
-                          <div className="flex items-center gap-2 mb-6">
-                            <span className="text-sm font-medium text-white/70">
+                          <div className="flex items-center gap-2 mb-6 relative z-10">
+                            <span className="text-sm font-medium text-white/60 group-hover:text-white/80 transition-colors">
                               {cls.classroom.section}
                             </span>
                             {cls.classroom.instructor_name && (
                               <>
                                 <span className="text-white/20">•</span>
-                                <span className="text-sm text-white/50">
+                                <span className="text-sm text-white/40 group-hover:text-white/60 transition-colors">
                                   {cls.classroom.instructor_name}
                                 </span>
                               </>
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-4 border-t border-white/[0.06] pt-4 mt-auto">
+                          <div className="flex items-center gap-4 border-t border-white/[0.06] pt-5 mt-auto relative z-10">
                             <div className="flex flex-col">
-                              <span className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Status</span>
+                              <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider mb-1.5">Status</span>
                               <span className="text-xs font-medium text-emerald-400 flex items-center gap-1.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
                                 Enrolled
                               </span>
                             </div>
-                            <div className="h-6 w-px bg-white/[0.06]"></div>
+                            <div className="h-8 w-px bg-white/[0.06]"></div>
                             <div className="flex flex-col">
-                              <span className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Joined</span>
+                              <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider mb-1.5">Joined</span>
                               <span className="text-xs font-medium text-white/60">
                                 {cls.joined_at ? new Date(cls.joined_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'}) : 'Recently'}
                               </span>
