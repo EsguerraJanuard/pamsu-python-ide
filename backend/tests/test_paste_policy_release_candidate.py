@@ -86,7 +86,7 @@ def create_valid_task(
         "/instructors/tasks/",
         headers=bearer_header(instructor_token),
         json={
-            "class_id": class_id,
+            "class_ids": [class_id],
             "title": "Valid Paste Policy Activity",
             "description": "Release-candidate paste-policy verification.",
             "instructions": "Complete the required Python program.",
@@ -101,7 +101,7 @@ def create_valid_task(
 
     assert response.status_code == 201
 
-    return response.json()
+    return response.json()[0]
 
 
 def test_unsupported_paste_policy_is_rejected_during_task_creation(
@@ -130,7 +130,7 @@ def test_unsupported_paste_policy_is_rejected_during_task_creation(
         "/instructors/tasks/",
         headers=bearer_header(instructor_token),
         json={
-            "class_id": classroom["class_id"],
+            "class_ids": [classroom["class_id"]],
             "title": "Unsupported Paste Policy",
             "description": "This request must be rejected.",
             "instructions": "Do not create this activity.",

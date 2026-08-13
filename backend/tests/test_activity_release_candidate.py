@@ -93,7 +93,7 @@ def create_task(
         "/instructors/tasks/",
         headers=bearer_header(instructor_token),
         json={
-            "class_id": class_id,
+            "class_ids": [class_id],
             "title": title,
             "description": "Release-candidate activity.",
             "instructions": "Complete the required Python program.",
@@ -108,7 +108,7 @@ def create_task(
 
     assert response.status_code == 201
 
-    return response.json()
+    return response.json()[0]
 
 
 def test_unsupported_activity_type_is_rejected(
@@ -137,7 +137,7 @@ def test_unsupported_activity_type_is_rejected(
         "/instructors/tasks/",
         headers=bearer_header(instructor_token),
         json={
-            "class_id": classroom["class_id"],
+            "class_ids": [classroom["class_id"]],
             "title": "Unsupported Activity",
             "description": "This activity type is not approved.",
             "instructions": "This request must be rejected.",

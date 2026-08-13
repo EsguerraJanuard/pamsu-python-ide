@@ -109,7 +109,7 @@ def create_task(
         "/instructors/tasks/",
         headers=bearer_header(instructor_token),
         json={
-            "class_id": class_id,
+            "class_ids": [class_id],
             "title": title,
             "description": "Activity description.",
             "instructions": "Complete the required Python program.",
@@ -124,7 +124,7 @@ def create_task(
 
     assert response.status_code == 201
 
-    return response.json()
+    return response.json()[0]
 
 
 def publish_task(
@@ -329,7 +329,7 @@ def test_instructor_cannot_create_task_in_another_classroom(
         "/instructors/tasks/",
         headers=bearer_header(other_token),
         json={
-            "class_id": classroom["class_id"],
+            "class_ids": [classroom["class_id"]],
             "title": "Unauthorized Activity",
             "activity_type": "laboratory",
             "required_ast_rules": {},
@@ -960,7 +960,7 @@ def test_clients_cannot_supply_backend_task_fields(
         "/instructors/tasks/",
         headers=bearer_header(token),
         json={
-            "class_id": classroom["class_id"],
+            "class_ids": [classroom["class_id"]],
             "title": "Invalid Task",
             "activity_type": "laboratory",
             "required_ast_rules": {},
