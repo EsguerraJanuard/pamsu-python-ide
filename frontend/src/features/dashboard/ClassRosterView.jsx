@@ -79,7 +79,7 @@ export default function ClassRosterView() {
               >
                 ← Back to Classrooms
               </button>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-text-main">
                 {classroom ? `${classroom.subject_code || classroom.name} ${classroom.section ? `- ${classroom.section}` : ''}` : "Class Roster"}
               </h1>
               <p className="mt-1 text-sm text-text-muted">

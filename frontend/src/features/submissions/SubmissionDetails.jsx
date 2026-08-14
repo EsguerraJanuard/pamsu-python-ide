@@ -37,7 +37,7 @@ export default function SubmissionDetails() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen bg-bg-base text-white">
+      <div className="flex h-screen w-screen bg-bg-base text-text-main">
         <Sidebar />
         <div className="flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500"></div>

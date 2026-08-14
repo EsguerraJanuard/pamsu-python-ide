@@ -149,7 +149,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-screen overflow-hidden bg-bg-base text-white">
+    <main className="flex min-h-screen overflow-hidden bg-bg-base text-text-main">
       <style>{`
         @keyframes loginFadeLeft {
           from { opacity: 0; transform: translateX(-16px); }

@@ -83,7 +83,7 @@ export default function InstructorGradebook() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-white select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">

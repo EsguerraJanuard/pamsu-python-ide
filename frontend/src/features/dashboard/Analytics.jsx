@@ -52,7 +52,7 @@ export default function Analytics() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-white">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">

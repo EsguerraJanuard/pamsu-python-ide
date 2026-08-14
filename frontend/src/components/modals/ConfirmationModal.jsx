@@ -18,7 +18,7 @@ export default function ConfirmationModal({
         className="w-full max-w-sm rounded-xl border border-border-subtle bg-bg-glass p-6 shadow-2xl transform transition-all scale-100 opacity-100"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="mb-2 text-lg font-bold text-white">
+        <h3 className="mb-2 text-lg font-bold text-text-main">
           {title}
         </h3>
         <p className="mb-6 text-sm text-text-muted">

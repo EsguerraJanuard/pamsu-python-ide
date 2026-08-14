@@ -4,7 +4,7 @@ export const Unauthorized = () => {
   const navigate = useNavigate();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-bg-glass p-6 text-center text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-bg-glass p-6 text-center text-text-main">
       <div className="max-w-md space-y-6 rounded-2xl border border-red-900/50 bg-bg-glass/80 p-8 shadow-2xl backdrop-blur">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-text-rose">
           <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

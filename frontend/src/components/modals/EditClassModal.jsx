@@ -84,7 +84,7 @@ export default function EditClassModal({
       <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl space-y-6">
         <div className="flex items-center justify-between border-b border-border-subtle pb-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Classroom Settings</h2>
+            <h2 className="text-lg font-bold text-text-main">Classroom Settings</h2>
             <p className="text-xs text-text-muted">Update classroom details or reset student invite code.</p>
           </div>
           <button
