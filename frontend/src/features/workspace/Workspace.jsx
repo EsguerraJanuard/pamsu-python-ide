@@ -639,7 +639,7 @@ export default function Workspace() {
                 aria-pressed={showProblemPanel}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                   showProblemPanel
-                    ? "bg-[#3b82f6] text-text-main shadow-sm"
+                    ? "bg-[#3b82f6] text-white shadow-sm"
                     : "text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 }`}
               >
@@ -655,7 +655,7 @@ export default function Workspace() {
                 aria-pressed={showReviewPanel}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                   showReviewPanel
-                    ? "bg-violet-600 text-text-main shadow-sm"
+                    ? "bg-violet-600 text-white shadow-sm"
                     : "text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 }`}
               >
