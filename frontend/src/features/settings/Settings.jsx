@@ -130,7 +130,7 @@ export default function Settings() {
 
   const inputClass =
 
-    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
+    "flex-1 bg-transparent text-sm text-white outline-none placeholder:text-text-muted";
 
 
 

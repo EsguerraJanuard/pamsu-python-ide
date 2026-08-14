@@ -87,7 +87,7 @@ const ActivityEditor = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-white">
       <div className="hidden lg:flex h-full">
         <InstructorSidebar />
       </div>

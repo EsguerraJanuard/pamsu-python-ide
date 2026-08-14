@@ -20,7 +20,7 @@ const STATUS_CONFIG = {
     badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-400",
     accentClass: "border-l-blue-500",
     progressClass: "bg-blue-500",
-    buttonClass: "bg-blue-600 text-text-main hover:bg-blue-500",
+    buttonClass: "bg-blue-600 text-white hover:bg-blue-500",
   },
   submitted: {
     label: "Submitted",

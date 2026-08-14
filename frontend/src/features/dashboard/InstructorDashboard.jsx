@@ -209,7 +209,7 @@ export default function InstructorDashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-white select-none">
       <InstructorSidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">

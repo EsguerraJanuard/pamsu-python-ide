@@ -175,7 +175,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-text-blue ring-4 ring-blue-500/5">
             <ArchiveIcon className="h-8 w-8" />
           </div>
-          <h3 className="mb-2 text-xl font-semibold text-text-main">No Submissions Yet</h3>
+          <h3 className="mb-2 text-xl font-semibold text-white">No Submissions Yet</h3>
           <p className="max-w-md text-sm text-text-muted">
             You haven't submitted any activities. Your completed laboratory and homework modules will appear here for review.
           </p>

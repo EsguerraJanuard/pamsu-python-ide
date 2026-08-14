@@ -19,7 +19,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
   return (
     <div className="relative group" ref={dropdownRef}>
       <div 
-        className={`w-full bg-bg-glass border border-border-subtle rounded-xl text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer flex justify-between items-center ${className || 'px-4 py-3 text-sm'}`}
+        className={`w-full bg-bg-glass border border-border-subtle rounded-xl text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer flex justify-between items-center ${className || 'px-4 py-3 text-sm'}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className={selectedOption ? "text-text-main" : "text-text-muted"}>

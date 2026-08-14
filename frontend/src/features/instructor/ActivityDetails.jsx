@@ -96,7 +96,7 @@ const ActivityDetails = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+      <div className="flex h-screen overflow-hidden bg-bg-base text-white select-none">
         <InstructorSidebar />
         <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
           <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">

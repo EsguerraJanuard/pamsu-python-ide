@@ -130,7 +130,7 @@ export default function ClassDetails() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-white">
       <Sidebar
         user={{
           name: user.name,

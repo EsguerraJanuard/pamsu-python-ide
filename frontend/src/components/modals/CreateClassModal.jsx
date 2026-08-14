@@ -40,7 +40,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
       <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl">
         {!generatedCode ? (
           <>
-            <h2 className="mb-2 text-lg font-bold text-text-main">Create New Cohort</h2>
+            <h2 className="mb-2 text-lg font-bold text-white">Create New Cohort</h2>
             <p className="mb-6 text-sm text-text-muted">
               Initialize a new class section for automated grading.
             </p>
