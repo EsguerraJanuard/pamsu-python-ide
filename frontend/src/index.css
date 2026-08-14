@@ -31,6 +31,20 @@
   --text-amber: #d97706;
   --text-rose: #e11d48;
   --text-violet: #7c3aed;
+
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-glass: var(--bg-glass);
+  --color-bg-glass-hover: var(--bg-glass-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-blue: var(--text-blue);
+  --color-text-emerald: var(--text-emerald);
+  --color-text-amber: var(--text-amber);
+  --color-text-rose: var(--text-rose);
+  --color-text-violet: var(--text-violet);
 }
 
 .dark {
@@ -48,6 +62,20 @@
   --text-amber: #fbbf24;
   --text-rose: #fb7185;
   --text-violet: #a78bfa;
+
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-glass: var(--bg-glass);
+  --color-bg-glass-hover: var(--bg-glass-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-blue: var(--text-blue);
+  --color-text-emerald: var(--text-emerald);
+  --color-text-amber: var(--text-amber);
+  --color-text-rose: var(--text-rose);
+  --color-text-violet: var(--text-violet);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
