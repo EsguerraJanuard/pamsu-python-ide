@@ -131,7 +131,7 @@ export default function Register() {
   const inputWrapClass =
     "auth-input-wrap flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
   const inputClass =
-    "flex-1 bg-transparent text-sm text-white outline-none placeholder-white/20";
+    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20";
 
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
