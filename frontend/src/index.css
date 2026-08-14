@@ -16,7 +16,7 @@
   --color-text-violet: var(--text-violet);
 }
 
-:root {
+:root, .light {
   /* Light Mode Variables */
   --bg-base: #f8fafc; /* slate-50 */
   --bg-panel: #ffffff;

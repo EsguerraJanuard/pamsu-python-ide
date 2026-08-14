@@ -628,7 +628,7 @@ export default function Workspace() {
         <Sidebar />
       </div>
 
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+      <div className={`animate-page-fade flex min-w-0 flex-1 flex-col ${editorTheme === 'vs-dark' ? 'dark' : 'light'}`}>
         <header className="flex min-h-13 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-bg-glass shadow-inner backdrop-blur-md px-5 sm:px-6 py-2 select-none">
           {/* Left: Section Segment Control & Activity Info */}
           <div className="flex min-w-0 items-center gap-3">
