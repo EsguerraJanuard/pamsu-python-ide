@@ -628,7 +628,7 @@ export default function Workspace() {
         <Sidebar />
       </div>
 
-      <div className={`animate-page-fade flex min-w-0 flex-1 flex-col ${editorTheme === 'vs-dark' ? 'dark' : 'light'}`}>
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <header className="flex min-h-13 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border-subtle bg-bg-glass shadow-inner backdrop-blur-md px-5 sm:px-6 py-2 select-none">
           {/* Left: Section Segment Control & Activity Info */}
           <div className="flex min-w-0 items-center gap-3">
@@ -872,7 +872,7 @@ export default function Workspace() {
             </div>
           )}
 
-          <main className="flex min-w-0 flex-1 flex-col bg-bg-base">
+          <main className={`flex min-w-0 flex-1 flex-col bg-bg-base transition-colors duration-300 ${editorTheme === 'vs-dark' ? 'dark' : 'light'}`}>
             <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass shadow-inner px-3 py-1 backdrop-blur-md">
               <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
                 <span className="text-text-blue">
