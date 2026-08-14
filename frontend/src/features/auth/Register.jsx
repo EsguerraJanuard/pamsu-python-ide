@@ -342,7 +342,7 @@ export default function Register() {
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-text-main">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
                     &gt;_
                   </div>
                   <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
@@ -635,7 +635,7 @@ export default function Register() {
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-text-main">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
                     &gt;_
                   </div>
                   <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>

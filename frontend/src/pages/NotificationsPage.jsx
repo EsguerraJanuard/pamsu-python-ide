@@ -222,7 +222,7 @@ export default function NotificationsPage({ role: propRole }) {
                             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Suggested Actions</h3>
                             <div className="flex flex-wrap gap-3">
                               {selectedNotification.type === "submission" && (
-                                <button onClick={() => handleAction("submission", selectedNotification.reference_id)} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-text-main hover:bg-emerald-500 transition">
+                                <button onClick={() => handleAction("submission", selectedNotification.reference_id)} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition">
                                   Review Submission
                                 </button>
                               )}
@@ -232,7 +232,7 @@ export default function NotificationsPage({ role: propRole }) {
                                 </button>
                               )}
                               {selectedNotification.type === "grade" && (
-                                <button onClick={() => handleAction("grade", selectedNotification.reference_id)} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-text-main hover:bg-emerald-500 transition">
+                                <button onClick={() => handleAction("grade", selectedNotification.reference_id)} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition">
                                   View Grade
                                 </button>
                               )}

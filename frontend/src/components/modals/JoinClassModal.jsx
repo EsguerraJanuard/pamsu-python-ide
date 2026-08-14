@@ -75,7 +75,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
             <button
               type="submit"
               disabled={isLoading || !code}
-              className="rounded-lg bg-[#3b82f6] px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-[#2563eb] disabled:opacity-50"
+              className="rounded-lg bg-[#3b82f6] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2563eb] disabled:opacity-50"
             >
               {isLoading ? "Joining..." : "Join Class"}
             </button>

@@ -705,7 +705,7 @@ export default function Workspace() {
               type="button"
               onClick={handleRun}
               disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-text-main shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M4 2.5v11l9-5.5-9-5.5z" />
@@ -718,7 +718,7 @@ export default function Workspace() {
               type="button"
               onClick={handleSubmit}
               disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1.5 text-xs font-bold text-text-main shadow-md shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               Submit
             </button>

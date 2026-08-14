@@ -263,7 +263,7 @@ export default function ClassManagement() {
                         <button 
                           type="submit" 
                           disabled={isSubmitting}
-                          className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-text-main hover:bg-emerald-500 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSubmitting ? 'Creating...' : 'Generate Class & Code'}
                         </button>

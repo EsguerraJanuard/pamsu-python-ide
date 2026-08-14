@@ -186,7 +186,7 @@ export default function Login() {
         aria-label="Platform introduction"
       >
         <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-text-main shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
             &gt;_
           </div>
           <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
@@ -352,7 +352,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-text-main transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
               

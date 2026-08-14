@@ -100,7 +100,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                 <button
                   type="submit"
                   disabled={isLoading || !formData.name || !formData.subject_code || !formData.section}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-text-main disabled:opacity-50 hover:bg-emerald-500"
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-emerald-500"
                 >
                   {isLoading ? "Creating..." : "Create Class"}
                 </button>

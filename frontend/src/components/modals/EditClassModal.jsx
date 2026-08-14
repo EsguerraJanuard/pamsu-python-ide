@@ -169,7 +169,7 @@ export default function EditClassModal({
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-xs font-semibold text-text-main shadow-lg hover:bg-blue-500 transition disabled:opacity-50"
+              className="rounded-lg bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-lg hover:bg-blue-500 transition disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>

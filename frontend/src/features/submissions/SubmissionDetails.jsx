@@ -55,7 +55,7 @@ export default function SubmissionDetails() {
           <p className="text-text-muted mb-4">{error || "Submission not found"}</p>
           <button
             onClick={() => navigate("/student/submissions")}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-text-main hover:bg-blue-500"
+            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
           >
             Back to Submissions
           </button>

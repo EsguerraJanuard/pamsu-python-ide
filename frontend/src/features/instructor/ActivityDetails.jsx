@@ -280,7 +280,7 @@ const ActivityDetails = () => {
               </label>
               <button 
                 type="submit"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-text-main rounded transition-colors"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
               >
                 Add Test Case
                 </button>

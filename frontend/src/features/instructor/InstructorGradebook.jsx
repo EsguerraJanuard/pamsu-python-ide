@@ -207,7 +207,7 @@ export default function InstructorGradebook() {
                             <td className="px-6 py-4 text-right whitespace-nowrap">
                               <button
                                 onClick={() => navigate(`/instructor/submissions/${grade.sub_id}`)}
-                                className="inline-flex items-center justify-center rounded bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-text-emerald transition hover:bg-emerald-500 hover:text-text-main"
+                                className="inline-flex items-center justify-center rounded bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-text-emerald transition hover:bg-emerald-500 hover:text-white"
                               >
                                 View
                               </button>
