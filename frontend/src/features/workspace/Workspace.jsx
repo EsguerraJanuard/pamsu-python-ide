@@ -155,7 +155,8 @@ export default function Workspace() {
   const [code, setCode] = useState(() =>
     loadDraft(draftStorageKey),
   );
-  const [standardInput, setStandardInput] = useState("10");
+  const [editorTheme, setEditorTheme] = useState("vs-dark");
+  const [standardInput, setStandardInput] = useState("");
   const [output, setOutput] = useState(
     "The editor is ready. Code execution will appear here after the sandbox API is connected.",
   );
@@ -478,7 +479,10 @@ export default function Workspace() {
       pollExecution(execRes.execution_id);
     } catch (err) {
       setExecutionStatus("failed");
-      setOutput(`Failed to start execution: ${err.message || err.detail || 'Unknown error'}`);
+      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
+      const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : `Failed to start execution: ${err.message || err.detail || 'Unknown error'}`;
+      setOutput(msg);
+      setNotice(msg);
     }
   };
 
@@ -504,7 +508,9 @@ export default function Workspace() {
       pollExecution(execRes.execution_id, true);
     } catch (err) {
       setExecutionStatus("failed");
-      setNotice(`Failed to start AST check: ${err.message || err.detail || 'Unknown error'}`);
+      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
+      const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : `Failed to start AST check: ${err.message || err.detail || 'Unknown error'}`;
+      setNotice(msg);
     }
   };
 
@@ -531,18 +537,24 @@ export default function Workspace() {
           // If the worker isn't running in dev, time it out locally
           clearInterval(poll);
           setExecutionStatus("unavailable");
-          const msg = "Execution request was successfully queued, but the backend Python sandbox is not connected. Student code will not be executed directly in React or FastAPI.";
+          const msg = "Backend server is not connected or python sandbox is offline.";
           if (isCheck) {
             setNotice(msg);
           } else {
             setOutput(msg);
+            setNotice(msg);
           }
         }
       } catch (err) {
         clearInterval(poll);
         setExecutionStatus("failed");
-        if (isCheck) setNotice("Polling failed.");
-        else setOutput("Polling failed.");
+        const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
+        const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : "Polling failed.";
+        if (isCheck) setNotice(msg);
+        else {
+          setOutput(msg);
+          setNotice(msg);
+        }
       }
     }, 1000);
   };
@@ -563,7 +575,9 @@ export default function Workspace() {
       // Optionally navigate away or update state
       setTimeout(() => navigate("/student/assignments"), 1500);
     } catch (err) {
-      setNotice(`Submission failed: ${err.message || err.detail || 'Unknown error'}`);
+      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
+      const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : `Submission failed: ${err.message || err.detail || 'Unknown error'}`;
+      setNotice(msg);
     }
   };
 
@@ -670,7 +684,7 @@ export default function Workspace() {
             </div>
 
             <div className="mx-1 h-5 w-px bg-border-subtle" />
-            <ThemeToggle />
+            <ThemeToggle value={editorTheme} onChange={setEditorTheme} />
             <div className="mx-1 h-5 w-px bg-border-subtle" />
 
             {/* Check Code Button */}

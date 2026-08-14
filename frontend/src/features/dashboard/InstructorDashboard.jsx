@@ -238,14 +238,16 @@ export default function InstructorDashboard() {
                   >
                     + Create Class
                   </button>
-                  <span className="whitespace-nowrap rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-text-emerald">
-                    Faculty Portal
-                  </span>
-                  <div
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
-                    aria-label={`Signed in as ${instructorName}`}
-                  >
-                    {instructorName.split(/\s+/).map((p) => p[0]?.toUpperCase()).join("").slice(0, 2)}
+                  <div className="flex items-center gap-2.5 rounded-full border border-border-subtle bg-bg-glass pl-1.5 pr-4 py-1.5 shadow-inner">
+                    <div
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white shadow-sm"
+                      aria-label={`Signed in as ${instructorName}`}
+                    >
+                      {instructorName.split(/\s+/).map((p) => p[0]?.toUpperCase()).join("").slice(0, 2)}
+                    </div>
+                    <span className="text-xs font-semibold text-text-main select-text">
+                      Prof. {instructorName.includes(",") ? instructorName.split(",")[0].trim() : getFirstName(instructorName)} <span className="mx-1 text-text-muted select-none">·</span> <span className="text-[10px] text-text-emerald font-bold tracking-wide uppercase select-none">Faculty</span>
+                    </span>
                   </div>
                 </div>
               </header>
