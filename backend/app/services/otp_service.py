@@ -243,12 +243,9 @@ def ensure_registration_is_available(
     )
 
     if existing_user is not None:
-        if existing_user.email.lower() == email:
-            raise RegistrationConflictError(
-                "An account already uses this university email."
-            )
-
-        raise RegistrationConflictError("An account already uses this school ID.")
+        raise RegistrationConflictError(
+            "Registration failed. The provided School ID or University Email may already be in use."
+        )
 
 
 def remove_previous_pending_registration(
