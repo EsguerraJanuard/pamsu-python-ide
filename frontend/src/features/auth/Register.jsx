@@ -346,7 +346,7 @@ export default function Register() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-bg-base px-4 py-8 text-text-main selection:bg-emerald-500/30 overflow-hidden">
+    <main className="relative flex min-h-screen items-center justify-center bg-bg-base px-4 py-2 text-text-main selection:bg-emerald-500/30 overflow-hidden">
       <style>{`
         @keyframes registerFadeUp {
           from { opacity: 0; transform: translateY(18px); }
@@ -369,16 +369,16 @@ export default function Register() {
       </div>
 
       <div
-        className="register-animated m-auto relative z-10 w-full max-w-[1024px] rounded-3xl border border-border-subtle bg-bg-glass/70 p-6 md:p-10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+        className="register-animated m-auto relative z-10 w-full max-w-[1024px] rounded-3xl border border-border-subtle bg-bg-glass/70 p-5 md:p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
         style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
       >
         {/* Step 1: Form Details */}
         {step === 1 && (
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-14">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-10">
             
             {/* LEFT COLUMN: Form Inputs */}
             <div className="flex flex-col justify-center">
-              <div className="mb-6 select-none cursor-default">
+              <div className="mb-3 select-none cursor-default">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 font-mono text-lg font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]">
                     &gt;_
@@ -405,11 +405,11 @@ export default function Register() {
                 </div>
               )}
 
-              <form onSubmit={handleRegistrationSubmit} className="space-y-4" noValidate>
+              <form onSubmit={handleRegistrationSubmit} className="space-y-2" noValidate>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Complete Name */}
                   <div>
-                    <label htmlFor="full-name" className="mb-1.5 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
+                    <label htmlFor="full-name" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Complete name
                     </label>
                     <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
@@ -434,7 +434,7 @@ export default function Register() {
 
                   {/* School ID */}
                   <div>
-                    <label htmlFor="school-id" className="mb-1.5 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
+                    <label htmlFor="school-id" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       School ID
                     </label>
                     <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
@@ -464,7 +464,7 @@ export default function Register() {
 
                 {/* Email */}
                 <div>
-                  <label htmlFor="school-email" className="mb-1.5 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
+                  <label htmlFor="school-email" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                     University email
                   </label>
                   <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
@@ -489,7 +489,7 @@ export default function Register() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
                   {/* Password */}
                   <div>
-                    <div className="mb-1.5 flex items-center justify-between">
+                    <div className="mb-1 flex items-center justify-between">
                       <label htmlFor="registration-password" className="text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                         Password
                       </label>
@@ -538,7 +538,7 @@ export default function Register() {
 
                   {/* Confirm Password */}
                   <div>
-                    <label htmlFor="confirm-password" className="mb-1.5 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
+                    <label htmlFor="confirm-password" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Confirm password
                     </label>
                     <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
@@ -578,7 +578,7 @@ export default function Register() {
                   <button
                     type="submit"
                     disabled={!acknowledged || isLoading || !form.password || form.password !== form.confirmPassword}
-                    className="group relative overflow-hidden w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+                    className="group relative overflow-hidden w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-[10px] text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
                   >
                     <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                     <span className="relative z-10 flex items-center justify-center gap-2">
@@ -614,7 +614,7 @@ export default function Register() {
                 <p className="text-[13px] text-text-muted mb-5 leading-relaxed select-none">
                   The platform records limited activity information during controlled programming activities to support instructor review and system operation.
                 </p>
-                <ul className="space-y-4 select-none">
+                <ul className="space-y-2 select-none">
                   {[
                     "Tab switches and activity status may be recorded during graded laboratory sessions.",
                     "Blocked external paste attempts may be counted, but clipboard contents are not stored.",
@@ -659,12 +659,12 @@ export default function Register() {
 
         {/* Step 2: OTP Verification */}
         {step === 2 && (
-          <div className="mx-auto max-w-[440px] py-4 lg:py-8 animate-[registerFadeUp_400ms_ease-out_both]">
+          <div className="mx-auto max-w-[440px] py-4 lg:py-2 animate-[registerFadeUp_400ms_ease-out_both]">
             <div className="mb-8">
               <button
                 type="button"
                 onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                className="mb-6 group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald transition-all hover:bg-emerald-500/20"
+                className="mb-3 group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald transition-all hover:bg-emerald-500/20"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                   <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -711,7 +711,7 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={otpCode.length !== 6 || isLoading}
-                className="group relative overflow-hidden w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+                className="group relative overflow-hidden w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-[10px] text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
               >
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -730,7 +730,7 @@ export default function Register() {
               </button>
 
               <div className="text-center">
-                <p className="mb-1.5 text-[13px] text-text-muted select-none">
+                <p className="mb-1 text-[13px] text-text-muted select-none">
                   Did not receive the code?
                 </p>
                 <button
