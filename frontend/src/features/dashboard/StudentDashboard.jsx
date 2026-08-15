@@ -121,6 +121,7 @@ export default function StudentDashboard() {
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [completedCount, setCompletedCount] = useState(0);
+  const [totalActivitiesCount, setTotalActivitiesCount] = useState(0);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -132,8 +133,13 @@ export default function StudentDashboard() {
       ]);
       setClassrooms(classRes);
       
-      const completed = subRes.filter(s => s.status === 'submitted' || s.status === 'graded').length;
-      setCompletedCount(completed);
+      const completedSubmissions = subRes.filter(s => s.status === 'submitted' || s.status === 'graded');
+      const uniqueCompletedTaskIds = new Set(completedSubmissions.map(s => s.task_id));
+      setCompletedCount(uniqueCompletedTaskIds.size);
+      
+      const activeTaskIds = new Set(activityRes.map(a => a.task_id || a.id));
+      const allTaskIds = new Set([...activeTaskIds, ...uniqueCompletedTaskIds]);
+      setTotalActivitiesCount(allTaskIds.size);
       
       const classMap = {};
       classRes.forEach(c => {
@@ -312,7 +318,7 @@ export default function StudentDashboard() {
                     <p
                       className="mb-1 text-4xl font-bold text-text-main tracking-tight flex items-baseline gap-1"
                     >
-                      {completedCount} <span className="text-lg text-text-muted font-medium">/ {activities.length}</span>
+                      {completedCount} <span className="text-lg text-text-muted font-medium">/ {totalActivitiesCount}</span>
                     </p>
 
                     <h2 className="text-sm font-semibold text-text-main">
@@ -327,7 +333,7 @@ export default function StudentDashboard() {
                       <div
                         className="h-full rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
                         style={{
-                          width: `${activities.length > 0 ? (completedCount / activities.length) * 100 : 0}%`,
+                          width: `${totalActivitiesCount > 0 ? (completedCount / totalActivitiesCount) * 100 : 0}%`,
                         }}
                       />
                     </div>
@@ -493,7 +499,7 @@ export default function StudentDashboard() {
                   <svg
                     viewBox="0 0 120 120"
                     className="h-full w-full -rotate-90"
-                    aria-label="Learning progress 72 percent"
+                    aria-label={`Learning progress ${totalActivitiesCount > 0 ? Math.round((completedCount / totalActivitiesCount) * 100) : 0} percent`}
                   >
                     <circle
                       cx="60"
@@ -512,13 +518,13 @@ export default function StudentDashboard() {
                       stroke="#3b82f6"
                       strokeWidth="10"
                       strokeLinecap="round"
-                      strokeDasharray="217.14 301.59"
+                      strokeDasharray={`${totalActivitiesCount > 0 ? ((completedCount / totalActivitiesCount) * 301.59).toFixed(2) : 0} 301.59`}
                     />
                   </svg>
 
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-2xl font-bold">
-                      {activities.length > 0 ? Math.round((completedCount / activities.length) * 100) : 0}%
+                      {totalActivitiesCount > 0 ? Math.round((completedCount / totalActivitiesCount) * 100) : 0}%
                     </span>
 
                     <span className="text-[10px] text-text-muted">
