@@ -412,7 +412,7 @@ export default function Register() {
                     <label htmlFor="full-name" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Complete name
                     </label>
-                    <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -426,7 +426,7 @@ export default function Register() {
                         autoComplete="name"
                         required
                         disabled={isLoading}
-                        className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
+                        className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
                         style={{ caretColor: "#10b981" }}
                       />
                     </div>
@@ -437,7 +437,7 @@ export default function Register() {
                     <label htmlFor="school-id" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       School ID
                     </label>
-                    <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
@@ -455,7 +455,7 @@ export default function Register() {
                         autoComplete="off"
                         required
                         disabled={isLoading}
-                        className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
+                        className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
                         style={{ caretColor: "#10b981" }}
                       />
                     </div>
@@ -467,7 +467,7 @@ export default function Register() {
                   <label htmlFor="school-email" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                     University email
                   </label>
-                  <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                  <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                       <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                     </svg>
@@ -480,7 +480,7 @@ export default function Register() {
                       autoComplete="email"
                       required
                       disabled={isLoading}
-                      className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
+                      className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
                       style={{ caretColor: "#10b981" }}
                     />
                   </div>
@@ -499,7 +499,7 @@ export default function Register() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -513,7 +513,7 @@ export default function Register() {
                         minLength={8}
                         required
                         disabled={isLoading}
-                        className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
+                        className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
                         style={{ caretColor: "#10b981" }}
                       />
                       <button
@@ -530,8 +530,19 @@ export default function Register() {
                       </button>
                     </div>
                     {passwordStrength && (
-                      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                        <div className="h-full rounded-full transition-all duration-300" style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }} />
+                      <div className="mt-2.5">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: passwordStrength.color }}>
+                            {passwordStrength.label.split(' — ')[0] || passwordStrength.label}
+                          </span>
+                        </div>
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+                          <div className="h-full rounded-full transition-all duration-300" style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }} />
+                        </div>
+                        {passwordStrength.label.includes(' — ') && (
+                           <p className="mt-1.5 text-[10px] text-text-muted">{passwordStrength.label.split(' — ')[1]}</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -541,7 +552,7 @@ export default function Register() {
                     <label htmlFor="confirm-password" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Confirm password
                     </label>
-                    <div className="flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -555,7 +566,7 @@ export default function Register() {
                         minLength={8}
                         required
                         disabled={isLoading}
-                        className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
+                        className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
                         style={{ caretColor: "#10b981" }}
                       />
                       <button
