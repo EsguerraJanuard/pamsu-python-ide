@@ -34,7 +34,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
     return (
       <section className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <article key={i} className="cursor-pointer overflow-hidden rounded-xl border border-white/[0.04] bg-bg-glass p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-subtle hover:bg-bg-glass-hover hover:shadow-lg animate-pulse">
+          <article key={i} className="cursor-pointer overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-subtle hover:bg-bg-glass-hover hover:shadow-lg animate-pulse">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
                 <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.05]"></div>

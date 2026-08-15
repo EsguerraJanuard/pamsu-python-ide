@@ -82,11 +82,11 @@ export default function SoloPractice() {
             {isLoading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.05] bg-bg-glass p-6 animate-pulse">
+                  <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-glass p-6 animate-pulse">
                     <div className="mb-4 h-10 w-10 rounded-xl bg-white/[0.05]"></div>
                     <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.05]"></div>
                     <div className="mb-6 h-4 w-full rounded-md bg-white/[0.05]"></div>
-                    <div className="mt-auto border-t border-white/[0.05] pt-4">
+                    <div className="mt-auto border-t border-border-subtle pt-4">
                       <div className="h-4 w-1/2 rounded-md bg-white/[0.05]"></div>
                     </div>
                   </div>
@@ -98,7 +98,7 @@ export default function SoloPractice() {
                   <div
                     key={activity.task_id}
                     onClick={() => navigate(`/student/workspace?activity=${activity.task_id}`)}
-                    className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-white/[0.05] bg-bg-glass p-6 transition-all hover:-translate-y-1 hover:border-violet-500/30 hover:bg-violet-500/[0.04] hover:shadow-2xl hover:shadow-violet-500/10"
+                    className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-glass p-6 transition-all hover:-translate-y-1 hover:border-violet-500/30 hover:bg-violet-500/[0.04] hover:shadow-2xl hover:shadow-violet-500/10"
                   >
                     <div className="absolute -right-10 -top-10 opacity-5 transition-opacity group-hover:opacity-20">
                       <CodeIcon className="h-40 w-40 text-violet-500" />
@@ -116,7 +116,7 @@ export default function SoloPractice() {
                       {activity.description || "No description provided."}
                     </p>
                     
-                    <div className="mt-auto flex items-center justify-between border-t border-white/[0.05] pt-4">
+                    <div className="mt-auto flex items-center justify-between border-t border-border-subtle pt-4">
                       <span className="text-xs font-medium text-text-muted">
                         {activity.activity_type === "laboratory" ? "Laboratory Practice" : "Homework Practice"}
                       </span>

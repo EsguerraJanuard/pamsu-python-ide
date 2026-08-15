@@ -208,7 +208,7 @@ const LiveMonitoring = () => {
             <>
               {(mode === 'global' || (mode === 'task' && activeTaskId)) && !loading && filteredSessions.length === 0 && !error && (
                 <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-xl border border-border-subtle/50 bg-bg-glass/30">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-text-muted ring-4 ring-slate-500/5">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-border-subtle text-text-muted ring-4 ring-border-subtle">
                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>

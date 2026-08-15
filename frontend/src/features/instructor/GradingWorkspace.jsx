@@ -146,18 +146,18 @@ const GradingWorkspace = () => {
                     <div className="bg-black text-text-emerald font-mono text-sm p-4 rounded overflow-auto flex-1 min-h-[12rem] border border-border-subtle">
                         {evaluation_result?.stdout && (
                             <div className="mb-4">
-                                <div className="text-slate-400 mb-1 select-none"># stdout</div>
+                                <div className="text-text-muted mb-1 select-none"># stdout</div>
                                 <pre className="whitespace-pre-wrap">{evaluation_result.stdout}</pre>
                             </div>
                         )}
                         {evaluation_result?.stderr && (
                             <div>
-                                <div className="text-slate-400 mb-1 select-none"># stderr</div>
+                                <div className="text-text-muted mb-1 select-none"># stderr</div>
                                 <pre className="whitespace-pre-wrap text-text-rose">{evaluation_result.stderr}</pre>
                             </div>
                         )}
                         {!evaluation_result?.stdout && !evaluation_result?.stderr && (
-                            <span className="text-slate-400 italic">No execution output available.</span>
+                            <span className="text-text-muted italic">No execution output available.</span>
                         )}
                     </div>
                 </div>

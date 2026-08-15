@@ -692,7 +692,7 @@ export default function Workspace() {
               type="button"
               onClick={handleCheck}
               disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-bg-glass px-3 py-1.5 text-xs font-semibold text-text-main transition-all hover:bg-bg-glass-hover hover:border-white/[0.2] active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-bg-glass px-3 py-1.5 text-xs font-semibold text-text-main transition-all hover:bg-bg-glass-hover hover:border-border-strong active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

@@ -278,7 +278,7 @@ export default function StudentDashboard() {
                 ) : (
                   <>
                   <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
                     <p
@@ -306,7 +306,7 @@ export default function StudentDashboard() {
                   </article>
                   
                   <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
                     <p
@@ -390,7 +390,7 @@ export default function StudentDashboard() {
                       return (
                         <article
                           key={activity.id}
-                          className={`dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 ${status.accentClass} group`}
+                          className={`dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong ${status.accentClass} group`}
                           style={{
                             animation: `dashboardFadeUp 400ms ease ${
                               200 + index * 70
@@ -412,12 +412,12 @@ export default function StudentDashboard() {
                               </div>
 
                               <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
-                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
+                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
                                   <BookOpenIcon className="h-3 w-3 text-text-blue" />
                                   {activity.courseCode}
                                 </span>
 
-                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
+                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
                                   <ClockIcon />
                                   {activity.dueLabel}
                                 </span>

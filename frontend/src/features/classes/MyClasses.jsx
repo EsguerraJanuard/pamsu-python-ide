@@ -144,7 +144,7 @@ export default function MyClasses() {
                     ))}
                   </div>
                 ) : classrooms.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-white/[0.15]">
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-strong bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-border-strong">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4 ring-4 ring-blue-500/5 text-text-blue">
                       <BookOpenIcon className="h-8 w-8" />
                     </div>
@@ -154,7 +154,7 @@ export default function MyClasses() {
                     </p>
                     <button
                       onClick={() => setIsJoinModalOpen(true)}
-                      className="rounded-lg bg-bg-glass border border-white/[0.1] px-6 py-2.5 text-sm font-medium shadow-sm transition hover:bg-black/60 hover:border-white/[0.2]"
+                      className="rounded-lg bg-bg-glass border border-border-strong px-6 py-2.5 text-sm font-medium shadow-sm transition hover:bg-bg-glass-hover hover:border-border-strong"
                     >
                       Enter class code
                     </button>
@@ -165,7 +165,7 @@ export default function MyClasses() {
                       <div 
                         key={cls.classroom.class_id || idx}
                         onClick={() => navigate(`/student/classes/${cls.classroom.class_id}`)}
-                        className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner hover:border-blue-500/30 hover:bg-black/60 hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                        className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner hover:border-blue-500/30 hover:bg-bg-glass-hover hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
                         style={{
                           animation: `dashboardFadeUp 400ms ease ${idx * 70}ms both`,
                         }}

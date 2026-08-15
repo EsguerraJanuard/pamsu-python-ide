@@ -167,7 +167,7 @@ export default function ClassDetails() {
                   </div>
                 </div>
               ) : !classroom ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-white/[0.12]">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-border-strong">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4 ring-4 ring-red-500/5 text-text-rose">
                     <MegaphoneIcon className="h-8 w-8" />
                   </div>
@@ -188,7 +188,7 @@ export default function ClassDetails() {
                         <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold tracking-wide text-text-blue shadow-sm">
                           {classroom.subject_code}
                         </span>
-                        <span className="rounded-full border border-white/[0.1] bg-bg-glass px-3 py-1 text-xs font-semibold text-text-muted shadow-sm">
+                        <span className="rounded-full border border-border-strong bg-bg-glass px-3 py-1 text-xs font-semibold text-text-muted shadow-sm">
                           {classroom.section}
                         </span>
                       </div>
@@ -215,7 +215,7 @@ export default function ClassDetails() {
                           return (
                             <div
                               key={activity.id}
-                              className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-5 hover:border-white/[0.12] hover:bg-black/60 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
+                              className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-5 hover:border-border-strong hover:bg-bg-glass-hover hover:shadow-lg hover:shadow-border-strong transition-all duration-300"
                               style={{ animation: `dashboardFadeUp 400ms ease ${index * 70}ms both` }}
                             >
                               <div className="min-w-0">
@@ -228,9 +228,9 @@ export default function ClassDetails() {
                                   )}
                                 </div>
                                 <div className="flex items-center gap-3 text-xs font-medium text-text-muted">
-                                  <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]"><ClockIcon className="h-3 w-3" /> {activity.dueLabel}</span>
+                                  <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle"><ClockIcon className="h-3 w-3" /> {activity.dueLabel}</span>
                                   <span className="text-text-muted">•</span>
-                                  <span className="px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">{activity.note}</span>
+                                  <span className="px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">{activity.note}</span>
                                 </div>
                               </div>
                               <button
@@ -262,7 +262,7 @@ export default function ClassDetails() {
                         </p>
                       </div>
                       
-                      <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-5 hover:border-white/[0.1] hover:bg-black/60 transition-all">
+                      <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-inner p-5 hover:border-border-strong hover:bg-bg-glass-hover transition-all">
                         <h3 className="text-sm font-semibold text-text-main mb-2">Class Information</h3>
                         <div className="space-y-2 mt-4">
                           <div className="flex justify-between text-xs">

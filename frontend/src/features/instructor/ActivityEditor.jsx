@@ -308,7 +308,7 @@ const ActivityEditor = () => {
                               value={formData.scheduled_publish_at}
                               onChange={([date]) => setFormData(prev => ({ ...prev, scheduled_publish_at: date }))}
                               disabled={formData.class_ids.length > 1}
-                              className={`w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner ${formData.class_ids.length > 1 ? 'text-text-muted cursor-not-allowed' : 'text-text-main cursor-pointer'}`}
+                              className={`w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner ${formData.class_ids.length > 1 ? 'text-text-muted cursor-not-allowed' : 'text-text-main cursor-pointer'}`}
                               placeholder="Select date and time"
                               options={{
                                 dateFormat: "Y-m-d H:i",
@@ -339,7 +339,7 @@ const ActivityEditor = () => {
                             data-enable-time
                             value={formData.due_at}
                             onChange={([date]) => setFormData(prev => ({ ...prev, due_at: date }))}
-                            className="w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-white/[0.15] shadow-inner cursor-pointer"
+                            className="w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer"
                             placeholder="Select deadline"
                             options={{
                               dateFormat: "Y-m-d H:i",

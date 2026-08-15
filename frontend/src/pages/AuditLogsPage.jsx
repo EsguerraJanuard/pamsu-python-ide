@@ -140,7 +140,7 @@ export default function AuditLogsPage({ role: propRole }) {
                     </div>
                   ) : filteredLogs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-500/10 text-text-muted ring-4 ring-slate-500/5">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-border-subtle text-text-muted ring-4 ring-border-subtle">
                         <ShieldIcon className="h-7 w-7" />
                       </div>
                       <h3 className="mb-2 text-lg font-semibold text-text-main">No Audit Records Found</h3>

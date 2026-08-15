@@ -328,7 +328,7 @@ export default function Assignments() {
                 return (
                   <article
                     key={activity.id}
-                    className={`assignment-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-black/60 hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 group ${status.accentClass}`}
+                    className={`assignment-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group ${status.accentClass}`}
                     style={{
                       animation: `assignmentsFadeUp 400ms ease ${
                         index * 70
@@ -354,18 +354,18 @@ export default function Assignments() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
-                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
                             <ClipboardListIcon className="h-3 w-3 text-text-blue" />
                             {activity.courseCode}
                           </span>
 
-                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
                             <ClockIcon className="h-3 w-3" />
                             {activity.dueLabel}
                           </span>
 
                           {activity.tags.length > 0 && (
-                            <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-white/[0.05]">
+                            <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
                               <TagIcon />
                               {activity.tags.join(" · ")}
                             </span>
@@ -445,7 +445,7 @@ export default function Assignments() {
               })}
 
               {filteredActivities.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-border-subtle bg-bg-glass shadow-inner py-20 text-center transition-all hover:bg-bg-glass hover:border-white/[0.12]">
+                <div className="rounded-2xl border border-dashed border-border-subtle bg-bg-glass shadow-inner py-20 text-center transition-all hover:bg-bg-glass hover:border-border-strong">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-bg-glass mb-4 text-text-muted ring-4 ring-white/[0.02]">
                     <ClipboardListIcon className="h-6 w-6" />
                   </div>

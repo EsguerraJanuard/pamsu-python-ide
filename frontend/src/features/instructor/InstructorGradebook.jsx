@@ -63,7 +63,7 @@ export default function InstructorGradebook() {
   const getStatusBadge = (grade) => {
     if (!grade.has_manual_grade) {
       return (
-        <span className="inline-flex items-center rounded-md bg-slate-400/10 px-2 py-1 text-[10px] font-medium text-text-muted ring-1 ring-inset ring-slate-400/20">
+        <span className="inline-flex items-center rounded-md bg-border-subtle px-2 py-1 text-[10px] font-medium text-text-muted ring-1 ring-inset ring-border-strong">
           Pending Grade
         </span>
       );
