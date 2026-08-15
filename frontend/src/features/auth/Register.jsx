@@ -26,6 +26,49 @@ const SCHOOL_ID_PATTERN = /^\d{10}$/;
 const SCHOOL_EMAIL_PATTERN = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+const features = [
+  {
+    label: "AST-driven structural feedback",
+    color: "#22c55e",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="7" stroke="#22c55e" strokeWidth="1.5" />
+        <path d="M5 8l2 2 4-4" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Privacy-conscious behavioral indicators",
+    color: "#38bdf8",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="3" stroke="#38bdf8" strokeWidth="1.5" />
+        <circle cx="8" cy="8" r="6.5" stroke="#38bdf8" strokeWidth="1" strokeDasharray="2 2" />
+      </svg>
+    ),
+  },
+  {
+    label: "Instructor activity monitoring",
+    color: "#a78bfa",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="1" y="3" width="14" height="9" rx="1.5" stroke="#a78bfa" strokeWidth="1.5" />
+        <path d="M5 7h6M5 9.5h4" stroke="#a78bfa" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Jaccard similarity review indicators",
+    color: "#fbbf24",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5 8 2z" stroke="#fbbf24" strokeWidth="1.3" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+];
+
+
 // ─── Password strength helper ─────────────────────────────────────────────────
 function getPasswordStrength(password) {
   if (!password) return null;
@@ -303,26 +346,90 @@ export default function Register() {
   };
 
   return (
-    <main className="min-h-screen bg-bg-base px-4 py-10 text-text-main">
+    <main className="flex min-h-screen overflow-hidden bg-bg-base text-text-main">
       <style>{`
+        @keyframes registerFadeLeft {
+          from { opacity: 0; transform: translateX(-16px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
         @keyframes registerFadeUp {
-          from { opacity: 0; transform: translateY(16px); }
+          from { opacity: 0; transform: translateY(18px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .register-page-card {
-          animation: registerFadeUp 500ms cubic-bezier(0.25,0.46,0.45,0.94) both;
+        @keyframes featureFadeIn {
+          from { opacity: 0; transform: translateX(-8px); }
+          to { opacity: 1; transform: translateX(0); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .register-page-card { animation: none; }
+          .register-animated { animation: none !important; }
         }
       `}</style>
+
+      {/* Premium Background Grid */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
 
       {/* Theme Toggle */}
       <div className="absolute top-6 right-6 z-50">
         <ThemeToggle />
       </div>
 
-      <div className="register-page-card mx-auto w-full max-w-[560px]">
+      {/* Left panel — platform info */}
+      <section
+        className="register-animated hidden w-[52%] flex-col justify-between border-r border-border-subtle px-16 py-10 lg:flex relative z-10"
+        style={{ animation: "registerFadeLeft 700ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
+        aria-label="Platform introduction"
+      >
+        <div className="flex items-center gap-2 select-none cursor-default">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+            &gt;_
+          </div>
+          <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
+        </div>
+
+        <div className="max-w-md select-none cursor-default">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-blue">
+            Join the platform
+          </p>
+          <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
+            Start learning.
+          </h1>
+          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-[#3b82f6] to-cyan-400">
+            Write better code.
+          </h2>
+          <p className="mb-8 text-sm leading-relaxed text-text-muted">
+            Join your university's official Python environment for structured feedback,
+            safe code execution, personal practice, and instructor-guided review.
+          </p>
+          <ul className="space-y-3">
+            {features.map((feature, index) => (
+              <li
+                key={feature.label}
+                className="register-animated flex items-center gap-3 text-sm text-text-muted transition-all duration-300 hover:translate-x-2 hover:text-text-main group"
+                style={{ animation: `featureFadeIn 450ms ease ${250 + index * 100}ms both` }}
+              >
+                <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{feature.icon}</span>
+                <span>{feature.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="font-mono text-xs text-text-muted select-none cursor-default">
+          Secure Registration · OTP Verification
+        </p>
+      </section>
+
+      {/* Right panel — registration form */}
+      <section className="relative flex flex-1 items-center justify-center px-6 py-12 z-10 overflow-y-auto">
+        {/* Glow effects */}
+        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-blue-500/10 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-purple-500/10 blur-[120px]" />
+
+        <div
+          className="register-animated w-full max-w-[500px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(59,130,246,0.15)] transition-all duration-500 hover:border-blue-500/30 hover:shadow-[0_0_50px_-10px_rgba(59,130,246,0.25)]"
+          style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
+        >
+
 
         {/* ── Step 1 — Registration details ── */}
         {step === 1 && (
@@ -729,6 +836,7 @@ export default function Register() {
           </>
         )}
       </div>
+      </section>
     </main>
   );
 }
