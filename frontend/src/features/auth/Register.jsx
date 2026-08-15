@@ -346,7 +346,7 @@ export default function Register() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base px-4 py-12 text-text-main">
+    <main className="relative flex min-h-screen flex-col overflow-x-hidden overflow-y-auto bg-bg-base px-4 py-12 text-text-main">
       <style>{`
         @keyframes registerFadeUp {
           from { opacity: 0; transform: translateY(18px); }
@@ -370,7 +370,7 @@ export default function Register() {
       </div>
 
       <div
-        className="register-animated relative z-10 w-full max-w-[640px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+        className="register-animated m-auto relative z-10 w-full max-w-[640px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
         style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
       >
         {/* ── Step 1 — Registration details ── */}
