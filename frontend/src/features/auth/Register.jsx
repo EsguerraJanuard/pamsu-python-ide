@@ -406,9 +406,9 @@ export default function Register() {
               )}
 
               <form onSubmit={handleRegistrationSubmit} className="space-y-2" noValidate>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Complete Name */}
-                  <div>
+                  <div className="sm:col-span-2">
                     <label htmlFor="full-name" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Complete name
                     </label>
@@ -432,10 +432,10 @@ export default function Register() {
                     </div>
                   </div>
 
-                  {/* School ID */}
-                  <div>
+                  {/* Student Number */}
+                  <div className="sm:col-span-1">
                     <label htmlFor="school-id" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
-                      School ID
+                      Student Number
                     </label>
                     <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
