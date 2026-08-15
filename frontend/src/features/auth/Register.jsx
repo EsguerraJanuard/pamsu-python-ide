@@ -346,7 +346,7 @@ export default function Register() {
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-x-hidden overflow-y-auto bg-bg-base px-4 py-8 text-text-main">
+    <main className="relative flex min-h-screen flex-col overflow-x-hidden overflow-y-auto bg-bg-base px-4 py-6 md:py-10 text-text-main">
       <style>{`
         @keyframes registerFadeUp {
           from { opacity: 0; transform: translateY(18px); }
@@ -370,7 +370,7 @@ export default function Register() {
       </div>
 
       <div
-        className="register-animated m-auto relative z-10 w-full max-w-[880px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+        className="register-animated m-auto relative z-10 w-full max-w-[800px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
         style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
       >
         {/* ── Step 1 — Registration details ── */}
@@ -426,256 +426,217 @@ export default function Register() {
               </div>
             )}
 
-            <form onSubmit={handleRegistrationSubmit} className="mt-2" noValidate>
+            <form onSubmit={handleRegistrationSubmit} className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5" noValidate>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5">
-                
-                {/* LEFT COLUMN: Personal Details */}
-                <div className="space-y-5">
-                  {/* Full name */}
-                  <div>
-                    <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                      Complete name
-                    </label>
-                    <div className={inputWrapClass}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                        <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
-                        <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                      </svg>
-                      <input
-                        id="full-name"
-                        type="text"
-                        value={form.fullName}
-                        onChange={(e) => updateField("fullName", e.target.value)}
-                        placeholder="Juan Dela Cruz"
-                        autoComplete="name"
-                        required
-                        disabled={isLoading}
-                        className={`${inputClass} disabled:opacity-50`}
-                        style={{ caretColor: "#10b981" }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* School ID */}
-                  <div>
-                    <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                      School ID
-                    </label>
-                    <div className={inputWrapClass}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                        <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                        <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-                      </svg>
-                      <input
-                        id="school-id"
-                        type="text"
-                        inputMode="numeric"
-                        value={form.schoolId}
-                        onChange={(e) => updateSchoolId(e.target.value)}
-                        placeholder="0000000000"
-                        pattern="[0-9]{10}"
-                        minLength={10}
-                        maxLength={10}
-                        autoComplete="off"
-                        required
-                        disabled={isLoading}
-                        className={`${inputClass} disabled:opacity-50`}
-                        style={{ caretColor: "#10b981" }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label htmlFor="school-email" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                      University email
-                    </label>
-                    <div className={inputWrapClass}>
-                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                        <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                      </svg>
-                      <input
-                        id="school-email"
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => updateField("email", e.target.value)}
-                        placeholder={`yourname${SCHOOL_EMAIL_DOMAIN}`}
-                        autoComplete="email"
-                        required
-                        disabled={isLoading}
-                        className={`${inputClass} disabled:opacity-50`}
-                        style={{ caretColor: "#10b981" }}
-                      />
-                    </div>
-                    <p className="mt-2 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
-                  </div>
-                  
-                  {/* Restored Data Collection Notice (Moved slightly down on desktop using layout structure) */}
-                  <div className="pt-2 hidden md:block">
-                    <section className="rounded-xl border border-border-subtle bg-bg-glass p-4">
-                      <h2 className="mb-2 text-xs font-semibold text-text-main select-none cursor-default">Data collection notice</h2>
-                      <p className="mb-2 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
-                        The platform records limited activity information during controlled
-                        programming activities to support instructor review and system operation.
-                      </p>
-                      <ul className="mb-4 pl-4 list-outside list-disc space-y-1 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
-                        <li>Tab switches and activity status may be recorded during graded laboratory sessions.</li>
-                        <li>Blocked external paste attempts may be counted, but clipboard contents are not stored.</li>
-                        <li>Submitted code may be checked using AST rules, test cases, and Jaccard similarity.</li>
-                        <li>The system does not record websites visited, screen recordings, webcam data, or every keystroke.</li>
-                        <li>Relevant records are available only to authorized instructors and system personnel.</li>
-                      </ul>
-                      <label className="flex cursor-pointer items-start gap-2 border-t border-border-subtle pt-3">
-                        <input
-                          type="checkbox"
-                          checked={acknowledged}
-                          onChange={(e) => setAcknowledged(e.target.checked)}
-                          className="mt-[3px] h-3.5 w-3.5 shrink-0 accent-[#10b981] rounded cursor-pointer"
-                          disabled={isLoading}
-                        />
-                        <span className="text-[11px] font-medium leading-tight text-text-main select-none cursor-pointer">
-                          I have read and acknowledge the platform's data collection notice.
-                        </span>
-                      </label>
-                    </section>
-                  </div>
-                </div>
-
-                {/* RIGHT COLUMN: Security & Terms */}
-                <div className="space-y-5">
-                  {/* Password */}
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label htmlFor="registration-password" className="text-xs font-medium text-text-muted select-none cursor-default">
-                        Password
-                      </label>
-                      {capsLock && (
-                        <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
-                          <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
-                            <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
-                            <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
-                          </svg>
-                          Caps Lock
-                        </span>
-                      )}
-                    </div>
-                    <div className={inputWrapClass}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                        <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                        <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                      </svg>
-                      <input
-                        id="registration-password"
-                        type={showPassword ? "text" : "password"}
-                        value={form.password}
-                        onChange={(e) => updateField("password", e.target.value)}
-                        placeholder="At least 8 chars"
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                        disabled={isLoading}
-                        className={`${inputClass} disabled:opacity-50`}
-                        style={{ caretColor: "#10b981" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((v) => !v)}
-                        className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        disabled={isLoading}
-                      >
-                        {showPassword ? "Hide" : "Show"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Confirm password */}
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label htmlFor="confirm-password" className="text-xs font-medium text-text-muted select-none cursor-default">
-                        Confirm password
-                      </label>
-                    </div>
-                    <div className={inputWrapClass}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                        <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                        <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                      </svg>
-                      <input
-                        id="confirm-password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={form.confirmPassword}
-                        onChange={(e) => updateField("confirmPassword", e.target.value)}
-                        placeholder="Repeat password"
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                        disabled={isLoading}
-                        className={`${inputClass} disabled:opacity-50`}
-                        style={{ caretColor: "#10b981" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword((v) => !v)}
-                        className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
-                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                        disabled={isLoading}
-                      >
-                        {showConfirmPassword ? "Hide" : "Show"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Password strength bar */}
-                  {passwordStrength && (
-                    <div className="select-none cursor-default">
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                        <div
-                          className="h-full rounded-full transition-all duration-300"
-                          style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
-                        />
-                      </div>
-                      <p className="mt-1.5 text-[11px] font-medium" style={{ color: passwordStrength.color }}>
-                        {passwordStrength.label}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Restored Data Collection Notice (Mobile view only) */}
-                  <div className="md:hidden">
-                    <section className="rounded-xl border border-border-subtle bg-bg-glass p-4 mt-2">
-                      <h2 className="mb-2 text-xs font-semibold text-text-main select-none cursor-default">Data collection notice</h2>
-                      <p className="mb-2 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
-                        The platform records limited activity information during controlled
-                        programming activities to support instructor review and system operation.
-                      </p>
-                      <ul className="mb-4 pl-4 list-outside list-disc space-y-1 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
-                        <li>Tab switches and activity status may be recorded during graded laboratory sessions.</li>
-                        <li>Blocked external paste attempts may be counted, but clipboard contents are not stored.</li>
-                        <li>Submitted code may be checked using AST rules, test cases, and Jaccard similarity.</li>
-                        <li>The system does not record websites visited, screen recordings, webcam data, or every keystroke.</li>
-                        <li>Relevant records are available only to authorized instructors and system personnel.</li>
-                      </ul>
-                      <label className="flex cursor-pointer items-start gap-2 border-t border-border-subtle pt-3">
-                        <input
-                          type="checkbox"
-                          checked={acknowledged}
-                          onChange={(e) => setAcknowledged(e.target.checked)}
-                          className="mt-[3px] h-3.5 w-3.5 shrink-0 accent-[#10b981] rounded cursor-pointer"
-                          disabled={isLoading}
-                        />
-                        <span className="text-[11px] font-medium leading-tight text-text-main select-none cursor-pointer">
-                          I have read and acknowledge the platform's data collection notice.
-                        </span>
-                      </label>
-                    </section>
-                  </div>
+              {/* Full name (Col 1) */}
+              <div>
+                <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                  Complete name
+                </label>
+                <div className={inputWrapClass}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                    <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    id="full-name"
+                    type="text"
+                    value={form.fullName}
+                    onChange={(e) => updateField("fullName", e.target.value)}
+                    placeholder="Juan Dela Cruz"
+                    autoComplete="name"
+                    required
+                    disabled={isLoading}
+                    className={`${inputClass} disabled:opacity-50`}
+                    style={{ caretColor: "#10b981" }}
+                  />
                 </div>
               </div>
 
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border-subtle pt-6">
-                <p className="text-xs text-text-muted select-none cursor-default text-center sm:text-left">
+              {/* School ID (Col 2) */}
+              <div>
+                <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                  School ID
+                </label>
+                <div className={inputWrapClass}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                    <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    id="school-id"
+                    type="text"
+                    inputMode="numeric"
+                    value={form.schoolId}
+                    onChange={(e) => updateSchoolId(e.target.value)}
+                    placeholder="0000000000"
+                    pattern="[0-9]{10}"
+                    minLength={10}
+                    maxLength={10}
+                    autoComplete="off"
+                    required
+                    disabled={isLoading}
+                    className={`${inputClass} disabled:opacity-50`}
+                    style={{ caretColor: "#10b981" }}
+                  />
+                </div>
+              </div>
+
+              {/* Email (Full Width) */}
+              <div className="md:col-span-2">
+                <label htmlFor="school-email" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                  University email
+                </label>
+                <div className={inputWrapClass}>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                    <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                  </svg>
+                  <input
+                    id="school-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => updateField("email", e.target.value)}
+                    placeholder={`yourname${SCHOOL_EMAIL_DOMAIN}`}
+                    autoComplete="email"
+                    required
+                    disabled={isLoading}
+                    className={`${inputClass} disabled:opacity-50`}
+                    style={{ caretColor: "#10b981" }}
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
+              </div>
+
+              {/* Password (Col 1) */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label htmlFor="registration-password" className="text-xs font-medium text-text-muted select-none cursor-default">
+                    Password
+                  </label>
+                  {capsLock && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
+                      <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
+                        <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
+                        <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
+                      </svg>
+                      Caps Lock
+                    </span>
+                  )}
+                </div>
+                <div className={inputWrapClass}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                    <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    id="registration-password"
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={(e) => updateField("password", e.target.value)}
+                    placeholder="At least 8 chars"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    disabled={isLoading}
+                    className={`${inputClass} disabled:opacity-50`}
+                    style={{ caretColor: "#10b981" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    disabled={isLoading}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {/* Password strength bar */}
+                {passwordStrength && (
+                  <div className="mt-2 select-none cursor-default">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[11px] font-medium" style={{ color: passwordStrength.color }}>
+                      {passwordStrength.label}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm password (Col 2) */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label htmlFor="confirm-password" className="text-xs font-medium text-text-muted select-none cursor-default">
+                    Confirm password
+                  </label>
+                </div>
+                <div className={inputWrapClass}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                    <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={form.confirmPassword}
+                    onChange={(e) => updateField("confirmPassword", e.target.value)}
+                    placeholder="Repeat password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    disabled={isLoading}
+                    className={`${inputClass} disabled:opacity-50`}
+                    style={{ caretColor: "#10b981" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                    disabled={isLoading}
+                  >
+                    {showConfirmPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Full Data Collection Notice (Full Width) */}
+              <div className="md:col-span-2 pt-1">
+                <section className="rounded-xl border border-border-subtle bg-bg-glass p-4 sm:p-5">
+                  <h2 className="mb-2.5 text-[13px] font-semibold text-text-main select-none cursor-default">Data collection notice</h2>
+                  <p className="mb-3 text-[12px] leading-relaxed text-text-muted select-none cursor-default">
+                    The platform records limited activity information during controlled
+                    programming activities to support instructor review and system operation.
+                  </p>
+                  <ul className="mb-5 pl-5 list-outside list-disc space-y-1.5 text-[11px] sm:text-[12px] leading-relaxed text-text-muted select-none cursor-default">
+                    <li>Tab switches and activity status may be recorded during graded laboratory sessions.</li>
+                    <li>Blocked external paste attempts may be counted, but clipboard contents are not stored.</li>
+                    <li>Submitted code may be checked using AST rules, test cases, and Jaccard similarity.</li>
+                    <li>The system does not record websites visited, screen recordings, webcam data, or every keystroke.</li>
+                    <li>Relevant records are available only to authorized instructors and system personnel.</li>
+                  </ul>
+                  <label className="flex cursor-pointer items-start gap-3 border-t border-border-subtle pt-4">
+                    <input
+                      type="checkbox"
+                      checked={acknowledged}
+                      onChange={(e) => setAcknowledged(e.target.checked)}
+                      className="mt-[2px] h-4 w-4 shrink-0 accent-[#10b981] rounded cursor-pointer"
+                      disabled={isLoading}
+                    />
+                    <span className="text-[12px] sm:text-[13px] font-medium leading-tight text-text-main select-none cursor-pointer hover:text-text-emerald transition-colors">
+                      I have read and acknowledge the platform's data collection notice.
+                    </span>
+                  </label>
+                </section>
+              </div>
+
+              {/* Footer Actions (Full Width) */}
+              <div className="md:col-span-2 mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border-subtle pt-6">
+                <p className="text-[13px] text-text-muted select-none cursor-default text-center sm:text-left">
                   Already have an account?{" "}
                   <button
                     type="button"
@@ -689,7 +650,7 @@ export default function Register() {
                 <button
                   type="submit"
                   disabled={!acknowledged || isLoading}
-                  className="group relative overflow-hidden rounded-xl bg-emerald-600 hover:bg-emerald-500 px-8 py-3.5 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none w-full sm:w-auto"
+                  className="group relative overflow-hidden rounded-xl bg-emerald-600 hover:bg-emerald-500 px-8 py-3.5 text-[13px] sm:text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none w-full sm:w-auto"
                 >
                   <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                   <span className="relative z-10 flex items-center justify-center gap-2">
