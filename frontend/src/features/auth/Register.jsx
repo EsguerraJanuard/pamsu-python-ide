@@ -124,7 +124,7 @@ function OtpInput({ value, onChange, disabled }) {
           onKeyDown={(e) => handleKeyDown(i, e)}
           disabled={disabled}
           className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-[#3b82f6]/60 disabled:opacity-50"
-          style={{ caretColor: "#3b82f6" }}
+          style={{ caretColor: "#10b981" }}
           aria-label={`OTP digit ${i + 1}`}
         />
       ))}
@@ -172,7 +172,7 @@ export default function Register() {
   const passwordStrength = getPasswordStrength(form.password);
 
   const inputWrapClass =
-    "auth-input-wrap flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
+    "auth-input-wrap flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass";
   const inputClass =
     "flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20";
 
@@ -380,20 +380,20 @@ export default function Register() {
         aria-label="Platform introduction"
       >
         <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
             &gt;_
           </div>
           <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
         </div>
 
         <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-blue">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-emerald">
             Join the platform
           </p>
           <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
             Start learning.
           </h1>
-          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-[#3b82f6] to-cyan-400">
+          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
             Write better code.
           </h2>
           <p className="mb-8 text-sm leading-relaxed text-text-muted">
@@ -422,11 +422,11 @@ export default function Register() {
       {/* Right panel — registration form */}
       <section className="relative flex flex-1 items-center justify-center px-6 py-12 z-10 overflow-y-auto">
         {/* Glow effects */}
-        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-blue-500/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-purple-500/10 blur-[120px]" />
+        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
 
         <div
-          className="register-animated w-full max-w-[500px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(59,130,246,0.15)] transition-all duration-500 hover:border-blue-500/30 hover:shadow-[0_0_50px_-10px_rgba(59,130,246,0.25)]"
+          className="register-animated w-full max-w-[500px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
           style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
         >
 
@@ -440,16 +440,16 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-blue shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-text-blue active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 hover:text-text-emerald active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-blue transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-emerald transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Sign In</span>
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white">
                     &gt;_
                   </div>
                   <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
@@ -464,14 +464,14 @@ export default function Register() {
                     Your email will be verified before the account is activated.
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-text-blue select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-text-emerald select-none cursor-default">
                   Step 1 of 2
                 </div>
               </div>
             </header>
 
-            <section className="mb-5 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3 select-none cursor-default">
-              <p className="text-xs leading-relaxed text-text-blue">
+            <section className="mb-5 rounded-xl border border-blue-500/20 bg-emerald-500/[0.07] px-4 py-3 select-none cursor-default">
+              <p className="text-xs leading-relaxed text-text-emerald">
                 Your account role is assigned securely by the server. Verified university
                 users register as students unless their email is included in the approved
                 instructor allowlist.
@@ -505,7 +505,7 @@ export default function Register() {
                     required
                     disabled={isLoading}
                     className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#3b82f6" }}
+                    style={{ caretColor: "#10b981" }}
                   />
                 </div>
               </div>
@@ -534,7 +534,7 @@ export default function Register() {
                     required
                     disabled={isLoading}
                     className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#3b82f6" }}
+                    style={{ caretColor: "#10b981" }}
                   />
                 </div>
                 <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">
@@ -561,7 +561,7 @@ export default function Register() {
                     required
                     disabled={isLoading}
                     className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#3b82f6" }}
+                    style={{ caretColor: "#10b981" }}
                   />
                 </div>
                 <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
@@ -599,7 +599,7 @@ export default function Register() {
                     required
                     disabled={isLoading}
                     className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#3b82f6" }}
+                    style={{ caretColor: "#10b981" }}
                   />
                   <button
                     type="button"
@@ -658,7 +658,7 @@ export default function Register() {
                     required
                     disabled={isLoading}
                     className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#3b82f6" }}
+                    style={{ caretColor: "#10b981" }}
                   />
                   <button
                     type="button"
@@ -691,7 +691,7 @@ export default function Register() {
                     type="checkbox"
                     checked={acknowledged}
                     onChange={(e) => setAcknowledged(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#3b82f6]"
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#10b981]"
                     disabled={isLoading}
                   />
                   <span className="text-[11px] leading-relaxed text-text-muted select-none cursor-default">
@@ -706,7 +706,7 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
+                    className="font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline"
                     disabled={isLoading}
                   >
                     Sign in
@@ -715,9 +715,10 @@ export default function Register() {
                 <button
                   type="submit"
                   disabled={!acknowledged || isLoading}
-                  className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-5 py-2.5 text-sm font-semibold text-text-main transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-none disabled:bg-white/[0.06] disabled:text-white/25 disabled:hover:translate-y-0 disabled:hover:opacity-100 select-none"
+                  className="group relative overflow-hidden mt-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
                 >
-                  {isLoading ? "Sending verification..." : "Continue to email verification"}
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
+                  <span className="relative z-10">{isLoading ? "Sending verification..." : "Continue to email verification"}</span>
                 </button>
               </div>
             </form>
@@ -733,16 +734,16 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-blue shadow-sm transition-all duration-150 hover:border-blue-500/60 hover:bg-blue-500/20 hover:text-text-blue active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 hover:text-text-emerald active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-blue transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-emerald transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Details</span>
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#3b82f6] font-mono text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white">
                     &gt;_
                   </div>
                   <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
@@ -758,7 +759,7 @@ export default function Register() {
                     <span className="font-medium text-text-muted">{form.email}</span>
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-text-blue select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-text-emerald select-none cursor-default">
                   Step 2 of 2
                 </div>
               </div>
@@ -791,8 +792,10 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={otpCode.length !== 6 || isLoading}
-                className="w-full rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-2.5 text-sm font-semibold text-text-main transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 select-none"
+                className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
               >
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
+                <span className="relative z-10 flex items-center justify-center">
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -804,6 +807,7 @@ export default function Register() {
                 ) : (
                   "Verify and create account"
                 )}
+              </span>
               </button>
 
               <div className="text-center">
@@ -814,7 +818,7 @@ export default function Register() {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0 || isLoading}
-                  className="text-xs font-medium text-[#3b82f6] transition-colors hover:text-[#60a5fa] disabled:cursor-not-allowed disabled:text-text-muted"
+                  className="text-xs font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline disabled:cursor-not-allowed disabled:text-text-muted"
                 >
                   {resendCooldown > 0
                     ? `Resend available in ${resendCooldown}s`
