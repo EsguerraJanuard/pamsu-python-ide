@@ -160,7 +160,7 @@ def test_student_cannot_create_instructor_task(
         "/instructors/tasks/",
         headers=bearer_header(student_token),
         json={
-            "class_id": 1,
+            "class_ids": [1],
             "title": "Unauthorized Task",
             "activity_type": "laboratory",
             "required_ast_rules": {
@@ -224,7 +224,7 @@ def test_complete_evaluation_workflow(
         "/instructors/tasks/",
         headers=instructor_headers,
         json={
-            "class_id": classroom.class_id,
+            "class_ids": [classroom.class_id],
             "title": "For Loop and Function Activity",
             "description": ("Create a function that prints numbers using a for loop."),
             "instructions": ("Define solve(), use a for loop, and call the function."),
@@ -243,7 +243,7 @@ def test_complete_evaluation_workflow(
 
     assert task_response.status_code == 201
 
-    task_data = task_response.json()
+    task_data = task_response.json()[0]
     task_id = task_data["task_id"]
 
     assert task_data["instructor_id"] == instructor.user_id

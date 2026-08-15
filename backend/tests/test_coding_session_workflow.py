@@ -116,7 +116,7 @@ def create_task(
         "/instructors/tasks/",
         headers=bearer_header(instructor_token),
         json={
-            "class_id": class_id,
+            "class_ids": [class_id],
             "title": title,
             "description": ("Coding-session workflow test."),
             "instructions": ("Write and test a Python program."),
@@ -131,7 +131,7 @@ def create_task(
 
     assert response.status_code == 201
 
-    task = response.json()
+    task = response.json()[0]
 
     if not publish:
         return task

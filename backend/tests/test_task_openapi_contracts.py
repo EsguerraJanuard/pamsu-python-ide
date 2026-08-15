@@ -176,7 +176,7 @@ def test_task_create_schema_excludes_backend_controlled_fields():
         "TaskCreate",
     )
 
-    assert "class_id" in properties
+    assert "class_ids" in properties
     assert "title" in properties
     assert "activity_type" in properties
     assert "required_ast_rules" in properties
@@ -209,6 +209,7 @@ def test_task_update_schema_excludes_publication_and_ownership_fields():
         "paste_policy",
         "is_graded",
         "due_at",
+        "scheduled_publish_at",
     }
 
     assert set(properties) == expected_editable_fields
@@ -311,7 +312,8 @@ def test_instructor_task_endpoints_use_expected_response_schemas():
         "201",
     )
 
-    assert create_response["$ref"].endswith("/TaskResponse")
+    assert create_response["type"] == "array"
+    assert create_response["items"]["$ref"].endswith("/TaskResponse")
 
     detail_response = get_json_response_schema(
         "/instructors/tasks/{task_id}",

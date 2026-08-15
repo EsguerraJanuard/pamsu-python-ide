@@ -34,7 +34,7 @@ VALID_USER_DATA = {
 
 
 VALID_TASK_DATA = {
-    "class_id": 1,
+    "class_ids": [1],
     "title": "Task Without AST Rules",
     "description": "Schema validation test.",
     "instructions": "Complete the programming task.",
