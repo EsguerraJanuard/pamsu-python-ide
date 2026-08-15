@@ -174,7 +174,7 @@ export default function Register() {
   const inputWrapClass =
     "auth-input-wrap flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass";
   const inputClass =
-    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder-white/20";
+    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted/50";
 
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
@@ -370,13 +370,13 @@ export default function Register() {
       </div>
 
       <div
-        className="register-animated m-auto relative z-10 w-full max-w-[640px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+        className="register-animated m-auto relative z-10 w-full max-w-[760px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
         style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
       >
         {/* ── Step 1 — Registration details ── */}
         {step === 1 && (
           <>
-            <header className="mb-8 space-y-6">
+            <header className="mb-6 space-y-6">
               {/* Uniform Top Navigation Bar */}
               <div className="flex items-center justify-between border-b border-border-subtle pb-5">
                 <button
@@ -411,6 +411,14 @@ export default function Register() {
                 </div>
               </div>
             </header>
+
+            <section className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3 select-none cursor-default">
+              <p className="text-[13px] leading-relaxed text-text-emerald">
+                Your account role is assigned securely by the server. Verified university
+                users register as students unless their email is included in the approved
+                instructor allowlist.
+              </p>
+            </section>
 
             {error && (
               <div role="alert" aria-live="polite" className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-text-rose">
