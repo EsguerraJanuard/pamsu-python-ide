@@ -72,7 +72,7 @@ export default function SubmissionDetails() {
   };
 
   const statusLabel = submission.status.replace("_", " ").toUpperCase();
-  const colorClass = statusColors[submission.status] || "text-text-muted border-slate-400/30 bg-slate-400/10";
+  const colorClass = statusColors[submission.status] || "text-text-muted border-border-subtle bg-bg-glass";
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg-base text-text-main">

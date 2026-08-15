@@ -263,7 +263,7 @@ const LiveMonitoring = () => {
                     <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
                       {session.is_active ? 'Active' : 'Idle'}
                     </span>
-                    <div className={`w-2 h-2 rounded-full ${session.is_active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-slate-600'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${session.is_active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-border-strong'}`}></div>
                   </div>
                 </div>
 
