@@ -489,8 +489,7 @@ def test_identity_and_server_controlled_fields_come_from_token():
 
     assert session_backend_fields.isdisjoint(session_activity_properties)
 
-    assert "class_id" in task_properties
-
+    assert "class_ids" in task_properties
     assert "task_id" in submission_properties
     assert "raw_code" in submission_properties
 

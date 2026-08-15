@@ -20,7 +20,7 @@ def build_activity_payload() -> dict[str, object]:
         "task_id": 10,
         "title": "Privacy Contract Activity",
         "activity_type": "laboratory",
-        "class_id": 5,
+        "class_ids": [5],
         "class_name": "Programming Class",
         "subject_code": "CS101",
         "section": "A",

@@ -487,8 +487,9 @@ def test_activity_lifecycle_creates_privacy_safe_audits(
     task = create_task(
         db=db_session,
         instructor_id=instructor.user_id,
+        target_class_id=classroom.class_id,
         task_data=TaskCreate.model_construct(
-            class_id=classroom.class_id,
+            class_ids=[classroom.class_id],
             title="Private Activity Title",
             description="PRIVATE DESCRIPTION",
             instructions="PRIVATE INSTRUCTIONS",

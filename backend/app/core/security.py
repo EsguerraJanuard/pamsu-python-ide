@@ -4,9 +4,8 @@ from uuid import uuid4
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
-from passlib.exc import UnknownHashError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -27,15 +26,7 @@ SUPPORTED_JWT_ALGORITHMS = {
 }
 
 
-password_context = CryptContext(
-    schemes=[
-        "bcrypt_sha256",
-        "bcrypt",
-    ],
-    deprecated=[
-        "bcrypt",
-    ],
-)
+# Passlib removed in favor of raw bcrypt
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/login",
@@ -50,12 +41,11 @@ def verify_password(
         return False
 
     try:
-        return password_context.verify(
-            plain_password,
-            password_hash,
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            password_hash.encode("utf-8"),
         )
     except (
-        UnknownHashError,
         ValueError,
         TypeError,
     ):
@@ -68,7 +58,9 @@ def get_password_hash(
     if not isinstance(password, str) or not password:
         raise ValueError("Password cannot be empty.")
 
-    return password_context.hash(password)
+    salt = bcrypt.gensalt()
+    hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed_bytes.decode("utf-8")
 
 
 def create_access_token(
