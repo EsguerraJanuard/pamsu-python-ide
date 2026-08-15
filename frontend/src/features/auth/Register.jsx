@@ -346,19 +346,11 @@ export default function Register() {
   };
 
   return (
-    <main className="flex min-h-screen overflow-hidden bg-bg-base text-text-main">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base px-4 py-12 text-text-main">
       <style>{`
-        @keyframes registerFadeLeft {
-          from { opacity: 0; transform: translateX(-16px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
         @keyframes registerFadeUp {
           from { opacity: 0; transform: translateY(18px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes featureFadeIn {
-          from { opacity: 0; transform: translateX(-8px); }
-          to { opacity: 1; transform: translateX(0); }
         }
         @media (prefers-reduced-motion: reduce) {
           .register-animated { animation: none !important; }
@@ -366,90 +358,40 @@ export default function Register() {
       `}</style>
 
       {/* Premium Background Grid */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+
+      {/* Glow effects */}
+      <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
+      <div className="absolute bottom-0 left-0 -z-10 h-[600px] w-[600px] -translate-x-1/4 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
 
       {/* Theme Toggle */}
       <div className="absolute top-6 right-6 z-50">
         <ThemeToggle />
       </div>
 
-      {/* Left panel — platform info */}
-      <section
-        className="register-animated hidden w-[52%] flex-col justify-between border-r border-border-subtle px-16 py-10 lg:flex relative z-10"
-        style={{ animation: "registerFadeLeft 700ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
-        aria-label="Platform introduction"
+      <div
+        className="register-animated relative z-10 w-full max-w-[640px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+        style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
       >
-        <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-            &gt;_
-          </div>
-          <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
-        </div>
-
-        <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-emerald">
-            Join the platform
-          </p>
-          <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
-            Start learning.
-          </h1>
-          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
-            Write better code.
-          </h2>
-          <p className="mb-8 text-sm leading-relaxed text-text-muted">
-            Join your university's official Python environment for structured feedback,
-            safe code execution, personal practice, and instructor-guided review.
-          </p>
-          <ul className="space-y-3">
-            {features.map((feature, index) => (
-              <li
-                key={feature.label}
-                className="register-animated flex items-center gap-3 text-sm text-text-muted transition-all duration-300 hover:translate-x-2 hover:text-text-main group"
-                style={{ animation: `featureFadeIn 450ms ease ${250 + index * 100}ms both` }}
-              >
-                <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{feature.icon}</span>
-                <span>{feature.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="font-mono text-xs text-text-muted select-none cursor-default">
-          Secure Registration · OTP Verification
-        </p>
-      </section>
-
-      {/* Right panel — registration form */}
-      <section className="relative flex flex-1 items-center justify-center px-6 py-12 z-10 overflow-y-auto">
-        {/* Glow effects */}
-        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
-
-        <div
-          className="register-animated w-full max-w-[500px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
-          style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
-        >
-
-
         {/* ── Step 1 — Registration details ── */}
         {step === 1 && (
           <>
-            <header className="mb-6 space-y-5">
+            <header className="mb-8 space-y-6">
               {/* Uniform Top Navigation Bar */}
-              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-5">
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 hover:text-text-emerald active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-emerald transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Sign In</span>
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                     &gt;_
                   </div>
                   <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
@@ -459,90 +401,83 @@ export default function Register() {
               {/* Title & Step Indicator */}
               <div className="flex items-start justify-between gap-4">
                 <div className="select-none cursor-default">
-                  <h1 className="text-xl font-bold text-text-main">Create your university account</h1>
-                  <p className="mt-1 text-sm text-text-muted">
+                  <h1 className="text-2xl font-bold text-text-main">Create your university account</h1>
+                  <p className="mt-1.5 text-sm text-text-muted">
                     Your email will be verified before the account is activated.
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-text-emerald select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-[11px] font-medium text-text-emerald select-none cursor-default">
                   Step 1 of 2
                 </div>
               </div>
             </header>
 
-            <section className="mb-5 rounded-xl border border-blue-500/20 bg-emerald-500/[0.07] px-4 py-3 select-none cursor-default">
-              <p className="text-xs leading-relaxed text-text-emerald">
-                Your account role is assigned securely by the server. Verified university
-                users register as students unless their email is included in the approved
-                instructor allowlist.
-              </p>
-            </section>
-
             {error && (
-              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose">
+              <div role="alert" aria-live="polite" className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-text-rose">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleRegistrationSubmit} className="space-y-4" noValidate>
-              {/* Full name */}
-              <div>
-                <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                  Complete name
-                </label>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="full-name"
-                    type="text"
-                    value={form.fullName}
-                    onChange={(e) => updateField("fullName", e.target.value)}
-                    placeholder="Juan Dela Cruz"
-                    autoComplete="name"
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
+            <form onSubmit={handleRegistrationSubmit} className="space-y-5" noValidate>
+              
+              {/* Grid for Name and School ID to save vertical space */}
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {/* Full name */}
+                <div>
+                  <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                    Complete name
+                  </label>
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="full-name"
+                      type="text"
+                      value={form.fullName}
+                      onChange={(e) => updateField("fullName", e.target.value)}
+                      placeholder="Juan Dela Cruz"
+                      autoComplete="name"
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                  </div>
+                </div>
+
+                {/* School ID */}
+                <div>
+                  <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                    School ID
+                  </label>
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="school-id"
+                      type="text"
+                      inputMode="numeric"
+                      value={form.schoolId}
+                      onChange={(e) => updateSchoolId(e.target.value)}
+                      placeholder="0000000000"
+                      pattern="[0-9]{10}"
+                      minLength={10}
+                      maxLength={10}
+                      autoComplete="off"
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* School ID */}
-              <div>
-                <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                  School ID
-                </label>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="school-id"
-                    type="text"
-                    inputMode="numeric"
-                    value={form.schoolId}
-                    onChange={(e) => updateSchoolId(e.target.value)}
-                    placeholder="0000000000"
-                    pattern="[0-9]{10}"
-                    minLength={10}
-                    maxLength={10}
-                    autoComplete="off"
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                </div>
-                <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">
-                  Enter the 10-digit number printed on your school ID. Leading zeros are preserved.
-                </p>
-              </div>
-
-              {/* Email */}
+              {/* Email - Full Width */}
               <div>
                 <label htmlFor="school-email" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
                   University email
@@ -564,149 +499,138 @@ export default function Register() {
                     style={{ caretColor: "#10b981" }}
                   />
                 </div>
-                <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
+                <p className="mt-2 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
               </div>
 
-              {/* Password */}
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="registration-password" className="text-xs font-medium text-text-muted select-none cursor-default">
-                    Password
-                  </label>
-                  {capsLock && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
-                      <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
-                        <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
-                        <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
-                      </svg>
-                      Caps Lock is on
-                    </span>
-                  )}
-                </div>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="registration-password"
-                    type={showPassword ? "text" : "password"}
-                    value={form.password}
-                    onChange={(e) => updateField("password", e.target.value)}
-                    placeholder="At least 8 characters"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-muted"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    disabled={isLoading}
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-                {passwordStrength && (
-                  <div className="mt-2 select-none cursor-default">
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
-                      />
-                    </div>
-                    <p className="mt-1 text-[11px]" style={{ color: passwordStrength.color }}>
-                      Strength: {passwordStrength.label}
-                    </p>
+              {/* Grid for Passwords */}
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {/* Password */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label htmlFor="registration-password" className="text-xs font-medium text-text-muted select-none cursor-default">
+                      Password
+                    </label>
+                    {capsLock && (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
+                        <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
+                          <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
+                          <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
+                        </svg>
+                        Caps Lock
+                      </span>
+                    )}
                   </div>
-                )}
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="registration-password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => updateField("password", e.target.value)}
+                      placeholder="At least 8 chars"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      disabled={isLoading}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm password */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label htmlFor="confirm-password" className="text-xs font-medium text-text-muted select-none cursor-default">
+                      Confirm password
+                    </label>
+                  </div>
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={form.confirmPassword}
+                      onChange={(e) => updateField("confirmPassword", e.target.value)}
+                      placeholder="Repeat password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
+                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Confirm password */}
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="confirm-password" className="text-xs font-medium text-text-muted select-none cursor-default">
-                    Confirm password
-                  </label>
-                  {capsLock && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
-                      <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
-                        <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
-                        <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
-                      </svg>
-                      Caps Lock is on
-                    </span>
-                  )}
+              {/* Password strength bar */}
+              {passwordStrength && (
+                <div className="select-none cursor-default">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] font-medium" style={{ color: passwordStrength.color }}>
+                    {passwordStrength.label}
+                  </p>
                 </div>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="confirm-password"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={form.confirmPassword}
-                    onChange={(e) => updateField("confirmPassword", e.target.value)}
-                    placeholder="Enter the password again"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((v) => !v)}
-                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-muted"
-                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    disabled={isLoading}
-                  >
-                    {showConfirmPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-              </div>
+              )}
 
               {/* Data collection notice */}
-              <section className="rounded-xl border border-border-subtle bg-bg-glass p-4">
-                <h2 className="mb-2 text-xs font-semibold text-text-main select-none cursor-default">Data collection notice</h2>
-                <p className="mb-3 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
-                  The platform records limited activity information during controlled
-                  programming activities to support instructor review and system operation.
-                </p>
-                <ul className="mb-4 list-inside list-disc space-y-1.5 text-[11px] leading-relaxed text-text-muted select-none cursor-default">
-                  <li>Tab switches and activity status may be recorded during graded laboratory sessions.</li>
-                  <li>Blocked external paste attempts may be counted, but clipboard contents are not stored.</li>
-                  <li>Submitted code may be checked using AST rules, test cases, and Jaccard similarity.</li>
-                  <li>The system does not record websites visited, screen recordings, webcam data, or every keystroke.</li>
-                  <li>Relevant records are available only to authorized instructors and system personnel.</li>
-                </ul>
+              <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 mt-6">
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
                     checked={acknowledged}
                     onChange={(e) => setAcknowledged(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#10b981]"
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#10b981] rounded cursor-pointer"
                     disabled={isLoading}
                   />
-                  <span className="text-[11px] leading-relaxed text-text-muted select-none cursor-default">
-                    I have read and acknowledge the platform's data collection notice.
-                  </span>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[12px] font-medium leading-tight text-text-main select-none">
+                      I have read and acknowledge the platform's data collection notice.
+                    </span>
+                    <span className="text-[11px] leading-relaxed text-text-muted select-none">
+                      The platform records limited activity information during controlled programming sessions to support instructor review. This includes tab switches and activity status. We do not record webcam, screen recordings, or browsing history.
+                    </span>
+                  </div>
                 </label>
               </section>
 
-              <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-text-muted select-none cursor-default">
+              <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-text-muted select-none cursor-default text-center sm:text-left">
                   Already have an account?{" "}
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline"
+                    className="font-semibold text-text-emerald transition-colors hover:text-emerald-400 hover:underline"
                     disabled={isLoading}
                   >
                     Sign in
@@ -715,10 +639,12 @@ export default function Register() {
                 <button
                   type="submit"
                   disabled={!acknowledged || isLoading}
-                  className="group relative overflow-hidden mt-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+                  className="group relative overflow-hidden rounded-xl bg-emerald-600 hover:bg-emerald-500 px-6 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none w-full sm:w-auto"
                 >
                   <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
-                  <span className="relative z-10">{isLoading ? "Sending verification..." : "Continue to email verification"}</span>
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {isLoading ? "Sending verification..." : "Continue"}
+                  </span>
                 </button>
               </div>
             </form>
@@ -728,22 +654,22 @@ export default function Register() {
         {/* ── Step 2 — OTP verification ── */}
         {step === 2 && (
           <>
-            <header className="mb-6 space-y-5">
+            <header className="mb-8 space-y-6">
               {/* Uniform Top Navigation Bar */}
-              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-5">
                 <button
                   type="button"
                   onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 hover:text-text-emerald active:scale-95"
+                  className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 active:scale-95"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-text-emerald transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                     <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span>Back to Details</span>
                 </button>
 
                 <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                     &gt;_
                   </div>
                   <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
@@ -753,33 +679,33 @@ export default function Register() {
               {/* Title & Step Indicator */}
               <div className="flex items-start justify-between gap-4">
                 <div className="select-none cursor-default">
-                  <h1 className="text-xl font-bold text-text-main">Verify your email</h1>
-                  <p className="mt-1 text-sm text-text-muted">
+                  <h1 className="text-2xl font-bold text-text-main">Verify your email</h1>
+                  <p className="mt-1.5 text-sm text-text-muted">
                     Enter the 6-digit code sent to{" "}
-                    <span className="font-medium text-text-muted">{form.email}</span>
+                    <span className="font-medium text-text-main">{form.email}</span>
                   </p>
                 </div>
-                <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-text-emerald select-none cursor-default">
+                <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-[11px] font-medium text-text-emerald select-none cursor-default">
                   Step 2 of 2
                 </div>
               </div>
             </header>
 
             {successMessage && !error && (
-              <div role="status" aria-live="polite" className="mb-5 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-text-emerald">
+              <div role="status" aria-live="polite" className="mb-6 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm font-medium text-text-emerald">
                 {successMessage}
               </div>
             )}
 
             {error && (
-              <div role="alert" aria-live="polite" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose">
+              <div role="alert" aria-live="polite" className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-text-rose">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleOtpVerify} className="space-y-6" noValidate>
+            <form onSubmit={handleOtpVerify} className="space-y-8" noValidate>
               <div>
-                <label className="mb-4 block text-center text-xs font-medium text-text-muted select-none cursor-default">
+                <label className="mb-5 block text-center text-sm font-semibold text-text-muted select-none cursor-default uppercase tracking-wider">
                   Verification code
                 </label>
                 <OtpInput
@@ -792,45 +718,45 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={otpCode.length !== 6 || isLoading}
-                className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+                className="group relative overflow-hidden w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
               >
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
-                <span className="relative z-10 flex items-center justify-center">
-                {isLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                    Verifying...
-                  </span>
-                ) : (
-                  "Verify and create account"
-                )}
-              </span>
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {isLoading ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify and create account"
+                  )}
+                </span>
               </button>
 
-              <div className="text-center">
-                <p className="mb-2 text-xs text-text-muted select-none cursor-default">
-                  Did not receive the code?
-                </p>
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={resendCooldown > 0 || isLoading}
-                  className="text-xs font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline disabled:cursor-not-allowed disabled:text-text-muted"
-                >
-                  {resendCooldown > 0
-                    ? `Resend available in ${resendCooldown}s`
-                    : "Resend verification code"}
-                </button>
-              </div>
-
-              <div className="text-center">
+              <div className="text-center space-y-4">
+                <div>
+                  <p className="mb-1 text-xs text-text-muted select-none cursor-default">
+                    Did not receive the code?
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0 || isLoading}
+                    className="text-xs font-semibold text-text-emerald transition-colors hover:text-emerald-400 hover:underline disabled:cursor-not-allowed disabled:text-text-muted disabled:no-underline"
+                  >
+                    {resendCooldown > 0
+                      ? `Resend available in ${resendCooldown}s`
+                      : "Resend verification code"}
+                  </button>
+                </div>
+                
                 <button
                   type="button"
                   onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                  className="text-xs text-text-muted transition-colors hover:text-text-muted"
+                  className="text-xs font-medium text-text-muted transition-colors hover:text-text-main"
                   disabled={isLoading}
                 >
                   ← Back to registration details
@@ -840,7 +766,6 @@ export default function Register() {
           </>
         )}
       </div>
-      </section>
     </main>
   );
 }
