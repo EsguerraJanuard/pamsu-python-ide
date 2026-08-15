@@ -21,6 +21,12 @@ const STATUS_CONFIG = {
   },
 };
 
+const FILTERS = [
+  { label: "All", value: "all" },
+  { label: "Awaiting review", value: "awaiting_review" },
+  { label: "Graded", value: "graded" },
+];
+
 function getPercentage(value, maximum) {
   if (!maximum) {
     return 0;
@@ -313,6 +319,7 @@ export default function Submissions() {
 
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     const fetchSubmissions = async () => {
@@ -379,6 +386,13 @@ export default function Submissions() {
       )
     : null;
 
+  const filteredSubmissions = submissions.filter((sub) => {
+    if (filter === "all") return true;
+    if (filter === "awaiting_review") return sub.status === "submitted" || sub.status === "awaiting_review";
+    if (filter === "graded") return sub.status === "graded";
+    return true;
+  });
+
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <Sidebar />
@@ -425,18 +439,34 @@ export default function Submissions() {
                       Submissions
                     </h1>
                     <p className="mt-1 text-sm text-text-muted">
-                      {submissions.length} submitted{" "}
-                      {submissions.length === 1
+                      {filteredSubmissions.length} submitted{" "}
+                      {filteredSubmissions.length === 1
                         ? "activity"
                         : "activities"}
                     </p>
                   </div>
+                  
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass p-1">
+                      {FILTERS.map((f) => (
+                        <button
+                          key={f.value}
+                          onClick={() => setFilter(f.value)}
+                          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                            filter === f.value
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-text-muted hover:bg-bg-glass hover:text-text-main"
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </header>
 
-
-
                 <SubmissionList
-                  submissions={submissions}
+                  submissions={filteredSubmissions}
                   isLoading={isLoading}
                   onOpen={(submissionId) =>
                     navigate(`/student/submissions/${submissionId}`)
