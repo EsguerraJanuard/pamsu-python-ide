@@ -33,8 +33,14 @@ export default function Analytics() {
           api.get("/activities/")
         ]);
         
-        const completed = subRes.filter(s => s.status === 'submitted' || s.status === 'graded').length;
-        const total = actRes.length;
+        const completedSubmissions = subRes.filter(s => s.status === 'submitted' || s.status === 'graded');
+        const uniqueCompletedTaskIds = new Set(completedSubmissions.map(s => s.task_id));
+        const completed = uniqueCompletedTaskIds.size;
+        
+        const activeTaskIds = new Set(actRes.map(a => a.task_id || a.id));
+        const allTaskIds = new Set([...activeTaskIds, ...uniqueCompletedTaskIds]);
+        const total = allTaskIds.size;
+        
         const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
         
         setMetrics({
