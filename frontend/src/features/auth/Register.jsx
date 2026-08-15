@@ -370,243 +370,70 @@ export default function Register() {
       </div>
 
       <div
-        className="register-animated m-auto relative z-10 w-full max-w-[800px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+        className="register-animated m-auto relative z-10 w-full max-w-[1100px] rounded-2xl border border-border-subtle bg-bg-glass/70 p-6 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl sm:p-10 transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
         style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
       >
         {/* ── Step 1 — Registration details ── */}
         {step === 1 && (
-          <>
-            <header className="mb-6 space-y-6">
-              {/* Uniform Top Navigation Bar */}
-              <div className="flex items-center justify-between border-b border-border-subtle pb-5">
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 active:scale-95"
-                >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
-                    <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span>Back to Sign In</span>
-                </button>
-
-                <div className="flex items-center gap-2 select-none">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                    &gt;_
-                  </div>
-                  <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
-                </div>
-              </div>
-
-              {/* Title & Step Indicator */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="select-none cursor-default">
-                  <h1 className="text-2xl font-bold text-text-main">Create your university account</h1>
-                  <p className="mt-1.5 text-sm text-text-muted">
-                    Your email will be verified before the account is activated.
-                  </p>
-                </div>
-                <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-[11px] font-medium text-text-emerald select-none cursor-default">
-                  Step 1 of 2
-                </div>
-              </div>
-            </header>
-
-            <section className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3 select-none cursor-default">
-              <p className="text-[13px] leading-relaxed text-text-emerald">
-                Your account role is assigned securely by the server. Verified university
-                users register as students unless their email is included in the approved
-                instructor allowlist.
-              </p>
-            </section>
-
-            {error && (
-              <div role="alert" aria-live="polite" className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-text-rose">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleRegistrationSubmit} className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5" noValidate>
-              
-              {/* Full name (Col 1) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16">
+            
+            {/* LEFT COLUMN: Context & Notices */}
+            <div className="flex flex-col justify-between gap-6">
               <div>
-                <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                  Complete name
-                </label>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="full-name"
-                    type="text"
-                    value={form.fullName}
-                    onChange={(e) => updateField("fullName", e.target.value)}
-                    placeholder="Juan Dela Cruz"
-                    autoComplete="name"
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                </div>
-              </div>
-
-              {/* School ID (Col 2) */}
-              <div>
-                <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                  School ID
-                </label>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="school-id"
-                    type="text"
-                    inputMode="numeric"
-                    value={form.schoolId}
-                    onChange={(e) => updateSchoolId(e.target.value)}
-                    placeholder="0000000000"
-                    pattern="[0-9]{10}"
-                    minLength={10}
-                    maxLength={10}
-                    autoComplete="off"
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                </div>
-              </div>
-
-              {/* Email (Full Width) */}
-              <div className="md:col-span-2">
-                <label htmlFor="school-email" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
-                  University email
-                </label>
-                <div className={inputWrapClass}>
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                  </svg>
-                  <input
-                    id="school-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => updateField("email", e.target.value)}
-                    placeholder={`yourname${SCHOOL_EMAIL_DOMAIN}`}
-                    autoComplete="email"
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                </div>
-                <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
-              </div>
-
-              {/* Password (Col 1) */}
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="registration-password" className="text-xs font-medium text-text-muted select-none cursor-default">
-                    Password
-                  </label>
-                  {capsLock && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
-                      <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
-                        <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
-                        <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
+                <header className="mb-6 space-y-6">
+                  {/* Uniform Top Navigation Bar */}
+                  <div className="flex items-center justify-between border-b border-border-subtle pb-5">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/login")}
+                      className="group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald shadow-sm transition-all duration-150 hover:border-emerald-500/60 hover:bg-emerald-500/20 active:scale-95"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
+                        <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                      Caps Lock
-                    </span>
-                  )}
-                </div>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="registration-password"
-                    type={showPassword ? "text" : "password"}
-                    value={form.password}
-                    onChange={(e) => updateField("password", e.target.value)}
-                    placeholder="At least 8 chars"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    disabled={isLoading}
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-                {/* Password strength bar */}
-                {passwordStrength && (
-                  <div className="mt-2 select-none cursor-default">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
-                      />
+                      <span>Back to Sign In</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 select-none">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                        &gt;_
+                      </div>
+                      <span className="text-xs font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
                     </div>
-                    <p className="mt-1.5 text-[11px] font-medium" style={{ color: passwordStrength.color }}>
-                      {passwordStrength.label}
-                    </p>
+                  </div>
+
+                  {/* Title & Step Indicator */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="select-none cursor-default">
+                      <h1 className="text-2xl lg:text-3xl font-bold text-text-main">Create your university account</h1>
+                      <p className="mt-2 text-sm text-text-muted">
+                        Your email will be verified before the account is activated.
+                      </p>
+                    </div>
+                    <div className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-[11px] font-medium text-text-emerald select-none cursor-default">
+                      Step 1 of 2
+                    </div>
+                  </div>
+                </header>
+
+                <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3 select-none cursor-default">
+                  <p className="text-[13px] leading-relaxed text-text-emerald">
+                    Your account role is assigned securely by the server. Verified university
+                    users register as students unless their email is included in the approved
+                    instructor allowlist.
+                  </p>
+                </section>
+                
+                {error && (
+                  <div role="alert" aria-live="polite" className="mt-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-text-rose">
+                    {error}
                   </div>
                 )}
               </div>
 
-              {/* Confirm password (Col 2) */}
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="confirm-password" className="text-xs font-medium text-text-muted select-none cursor-default">
-                    Confirm password
-                  </label>
-                </div>
-                <div className={inputWrapClass}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
-                    <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    id="confirm-password"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={form.confirmPassword}
-                    onChange={(e) => updateField("confirmPassword", e.target.value)}
-                    placeholder="Repeat password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                    disabled={isLoading}
-                    className={`${inputClass} disabled:opacity-50`}
-                    style={{ caretColor: "#10b981" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((v) => !v)}
-                    className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
-                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    disabled={isLoading}
-                  >
-                    {showConfirmPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Full Data Collection Notice (Full Width) */}
-              <div className="md:col-span-2 pt-1">
-                <section className="rounded-xl border border-border-subtle bg-bg-glass p-4 sm:p-5">
+              {/* Data Collection Notice */}
+              <section className="rounded-xl border border-border-subtle bg-bg-glass p-5 flex-1 flex flex-col justify-end">
+                <div>
                   <h2 className="mb-2.5 text-[13px] font-semibold text-text-main select-none cursor-default">Data collection notice</h2>
                   <p className="mb-3 text-[12px] leading-relaxed text-text-muted select-none cursor-default">
                     The platform records limited activity information during controlled
@@ -631,11 +458,200 @@ export default function Register() {
                       I have read and acknowledge the platform's data collection notice.
                     </span>
                   </label>
-                </section>
+                </div>
+              </section>
+            </div>
+
+            {/* RIGHT COLUMN: Form Inputs */}
+            <form onSubmit={handleRegistrationSubmit} className="flex flex-col gap-5" noValidate>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Full name */}
+                <div>
+                  <label htmlFor="full-name" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                    Complete name
+                  </label>
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="full-name"
+                      type="text"
+                      value={form.fullName}
+                      onChange={(e) => updateField("fullName", e.target.value)}
+                      placeholder="Juan Dela Cruz"
+                      autoComplete="name"
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                  </div>
+                </div>
+
+                {/* School ID */}
+                <div>
+                  <label htmlFor="school-id" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                    School ID
+                  </label>
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="school-id"
+                      type="text"
+                      inputMode="numeric"
+                      value={form.schoolId}
+                      onChange={(e) => updateSchoolId(e.target.value)}
+                      placeholder="0000000000"
+                      pattern="[0-9]{10}"
+                      minLength={10}
+                      maxLength={10}
+                      autoComplete="off"
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Footer Actions (Full Width) */}
-              <div className="md:col-span-2 mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border-subtle pt-6">
+              {/* Email */}
+              <div>
+                <label htmlFor="school-email" className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default">
+                  University email
+                </label>
+                <div className={inputWrapClass}>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                    <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                  </svg>
+                  <input
+                    id="school-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => updateField("email", e.target.value)}
+                    placeholder={`yourname${SCHOOL_EMAIL_DOMAIN}`}
+                    autoComplete="email"
+                    required
+                    disabled={isLoading}
+                    className={`${inputClass} disabled:opacity-50`}
+                    style={{ caretColor: "#10b981" }}
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] text-text-muted select-none cursor-default">Personal email accounts are not accepted.</p>
+              </div>
+
+              {/* Passwords */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Password */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label htmlFor="registration-password" className="text-xs font-medium text-text-muted select-none cursor-default">
+                      Password
+                    </label>
+                    {capsLock && (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
+                        <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
+                          <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
+                          <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
+                        </svg>
+                        Caps Lock
+                      </span>
+                    )}
+                  </div>
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="registration-password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => updateField("password", e.target.value)}
+                      placeholder="At least 8 chars"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      disabled={isLoading}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm password */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label htmlFor="confirm-password" className="text-xs font-medium text-text-muted select-none cursor-default">
+                      Confirm password
+                    </label>
+                  </div>
+                  <div className={inputWrapClass}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted" aria-hidden="true">
+                      <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={form.confirmPassword}
+                      onChange={(e) => updateField("confirmPassword", e.target.value)}
+                      placeholder="Repeat password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      disabled={isLoading}
+                      className={`${inputClass} disabled:opacity-50`}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      className="shrink-0 cursor-pointer text-xs text-text-muted transition-colors hover:text-text-main"
+                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password strength bar */}
+              {passwordStrength && (
+                <div className="select-none cursor-default">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] font-medium" style={{ color: passwordStrength.color }}>
+                    {passwordStrength.label}
+                  </p>
+                </div>
+              )}
+
+              {/* Spacer to push submit to bottom if needed */}
+              <div className="flex-1"></div>
+
+              {/* Footer Actions */}
+              <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border-subtle pt-6">
                 <p className="text-[13px] text-text-muted select-none cursor-default text-center sm:text-left">
                   Already have an account?{" "}
                   <button
@@ -659,12 +675,12 @@ export default function Register() {
                 </button>
               </div>
             </form>
-          </>
+          </div>
         )}
 
         {/* ── Step 2 — OTP verification ── */}
         {step === 2 && (
-          <>
+          <div className="max-w-[540px] m-auto">
             <header className="mb-8 space-y-6">
               {/* Uniform Top Navigation Bar */}
               <div className="flex items-center justify-between border-b border-border-subtle pb-5">
@@ -774,7 +790,7 @@ export default function Register() {
                 </button>
               </div>
             </form>
-          </>
+          </div>
         )}
       </div>
     </main>
