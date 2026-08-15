@@ -378,8 +378,8 @@ export default function Register() {
             
             {/* LEFT COLUMN: Form Inputs */}
             <div className="flex flex-col justify-center">
-              <div className="mb-3 select-none cursor-default">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="mb-12 select-none cursor-default">
+                <div className="flex items-center gap-3 mb-10">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 font-mono text-lg font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]">
                     &gt;_
                   </div>
@@ -391,12 +391,6 @@ export default function Register() {
                     Step 1 of 2
                   </span>
                 </div>
-                <p className="text-[13px] text-text-muted">
-                  Already have an account?{" "}
-                  <button onClick={() => navigate("/login")} className="font-semibold text-text-emerald transition-colors hover:text-emerald-400 hover:underline">
-                    Sign in here
-                  </button>
-                </p>
               </div>
 
               {error && (
@@ -606,6 +600,12 @@ export default function Register() {
                       )}
                     </span>
                   </button>
+                  <p className="mt-5 text-center text-[13px] text-text-muted">
+                    Already have an account?{" "}
+                    <button type="button" onClick={() => navigate("/login")} className="font-semibold text-text-emerald transition-colors hover:text-emerald-400 hover:underline">
+                      Sign in here
+                    </button>
+                  </p>
                 </div>
               </form>
             </div>
