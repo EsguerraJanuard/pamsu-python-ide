@@ -1,5 +1,5 @@
 from app.core.database import SessionLocal
-from app.core.security import password_context
+from app.core.security import get_password_hash
 from app.models.domain_models import User
 
 def seed_database():
@@ -9,7 +9,7 @@ def seed_database():
         db.query(User).delete()
         db.commit()
 
-        hashed_password = password_context.hash("Password123!")
+        hashed_password = get_password_hash("Password123!")
 
         instructor = User(
             name="Prof. Juan Dela Cruz",
