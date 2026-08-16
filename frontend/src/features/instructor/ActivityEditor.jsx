@@ -73,6 +73,8 @@ const ActivityEditor = () => {
           }, {}),
       };
 
+      delete payload.requirements;
+
       const response = await api.post('/instructors/tasks/', payload);
       
       // If single classroom was selected, navigate directly to that activity's page
