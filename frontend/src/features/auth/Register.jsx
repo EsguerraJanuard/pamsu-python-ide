@@ -24,49 +24,6 @@ import { ThemeToggle } from "../theme/ThemeToggle";
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const SCHOOL_ID_PATTERN = /^\d{10}$/;
 const SCHOOL_EMAIL_PATTERN = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-
-const features = [
-  {
-    label: "AST-driven structural feedback",
-    color: "#22c55e",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="7" stroke="#22c55e" strokeWidth="1.5" />
-        <path d="M5 8l2 2 4-4" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "Privacy-conscious behavioral indicators",
-    color: "#38bdf8",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="3" stroke="#38bdf8" strokeWidth="1.5" />
-        <circle cx="8" cy="8" r="6.5" stroke="#38bdf8" strokeWidth="1" strokeDasharray="2 2" />
-      </svg>
-    ),
-  },
-  {
-    label: "Instructor activity monitoring",
-    color: "#a78bfa",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <rect x="1" y="3" width="14" height="9" rx="1.5" stroke="#a78bfa" strokeWidth="1.5" />
-        <path d="M5 7h6M5 9.5h4" stroke="#a78bfa" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "Jaccard similarity review indicators",
-    color: "#fbbf24",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5 8 2z" stroke="#fbbf24" strokeWidth="1.3" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-];
 
 
 // ─── Password strength helper ─────────────────────────────────────────────────
@@ -171,11 +128,6 @@ export default function Register() {
 
   const passwordStrength = getPasswordStrength(form.password);
 
-  const inputWrapClass =
-    "auth-input-wrap flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass";
-  const inputClass =
-    "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted/50";
-
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -268,7 +220,7 @@ export default function Register() {
 
     try {
       // POST /registration/verify
-      const data = await api.post("/registration/verify", {
+      await api.post("/registration/verify", {
         challenge_id: challengeId,
         otp_code: otpCode,
       });
