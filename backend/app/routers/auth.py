@@ -12,7 +12,13 @@ from app.core.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     create_access_token,
     verify_password,
+    oauth2_scheme,
+    SECRET_KEY,
+    ALGORITHM,
 )
+from app.core.redis_client import redis_client
+from jose import jwt
+from datetime import datetime, timezone
 from app.models.domain_models import User
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 
@@ -152,3 +158,24 @@ def login(
 # The OAuth2 username field contains the verified university email.
 # The client cannot select or modify its account role.
 # JWT identity and role claims come only from the persisted User record.
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Revoke the current access token",
+)
+def logout(
+    token: str = Depends(oauth2_scheme)
+) -> None:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        
+        if jti and exp:
+            now = datetime.now(timezone.utc).timestamp()
+            ttl = int(exp - now)
+            if ttl > 0:
+                redis_client.setex(f"blacklist:{jti}", ttl, "revoked")
+    except Exception:
+        pass

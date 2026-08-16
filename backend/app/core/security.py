@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.domain_models import User
-
+from app.core.redis_client import redis_client
 
 settings = get_settings()
 
@@ -135,6 +135,10 @@ def get_current_user(
         user_id = int(subject)
 
         if user_id <= 0:
+            raise authentication_error
+
+        jti = payload.get("jti")
+        if jti and redis_client.get(f"blacklist:{jti}"):
             raise authentication_error
 
     except (

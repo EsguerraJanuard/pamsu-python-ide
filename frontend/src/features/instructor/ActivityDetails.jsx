@@ -86,7 +86,7 @@ const ActivityDetails = () => {
     if (!testCaseId) return;
 
     try {
-      await api.delete(`/test-cases/${testCaseId}`);
+      await api.delete(`/instructors/test-cases/${testCaseId}`);
       fetchTestCases();
       setConfirmModal({ isOpen: false, testCaseId: null });
     } catch (err) {

@@ -139,7 +139,7 @@ export default function InstructorDashboard() {
       progress: 0,
       color: "#a78bfa",
     },
-  ], [activeClassesCount, activitiesAuthoredCount]);
+  ], [activeClassesCount, activitiesAuthoredCount, reviewQueue]);
 
   // Map activities to UI format
   const auditLogs = useMemo(() => {

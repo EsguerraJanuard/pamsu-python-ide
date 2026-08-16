@@ -63,10 +63,14 @@ const ActivityEditor = () => {
         scheduled_publish_at: (!formData.is_published && formData.scheduled_publish_at) 
           ? new Date(formData.scheduled_publish_at).toISOString() 
           : null,
-        requirements: formData.requirements
+        required_ast_rules: formData.requirements
           .split(',')
           .map((req) => req.trim())
-          .filter((req) => req !== ''),
+          .filter((req) => req !== '')
+          .reduce((acc, req) => {
+             acc[req] = { required: true, min_count: 1 };
+             return acc;
+          }, {}),
       };
 
       const response = await api.post('/instructors/tasks/', payload);

@@ -24,8 +24,16 @@ const getAccessToken = () => {
   }
 };
 
-export const clearSessionTokens = () => {
+export const clearSessionTokens = async () => {
   try {
+    const token = localStorage.getItem('pamsu_access_token');
+    if (token) {
+      // Notify backend to blacklist the token
+      await fetch(`${BASE_URL}/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).catch(() => {});
+    }
     localStorage.removeItem('pamsu_access_token');
     localStorage.removeItem('pamsu_user_role');
   } catch {
