@@ -74,6 +74,14 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
+  const updateUser = useCallback((newUserData) => {
+    localStorage.setItem('pamsu_user_data', JSON.stringify(newUserData));
+    setAuthState((prev) => ({
+      ...prev,
+      user: newUserData,
+    }));
+  }, []);
+
   const value = {
     user: authState.user,
     role: authState.role,
@@ -82,6 +90,7 @@ export const AuthProvider = ({ children }) => {
     isLoading: authState.isLoading,
     login,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -97,6 +97,12 @@ function LayoutDashboardIcon(props) {
   );
 }
 
+function BookOpenIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+  );
+}
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
@@ -133,7 +139,7 @@ export default function StudentDashboard() {
       ]);
       setClassrooms(classRes);
       
-      const completedSubmissions = subRes.filter(s => s.status === 'submitted' || s.status === 'graded');
+      const completedSubmissions = subRes.filter(s => s.status === 'submitted' || s.status === 'graded' || s.status === 'awaiting_review');
       const uniqueCompletedTaskIds = new Set(completedSubmissions.map(s => s.task_id));
       setCompletedCount(uniqueCompletedTaskIds.size);
       
@@ -151,15 +157,19 @@ export default function StudentDashboard() {
         const due = task.due_at ? new Date(task.due_at) : null;
         let status = "in_progress";
         let dueLabel = "No due date";
+        
         if (due) {
           dueLabel = `Due: ${due.toLocaleDateString()}`;
-          if (due < new Date()) {
-            status = "submitted"; // or past_due
-            dueLabel = "Submission closed";
-          } else {
-             // simplified logic
-             status = "in_progress";
-          }
+        }
+        
+        // Find if this task has a submission
+        const submission = subRes.find(s => s.task_id === task.task_id);
+        
+        if (submission) {
+          status = submission.status === 'awaiting_review' ? 'submitted' : submission.status;
+        } else if (due && due < new Date()) {
+          status = "past_due";
+          dueLabel = "Submission closed";
         }
         
         return {

@@ -231,7 +231,7 @@ def test_existing_email_blocks_registration(
 
     with pytest.raises(
         RegistrationConflictError,
-        match="university email",
+        match="(?i)university email",
     ):
         start_registration(
             db=db_session,
@@ -262,7 +262,7 @@ def test_existing_school_id_blocks_registration(
 
     with pytest.raises(
         RegistrationConflictError,
-        match="school ID",
+        match="(?i)school ID",
     ):
         start_registration(
             db=db_session,

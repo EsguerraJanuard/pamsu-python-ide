@@ -22,22 +22,6 @@ n = int(input())
 print(fibonacci(n))
 `;
 
-const PREVIEW_ACTIVITY = {
-  courseCode: "CCS101",
-  title: "Lab Activity 3 — Fibonacci Sequence",
-  fileName: "main.py",
-  activityType: "Graded laboratory",
-  dueLabel: "Preview activity",
-  description:
-    "Write a Python program that generates the first n Fibonacci numbers.",
-  requirements: [
-    "Define and call a function",
-    "Use a loop",
-    "Accept input using input()",
-    "Display the generated sequence",
-  ],
-  expectedOutput: "[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]",
-};
 
 const EXECUTION_STATUS = {
   idle: {
@@ -91,17 +75,17 @@ function formatEventTime() {
 export default function Workspace() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const activityId = searchParams.get("activity") || "preview";
+  const activityId = searchParams.get("activity");
   const draftStorageKey = `pamsu-workspace-draft-${activityId}`;
 
   const editorRef = useRef(null);
   
-  const [activity, setActivity] = useState(PREVIEW_ACTIVITY);
+  const [activity, setActivity] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (activityId === "preview") {
+    if (!activityId) {
       setIsLoading(false);
       return;
     }
@@ -188,15 +172,13 @@ export default function Workspace() {
       clearTimeout(clearTimer);
     };
   }, [notice]);
-  const [internalClipboard, setInternalClipboard] =
-    useState("");
-  const [blockedPasteCount, setBlockedPasteCount] =
-    useState(0);
-  const [lastBlockedPasteAt, setLastBlockedPasteAt] =
-    useState("");
+  const [internalClipboard, setInternalClipboard] = useState("");
+  const [blockedPasteCount, setBlockedPasteCount] = useState(0);
+  const [lastBlockedPasteAt, setLastBlockedPasteAt] = useState("");
+  const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [showBehaviorNotice, setShowBehaviorNotice] =
-    useState(false);
+  const [runAttemptCount, setRunAttemptCount] = useState(0);
+  const [showBehaviorNotice, setShowBehaviorNotice] = useState(false);
 
   const [showProblemPanel, setShowProblemPanel] = useState(
     () => window.matchMedia("(min-width: 1280px)").matches,
@@ -403,6 +385,7 @@ export default function Workspace() {
   const recordBlockedPaste = () => {
     setBlockedPasteCount((currentCount) => currentCount + 1);
     setLastBlockedPasteAt(formatEventTime());
+    setLastBlockedPasteIso(new Date().toISOString());
     setNotice("External clipboard paste was blocked. Use the internal IDE copy/paste controls.");
   };
 
@@ -456,12 +439,14 @@ export default function Workspace() {
   };
 
   const handleRun = async () => {
-    if (activityId === "preview") {
+    if (!activityId) {
       setExecutionStatus("unavailable");
       setActivePanel("output");
-      setOutput("Preview mode: Backend isolated.");
+      setOutput("No activity selected.");
       return;
     }
+
+    setRunAttemptCount((count) => count + 1);
 
     setExecutionStatus("running");
     setActivePanel("output");
@@ -487,12 +472,14 @@ export default function Workspace() {
   };
 
   const handleCheck = async () => {
-    if (activityId === "preview") {
+    if (!activityId) {
       setExecutionStatus("unavailable");
       setActivePanel("analysis");
-      setNotice("AST checking requires the authenticated backend analysis endpoint.");
+      setNotice("No activity selected.");
       return;
     }
+
+    setRunAttemptCount((count) => count + 1);
 
     setExecutionStatus("running");
     setActivePanel("analysis");
@@ -560,17 +547,33 @@ export default function Workspace() {
   };
 
   const handleSubmit = async () => {
-    if (activityId === "preview") {
+    if (!activityId) {
       setExecutionStatus("unavailable");
-      setNotice("Cannot submit in preview mode.");
+      setNotice("No activity selected.");
       return;
     }
 
     try {
-      await api.post("/submissions/", {
+      const res = await api.post("/submissions/", {
         task_id: parseInt(activityId),
         raw_code: code,
       });
+      
+      const subId = res.sub_id;
+      
+      try {
+        await api.post("/logs/behavioral/", {
+          sub_id: subId,
+          tab_switches_count: tabSwitchCount,
+          blocked_paste_count: blockedPasteCount,
+          run_attempt_count: runAttemptCount,
+          idle_duration_seconds: 0,
+          ...(lastBlockedPasteIso && { last_blocked_paste_at: lastBlockedPasteIso })
+        });
+      } catch (logErr) {
+        console.error("Telemetry sync failed", logErr);
+      }
+
       setNotice("Code submitted successfully!");
       // Optionally navigate away or update state
       setTimeout(() => navigate("/student/assignments"), 1500);
@@ -621,6 +624,17 @@ export default function Workspace() {
     setShowProblemPanel(false);
     setShowReviewPanel(false);
   };
+
+  if (isLoading || !activity) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-base text-text-muted">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
+          <p className="text-sm font-semibold tracking-wide">Loading workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">

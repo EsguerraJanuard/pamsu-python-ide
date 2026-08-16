@@ -150,9 +150,10 @@ export default function Assignments() {
   const fetchActivities = async () => {
     setIsLoading(true);
     try {
-      const [classRes, activityRes] = await Promise.all([
+      const [classRes, activityRes, subRes] = await Promise.all([
         api.get("/classrooms/mine"),
-        api.get("/activities/")
+        api.get("/activities/"),
+        api.get("/submissions/")
       ]);
       
       const classMap = {};
@@ -160,18 +161,30 @@ export default function Assignments() {
         classMap[c.classroom.class_id] = c.classroom.subject_code;
       });
 
+      // Build a map of task_id to submission status
+      const submissionMap = {};
+      subRes.forEach(s => {
+        let st = s.status;
+        if (st === 'awaiting_review') st = 'submitted';
+        if (!submissionMap[s.task_id] || st === 'graded' || st === 'submitted') {
+            submissionMap[s.task_id] = st;
+        }
+      });
+
       const mappedActivities = activityRes.map(task => {
         const due = task.due_at ? new Date(task.due_at) : null;
         let status = "in_progress";
         let dueLabel = "No due date";
+        
         if (due) {
           dueLabel = `Due: ${due.toLocaleDateString()}`;
-          if (due < new Date()) {
-            status = "submitted"; 
-            dueLabel = "Submission closed";
-          } else {
-             status = "in_progress";
-          }
+        }
+        
+        if (submissionMap[task.task_id]) {
+          status = submissionMap[task.task_id];
+        } else if (due && due < new Date()) {
+          status = "past_due";
+          dueLabel = "Submission closed";
         }
         
         return {

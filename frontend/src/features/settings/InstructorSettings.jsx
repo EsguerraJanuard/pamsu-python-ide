@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 import CustomSelect from "../../components/ui/CustomSelect";
+import { api, ApiError } from "../../services/api";
+
 export default function InstructorSettings() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [saved, setSaved] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -18,12 +20,14 @@ export default function InstructorSettings() {
     liveMonitoringAlerts: true,
   });
 
+  const [errorMsg, setErrorMsg] = useState(null);
+
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
         ...prev,
-        name: user.name || user.fullName || "Faculty Instructor",
-        email: user.email || "instructor@pamsu.edu.ph",
+        name: user.name || user.fullName || prev.name,
+        email: user.email || prev.email,
       }));
     }
   }, [user]);
@@ -36,10 +40,31 @@ export default function InstructorSettings() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setErrorMsg(null);
+    setSaved(false);
+
+    try {
+      const updatedUser = await api.patch("/users/me", {
+        name: formData.name.trim(),
+      });
+      
+      // Update global auth context
+      updateUser({
+        ...user,
+        name: updatedUser.name,
+      });
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMsg(error.details || error.message);
+      } else {
+        setErrorMsg("Failed to update profile. Please try again.");
+      }
+    }
   };
 
   return (
@@ -59,6 +84,12 @@ export default function InstructorSettings() {
             </p>
           </div>
         </header>
+
+        {errorMsg && (
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+            {errorMsg}
+          </div>
+        )}
 
         {saved && (
           <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-text-emerald">

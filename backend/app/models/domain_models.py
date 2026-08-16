@@ -56,6 +56,11 @@ class User(Base):
         String(255),
         nullable=False,
     )
+    password_version = Column(
+        Integer,
+        nullable=False,
+        default=1,
+    )
     email_verified = Column(
         Boolean,
         nullable=False,

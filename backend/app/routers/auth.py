@@ -143,6 +143,7 @@ def login(
             "role": user.role,
             "name": user.name,
             "email": user.email,
+            "pwd_ver": user.password_version,
         },
         expires_delta=access_token_expires,
     )

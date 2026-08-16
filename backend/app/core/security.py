@@ -140,6 +140,8 @@ def get_current_user(
         jti = payload.get("jti")
         if jti and redis_client.get(f"blacklist:{jti}"):
             raise authentication_error
+        
+        pwd_ver = payload.get("pwd_ver", 1)
 
     except (
         JWTError,
@@ -157,6 +159,9 @@ def get_current_user(
     )
 
     if user is None:
+        raise authentication_error
+
+    if pwd_ver != user.password_version:
         raise authentication_error
 
     if not user.is_active:

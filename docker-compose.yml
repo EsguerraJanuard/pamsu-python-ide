@@ -30,6 +30,8 @@ services:
       # Override DATABASE_URL to point to the 'db' service instead of localhost
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-devpassword123}@db:5432/${POSTGRES_DB:-pamsu_ide_db}
       - REDIS_URL=redis://redis:6379/0
+      - JUDGE0_API_URL=http://mock_judge0:8001
+      - WEBHOOK_BASE_URL=http://backend:8000
     ports:
       - "8000:8000"
     volumes:
@@ -37,6 +39,7 @@ services:
     depends_on:
       - db
       - redis
+      - mock_judge0
 
   celery_worker:
     build:
@@ -47,12 +50,24 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-devpassword123}@db:5432/${POSTGRES_DB:-pamsu_ide_db}
       - REDIS_URL=redis://redis:6379/0
+      - JUDGE0_API_URL=http://mock_judge0:8001
+      - WEBHOOK_BASE_URL=http://backend:8000
     volumes:
       - ./backend:/app
     depends_on:
       - db
       - redis
       - backend
+      - mock_judge0
+
+  mock_judge0:
+    build:
+      context: ./mock_judge0
+    container_name: pamsu_mock_judge0
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
 
   frontend:
     build:

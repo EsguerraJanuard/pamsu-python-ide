@@ -56,14 +56,15 @@ export default function ClassDetails() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [classRes, activityRes, membersRes] = await Promise.all([
-          api.get("/classrooms/mine"),
-          api.get("/activities/"),
-          api.get(`/classrooms/${id}/members`).catch(() => [])
+        const [classRes, activityRes, membersRes, subRes] = await Promise.all([
+          api.get(`/classrooms/${id}`),
+          api.get(`/activities/`),
+          api.get(`/classrooms/${id}/members`).catch(() => []),
+          api.get(`/submissions/`)
         ]);
         
-        const currentClass = classRes.find(c => String(c.classroom.class_id) === String(id));
-        if (currentClass) {
+        const currentClass = classRes;
+        if (currentClass && currentClass.classroom) {
           setClassroom(currentClass.classroom);
         }
         
@@ -75,6 +76,16 @@ export default function ClassDetails() {
           return new Date(task.due_at) >= new Date();
         }).length;
         setTotalActivitiesCount(activeCount);
+        
+        // Build a map of task_id to submission status
+        const submissionMap = {};
+        subRes.forEach(s => {
+          let st = s.status;
+          if (st === 'awaiting_review') st = 'submitted';
+          if (!submissionMap[s.task_id] || st === 'graded' || st === 'submitted') {
+              submissionMap[s.task_id] = st;
+          }
+        });
 
         const classActivities = activityRes
           .filter(task => String(task.class_id) === String(id))
@@ -82,13 +93,18 @@ export default function ClassDetails() {
             const due = task.due_at ? new Date(task.due_at) : null;
             let status = "in_progress";
             let dueLabel = "No due date";
+            
             if (due) {
               dueLabel = `Due: ${due.toLocaleDateString()}`;
-              if (due < new Date()) {
-                status = "submitted";
-                dueLabel = "Submission closed";
-              }
             }
+            
+            if (submissionMap[task.task_id]) {
+              status = submissionMap[task.task_id];
+            } else if (due && due < new Date()) {
+              status = "past_due";
+              dueLabel = "Submission closed";
+            }
+            
             return {
               id: task.task_id,
               title: task.title,

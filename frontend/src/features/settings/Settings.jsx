@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
+import { api, ApiError } from "../../services/api";
+import { useAuth } from "../auth/AuthContext";
 
 const PREVIEW_PROFILE = {
 
@@ -18,74 +20,6 @@ const PREVIEW_PROFILE = {
 
 
 
-function getStoredProfile() {
-
-  try {
-
-    const storedUser = sessionStorage.getItem("user");
-
-
-
-    if (!storedUser) {
-
-      return PREVIEW_PROFILE;
-
-    }
-
-
-
-    const user = JSON.parse(storedUser);
-
-
-
-    return {
-
-      fullName:
-
-        user.fullName ||
-
-        user.full_name ||
-
-        user.name ||
-
-        PREVIEW_PROFILE.fullName,
-
-      schoolId:
-
-        user.schoolId ||
-
-        user.school_id ||
-
-        user.institutionalId ||
-
-        user.institutional_id ||
-
-        PREVIEW_PROFILE.schoolId,
-
-      email: user.email || PREVIEW_PROFILE.email,
-
-      courseCode:
-
-        user.courseCode ||
-
-        user.course_code ||
-
-        user.course ||
-
-        PREVIEW_PROFILE.courseCode,
-
-      section: user.section || PREVIEW_PROFILE.section,
-
-    };
-
-  } catch {
-
-    return PREVIEW_PROFILE;
-
-  }
-
-}
-
 
 
 function SettingsIcon(props) {
@@ -95,8 +29,26 @@ function SettingsIcon(props) {
 }
 
 export default function Settings() {
-
-  const [profile, setProfile] = useState(getStoredProfile);
+  const { user, updateUser } = useAuth();
+  
+  const [profile, setProfile] = useState({
+    fullName: user?.name || user?.fullName || "Student Account",
+    schoolId: user?.school_id || user?.schoolId || "0000000000",
+    email: user?.email || "student@pampangastateu.edu.ph",
+    courseCode: user?.course_code || user?.courseCode || "No active class",
+    section: user?.section || "Not assigned",
+  });
+  
+  useEffect(() => {
+    if (user) {
+      setProfile(prev => ({
+        ...prev,
+        fullName: user.name || user.fullName || prev.fullName,
+        schoolId: user.school_id || user.schoolId || prev.schoolId,
+        email: user.email || prev.email,
+      }));
+    }
+  }, [user]);
 
   const [passwords, setPasswords] = useState({
 
@@ -176,138 +128,92 @@ export default function Settings() {
 
 
 
-  const handleSaveProfile = (event) => {
-
+  const handleSaveProfile = async (event) => {
     event.preventDefault();
 
-
-
     if (profile.fullName.trim().length < 3) {
-
       setProfileMessage("Enter your complete name.");
-
       return;
-
     }
 
+    try {
+      const updatedUser = await api.patch("/users/me", {
+        name: profile.fullName.trim(),
+      });
+      
+      // Update global auth context and local storage
+      updateUser({
+        ...user,
+        name: updatedUser.name,
+      });
 
-
-    /*
-
-     * Backend integration will be added after the authenticated
-
-     * profile API contract and centralized API client are finalized.
-
-     *
-
-     * Only editable profile fields should be sent.
-
-     * Verified school ID and email must not be changed here.
-
-     */
-
-    setProfileMessage(
-
-      "Profile editing is ready, but saving is not connected to the backend yet.",
-
-    );
-
+      setProfileMessage("Profile updated successfully.");
+    } catch (error) {
+      setProfileMessage(
+        error instanceof ApiError ? error.message : "Failed to update profile."
+      );
+    }
   };
 
 
 
-  const handleChangePassword = (event) => {
-
+  const handleChangePassword = async (event) => {
     event.preventDefault();
 
-
-
     if (!passwords.currentPassword) {
-
       setPasswordMessageType("error");
-
       setPasswordMessage("Enter your current password.");
-
       return;
-
     }
-
-
 
     if (passwords.newPassword.length < 8) {
-
       setPasswordMessageType("error");
-
       setPasswordMessage(
-
         "The new password must contain at least 8 characters.",
-
       );
-
       return;
-
     }
 
-
-
     if (
-
       passwords.newPassword !== passwords.confirmPassword
-
     ) {
-
       setPasswordMessageType("error");
-
       setPasswordMessage("The new passwords do not match.");
-
       return;
-
     }
-
-
 
     if (
-
       passwords.currentPassword === passwords.newPassword
-
     ) {
-
       setPasswordMessageType("error");
-
       setPasswordMessage(
-
         "The new password must be different from the current password.",
-
       );
-
       return;
-
     }
 
+    try {
+      await api.patch("/users/me/password", {
+        current_password: passwords.currentPassword,
+        new_password: passwords.newPassword,
+        confirm_password: passwords.confirmPassword,
+      });
 
-
-    /*
-
-     * The backend must:
-
-     * 1. Verify the current password.
-
-     * 2. Validate the new password.
-
-     * 3. Hash the new password securely.
-
-     * 4. Revoke old sessions when required.
-
-     */
-
-    setPasswordMessageType("info");
-
-    setPasswordMessage(
-
-      "Password validation is ready, but password updating is not connected to the backend yet.",
-
-    );
-
+      setPasswordMessageType("info");
+      setPasswordMessage("Password changed successfully! You may be asked to log in again on other devices.");
+      
+      // Clear password fields
+      setPasswords({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      setPasswordMessageType("error");
+      setPasswordMessage(
+        error instanceof ApiError ? error.message : "Failed to change password."
+      );
+    }
   };
 
 

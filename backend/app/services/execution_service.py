@@ -603,6 +603,10 @@ def create_student_execution_request(
 
         db.refresh(execution_request)
 
+        # Dispatch task to partner via celery
+        from app.tasks.celery_worker import dispatch_to_partner
+        dispatch_to_partner.delay(str(execution_request.execution_id))
+
         return execution_request
 
     try:
@@ -634,6 +638,10 @@ def create_student_execution_request(
         ) from error
 
     db.refresh(execution_request)
+
+    # Dispatch task to partner via celery
+    from app.tasks.celery_worker import dispatch_to_partner
+    dispatch_to_partner.delay(str(execution_request.execution_id))
 
     return execution_request
 
