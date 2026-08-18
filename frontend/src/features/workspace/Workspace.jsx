@@ -234,25 +234,23 @@ export default function Workspace() {
   }, [code, draftStorageKey]);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        return;
-      }
-
+    const handleLossOfFocus = () => {
       setTabSwitchCount((currentCount) => currentCount + 1);
       setShowBehaviorNotice(true);
     };
 
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibilityChange,
-    );
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleLossOfFocus();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleLossOfFocus);
 
     return () => {
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange,
-      );
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleLossOfFocus);
     };
   }, []);
 
