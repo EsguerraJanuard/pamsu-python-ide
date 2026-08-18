@@ -625,13 +625,21 @@ export default function Workspace() {
     setShowReviewPanel(false);
   };
 
-  if (isLoading || !activity) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base text-text-muted">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
           <p className="text-sm font-semibold tracking-wide">Loading workspace...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!activity) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-base text-text-muted">
+         <p className="text-sm font-semibold tracking-wide">No activity selected.</p>
       </div>
     );
   }

@@ -29,7 +29,7 @@ function SettingsIcon(props) {
 }
 
 export default function Settings() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   
   const [profile, setProfile] = useState({
     fullName: user?.name || user?.fullName || "Student Account",
@@ -200,8 +200,12 @@ export default function Settings() {
       });
 
       setPasswordMessageType("info");
-      setPasswordMessage("Password changed successfully! You may be asked to log in again on other devices.");
+      setPasswordMessage("Password changed successfully! Please log in again.");
       
+      // Auto logout to refresh token claims
+      setTimeout(() => {
+        logout();
+      }, 2000);
       // Clear password fields
       setPasswords({
         currentPassword: "",

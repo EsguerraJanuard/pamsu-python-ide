@@ -57,13 +57,13 @@ export default function ClassDetails() {
       setIsLoading(true);
       try {
         const [classRes, activityRes, membersRes, subRes] = await Promise.all([
-          api.get(`/classrooms/${id}`),
+          api.get(`/classrooms/mine`),
           api.get(`/activities/`),
           api.get(`/classrooms/${id}/members`).catch(() => []),
           api.get(`/submissions/`)
         ]);
         
-        const currentClass = classRes;
+        const currentClass = classRes.find(c => String(c.classroom.class_id) === String(id));
         if (currentClass && currentClass.classroom) {
           setClassroom(currentClass.classroom);
         }

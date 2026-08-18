@@ -17,16 +17,7 @@
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      window.addEventListener('error', function(e) {
-        var errStr = e.error ? e.error.stack : e.message;
-        document.body.innerHTML += '<div style="position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:20px;font-size:16px;width:100%;font-family:monospace;white-space:pre-wrap;">' + errStr + '</div>';
-      });
-      window.addEventListener('unhandledrejection', function(e) {
-        var errStr = e.reason ? (e.reason.stack || e.reason.message) : "Unhandled Rejection";
-        document.body.innerHTML += '<div style="position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:20px;font-size:16px;width:100%;font-family:monospace;white-space:pre-wrap;">' + errStr + '</div>';
-      });
-    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
