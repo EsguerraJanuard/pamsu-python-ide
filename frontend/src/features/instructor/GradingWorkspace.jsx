@@ -144,6 +144,12 @@ const GradingWorkspace = () => {
                                     {telemetry?.blocked_paste_count || 0}
                                 </span>
                             </p>
+                            <p className="flex justify-between">
+                                <span className="text-text-muted">Mouse Exits:</span>
+                                <span className={telemetry?.mouseleave_count > 5 ? 'text-text-amber font-bold' : 'text-text-main'}>
+                                    {telemetry?.mouseleave_count || 0}
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <div className="bg-bg-glass p-4 rounded-xl border border-border-subtle">

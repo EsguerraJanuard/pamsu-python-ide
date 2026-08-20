@@ -304,6 +304,7 @@ def test_complete_evaluation_workflow(
             "sub_id": sub_id,
             "tab_switches_count": 3,
             "blocked_paste_count": 1,
+            "mouseleave_count": 2,
             "run_attempt_count": 2,
             "idle_duration_seconds": 30,
             "last_blocked_paste_at": None,
@@ -317,6 +318,7 @@ def test_complete_evaluation_workflow(
     assert log_data["sub_id"] == sub_id
     assert log_data["tab_switches_count"] == 3
     assert log_data["blocked_paste_count"] == 1
+    assert log_data["mouseleave_count"] == 2
     assert log_data["run_attempt_count"] == 2
     assert log_data["idle_duration_seconds"] == 30
 

@@ -817,6 +817,10 @@ class BehavioralLog(Base):
             name="ck_logs_blocked_paste",
         ),
         CheckConstraint(
+            "mouseleave_count >= 0",
+            name="ck_logs_mouseleave",
+        ),
+        CheckConstraint(
             "run_attempt_count >= 0",
             name="ck_logs_run_attempts",
         ),
@@ -846,6 +850,11 @@ class BehavioralLog(Base):
         nullable=False,
     )
     blocked_paste_count = Column(
+        Integer,
+        default=0,
+        nullable=False,
+    )
+    mouseleave_count = Column(
         Integer,
         default=0,
         nullable=False,
@@ -897,6 +906,10 @@ class CodingSession(Base):
         CheckConstraint(
             "blocked_paste_count >= 0",
             name="ck_sessions_blocked_paste",
+        ),
+        CheckConstraint(
+            "mouseleave_count >= 0",
+            name="ck_sessions_mouseleave",
         ),
         CheckConstraint(
             "run_attempt_count >= 0",
@@ -951,6 +964,11 @@ class CodingSession(Base):
         default=0,
     )
     blocked_paste_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    mouseleave_count = Column(
         Integer,
         nullable=False,
         default=0,

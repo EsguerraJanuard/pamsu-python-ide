@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class BehavioralLogBase(BaseModel):
     tab_switches_count: int = Field(default=0, ge=0)
     blocked_paste_count: int = Field(default=0, ge=0)
+    mouseleave_count: int = Field(default=0, ge=0)
     run_attempt_count: int = Field(default=0, ge=0)
     idle_duration_seconds: int = Field(default=0, ge=0)
     last_blocked_paste_at: datetime | None = None
@@ -24,6 +25,7 @@ class BehavioralLogCreate(BehavioralLogBase):
 class BehavioralLogUpdate(BaseModel):
     tab_switches_count: int | None = Field(default=None, ge=0)
     blocked_paste_count: int | None = Field(default=None, ge=0)
+    mouseleave_count: int | None = Field(default=None, ge=0)
     run_attempt_count: int | None = Field(default=None, ge=0)
     idle_duration_seconds: int | None = Field(default=None, ge=0)
     last_blocked_paste_at: datetime | None = None

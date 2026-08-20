@@ -11,6 +11,7 @@ from pydantic import (
 
 MAX_TAB_SWITCH_INCREMENT = 100
 MAX_BLOCKED_PASTE_INCREMENT = 100
+MAX_MOUSELEAVE_INCREMENT = 500
 MAX_IDLE_INCREMENT_SECONDS = 3600
 
 
@@ -69,6 +70,16 @@ class CodingSessionActivityUpdate(BaseModel):
         description=(
             "Number of newly blocked external-paste attempts. "
             "Clipboard or pasted content must never be included."
+        ),
+    )
+
+    mouseleave_increment: int = Field(
+        default=0,
+        ge=0,
+        le=MAX_MOUSELEAVE_INCREMENT,
+        description=(
+            "Number of times the mouse left the browser viewport since the "
+            "previous successful session update."
         ),
     )
 
@@ -142,6 +153,15 @@ class CodingSessionResponseBase(BaseModel):
         description=(
             "Aggregate number of blocked external-paste attempts. "
             "No clipboard content is stored."
+        ),
+    )
+
+    mouseleave_count: int = Field(
+        ...,
+        ge=0,
+        description=(
+            "Aggregate number of times the mouse left the browser viewport "
+            "during the session."
         ),
     )
 

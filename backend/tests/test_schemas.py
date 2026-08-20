@@ -334,11 +334,13 @@ def test_behavioral_log_rejects_negative_count():
         BehavioralLogCreate(
             sub_id=1,
             tab_switches_count=-1,
+            mouseleave_count=-1,
         )
 
     error_locations = {item["loc"] for item in error.value.errors()}
 
     assert ("tab_switches_count",) in error_locations
+    assert ("mouseleave_count",) in error_locations
 
 
 def test_submission_response_rejects_out_of_range_jaccard():

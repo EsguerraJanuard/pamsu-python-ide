@@ -174,6 +174,7 @@ export default function Workspace() {
   }, [notice]);
   const [internalClipboard, setInternalClipboard] = useState("");
   const [blockedPasteCount, setBlockedPasteCount] = useState(0);
+  const [mouseLeaveCount, setMouseLeaveCount] = useState(0);
   const [lastBlockedPasteAt, setLastBlockedPasteAt] = useState("");
   const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
@@ -245,12 +246,19 @@ export default function Workspace() {
       }
     };
 
+    const handleMouseLeave = () => {
+      setMouseLeaveCount((currentCount) => currentCount + 1);
+      setShowBehaviorNotice(true);
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("blur", handleLossOfFocus);
+    document.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleLossOfFocus);
+      document.removeEventListener("mouseleave", handleMouseLeave);
     };
   }, []);
 
@@ -502,6 +510,7 @@ export default function Workspace() {
           sub_id: subId,
           tab_switches_count: tabSwitchCount,
           blocked_paste_count: blockedPasteCount,
+          mouseleave_count: mouseLeaveCount,
           run_attempt_count: runAttemptCount,
           idle_duration_seconds: 0,
           ...(lastBlockedPasteIso && { last_blocked_paste_at: lastBlockedPasteIso })
@@ -690,10 +699,11 @@ export default function Workspace() {
           >
             <span className="truncate">
               Recorded: {tabSwitchCount} tab{" "}
-              {tabSwitchCount === 1 ? "switch" : "switches"} and{" "}
-              {blockedPasteCount} blocked paste{" "}
-              {blockedPasteCount === 1 ? "attempt" : "attempts"}.
-              Clipboard contents are not stored.
+              {tabSwitchCount === 1 ? "switch" : "switches"}, {" "}
+              {blockedPasteCount} blocked {" "}
+              {blockedPasteCount === 1 ? "paste" : "pastes"}, and {" "}
+              {mouseLeaveCount} mouse {" "}
+              {mouseLeaveCount === 1 ? "exit" : "exits"}.
             </span>
 
             <button

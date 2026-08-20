@@ -273,6 +273,7 @@ def start_or_resume_student_coding_session(
         last_activity_at=now,
         tab_switch_count=0,
         blocked_paste_count=0,
+        mouseleave_count=0,
         run_attempt_count=0,
         idle_duration_seconds=0,
         last_blocked_paste_at=None,
@@ -378,6 +379,12 @@ def update_student_coding_session_activity(
         current_value=(coding_session.blocked_paste_count),
         increment=(activity_data.blocked_paste_increment),
         counter_name="Blocked-paste count",
+    )
+
+    coding_session.mouseleave_count = _safe_counter_total(
+        current_value=(coding_session.mouseleave_count),
+        increment=(activity_data.mouseleave_increment),
+        counter_name="Mouseleave count",
     )
 
     coding_session.idle_duration_seconds = _safe_counter_total(

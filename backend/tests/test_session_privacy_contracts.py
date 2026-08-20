@@ -132,6 +132,7 @@ def test_behavioral_log_database_has_only_approved_fields():
         "sub_id",
         "tab_switches_count",
         "blocked_paste_count",
+        "mouseleave_count",
         "run_attempt_count",
         "idle_duration_seconds",
         "last_blocked_paste_at",

@@ -29,6 +29,7 @@ router = APIRouter(
 MONOTONIC_INDICATOR_FIELDS = {
     "tab_switches_count",
     "blocked_paste_count",
+    "mouseleave_count",
     "run_attempt_count",
     "idle_duration_seconds",
 }
@@ -217,6 +218,7 @@ def create_behavioral_log(
         sub_id=log_data.sub_id,
         tab_switches_count=log_data.tab_switches_count,
         blocked_paste_count=log_data.blocked_paste_count,
+        mouseleave_count=log_data.mouseleave_count,
         run_attempt_count=log_data.run_attempt_count,
         idle_duration_seconds=log_data.idle_duration_seconds,
         last_blocked_paste_at=log_data.last_blocked_paste_at,
