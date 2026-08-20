@@ -224,7 +224,7 @@ const LiveMonitoring = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredSessions.map((session) => {
-            const hasWarning = session.tab_switches > 3;
+            const hasWarning = session.tab_switch_count > 3;
             
             return (
               <div 
@@ -276,7 +276,7 @@ const LiveMonitoring = () => {
                       Tab Switches
                     </span>
                     <span className={`font-mono text-lg font-bold ${hasWarning ? 'text-text-amber' : 'text-text-main'}`}>
-                      {session.tab_switches || 0}
+                      {session.tab_switch_count || 0}
                     </span>
                   </div>
 
@@ -288,7 +288,7 @@ const LiveMonitoring = () => {
                       Paste Count
                     </span>
                     <span className="font-mono text-lg font-semibold text-text-main">
-                      {session.paste_count || 0}
+                      {session.blocked_paste_count || 0}
                     </span>
                   </div>
                 </div>

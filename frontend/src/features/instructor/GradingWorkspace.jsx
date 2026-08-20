@@ -12,11 +12,18 @@ const GradingWorkspace = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [telemetry, setTelemetry] = useState(null);
 
     useEffect(() => {
         const fetchSubmission = async () => {
             try {
                 const response = await api.get(`/evaluation/submissions/${id}`);
+                try {
+                    const telRes = await api.get(`/logs/behavioral/submission/${id}`);
+                    setTelemetry(telRes);
+                } catch(e) {
+                    console.error('Failed to fetch telemetry', e);
+                }
                 setSubmissionData(response);
                 // Pre-fill if already graded
                 if (response.submission?.grade_score !== null && response.submission?.grade_score !== undefined) {
@@ -118,6 +125,39 @@ const GradingWorkspace = () => {
                     <p className="text-sm text-text-muted">
                         Task: <span className="text-text-main">{submission?.task?.title || submission?.task_id || 'Unknown'}</span>
                     </p>
+                </div>
+
+                {/* Telemetry and Similarity Section */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-bg-glass p-4 rounded-xl border border-border-subtle">
+                        <h3 className="text-sm font-semibold text-text-main mb-2">Telemetry</h3>
+                        <div className="space-y-1 text-sm">
+                            <p className="flex justify-between">
+                                <span className="text-text-muted">Tab Switches:</span>
+                                <span className={telemetry?.tab_switches_count > 3 ? 'text-text-rose font-bold' : 'text-text-main'}>
+                                    {telemetry?.tab_switches_count || 0}
+                                </span>
+                            </p>
+                            <p className="flex justify-between">
+                                <span className="text-text-muted">Blocked Pastes:</span>
+                                <span className={telemetry?.blocked_paste_count > 0 ? 'text-text-amber font-bold' : 'text-text-main'}>
+                                    {telemetry?.blocked_paste_count || 0}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-bg-glass p-4 rounded-xl border border-border-subtle">
+                        <h3 className="text-sm font-semibold text-text-main mb-2">Similarity (Jaccard)</h3>
+                        <div className="flex items-center justify-center h-full pb-6 text-2xl font-bold">
+                            {submission?.jaccard_score !== null && submission?.jaccard_score !== undefined ? (
+                                <span className={(submission.jaccard_score * 100) > 70 ? 'text-text-rose' : 'text-text-emerald'}>
+                                    {(submission.jaccard_score <= 1 ? submission.jaccard_score * 100 : submission.jaccard_score).toFixed(1)}%
+                                </span>
+                            ) : (
+                                <span className="text-text-muted text-base">N/A</span>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {ast_feedback && ast_feedback.length > 0 && (

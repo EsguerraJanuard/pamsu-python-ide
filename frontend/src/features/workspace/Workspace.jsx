@@ -282,101 +282,62 @@ export default function Workspace() {
     };
   }, []);
 
-  const updateCodeAndSelection = (
-    replacement,
-    selectionStart,
-    selectionEnd,
-  ) => {
-    const updatedCode =
-      code.slice(0, selectionStart) +
-      replacement +
-      code.slice(selectionEnd);
-
-    const nextCursorPosition =
-      selectionStart + replacement.length;
-
-    setCode(updatedCode);
-
-    window.requestAnimationFrame(() => {
-      const editor = editorRef.current;
-
-      if (!editor) {
-        return;
-      }
-
-      editor.focus();
-      editor.setSelectionRange(
-        nextCursorPosition,
-        nextCursorPosition,
-      );
-    });
+  const updateCodeAndSelection = (replacement, selectionRange) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    
+    editor.executeEdits("internal", [{
+      range: selectionRange,
+      text: replacement,
+      forceMoveMarkers: true
+    }]);
+    editor.focus();
   };
 
   const copySelectionToInternalBuffer = () => {
     const editor = editorRef.current;
+    if (!editor) return;
 
-    if (!editor) {
-      return;
-    }
+    const selection = editor.getSelection();
+    const text = editor.getModel().getValueInRange(selection);
 
-    const { selectionStart, selectionEnd } = editor;
-
-    if (selectionStart === selectionEnd) {
+    if (!text) {
       setNotice("Select code before copying.");
       return;
     }
 
-    setInternalClipboard(
-      code.slice(selectionStart, selectionEnd),
-    );
+    setInternalClipboard(text);
     setNotice("Selection copied to the internal IDE buffer.");
   };
 
   const cutSelectionToInternalBuffer = () => {
     const editor = editorRef.current;
+    if (!editor) return;
 
-    if (!editor) {
-      return;
-    }
+    const selection = editor.getSelection();
+    const text = editor.getModel().getValueInRange(selection);
 
-    const { selectionStart, selectionEnd } = editor;
-
-    if (selectionStart === selectionEnd) {
+    if (!text) {
       setNotice("Select code before cutting.");
       return;
     }
 
-    setInternalClipboard(
-      code.slice(selectionStart, selectionEnd),
-    );
-
-    updateCodeAndSelection(
-      "",
-      selectionStart,
-      selectionEnd,
-    );
-
+    setInternalClipboard(text);
+    updateCodeAndSelection("", selection);
     setNotice("Selection moved to the internal IDE buffer.");
   };
 
   const pasteFromInternalBuffer = () => {
     const editor = editorRef.current;
-
-    if (!editor) {
-      return;
-    }
+    if (!editor) return;
 
     if (!internalClipboard) {
       setNotice("The internal IDE buffer is empty.");
       return;
     }
 
-    updateCodeAndSelection(
-      internalClipboard,
-      editor.selectionStart,
-      editor.selectionEnd,
-    );
-
+    const selection = editor.getSelection();
+    updateCodeAndSelection(internalClipboard, selection);
     setNotice("Code pasted from the internal IDE buffer.");
   };
 
@@ -403,37 +364,10 @@ export default function Workspace() {
   };
 
   const handleEditorKeyDown = (event) => {
-    const editor = editorRef.current;
-
-    if (!editor) {
-      return;
-    }
-
-    if (event.key === "Tab") {
-      event.preventDefault();
-
-      updateCodeAndSelection(
-        "    ",
-        editor.selectionStart,
-        editor.selectionEnd,
-      );
-
-      return;
-    }
-
-    if (
-      (event.ctrlKey || event.metaKey) &&
-      event.key.toLowerCase() === "s"
-    ) {
-      event.preventDefault();
-
-      try {
-        localStorage.setItem(draftStorageKey, code);
-        setNotice("Draft saved locally.");
-      } catch {
-        setNotice("Browser storage is unavailable.");
-      }
-    }
+    // Monaco handles Tab and other inputs natively.
+    // We only intercept Ctrl+S if we need to. But we don't bind onKeyDown to Monaco this way.
+    // Instead we can use monaco's addCommand for save.
+    // For now we do nothing here since Monaco isn't passing standard React DOM events.
   };
 
   const handleRun = async () => {
@@ -516,7 +450,11 @@ export default function Workspace() {
           if (isCheck) {
             setNotice(`Check finished with status: ${statusRes.status}`);
           } else {
-            setOutput(statusRes.execution_output || "No output returned.");
+            let out = "";
+              if (statusRes.stdout) out += statusRes.stdout;
+              if (statusRes.stderr) out += (out ? "
+" : "") + statusRes.stderr;
+              setOutput(out || "No output returned.");
           }
         } else if (pollCount >= 5) {
           // If the worker isn't running in dev, time it out locally
@@ -963,22 +901,33 @@ export default function Workspace() {
             </div>
 
             <div className="relative min-h-0 flex-1">
-              <textarea
-                ref={editorRef}
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                onKeyDown={handleEditorKeyDown}
-                onCopy={handleNativeCopy}
-                onCut={handleNativeCut}
-                onPaste={handleNativePaste}
-                spellCheck="false"
-                aria-label="Python code editor"
-                className="h-full w-full resize-none overflow-auto bg-bg-base p-4 font-mono text-[12px] leading-6 text-text-main outline-none sm:p-5 sm:text-[13px]"
-                style={{
-                  caretColor: "#f59e0b",
-                  tabSize: 4,
-                }}
-              />
+              <div className="h-full w-full" onPasteCapture={handleNativePaste} onCopyCapture={handleNativeCopy} onCutCapture={handleNativeCut}>
+                <MonacoEditor
+                  height="100%"
+                  language="python"
+                  theme={editorTheme}
+                  value={code}
+                  onChange={(value) => setCode(value || "")}
+                  onMount={(editor) => { editorRef.current = editor; }}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 13,
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    scrollBeyondLastLine: false,
+                    roundedSelection: false,
+                    padding: { top: 16, bottom: 16 },
+                    cursorBlinking: "smooth",
+                    cursorWidth: 2,
+                    renderLineHighlight: "all",
+                    quickSuggestions: false,
+                    suggestOnTriggerCharacters: false,
+                    wordBasedSuggestions: false,
+                    snippetSuggestions: "none",
+                    contextmenu: false,
+                    renderWhitespace: "selection",
+                  }}
+                />
+              </div>
 
               <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-black/30 px-2 py-1 font-mono text-[9px] text-text-muted">
                 {lineCount} {lineCount === 1 ? "line" : "lines"} ·
