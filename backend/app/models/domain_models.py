@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from sqlalchemy import (
+    text,
     JSON,
     Boolean,
     CheckConstraint,
@@ -60,6 +61,7 @@ class User(Base):
         Integer,
         nullable=False,
         default=1,
+        server_default=text("1"),
     )
     email_verified = Column(
         Boolean,
@@ -857,6 +859,7 @@ class BehavioralLog(Base):
     mouseleave_count = Column(
         Integer,
         default=0,
+        server_default=text("0"),
         nullable=False,
     )
     run_attempt_count = Column(
@@ -972,7 +975,8 @@ class CodingSession(Base):
         Integer,
         nullable=False,
         default=0,
-    )
+    server_default=text("0"),
+        )
     run_attempt_count = Column(
         Integer,
         nullable=False,
