@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
+import { useEditorSettings } from "../../hooks/useEditorSettings";
 import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
@@ -73,6 +74,7 @@ function formatEventTime() {
 }
 
 export default function Workspace() {
+  const { settings } = useEditorSettings();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity");
@@ -925,8 +927,10 @@ export default function Workspace() {
                   onChange={(value) => setCode(value || "")}
                   onMount={(editor) => { editorRef.current = editor; }}
                   options={{
-                    minimap: { enabled: false },
-                    fontSize: 13,
+                    minimap: { enabled: settings.minimap },
+                    fontSize: settings.fontSize,
+                    tabSize: settings.tabSize,
+                    wordWrap: settings.wordWrap,
                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                     scrollBeyondLastLine: false,
                     roundedSelection: false,
@@ -936,8 +940,13 @@ export default function Workspace() {
                     renderLineHighlight: "all",
                     quickSuggestions: false,
                     suggestOnTriggerCharacters: false,
-                    wordBasedSuggestions: false,
                     snippetSuggestions: "none",
+                    wordBasedSuggestions: false,
+                    hover: { enabled: false },
+                    parameterHints: { enabled: false },
+                    inlayHints: { enabled: false },
+                    lightbulb: { enabled: false },
+                    guides: { highlightActiveIndentation: false },
                     contextmenu: false,
                     renderWhitespace: "selection",
                   }}

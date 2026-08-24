@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../../components/layout/Sidebar";
+import EditorSettings from './EditorSettings';
 import Statusbar from "../../components/layout/Statusbar";
 import { api, ApiError } from "../../services/api";
 import { useAuth } from "../auth/AuthContext";
@@ -599,6 +600,8 @@ export default function Settings() {
               </section>
 
 
+
+              <EditorSettings />
 
               <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
 
