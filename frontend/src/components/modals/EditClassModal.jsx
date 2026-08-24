@@ -40,9 +40,8 @@ export default function EditClassModal({
     setSuccessMsg("");
 
     try {
-      const response = await api.patch(`/classrooms/${classroom.id}`, {
+      const response = await api.patch(`/classrooms/${classroom.class_id}`, {
         name: className.trim(),
-        schedule: schedule.trim() || undefined,
       });
 
       setSuccessMsg("Classroom updated successfully!");
@@ -63,7 +62,7 @@ export default function EditClassModal({
     setSuccessMsg("");
 
     try {
-      const response = await api.post(`/classrooms/${classroom.id}/regenerate-code`);
+      const response = await api.post(`/classrooms/${classroom.class_id}/regenerate-code`);
       const newCode = response?.class_code || response?.code || response?.invite_code;
       if (newCode) {
         setClassCode(newCode);

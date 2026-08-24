@@ -59,6 +59,7 @@ const ActivityEditor = () => {
       const payload = {
         ...formData,
         class_ids: formData.class_ids.map(id => parseInt(id, 10)),
+        paste_policy: formData.allow_paste ? "internal_only" : "disabled",
         due_at: formData.due_at ? new Date(formData.due_at).toISOString() : null,
         scheduled_publish_at: (!formData.is_published && formData.scheduled_publish_at) 
           ? new Date(formData.scheduled_publish_at).toISOString() 
@@ -74,8 +75,27 @@ const ActivityEditor = () => {
       };
 
       delete payload.requirements;
+      delete payload.expected_output;
+      delete payload.is_published;
+      delete payload.allow_paste;
 
       const response = await api.post('/instructors/tasks/', payload);
+      
+      // If expected output was provided, automatically convert it into a global test case
+      if (formData.expected_output && formData.expected_output.trim() !== "") {
+        const tasks = Array.isArray(response) ? response : [response];
+        for (const task of tasks) {
+          try {
+            await api.post(`/instructors/tasks/${task.task_id}/test-cases`, {
+              name: "Expected Output (Global)",
+              expected_output: formData.expected_output,
+              is_hidden: false
+            });
+          } catch (tcErr) {
+            console.error("Failed to save expected output test case:", tcErr);
+          }
+        }
+      }
       
       // If single classroom was selected, navigate directly to that activity's page
       if (response && Array.isArray(response) && response.length === 1) {
@@ -86,7 +106,7 @@ const ActivityEditor = () => {
       }
     } catch (err) {
       console.error('Error creating activity:', err);
-      setError('Failed to create activity. Please try again.');
+      setError(err.message || 'Failed to create activity. Please try again.');
     } finally {
       setLoading(false);
     }

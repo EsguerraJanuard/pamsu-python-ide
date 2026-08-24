@@ -83,6 +83,7 @@ export default function Workspace() {
   const editorRef = useRef(null);
   
   const [activity, setActivity] = useState(null);
+  const [astResults, setAstResults] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -427,6 +428,11 @@ export default function Workspace() {
     setActivePanel("analysis");
     
     try {
+      const astRes = await api.post(`/activities/${activityId}/analyze-ast`, {
+        source_code: code
+      });
+      setAstResults(astRes);
+      
       const execRes = await api.post("/execution/requests/", {
         request_kind: "check",
         task_id: parseInt(activityId),
@@ -990,32 +996,58 @@ export default function Workspace() {
 
                 {activePanel === "analysis" && (
                   <div className="space-y-2">
-                    <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.05] p-3">
-                      <h3 className="text-xs font-semibold text-text-amber">
-                        AST analysis not connected
-                      </h3>
-
-                      <p className="mt-1 text-[10px] leading-relaxed text-text-muted">
-                        Verified structure results must come from the
-                        backend AST service.
-                      </p>
-                    </div>
+                    {astResults ? (
+                      <div className={`rounded-lg border p-3 ${astResults.passed ? "border-emerald-500/15 bg-emerald-500/[0.05]" : "border-amber-500/15 bg-amber-500/[0.05]"}`}>
+                        <h3 className={`text-xs font-semibold ${astResults.passed ? "text-text-emerald" : "text-text-amber"}`}>
+                          {astResults.passed ? "AST Requirements Met" : "Missing AST Requirements"}
+                        </h3>
+                        <p className="mt-1 text-[10px] leading-relaxed text-text-muted">
+                          {astResults.syntax_error ? `Syntax Error on line ${astResults.syntax_error.line}: ${astResults.syntax_error.message}` : "Verified structure results from the backend AST service."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.05] p-3">
+                        <h3 className="text-xs font-semibold text-text-amber">
+                          AST analysis pending
+                        </h3>
+                        <p className="mt-1 text-[10px] leading-relaxed text-text-muted">
+                          Click Check to verify structure requirements.
+                        </p>
+                      </div>
+                    )}
 
                     {activity.requirements.map(
-                      (requirement) => (
-                        <div
-                          key={requirement}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2"
-                        >
-                          <span className="text-[10px] text-text-muted">
-                            {requirement}
-                          </span>
-
-                          <span className="shrink-0 text-[9px] text-text-muted">
-                            Not checked
-                          </span>
-                        </div>
-                      ),
+                      (requirement) => {
+                        let status = "Not checked";
+                        let statusClass = "text-text-muted";
+                        if (astResults && astResults.findings) {
+                           const finding = astResults.findings.find(f => f.rule === requirement);
+                           if (finding) {
+                             status = finding.passed ? "Passed" : "Missing";
+                             statusClass = finding.passed ? "text-text-emerald" : "text-red-400";
+                           } else {
+                             status = "Not required";
+                           }
+                        } else if (astResults && astResults.syntax_error) {
+                           status = "Syntax Error";
+                           statusClass = "text-red-400";
+                        }
+                        
+                        return (
+                          <div
+                            key={requirement}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2"
+                          >
+                            <span className="text-[10px] text-text-muted">
+                              {requirement}
+                            </span>
+  
+                            <span className={`shrink-0 text-[9px] ${statusClass}`}>
+                              {status}
+                            </span>
+                          </div>
+                        );
+                      }
                     )}
                   </div>
                 )}

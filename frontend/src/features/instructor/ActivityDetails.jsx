@@ -189,16 +189,11 @@ const ActivityDetails = () => {
           <div>
             <h3 className="text-sm font-medium text-text-emerald">Requirements</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
-              {activity.requirements || 'No requirements provided.'}
+              {activity.required_ast_rules && Object.keys(activity.required_ast_rules).length > 0 ? Object.keys(activity.required_ast_rules).join(", ") : 'No requirements provided.'}
             </div>
           </div>
 
-          <div>
-            <h3 className="text-sm font-medium text-text-emerald">Expected Output (Global)</h3>
-            <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
-              {activity.expected_output || 'No expected output provided.'}
-            </div>
-          </div>
+
         </div>
 
         {/* Test Cases Section */}

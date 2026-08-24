@@ -542,6 +542,42 @@ def get_student_activity_endpoint(
         raise_student_activity_http_exception(exc)
 
 
+
+from pydantic import BaseModel
+class AstCheckRequest(BaseModel):
+    source_code: str
+
+@router.post(
+    "/{task_id}/analyze-ast",
+    status_code=status.HTTP_200_OK,
+    operation_id="analyze_student_ast",
+    summary="Analyze student AST",
+)
+def analyze_student_ast_endpoint(
+    request: AstCheckRequest,
+    task_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+):
+    try:
+        task = get_student_task(
+            db=db,
+            task_id=task_id,
+            student_id=current_student.user_id,
+        )
+    except StudentTaskUnavailableError as exc:
+        raise_student_activity_http_exception(exc)
+        
+    from app.services.ast_evaluator import evaluate_ast_details
+    details = evaluate_ast_details(request.source_code, task.required_ast_rules)
+    
+    # Strip line_numbers to respect the student-safe boundary
+    for finding in details.get("findings", []):
+        finding.pop("line_numbers", None)
+        
+    return details
+
+
 # AUTHORIZATION BOUNDARY:
 # student_id always comes from the authenticated student.
 # Activities and coding sessions are available only through active

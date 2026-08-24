@@ -3,6 +3,8 @@ import httpx
 import uuid
 from pydantic import BaseModel, ConfigDict
 import asyncio
+import subprocess
+import time
 
 app = FastAPI()
 
@@ -21,10 +23,47 @@ class SubmissionRequest(BaseModel):
 class SubmissionResponse(BaseModel):
     token: str
 
-async def send_webhook(callback_url: str, execution_id: str, correlation_id: str, token: str):
-    await asyncio.sleep(1)  # Simulate execution time
+async def send_webhook(callback_url: str, execution_id: str, correlation_id: str, token: str, source_code: str, stdin: str | None):
+    # Execute the code locally for the mock
+    start_time = time.time()
     
-    # Simulate a successful execution output
+    stdout = ""
+    stderr = ""
+    exit_code = 0
+    status = "completed"
+    limit_reason = None
+    
+    try:
+        process = await asyncio.create_subprocess_exec(
+            "python3", "-c", source_code,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        # Pass stdin if provided
+        input_data = stdin.encode('utf-8') if stdin else b""
+        
+        try:
+            out, err = await asyncio.wait_for(process.communicate(input=input_data), timeout=5.0)
+            stdout = out.decode('utf-8')
+            stderr = err.decode('utf-8')
+            exit_code = process.returncode
+            if exit_code != 0:
+                status = "runtime_error"
+        except asyncio.TimeoutError:
+            process.kill()
+            status = "timed_out"
+            limit_reason = "time_limit_exceeded"
+            exit_code = 124
+            
+    except Exception as e:
+        stderr = str(e)
+        exit_code = 1
+        status = "runtime_error"
+
+    execution_time_ms = int((time.time() - start_time) * 1000)
+    
     from datetime import datetime, timezone, timedelta
     payload = {
         "execution_id": execution_id,
@@ -32,13 +71,13 @@ async def send_webhook(callback_url: str, execution_id: str, correlation_id: str
         "update_id": str(uuid.uuid4()),
         "sequence_number": 1,
         "worker_task_id": token,
-        "status": "completed",
-        "stdout": "Hello World!\n",
-        "stderr": "",
-        "exit_code": 0,
-        "execution_time_ms": 150,
-        "completed_at": (datetime.now(timezone.utc) + timedelta(seconds=10)).isoformat(),
-        "limit_reason": None,
+        "status": "completed", # Always send completed to trigger UI update, exit_code handles actual pass/fail
+        "stdout": stdout,
+        "stderr": stderr,
+        "exit_code": exit_code,
+        "execution_time_ms": execution_time_ms,
+        "completed_at": (datetime.now(timezone.utc) + timedelta(seconds=2)).isoformat(),
+        "limit_reason": limit_reason,
         "error_code": None,
         "error_message": None
     }
@@ -70,7 +109,9 @@ async def create_submission(request: SubmissionRequest, background_tasks: Backgr
             request.callback_url, 
             request.execution_id, 
             request.correlation_id,
-            token
+            token,
+            request.source_code,
+            request.stdin
         )
         
     return {"token": token}
