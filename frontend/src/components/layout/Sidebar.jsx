@@ -284,31 +284,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
 
         </nav>
 
-        {/* Pinned Bottom User Profile Card */}
-        <div className="shrink-0 pt-2.5 pb-1 border-t border-border-subtle mt-auto space-y-2">
-          <div
-            className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-1"}`}
-            title={isCollapsed ? `${name} (${role})` : undefined}
-          >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3b82f6] text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
-              {initials}
-            </div>
-            {!isCollapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-text-main tracking-tight">
-                  {name}
-                </p>
-                <p className="truncate text-[10px] text-text-muted">
-                  {role} · {course}
-                </p>
-              </div>
-            )}
-          </div>
-          <div className={`flex ${isCollapsed ? "justify-center" : "justify-end px-1"}`}>
-            <ThemeToggle />
-          </div>
-        </div>
-      </aside>
+        </aside>
 
       <SignOutModal 
         isOpen={isSignOutOpen} 

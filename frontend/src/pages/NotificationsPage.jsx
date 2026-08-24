@@ -109,86 +109,9 @@ export default function NotificationsPage({ role: propRole }) {
                     View your recent alerts and system messages.
                   </p>
                 </div>
-
-                <button
-                  onClick={handleMarkAllRead}
-                  disabled={actionLoading || unreadCount === 0}
-                  className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold hover:bg-bg-glass transition disabled:opacity-50"
-                >
-                  {actionLoading ? "Updating..." : "✓ Mark all as read"}
-                </button>
               </header>
 
               <div className="flex-1 flex gap-6 overflow-hidden pb-4">
-                {/* Left Pane: Notification List */}
-                <div className={`flex-col flex w-full lg:w-1/3 rounded-xl border border-border-subtle bg-bg-glass overflow-hidden ${selectedNotification ? "hidden lg:flex" : "flex"}`}>
-                  <div className="border-b border-border-subtle p-4 bg-bg-glass">
-                    <h2 className="text-sm font-semibold">Inbox</h2>
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto">
-                    {loading ? (
-                      <div className="divide-y divide-white/[0.06]">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className="p-4 flex items-start gap-3 animate-pulse">
-                            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-white/[0.06]"></div>
-                            <div className="flex-1 space-y-2">
-                              <div className="h-4 w-3/4 rounded-md bg-white/[0.06]"></div>
-                              <div className="h-3 w-full rounded-md bg-white/[0.06]"></div>
-                              <div className="h-3 w-5/6 rounded-md bg-white/[0.06]"></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : notifications.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center p-12 text-center">
-                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-bg-glass text-text-muted">
-                          <BellIcon className="h-6 w-6" />
-                        </div>
-                        <h3 className="text-sm font-semibold text-text-muted">No Notifications</h3>
-                        <p className="mt-1 text-xs text-text-muted">
-                          You're all caught up.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-white/[0.06]">
-                        {notifications.map((notif) => {
-                          const isSelected = selectedNotification?.id === notif.id;
-                          return (
-                            <div
-                              key={notif.id}
-                              onClick={() => handleNotificationClick(notif)}
-                              className={`p-4 cursor-pointer transition-colors ${
-                                isSelected 
-                                  ? "bg-bg-glass" 
-                                  : !notif.is_read 
-                                    ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.06]" 
-                                    : "hover:bg-bg-glass"
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                {!notif.is_read && (
-                                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                                )}
-                                <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
-                                  <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-text-main" : "font-medium text-text-muted"}`}>
-                                    {notif.title}
-                                  </h3>
-                                  <p className="mt-1 line-clamp-2 text-xs text-text-muted leading-relaxed">
-                                    {notif.message}
-                                  </p>
-                                  <p className="mt-2 text-[10px] font-mono text-text-muted">
-                                    {new Date(notif.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
                 {/* Right Pane: Notification Details */}
                 <div className={`flex-col flex w-full lg:w-2/3 rounded-xl border border-border-subtle bg-bg-glass overflow-hidden ${!selectedNotification ? "hidden lg:flex" : "flex"}`}>
@@ -255,6 +178,83 @@ export default function NotificationsPage({ role: propRole }) {
                       <p className="text-sm">Select a notification to view details.</p>
                     </div>
                   )}
+                {/* Left Pane: Notification List */}
+                <div className={`flex-col flex w-full lg:w-1/3 rounded-xl border border-border-subtle bg-bg-glass overflow-hidden ${selectedNotification ? "hidden lg:flex" : "flex"}`}>
+                  <div className="border-b border-border-subtle p-4 bg-bg-glass flex items-center justify-between">
+                    <h2 className="text-sm font-semibold">Inbox</h2>
+
+                <button
+                  onClick={handleMarkAllRead}
+                  disabled={actionLoading || unreadCount === 0}
+                  className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-[10px] font-semibold hover:bg-bg-glass transition disabled:opacity-50"
+                >
+                  {actionLoading ? "Updating..." : "✓ Mark all as read"}
+                </button>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto">
+                    {loading ? (
+                      <div className="divide-y divide-white/[0.06]">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="p-4 flex items-start gap-3 animate-pulse">
+                            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-white/[0.06]"></div>
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 w-3/4 rounded-md bg-white/[0.06]"></div>
+                              <div className="h-3 w-full rounded-md bg-white/[0.06]"></div>
+                              <div className="h-3 w-5/6 rounded-md bg-white/[0.06]"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-12 text-center">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-bg-glass text-text-muted">
+                          <BellIcon className="h-6 w-6" />
+                        </div>
+                        <h3 className="text-sm font-semibold text-text-muted">No Notifications</h3>
+                        <p className="mt-1 text-xs text-text-muted">
+                          You're all caught up.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-white/[0.06]">
+                        {notifications.map((notif) => {
+                          const isSelected = selectedNotification?.id === notif.id;
+                          return (
+                            <div
+                              key={notif.id}
+                              onClick={() => handleNotificationClick(notif)}
+                              className={`p-4 cursor-pointer transition-colors ${
+                                isSelected 
+                                  ? "bg-bg-glass" 
+                                  : !notif.is_read 
+                                    ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.06]" 
+                                    : "hover:bg-bg-glass"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                {!notif.is_read && (
+                                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                                )}
+                                <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
+                                  <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-text-main" : "font-medium text-text-muted"}`}>
+                                    {notif.title}
+                                  </h3>
+                                  <p className="mt-1 line-clamp-2 text-xs text-text-muted leading-relaxed">
+                                    {notif.message}
+                                  </p>
+                                  <p className="mt-2 text-[10px] font-mono text-text-muted">
+                                    {new Date(notif.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 </div>
               </div>
             </div>

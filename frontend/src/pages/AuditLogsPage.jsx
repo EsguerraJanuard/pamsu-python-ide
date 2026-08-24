@@ -105,7 +105,6 @@ export default function AuditLogsPage({ role: propRole }) {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <label className="text-xs font-medium text-text-muted">Action Type:</label>
                     <CustomSelect
                       value={actionFilter}
                       onChange={(val) => {

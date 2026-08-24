@@ -273,9 +273,8 @@ export default function InstructorDashboard() {
                     <p className="mt-1 text-[11px] text-text-muted">Review submissions, grade outputs, or update parameters.</p>
                   </div>
                   <button
-                    type="button"
                     onClick={() => navigate("/instructor/activities")}
-                    className="text-xs text-text-emerald transition-colors hover:text-text-emerald"
+                    className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-xs font-medium text-text-emerald hover:bg-emerald-500/10 hover:border-emerald-500/30 transition"
                   >
                     Author new activity
                   </button>
@@ -377,7 +376,7 @@ export default function InstructorDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/instructor/monitoring")}
-                  className="text-[10px] text-text-emerald transition-colors hover:text-text-emerald"
+                  className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-xs font-medium text-text-emerald hover:bg-emerald-500/10 hover:border-emerald-500/30 transition"
                 >
                   Live View
                 </button>

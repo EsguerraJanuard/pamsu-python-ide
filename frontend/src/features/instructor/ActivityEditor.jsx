@@ -200,7 +200,7 @@ const ActivityEditor = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    rows={2}
+                    rows={4}
                     placeholder="Brief overview of the activity goals..."
                     className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-emerald-500 transition-colors"
                   />
@@ -213,7 +213,7 @@ const ActivityEditor = () => {
                     name="instructions"
                     value={formData.instructions}
                     onChange={handleChange}
-                    rows={4}
+                    rows={8}
                     placeholder="Step-by-step instructions for completing the task..."
                     className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-emerald-500 transition-colors"
                   />
@@ -303,8 +303,8 @@ const ActivityEditor = () => {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      {!formData.is_published && (
-                        <div className={`animate-fade-in ${formData.class_ids.length > 1 ? 'opacity-50' : ''}`}>
+                      
+                        <div className={`animate-fade-in transition-opacity ${formData.is_published ? 'opacity-30 pointer-events-none' : ''} ${formData.class_ids.length > 1 ? 'opacity-50' : ''}`}>
                           <label htmlFor="scheduled_publish_at" className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
                             <span>Scheduled Publish Date <span className="text-text-muted font-normal ml-1">(Optional)</span></span>
                           </label>
@@ -313,7 +313,7 @@ const ActivityEditor = () => {
                               data-enable-time
                               value={formData.scheduled_publish_at}
                               onChange={([date]) => setFormData(prev => ({ ...prev, scheduled_publish_at: date }))}
-                              disabled={formData.class_ids.length > 1}
+                              disabled={formData.is_published || formData.class_ids.length > 1}
                               className={`w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner ${formData.class_ids.length > 1 ? 'text-text-muted cursor-not-allowed' : 'text-text-main cursor-pointer'}`}
                               placeholder="Select date and time"
                               options={{
@@ -335,7 +335,7 @@ const ActivityEditor = () => {
                             </p>
                           )}
                         </div>
-                      )}
+                      
                       <div>
                         <label htmlFor="due_at" className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
                           <span>Deadline / Due Date <span className="text-text-muted font-normal ml-1">(Optional)</span></span>

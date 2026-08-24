@@ -460,8 +460,7 @@ export default function Workspace() {
           } else {
             let out = "";
               if (statusRes.stdout) out += statusRes.stdout;
-              if (statusRes.stderr) out += (out ? "
-" : "") + statusRes.stderr;
+              if (statusRes.stderr) out += (out ? "\n" : "") + statusRes.stderr;
               setOutput(out || "No output returned.");
           }
         } else if (pollCount >= 5) {

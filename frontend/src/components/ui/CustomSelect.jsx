@@ -1,8 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../../features/auth/AuthContext';
 
 export default function CustomSelect({ options, value, onChange, placeholder = "Select an option", className = "" }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { user } = useAuth();
+  const isInstructor = user?.role === 'instructor';
+
+  const themeColor = isInstructor ? 'emerald-500' : 'blue-500';
+  const themeTextColor = isInstructor ? 'text-text-emerald' : 'text-blue-500';
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -19,13 +25,13 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
   return (
     <div className="relative group" ref={dropdownRef}>
       <div 
-        className={`w-full bg-bg-glass border border-border-subtle rounded-xl text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer flex justify-between items-center ${className || 'px-4 py-3 text-sm'}`}
+        className={`w-full bg-bg-glass border border-border-subtle rounded-xl text-text-main focus:outline-none focus:border-${themeColor}/50 focus:ring-1 focus:ring-${themeColor}/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer flex justify-between items-center ${className || 'px-4 py-3 text-sm'}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className={selectedOption ? "text-text-main" : "text-text-muted"}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <div className={`text-text-muted transition-transform ${isOpen ? 'rotate-180 text-text-emerald' : 'group-hover:text-text-emerald'}`}>
+        <div className={`text-text-muted transition-transform ${isOpen ? `rotate-180 ${themeTextColor}` : `group-hover:${themeTextColor}`}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -38,19 +44,12 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
             {options.map((opt) => (
               <li 
                 key={opt.value}
-                className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center gap-3 ${String(value) === String(opt.value) ? 'bg-emerald-500/10 text-text-emerald' : 'text-text-main hover:bg-white/5 hover:text-white'}`}
+                className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center gap-3 ${String(value) === String(opt.value) ? `bg-${themeColor}/10 ${themeTextColor}` : 'text-text-main hover:bg-white/5 hover:text-white'}`}
                 onClick={() => {
                   onChange(opt.value);
                   setIsOpen(false);
                 }}
               >
-                <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
-                  {String(value) === String(opt.value) && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
                 <span className={String(value) === String(opt.value) ? "font-semibold" : ""}>{opt.label}</span>
               </li>
             ))}
