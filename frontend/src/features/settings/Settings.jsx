@@ -855,32 +855,21 @@ export default function Settings() {
 
 
 
-                  <label className="flex cursor-pointer items-center gap-2">
-
-                    <input
-
-                      type="checkbox"
-
-                      checked={showPasswords}
-
-                      onChange={(event) =>
-
-                        setShowPasswords(event.target.checked)
-
-                      }
-
-                      className="h-4 w-4 accent-[#3b82f6]"
-
-                    />
-
-
-
-                    <span className="text-xs text-text-muted">
-
+                  <label className="flex cursor-pointer items-center justify-between mt-6 mb-2">
+                    <span className="text-xs font-medium text-text-muted">
                       Show passwords
-
                     </span>
-
+                    <div className="relative inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={showPasswords}
+                        onChange={(event) =>
+                          setShowPasswords(event.target.checked)
+                        }
+                        className="peer sr-only"
+                      />
+                      <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                    </div>
                   </label>
 
 
