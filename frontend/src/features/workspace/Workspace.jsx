@@ -582,8 +582,14 @@ export default function Workspace() {
 
   if (!activity) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-base text-text-muted">
-         <p className="text-sm font-semibold tracking-wide">No activity selected.</p>
+      <div className="flex flex-col h-screen items-center justify-center bg-bg-base text-text-muted gap-4">
+        <p className="text-sm font-semibold tracking-wide">No activity selected or failed to load.</p>
+        <button 
+          onClick={() => navigate('/student/dashboard')}
+          className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded transition-colors"
+        >
+          Back to Dashboard
+        </button>
       </div>
     );
   }
