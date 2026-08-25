@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 import asyncio
 import subprocess
 import time
+import sys
 
 app = FastAPI()
 
@@ -35,7 +36,7 @@ async def send_webhook(callback_url: str, execution_id: str, correlation_id: str
     
     try:
         process = await asyncio.create_subprocess_exec(
-            "python3", "-c", source_code,
+            sys.executable, "-c", source_code,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
