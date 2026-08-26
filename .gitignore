@@ -20,3 +20,5 @@ AGENTS.md
 # Temporary Folder
 tmp/
 .venv_tmp/
+# Local tasks
+todo.md

@@ -72,7 +72,7 @@ async def send_webhook(callback_url: str, execution_id: str, correlation_id: str
         "update_id": str(uuid.uuid4()),
         "sequence_number": 1,
         "worker_task_id": token,
-        "status": "completed", # Always send completed to trigger UI update, exit_code handles actual pass/fail
+        "status": status,
         "stdout": stdout,
         "stderr": stderr,
         "exit_code": exit_code,
