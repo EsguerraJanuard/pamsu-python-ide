@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: pamsu-backend
+    env: python
+    rootDir: backend
+    region: singapore
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "bash start.sh"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: PAMSU_ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: PAMSU_CORS_ALLOWED_ORIGINS
+        sync: false # Set this to your frontend URL later, e.g., https://pamsu-ide.vercel.app
+      - key: JUDGE0_API_URL
+        sync: false # Set this to the RapidAPI Judge0 URL
+      - key: WEBHOOK_BASE_URL
+        sync: false # Set this to your Render app URL, e.g., https://pamsu-backend.onrender.com

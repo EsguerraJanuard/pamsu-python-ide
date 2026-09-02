@@ -40,21 +40,25 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
             print(f"ExecutionRequest {execution_request_id} not found.")
             return
 
-        # We will use our mock payload format and callback url
-        callback_url = f"{webhook_base}/execution/internal/partner-results"
+        import base64
+
+        # We use a query-param adapter URL since Judge0 just PUTs a simple JSON payload
+        callback_url = f"{webhook_base}/execution/internal/judge0-callback?execution_id={execution_request_id}&correlation_id={request_record.correlation_id}"
         
+        # Base64 encode the student source code and standard input
+        source_code_b64 = base64.b64encode(request_record.source_code.encode("utf-8")).decode("utf-8")
+        stdin_b64 = base64.b64encode(request_record.standard_input.encode("utf-8")).decode("utf-8") if request_record.standard_input else None
+
         payload = {
-            "source_code": request_record.source_code,
+            "source_code": source_code_b64,
             "language_id": 71, # Python
-            "stdin": request_record.standard_input,
+            "stdin": stdin_b64,
             "callback_url": callback_url,
-            "execution_id": execution_request_id,
-            "correlation_id": request_record.correlation_id,
         }
         
-        # Dispatch to partner
+        # Dispatch to partner with base64_encoded=true
         with httpx.Client(timeout=10.0) as client:
-            response = client.post(f"{judge0_url}/submissions?base64_encoded=false", json=payload)
+            response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload)
             response.raise_for_status()
             data = response.json()
             

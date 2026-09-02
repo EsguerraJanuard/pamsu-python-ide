@@ -31,10 +31,46 @@ def seed_database():
             is_active=True,
         )
 
+        from app.models.domain_models import Classroom, Task, Enrollment
+
         db.add(instructor)
         db.add(student)
         db.commit()
-        print("Successfully updated test accounts with official @pampangastateu.edu.ph domain!")
+
+        # Create a test classroom
+        classroom = Classroom(
+            name="Load Testing 101",
+            section="A",
+            join_code="LOAD101",
+            instructor_id=instructor.user_id,
+            is_active=True
+        )
+        db.add(classroom)
+        db.commit()
+
+        # Enroll the student
+        enrollment = Enrollment(
+            student_id=student.user_id,
+            class_id=classroom.class_id,
+            status="active"
+        )
+        db.add(enrollment)
+
+        # Create a test task
+        task = Task(
+            class_id=classroom.class_id,
+            title="Load Test Execution",
+            description="Stress testing the execution engine",
+            instructions="Run this code.",
+            expected_output="Hello World",
+            required_ast_rules={},
+            is_published=True,
+            allow_paste=True
+        )
+        db.add(task)
+        db.commit()
+
+        print("Successfully updated test accounts, classroom, and task!")
 
     except Exception as e:
         db.rollback()
