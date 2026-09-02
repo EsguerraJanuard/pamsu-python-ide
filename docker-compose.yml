@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'
 
 services:
   db:
@@ -30,7 +30,7 @@ services:
       # Override DATABASE_URL to point to the 'db' service instead of localhost
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-devpassword123}@db:5432/${POSTGRES_DB:-pamsu_ide_db}
       - REDIS_URL=redis://redis:6379/0
-      - JUDGE0_API_URL=http://mock_judge0:8001
+      - JUDGE0_API_URL=http://judge0-server:2358
       - WEBHOOK_BASE_URL=http://backend:8000
     ports:
       - "8000:8000"
@@ -39,7 +39,7 @@ services:
     depends_on:
       - db
       - redis
-      - mock_judge0
+      - judge0-server
 
   celery_worker:
     build:
@@ -50,7 +50,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-devpassword123}@db:5432/${POSTGRES_DB:-pamsu_ide_db}
       - REDIS_URL=redis://redis:6379/0
-      - JUDGE0_API_URL=http://mock_judge0:8001
+      - JUDGE0_API_URL=http://judge0-server:2358
       - WEBHOOK_BASE_URL=http://backend:8000
     volumes:
       - ./backend:/app
@@ -58,16 +58,47 @@ services:
       - db
       - redis
       - backend
-      - mock_judge0
+      - judge0-server
 
-  mock_judge0:
-    build:
-      context: ./mock_judge0
-    container_name: pamsu_mock_judge0
-    ports:
-      - "8001:8001"
+  judge0-db:
+    image: postgres:13.0
+    container_name: pamsu_judge0_db
     environment:
-      - PYTHONUNBUFFERED=1
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+      - POSTGRES_DB=judge0
+    volumes:
+      - judge0_postgres_data:/var/lib/postgresql/data
+
+  judge0-redis:
+    image: redis:6.0.4
+    container_name: pamsu_judge0_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - judge0_redis_data:/data
+
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    container_name: pamsu_judge0_server
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    ports:
+      - "2358:2358"
+    privileged: true
+    depends_on:
+      - judge0-db
+      - judge0-redis
+
+  judge0-worker:
+    image: judge0/judge0:1.13.1
+    container_name: pamsu_judge0_worker
+    command: ["./scripts/workers"]
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true
+    depends_on:
+      - judge0-db
+      - judge0-redis
 
   frontend:
     build:
@@ -85,3 +116,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  judge0_postgres_data:
+  judge0_redis_data:
