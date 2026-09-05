@@ -1,0 +1,120 @@
+# version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: pamsu_db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-devpassword123}
+      - POSTGRES_DB=${POSTGRES_DB:-pamsu_ide_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: pamsu_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: pamsu_backend
+    env_file: .env
+    environment:
+      # Override DATABASE_URL to point to the 'db' service instead of localhost
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-devpassword123}@db:5432/${POSTGRES_DB:-pamsu_ide_db}
+      - REDIS_URL=redis://redis:6379/0
+      - JUDGE0_API_URL=http://judge0-server:2358
+      - WEBHOOK_BASE_URL=http://backend:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+      - judge0-server
+
+  celery_worker:
+    build:
+      context: ./backend
+    container_name: pamsu_celery
+    command: celery -A app.tasks.celery_worker worker --loglevel=info
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-devpassword123}@db:5432/${POSTGRES_DB:-pamsu_ide_db}
+      - REDIS_URL=redis://redis:6379/0
+      - JUDGE0_API_URL=http://judge0-server:2358
+      - WEBHOOK_BASE_URL=http://backend:8000
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+      - backend
+      - judge0-server
+
+  judge0-db:
+    image: postgres:13.0
+    container_name: pamsu_judge0_db
+    environment:
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+      - POSTGRES_DB=judge0
+    volumes:
+      - judge0_postgres_data:/var/lib/postgresql/data
+
+  judge0-redis:
+    image: redis:6.0.4
+    container_name: pamsu_judge0_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - judge0_redis_data:/data
+
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    container_name: pamsu_judge0_server
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    ports:
+      - "2358:2358"
+    privileged: true
+    depends_on:
+      - judge0-db
+      - judge0-redis
+
+  judge0-worker:
+    image: judge0/judge0:1.13.1
+    container_name: pamsu_judge0_worker
+    command: ["./scripts/workers"]
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true
+    depends_on:
+      - judge0-db
+      - judge0-redis
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: pamsu_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume for node_modules so it uses the container's linux node_modules
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  judge0_postgres_data:
+  judge0_redis_data:

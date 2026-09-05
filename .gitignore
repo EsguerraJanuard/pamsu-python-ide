@@ -7,3 +7,21 @@ __pycache__/
 
 # Huwag isama ang environment variables (para sa passwords mamaya)
 .env
+scratch/
+
+# AI Agent / Gemini files
+AGENTS.md
+.agents/
+.gemini/
+
+# macOS System Files
+.DS_Store
+
+# Temporary Folder
+tmp/
+.venv_tmp/
+# Local tasks
+todo.md
+
+# Local database
+backend/pamsu.db
