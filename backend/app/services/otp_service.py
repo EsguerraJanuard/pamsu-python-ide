@@ -304,10 +304,14 @@ def deliver_otp(
             expires_in_seconds=OTP_EXPIRE_SECONDS,
         )
     except OTPEmailAdapterError as exc:
+        import logging
+        logging.error(f"CRITICAL SMTP ERROR: {exc}")
         raise OTPDeliveryError(
             "The verification email could not be delivered."
         ) from exc
     except Exception as exc:
+        import logging
+        logging.error(f"CRITICAL SMTP UNKNOWN ERROR: {exc}")
         raise OTPDeliveryError(
             "The verification email could not be delivered."
         ) from exc
