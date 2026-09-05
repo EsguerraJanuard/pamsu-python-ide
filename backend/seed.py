@@ -60,13 +60,13 @@ def seed_database():
         # Create a test task
         task = Task(
             class_id=classroom.class_id,
+            instructor_id=instructor.user_id,
             title="Load Test Execution",
             description="Stress testing the execution engine",
             instructions="Run this code.",
-            expected_output="Hello World",
             required_ast_rules={},
             is_published=True,
-            allow_paste=True
+            paste_policy="internal_only"
         )
         db.add(task)
         db.commit()

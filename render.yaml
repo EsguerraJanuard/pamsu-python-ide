@@ -9,7 +9,7 @@ services:
     startCommand: "bash start.sh"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.12
+        value: 3.11.4
       - key: PAMSU_ENVIRONMENT
         value: production
       - key: LOG_LEVEL
