@@ -22,3 +22,6 @@ tmp/
 .venv_tmp/
 # Local tasks
 todo.md
+
+# Local database
+backend/pamsu.db
