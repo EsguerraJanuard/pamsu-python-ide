@@ -1,12 +1,13 @@
 from app.core.database import SessionLocal
 from app.core.security import get_password_hash
 from app.models.domain_models import User
+from sqlalchemy import text
 
 def seed_database():
     db = SessionLocal()
     try:
-        # Clear any old placeholder users
-        db.query(User).delete()
+        # Clear any old placeholder users using CASCADE to handle foreign keys
+        db.execute(text("TRUNCATE TABLE users CASCADE"))
         db.commit()
 
         hashed_password = get_password_hash("Password123!")
@@ -39,9 +40,9 @@ def seed_database():
 
         # Create a test classroom
         classroom = Classroom(
-            name="Load Testing 101",
+            name="Load Testing Class",
             section="A",
-            join_code="LOAD101",
+            class_code="LOAD101",
             instructor_id=instructor.user_id,
             is_active=True
         )
