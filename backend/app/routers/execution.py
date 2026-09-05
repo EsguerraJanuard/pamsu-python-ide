@@ -34,6 +34,7 @@ from app.schemas.execution_schema import (
     ExecutionRequestCreate,
     ExecutionRequestKind,
     ExecutionStatus,
+    Judge0CallbackPayload,
     PartnerExecutionResultUpdate,
     PartnerExecutionUpdateAcceptedResponse,
     StudentExecutionResponse,
@@ -656,6 +657,92 @@ def get_execution_request_endpoint(
     return StudentExecutionResponse.model_validate(
         execution_request,
     )
+
+
+# ------------------------------------------------------------------
+# Judge0 Adapter Webhook (Standard PUT Callback)
+# ------------------------------------------------------------------
+
+@router.put(
+    "/internal/judge0-callback",
+    response_model=PartnerExecutionUpdateAcceptedResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="apply_judge0_callback",
+    summary="Accept and map Judge0 callback payloads",
+)
+def apply_judge0_callback_endpoint(
+    execution_id: str,
+    correlation_id: str,
+    payload: Judge0CallbackPayload,
+    db: Session = Depends(get_db),
+    # We do NOT require partner_identity here since Judge0 CE callbacks lack our custom auth header
+    # unless we configure it in Judge0 config, but query params act as a signature.
+) -> PartnerExecutionUpdateAcceptedResponse:
+    import base64
+    import uuid
+    from app.schemas.execution_schema import MAX_EXECUTION_OUTPUT_LENGTH
+
+    # Map Judge0 status IDs:
+    # 3 = Accepted -> completed
+    # 5 = Time Limit Exceeded -> timed_out
+    # 6 = Compile Error, 7-12 = Runtime Errors -> runtime_error
+    # Others -> failed
+    status_id = payload.status.get("id", 1) if payload.status else 1
+    
+    mapped_status = "completed"
+    limit_reason = None
+    if status_id == 5:
+        mapped_status = "timed_out"
+        limit_reason = "time_limit_exceeded"
+    elif status_id in [6, 7, 8, 9, 10, 11, 12]:
+        mapped_status = "runtime_error"
+    elif status_id > 3 and status_id != 5:
+        mapped_status = "failed"
+        
+    def decode_b64(val: str | None) -> str:
+        if not val:
+            return ""
+        try:
+            return base64.b64decode(val).decode("utf-8")
+        except Exception:
+            return val
+            
+    stdout_decoded = decode_b64(payload.stdout)
+    stderr_decoded = decode_b64(payload.stderr)
+    
+    # Include compilation errors in stderr if present
+    if payload.compile_output:
+        stderr_decoded += "\n" + decode_b64(payload.compile_output)
+        
+    exec_time_ms = 0
+    if payload.time:
+        try:
+            exec_time_ms = int(float(payload.time) * 1000)
+        except ValueError:
+            pass
+
+    update_data = PartnerExecutionResultUpdate(
+        execution_id=execution_id,
+        correlation_id=correlation_id,
+        update_id=str(uuid.uuid4()),
+        sequence_number=1,
+        worker_task_id=payload.token or str(uuid.uuid4()),
+        status=mapped_status,
+        stdout=stdout_decoded[:MAX_EXECUTION_OUTPUT_LENGTH],
+        stderr=stderr_decoded[:MAX_EXECUTION_OUTPUT_LENGTH],
+        exit_code=0 if mapped_status == "completed" else 1,
+        execution_time_ms=exec_time_ms,
+        limit_reason=limit_reason,
+    )
+
+    from app.services.execution_service import apply_partner_execution_result_update
+    try:
+        return apply_partner_execution_result_update(
+            db,
+            update_data=update_data,
+        )
+    except ExecutionServiceError as exc:
+        raise_execution_service_http_exception(exc)
 
 
 # ------------------------------------------------------------------

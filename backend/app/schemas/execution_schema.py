@@ -636,6 +636,19 @@ class PartnerExecutionDispatchRequest(BaseModel):
     # history, screen, webcam, microphone, and individual-keystroke data.
 
 
+class Judge0CallbackPayload(BaseModel):
+    stdout: str | None = None
+    time: str | None = None
+    memory: int | None = None
+    stderr: str | None = None
+    token: str | None = None
+    compile_output: str | None = None
+    message: str | None = None
+    status: dict | None = None
+
+    model_config = ConfigDict(extra="ignore")
+
+
 class PartnerExecutionResultUpdate(BaseModel):
     execution_id: str = Field(
         ...,

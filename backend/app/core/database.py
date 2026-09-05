@@ -22,6 +22,9 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine_options["connect_args"] = {
         "check_same_thread": False,
     }
+else:
+    engine_options["pool_size"] = 20
+    engine_options["max_overflow"] = 30
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
