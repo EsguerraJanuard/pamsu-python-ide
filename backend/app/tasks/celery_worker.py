@@ -1,12 +1,20 @@
 import os
+import ssl
 from celery import Celery
 
 redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+# Remove any leftover query params if they were added in Render
+if "?" in redis_url:
+    redis_url = redis_url.split("?")[0]
+
+ssl_conf = {'ssl_cert_reqs': ssl.CERT_NONE} if redis_url.startswith('rediss://') else None
 
 celery = Celery(
     __name__,
     broker=redis_url,
-    backend=redis_url
+    backend=redis_url,
+    broker_use_ssl=ssl_conf,
+    redis_backend_use_ssl=ssl_conf
 )
 
 celery.conf.update(
