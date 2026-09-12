@@ -33,6 +33,7 @@ import AuditLogsPage from './pages/AuditLogsPage';
 // Feature Components
 import Login from './features/auth/Login';
 import Register from './features/auth/Register';
+import ForgotPassword from './features/auth/ForgotPassword';
 import StudentDashboard from './features/dashboard/StudentDashboard';
 import InstructorDashboard from './features/dashboard/InstructorDashboard';
 import InstructorSettings from "./features/settings/InstructorSettings";
@@ -76,10 +77,11 @@ export const App = () => {
             <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
 
             {/* Public Authentication Routes — redirect to dashboard if already logged in */}
-            <Route element={<GuestRoute />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-            </Route>
+              <Route element={<GuestRoute />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+              </Route>
             <Route path="/unauthorized" element={<Unauthorized />} />
 
              {/* Protected Route Tree - Requires Valid JWT/Session */}
