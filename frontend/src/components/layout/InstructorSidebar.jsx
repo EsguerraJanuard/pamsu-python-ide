@@ -273,7 +273,7 @@ export default function InstructorSidebar() {
                 <p className="truncate text-xs font-semibold text-text-main tracking-tight">
                   {name}
                 </p>
-                <p className="truncate text-[10px] text-text-muted">
+                <p className="truncate text-[10px] text-text-muted capitalize">
                   {role}
                 </p>
               </div>

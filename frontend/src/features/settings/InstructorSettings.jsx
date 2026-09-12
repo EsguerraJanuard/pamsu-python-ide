@@ -101,26 +101,30 @@ export default function InstructorSettings() {
           <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
             <h2 className="text-sm font-semibold text-text-main mb-4">Faculty Profile</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs text-text-muted mb-1">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-text-muted mb-1">Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs text-text-muted mb-1">Full Name (Verified)</label>
+                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      disabled
+                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-text-muted mb-1">Email Address (Verified)</label>
+                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      disabled
+                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                    />
+                  </div>
+                </div>
               <div>
                 <label className="block text-xs text-text-muted mb-1">Department</label>
                 <input

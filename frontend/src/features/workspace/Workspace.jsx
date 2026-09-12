@@ -590,13 +590,13 @@ export default function Workspace() {
 
   if (!activity) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-bg-base text-text-muted gap-4">
-        <p className="text-sm font-semibold tracking-wide">No activity selected or failed to load.</p>
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <p className="text-sm text-text-muted">No activity selected or failed to load.</p>
         <button 
           onClick={() => navigate('/student/dashboard')}
-          className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded transition-colors"
+          className="rounded-lg bg-white/[0.05] px-4 py-2 text-xs font-semibold text-text-main hover:bg-white/[0.1]"
         >
-          Back to Dashboard
+          &larr; Back to Dashboard
         </button>
       </div>
     );

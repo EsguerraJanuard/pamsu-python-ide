@@ -298,8 +298,8 @@ export default function Sidebar({ assignmentCount = 0 }) {
                 <p className="truncate text-xs font-semibold text-text-main tracking-tight">
                   {name}
                 </p>
-                <p className="truncate text-[10px] text-text-muted">
-                  {role} · {course}
+                <p className="truncate text-[10px] text-text-muted capitalize">
+                  {role} &middot; {course}
                 </p>
               </div>
             )}
