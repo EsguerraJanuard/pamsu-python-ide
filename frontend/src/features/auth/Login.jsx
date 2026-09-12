@@ -276,7 +276,7 @@ export default function Login() {
                   type="email"
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}
-                  placeholder={`yourname${SCHOOL_EMAIL_DOMAIN}`}
+                  placeholder="Email"
                   autoComplete="email"
                   required
                   disabled={isLoading}
@@ -318,7 +318,7 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => updateField("password", e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Password"
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
@@ -344,6 +344,16 @@ export default function Login() {
                       <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.2" />
                     </svg>
                   )}
+                </button>
+              </div>
+              <div className="flex justify-end mt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-[10px] font-medium text-text-emerald transition-colors hover:underline"
+                  disabled={isLoading}
+                >
+                  Forgot your password?
                 </button>
               </div>
             </div>

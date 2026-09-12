@@ -48,7 +48,7 @@ const parseErrorMessage = (errorData, status) => {
 
   if (status === 422 && Array.isArray(errorData.detail)) {
     const validationErrors = errorData.detail
-      .map((err) => `${err.loc?.slice(-1)[0] || 'Field'}: ${err.msg}`)
+      .map((err) => `${err.loc?.slice(-1)[0] || 'Field'} is invalid or exceeds maximum length.`)
       .join('; ');
     return `Validation Error: ${validationErrors}`;
   }
