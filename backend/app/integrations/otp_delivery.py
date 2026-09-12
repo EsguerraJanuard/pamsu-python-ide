@@ -47,6 +47,8 @@ class SMTPEmailAdapter:
             purpose_str = "complete your registration"
         elif purpose == "email_change":
             purpose_str = "verify your new email address"
+        elif purpose == "password_reset":
+            purpose_str = "reset your password"
 
         minutes = expires_in_seconds // 60
 

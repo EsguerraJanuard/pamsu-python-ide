@@ -589,3 +589,162 @@ def verify_registration_otp(
 # Missing, incompatible, rejected, or failed partner adapters are converted
 # into OTPDeliveryError. Registration and resend workflows roll back their
 # database changes before propagating the controlled service error.
+
+
+def start_password_reset(
+    *,
+    db: Session,
+    reset_data: "PasswordResetStartRequest",
+    delivery_adapter: OTPDeliveryAdapter,
+) -> OTPChallengeResponse:
+    from app.models.user import User
+    normalized_email = normalize_email(reset_data.email)
+
+    user = db.query(User).filter(User.email == normalized_email).first()
+    if not user:
+        raise RegistrationConflictError("No account found with that email address.")
+
+    current_time = utc_now()
+    challenge_id = str(uuid4())
+    otp_code = generate_otp_code()
+
+    challenge = OTPChallenge(
+        challenge_id=challenge_id,
+        email=normalized_email,
+        purpose="password_reset",
+        otp_hash=hash_otp_code(otp_code),
+        expires_at=current_time + timedelta(seconds=OTP_EXPIRE_SECONDS),
+        last_sent_at=current_time,
+        attempts=0,
+        consumed=False,
+    )
+    
+    db.add(challenge)
+    
+    deliver_otp(
+        adapter=delivery_adapter,
+        recipient_email=normalized_email,
+        otp_code=otp_code,
+        purpose="password_reset",
+        expires_in_seconds=OTP_EXPIRE_SECONDS,
+    )
+    
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return OTPChallengeResponse(
+        challenge_id=challenge.challenge_id,
+        email=normalized_email,
+        purpose="password_reset",
+        expires_in_seconds=OTP_EXPIRE_SECONDS,
+        resend_after_seconds=OTP_RESEND_COOLDOWN_SECONDS,
+        message="A verification code has been sent to your email address.",
+    )
+
+def verify_and_complete_password_reset(
+    *,
+    db: Session,
+    completion_data: "PasswordResetCompleteRequest",
+) -> dict:
+    from app.models.user import User
+    from app.core.security import get_password_hash
+    
+    challenge = get_challenge_or_raise(
+        db=db,
+        challenge_id=completion_data.challenge_id,
+    )
+
+    if challenge.purpose != "password_reset":
+        raise OTPChallengeNotFoundError("Password reset challenge not found.")
+
+    validate_active_challenge(challenge)
+
+    otp_is_valid = verify_otp_hash(
+        plain_otp=completion_data.otp_code,
+        hashed_otp=challenge.otp_hash,
+    )
+
+    if not otp_is_valid:
+        challenge.attempts += 1
+        db.commit()
+
+        remaining_attempts = max(0, OTP_MAX_ATTEMPTS - challenge.attempts)
+        if remaining_attempts == 0:
+            raise OTPAttemptLimitError()
+
+        raise OTPInvalidCodeError(remaining_attempts)
+
+    user = db.query(User).filter(User.email == challenge.email).first()
+    if not user:
+        raise RegistrationConflictError("No account found for this reset challenge.")
+
+    user.password_hash = get_password_hash(completion_data.new_password)
+    user.password_version += 1
+    
+    challenge.consumed = True
+    
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {"message": "Password successfully reset."}
+
+def resend_password_reset_otp(
+    *,
+    db: Session,
+    challenge_id: str,
+    delivery_adapter: OTPDeliveryAdapter,
+) -> OTPChallengeResponse:
+    challenge = get_challenge_or_raise(
+        db=db,
+        challenge_id=challenge_id,
+    )
+
+    if challenge.purpose != "password_reset":
+        raise OTPChallengeNotFoundError("Password reset challenge not found.")
+
+    if challenge.consumed_at is not None:
+        raise OTPChallengeConsumedError("This challenge has already been verified.")
+
+    current_time = utc_now()
+    if challenge.last_sent_at is not None:
+        seconds_since_sent = (current_time - challenge.last_sent_at).total_seconds()
+        if seconds_since_sent < OTP_RESEND_COOLDOWN_SECONDS:
+            raise OTPResendTooSoonError(
+                int(OTP_RESEND_COOLDOWN_SECONDS - seconds_since_sent)
+            )
+
+    otp_code = generate_otp_code()
+
+    challenge.otp_hash = hash_otp_code(otp_code)
+    challenge.expires_at = current_time + timedelta(seconds=OTP_EXPIRE_SECONDS)
+    challenge.last_sent_at = current_time
+    challenge.attempts = 0
+
+    deliver_otp(
+        adapter=delivery_adapter,
+        recipient_email=challenge.email,
+        otp_code=otp_code,
+        purpose="password_reset",
+        expires_in_seconds=OTP_EXPIRE_SECONDS,
+    )
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return OTPChallengeResponse(
+        challenge_id=challenge.challenge_id,
+        email=challenge.email,
+        purpose="password_reset",
+        expires_in_seconds=OTP_EXPIRE_SECONDS,
+        resend_after_seconds=OTP_RESEND_COOLDOWN_SECONDS,
+        message="A new verification code was sent to your email address.",
+    )

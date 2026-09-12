@@ -10,8 +10,19 @@ from pydantic import (
 from app.schemas.user_schema import UserCreate, UserResponse
 
 
-OTPPurpose = Literal["registration", "email_change"]
+OTPPurpose = Literal["registration", "email_change", "password_reset"]
 
+class PasswordResetStartRequest(BaseModel):
+    email: str
+
+    model_config = ConfigDict(extra="forbid")
+
+class PasswordResetCompleteRequest(BaseModel):
+    challenge_id: str = Field(..., min_length=36, max_length=36)
+    otp_code: str = Field(..., pattern=r"^\d{6}$")
+    new_password: str
+
+    model_config = ConfigDict(extra="forbid")
 
 class RegistrationStartRequest(UserCreate):
     """
