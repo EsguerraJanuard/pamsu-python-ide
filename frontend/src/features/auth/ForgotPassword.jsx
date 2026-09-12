@@ -123,14 +123,16 @@ export default function ForgotPassword() {
   };
 
   const inputClass = "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
-  const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
+  const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/60";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg-base text-text-main overflow-hidden p-6 relative">
-      {/* Background Grid & Glows */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-      <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-blue-500/10 blur-[120px]" />
-      <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
+      {/* Premium Background Grid (Matches Login!) */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+
+      {/* Glow effects (Matches Login!) */}
+      <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
+      <div className="absolute bottom-0 left-0 -z-10 h-[600px] w-[600px] -translate-x-1/4 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
 
       <div className="absolute top-6 right-6 z-50">
         <ThemeToggle />
@@ -178,7 +180,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
@@ -189,7 +191,7 @@ export default function ForgotPassword() {
 
             <div className="mt-6 text-center text-[13px]">
               <span className="text-text-muted">Remember your password?</span>{" "}
-              <Link to="/login" className="font-semibold text-[#3b82f6] hover:underline">
+              <Link to="/login" className="font-semibold text-emerald-500 hover:underline">
                 Log in instead
               </Link>
             </div>
@@ -231,7 +233,7 @@ export default function ForgotPassword() {
                     type="button"
                     onClick={handleResendOTP}
                     disabled={resendTimer > 0 || loading}
-                    className="text-[#3b82f6] hover:underline disabled:text-text-muted disabled:no-underline"
+                    className="text-emerald-500 hover:underline disabled:text-text-muted disabled:no-underline"
                   >
                     {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend code"}
                   </button>
@@ -302,7 +304,7 @@ export default function ForgotPassword() {
                     type="checkbox" 
                     checked={showPasswords} 
                     onChange={() => setShowPasswords(!showPasswords)} 
-                    className="rounded border-border-subtle text-[#3b82f6] focus:ring-[#3b82f6]"
+                    className="rounded border-border-subtle text-emerald-500 focus:ring-emerald-500"
                   />
                   Show passwords
                 </label>
@@ -312,7 +314,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading || otpCode.length !== 6}
-              className="flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
