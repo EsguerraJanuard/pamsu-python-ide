@@ -59,13 +59,18 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
 
         payload = {
             "source_code": source_code_b64,
-            "language_id": 71, # Python
+            "language_id": 71,  # Python
             "stdin": stdin_b64,
             "callback_url": callback_url,
+            "cpu_time_limit": 5.0,           # Enforce 5-second max CPU time
+            "memory_limit": 256000,          # Enforce 256MB memory cap (KB format)
+            "wall_time_limit": 10.0,         # Enforce 10-second max wall time
+            "max_processes_and_or_threads": 64, 
+            "enable_network": False          # Strictly isolate classroom code
         }
         
         # Dispatch to partner with base64_encoded=true
-        with httpx.Client(timeout=10.0) as client:
+        with httpx.Client(timeout=httpx.Timeout(2.0, read=2.0)) as client:
             response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload)
             response.raise_for_status()
             data = response.json()
