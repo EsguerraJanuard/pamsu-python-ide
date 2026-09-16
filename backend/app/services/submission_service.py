@@ -145,7 +145,6 @@ def _get_student_submission_task(
         .filter(
             Task.task_id == task_id,
         )
-        .with_for_update()
         .first()
     )
 
@@ -166,6 +165,7 @@ def _get_student_submission_task(
             Enrollment.status == "active",
             Classroom.is_active.is_(True),
         )
+        .with_for_update(of=Enrollment)
         .first()
     )
 
