@@ -4,8 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import NoReturn
 
-from app.services.otp_service import OTPDeliveryAdapter
-from app.integrations.otp_email import OTPEmailAdapterRejectedError
+from app.integrations.otp_email import OTPEmailAdapter as OTPDeliveryAdapter, OTPEmailAdapterRejectedError
 
 
 class OTPDeliveryUnavailableError(RuntimeError):

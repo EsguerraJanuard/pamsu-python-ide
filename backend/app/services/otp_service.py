@@ -597,7 +597,7 @@ def start_password_reset(
     reset_data: "PasswordResetStartRequest",
     delivery_adapter: OTPDeliveryAdapter,
 ) -> OTPChallengeResponse:
-    from app.models.user import User
+    from app.models.domain_models import User
     normalized_email = normalize_email(reset_data.email)
 
     user = db.query(User).filter(User.email == normalized_email).first()
@@ -612,21 +612,24 @@ def start_password_reset(
         challenge_id=challenge_id,
         email=normalized_email,
         purpose="password_reset",
-        otp_hash=hash_otp_code(otp_code),
+        otp_hash=hash_otp_code(
+            challenge_id=challenge_id,
+            otp_code=otp_code,
+        ),
+        attempt_count=0,
+        max_attempts=OTP_MAX_ATTEMPTS,
+        resend_count=0,
         expires_at=current_time + timedelta(seconds=OTP_EXPIRE_SECONDS),
         last_sent_at=current_time,
-        attempts=0,
-        consumed=False,
     )
     
     db.add(challenge)
     
     deliver_otp(
-        adapter=delivery_adapter,
-        recipient_email=normalized_email,
+        delivery_adapter=delivery_adapter,
+        email=normalized_email,
         otp_code=otp_code,
         purpose="password_reset",
-        expires_in_seconds=OTP_EXPIRE_SECONDS,
     )
     
     try:
@@ -649,7 +652,7 @@ def verify_and_complete_password_reset(
     db: Session,
     completion_data: "PasswordResetCompleteRequest",
 ) -> dict:
-    from app.models.user import User
+    from app.models.domain_models import User
     from app.core.security import get_password_hash
     
     challenge = get_challenge_or_raise(
@@ -663,15 +666,21 @@ def verify_and_complete_password_reset(
     validate_active_challenge(challenge)
 
     otp_is_valid = verify_otp_hash(
-        plain_otp=completion_data.otp_code,
-        hashed_otp=challenge.otp_hash,
+        challenge_id=challenge.challenge_id,
+        otp_code=completion_data.otp_code,
+        stored_hash=challenge.otp_hash,
     )
 
     if not otp_is_valid:
-        challenge.attempts += 1
+        challenge.attempt_count += 1
+        
+        remaining_attempts = max(
+            challenge.max_attempts - challenge.attempt_count,
+            0,
+        )
+        
         db.commit()
 
-        remaining_attempts = max(0, OTP_MAX_ATTEMPTS - challenge.attempts)
         if remaining_attempts == 0:
             raise OTPAttemptLimitError()
 
@@ -684,7 +693,7 @@ def verify_and_complete_password_reset(
     user.password_hash = get_password_hash(completion_data.new_password)
     user.password_version += 1
     
-    challenge.consumed = True
+    challenge.consumed_at = utc_now()
     
     try:
         db.commit()
@@ -721,17 +730,19 @@ def resend_password_reset_otp(
 
     otp_code = generate_otp_code()
 
-    challenge.otp_hash = hash_otp_code(otp_code)
+    challenge.otp_hash = hash_otp_code(
+        challenge_id=challenge.challenge_id,
+        otp_code=otp_code,
+    )
     challenge.expires_at = current_time + timedelta(seconds=OTP_EXPIRE_SECONDS)
     challenge.last_sent_at = current_time
-    challenge.attempts = 0
+    challenge.attempt_count = 0
 
     deliver_otp(
-        adapter=delivery_adapter,
-        recipient_email=challenge.email,
+        delivery_adapter=delivery_adapter,
+        email=challenge.email,
         otp_code=otp_code,
         purpose="password_reset",
-        expires_in_seconds=OTP_EXPIRE_SECONDS,
     )
 
     try:
