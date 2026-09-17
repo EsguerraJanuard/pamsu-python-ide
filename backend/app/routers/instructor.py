@@ -1538,36 +1538,41 @@ def export_instructor_review_queue_csv(
         
     items = result.get("items", [])
     
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # Headers
-    writer.writerow([
-        "Submission ID", "Student Name", "Task Title", "Classroom", 
-        "Status", "Similarity Score", "Instructor Grade", "Submitted At"
-    ])
-    
-    for item in items:
-        writer.writerow([
-            item.sub_id,
-            item.student_name,
-            item.task_title,
-            item.classroom_name,
-            item.status,
-            item.similarity_score if item.similarity_score is not None else "",
-            item.instructor_grade if item.instructor_grade is not None else "",
-            item.submitted_at.isoformat() if item.submitted_at else ""
-        ])
+    def iter_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
         
-    output.seek(0)
-    
+        # Headers
+        writer.writerow([
+            "Submission ID", "Student Name", "Task Title", "Classroom", 
+            "Status", "Similarity Score", "Instructor Grade", "Submitted At"
+        ])
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+        
+        for item in items:
+            writer.writerow([
+                item.sub_id,
+                item.student_name,
+                item.task_title,
+                item.classroom_name,
+                item.status,
+                item.similarity_score if item.similarity_score is not None else "",
+                item.instructor_grade if item.instructor_grade is not None else "",
+                item.submitted_at.isoformat() if item.submitted_at else ""
+            ])
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
     # Generate filename
     filename = "gradebook_export.csv"
     if class_id:
         filename = f"gradebook_class_{class_id}.csv"
         
     return StreamingResponse(
-        iter([output.getvalue()]), 
+        iter_csv(), 
         media_type="text/csv", 
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
