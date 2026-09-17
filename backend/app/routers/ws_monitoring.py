@@ -12,6 +12,8 @@ from app.models.domain_models import User
 
 router = APIRouter()
 
+from fastapi.concurrency import run_in_threadpool
+
 async def get_user_from_token(token: str, db: Session) -> Optional[User]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -21,7 +23,11 @@ async def get_user_from_token(token: str, db: Session) -> Optional[User]:
         if not subject:
             return None
         user_id = int(subject)
-        return db.query(User).filter(User.user_id == user_id).first()
+        
+        def fetch_user():
+            return db.query(User).filter(User.user_id == user_id).first()
+            
+        return await run_in_threadpool(fetch_user)
     except (JWTError, ValueError):
         return None
 
@@ -96,19 +102,27 @@ async def instructor_monitoring_ws(
     await pubsub.subscribe(channel)
     
     try:
-        while True:
-            # Non-blocking get_message
-            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
-            if message:
-                await websocket.send_text(message["data"])
-            
-            # We also need to check if the client closed the connection.
-            # Using asyncio.wait to race between client receive and redis pubsub.
-            # Since get_message with timeout is blocking for that timeout, we can just ping.
-            # Alternatively, simple polling works fine for the instructor side.
-            
-            # Just to ensure the socket hasn't closed from client side:
-            # We'll rely on the websocket failing to send if disconnected.
+        async def pubsub_reader():
+            while True:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message:
+                    await websocket.send_text(message["data"])
+                await asyncio.sleep(0.01)  # Yield control to prevent tight looping
+
+        async def websocket_reader():
+            while True:
+                await websocket.receive()
+
+        pubsub_task = asyncio.create_task(pubsub_reader())
+        ws_task = asyncio.create_task(websocket_reader())
+
+        done, pending = await asyncio.wait(
+            [pubsub_task, ws_task],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+
+        for task in pending:
+            task.cancel()
     except WebSocketDisconnect:
         pass
     except Exception as e:
