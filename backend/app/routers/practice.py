@@ -135,10 +135,11 @@ def submit_practice_task(
             ast_res = evaluate_ast_details(request.code, task.expected_ast_patterns)
             
             if ast_res.get("syntax_error"):
-                ast_feedback_msgs.append(f"Syntax Error: {ast_res['syntax_error']}")
+                ast_feedback_msgs.append(f"Syntax Error: {ast_res['syntax_error'].get('message', 'Unknown syntax error')}")
             
             for finding in ast_res.get("findings", []):
-                ast_feedback_msgs.append(finding.get("message", str(finding)))
+                if not finding.get("passed", False):
+                    ast_feedback_msgs.append(f"Missing {finding.get('label')}: {finding.get('message')}")
             
             if not ast_res.get("passed"):
                 is_successful = False

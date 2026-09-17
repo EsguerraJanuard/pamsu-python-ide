@@ -42,6 +42,8 @@ import Submissions from './features/submissions/Submissions';
 import SubmissionDetails from './features/submissions/SubmissionDetails';
 import Analytics from './features/dashboard/Analytics';
 import Workspace from './features/workspace/Workspace';
+import SoloPractice from './features/practice/SoloPractice';
+import PracticeWorkspace from './features/practice/PracticeWorkspace';
 import Settings from './features/settings/Settings';
 import ClassRosterView from './features/dashboard/ClassRosterView';
 import ClassManagement from './features/instructor/ClassManagement';
@@ -53,7 +55,6 @@ import GradingWorkspace from './features/instructor/GradingWorkspace';
 import LiveMonitoring from './features/instructor/LiveMonitoring';
 import MyClasses from './features/classes/MyClasses';
 import ClassDetails from './features/classes/ClassDetails';
-import SoloPractice from './features/practice/SoloPractice';
 
 const PlaceholderView = ({ title, description }) => (
   <div className="rounded-xl border border-border-subtle bg-bg-glass/50 p-8 text-center">
@@ -95,6 +96,7 @@ export const App = () => {
                 <Route path="/student/assignments" element={<Assignments />} />
                 <Route path="/student/workspace" element={<Workspace />} />
                 <Route path="/student/practice" element={<SoloPractice />} />
+                <Route path="/student/practice/workspace" element={<PracticeWorkspace />} />
                 <Route path="/student/submissions" element={<Submissions />} />
                 <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
                 <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
