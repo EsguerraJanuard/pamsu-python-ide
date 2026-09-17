@@ -4,7 +4,7 @@ import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import api from "../../services/api";
 
-import Sidebar from "../../components/layout/Sidebar";
+
 import Statusbar from "../../components/layout/Statusbar";
 
 function PlayIcon(props) {
@@ -27,6 +27,7 @@ export default function PracticeWorkspace() {
   const { settings } = useEditorSettings();
   const [taskDetails, setTaskDetails] = useState(null);
   const [moduleDetails, setModuleDetails] = useState(null);
+  const [nextTaskId, setNextTaskId] = useState(null);
   
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,12 +48,20 @@ export default function PracticeWorkspace() {
         const response = await api.get("/practice/modules");
         let foundTask = null;
         let foundModule = null;
+        let nTaskId = null;
+        
+        const allTasks = [];
+        response.data.forEach(m => {
+          m.tasks.forEach(t => allTasks.push(t));
+        });
 
-        for (const mod of response.data) {
-          const t = mod.tasks.find(t => t.task_id === parseInt(taskId));
-          if (t) {
-            foundTask = t;
-            foundModule = mod;
+        for (let i = 0; i < allTasks.length; i++) {
+          if (allTasks[i].task_id === parseInt(taskId)) {
+            foundTask = allTasks[i];
+            foundModule = response.data.find(m => m.module_id === foundTask.module_id);
+            if (i + 1 < allTasks.length) {
+              nTaskId = allTasks[i + 1].task_id;
+            }
             break;
           }
         }
@@ -63,6 +72,7 @@ export default function PracticeWorkspace() {
           } else {
             setTaskDetails(foundTask);
             setModuleDetails(foundModule);
+            setNextTaskId(nTaskId);
             setCode(foundTask.starter_code || "");
           }
         } else {
@@ -132,6 +142,19 @@ export default function PracticeWorkspace() {
         </div>
         
         <div className="flex items-center gap-3">
+          {feedback?.is_successful && nextTaskId && (
+            <button
+              onClick={() => {
+                setTaskDetails(null); // trigger re-fetch/loading
+                setFeedback(null);
+                setCode("");
+                navigate(`/student/practice/workspace?task=${nextTaskId}`);
+              }}
+              className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-500"
+            >
+              Next Task →
+            </button>
+          )}
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
