@@ -1513,3 +1513,59 @@ def get_student_growth_for_instructor(
     # But for a gamified metric, read access is generally safe if authorized as instructor
     
     return calculate_growth_for_student(db, student_id)
+
+@router.get("/review-queue/export")
+def export_instructor_review_queue_csv(
+    class_id: int | None = Query(default=None),
+    task_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    try:
+        # Fetch up to 10000 records for the export
+        result = list_instructor_review_queue(
+            db,
+            instructor_id=current_instructor.user_id,
+            page=1,
+            page_size=10000,
+            class_id=class_id,
+            task_id=task_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    items = result.get("items", [])
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    writer.writerow([
+        "Submission ID", "Student Name", "Task Title", "Classroom", 
+        "Status", "Similarity Score", "Instructor Grade", "Submitted At"
+    ])
+    
+    for item in items:
+        writer.writerow([
+            item.sub_id,
+            item.student_name,
+            item.task_title,
+            item.classroom_name,
+            item.status,
+            item.similarity_score if item.similarity_score is not None else "",
+            item.instructor_grade if item.instructor_grade is not None else "",
+            item.submitted_at.isoformat() if item.submitted_at else ""
+        ])
+        
+    output.seek(0)
+    
+    # Generate filename
+    filename = "gradebook_export.csv"
+    if class_id:
+        filename = f"gradebook_class_{class_id}.csv"
+        
+    return StreamingResponse(
+        iter([output.getvalue()]), 
+        media_type="text/csv", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

@@ -39,6 +39,34 @@ const InstructorReviewQueue = () => {
     });
   };
 
+
+  const handleExportCSV = async () => {
+    try {
+      // Use standard fetch to handle blob download properly
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8000/api/v1/instructors/review-queue/export", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) throw new Error("Export failed");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gradebook_export.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+      setError("Failed to export gradebook.");
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
@@ -120,7 +148,35 @@ const InstructorReviewQueue = () => {
                     isHighSimilarity = parseFloat(similarityScore) > 70;
                   }
 
-                  return (
+                
+  const handleExportCSV = async () => {
+    try {
+      // Use standard fetch to handle blob download properly
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8000/api/v1/instructors/review-queue/export", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) throw new Error("Export failed");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gradebook_export.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+      setError("Failed to export gradebook.");
+    }
+  };
+
+  return (
                     <tr key={sub.sub_id || sub.id} className="border-b border-border-subtle hover:bg-bg-glass-hover transition-colors">
                       <td className="p-4 text-sm text-text-main">
                         {sub.student?.name || sub.user?.full_name || 'Unknown Student'}
