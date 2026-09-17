@@ -1,3 +1,4 @@
+from app.services.ast_fingerprinter import generate_ast_fingerprint
 import builtins
 import io
 import keyword
@@ -168,16 +169,23 @@ def calculate_jaccard_details(
     normalize_literals: bool = True,
     shingle_size: int = 1,
 ) -> dict[str, Any]:
-    tokens_a_sequence = _normalize_python_token_sequence(
-        raw_code=code_a,
-        normalize_identifiers=normalize_identifiers,
-        normalize_literals=normalize_literals,
-    )
-    tokens_b_sequence = _normalize_python_token_sequence(
-        raw_code=code_b,
-        normalize_identifiers=normalize_identifiers,
-        normalize_literals=normalize_literals,
-    )
+    try:
+        tokens_a_sequence = generate_ast_fingerprint(code_a)
+    except Exception:
+        tokens_a_sequence = _normalize_python_token_sequence(
+            raw_code=code_a,
+            normalize_identifiers=normalize_identifiers,
+            normalize_literals=normalize_literals,
+        )
+
+    try:
+        tokens_b_sequence = generate_ast_fingerprint(code_b)
+    except Exception:
+        tokens_b_sequence = _normalize_python_token_sequence(
+            raw_code=code_b,
+            normalize_identifiers=normalize_identifiers,
+            normalize_literals=normalize_literals,
+        )
 
     tokens_a = set(tokens_a_sequence)
     tokens_b = set(tokens_b_sequence)

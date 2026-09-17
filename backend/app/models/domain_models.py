@@ -1512,7 +1512,7 @@ class SimilarityResult(Base):
     algorithm = Column(
         String(100),
         nullable=False,
-        default="jaccard",
+        default="ast_jaccard",
     )
     created_at = Column(
         DateTime(timezone=True),
