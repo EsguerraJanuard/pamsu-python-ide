@@ -8,7 +8,9 @@ from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.domain_models import User, PracticeModule, PracticeTask, PracticeProgress, PracticeAttempt
-from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse
+from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown
+from sqlalchemy import func
+
 from app.services.ast_evaluator import evaluate_ast_details
 
 router = APIRouter(prefix="/practice", tags=["Solo Practice"])
@@ -185,3 +187,80 @@ def submit_practice_task(
         ast_feedback=ast_feedback_msgs,
         message="Practice task completed successfully!" if is_successful else "Keep trying!"
     )
+
+def calculate_growth_for_student(db: Session, student_id: int) -> GrowthAnalyticsResponse:
+    modules = db.query(PracticeModule).order_by(PracticeModule.order_index).all()
+    
+    total_tasks = 0
+    completed_tasks = 0
+    total_attempts = 0
+    successful_attempts = 0
+    
+    breakdown = []
+    
+    for mod in modules:
+        mod_tasks = db.query(PracticeTask).filter(PracticeTask.module_id == mod.module_id).all()
+        task_ids = [t.task_id for t in mod_tasks]
+        
+        mod_total_tasks = len(task_ids)
+        mod_completed = 0
+        mod_attempts = 0
+        
+        if task_ids:
+            # Count completed tasks
+            completed_count = db.query(PracticeProgress).filter(
+                PracticeProgress.student_id == student_id,
+                PracticeProgress.task_id.in_(task_ids),
+                PracticeProgress.is_completed == True
+            ).count()
+            mod_completed = completed_count
+            
+            # Count attempts
+            attempts = db.query(PracticeAttempt).filter(
+                PracticeAttempt.student_id == student_id,
+                PracticeAttempt.task_id.in_(task_ids)
+            ).all()
+            mod_attempts = len(attempts)
+            
+            total_attempts += mod_attempts
+            successful_attempts += sum(1 for a in attempts if a.is_successful)
+            
+        total_tasks += mod_total_tasks
+        completed_tasks += mod_completed
+        
+        breakdown.append(ModuleBreakdown(
+            module_title=mod.title,
+            total_tasks=mod_total_tasks,
+            completed_tasks=mod_completed,
+            attempts_count=mod_attempts
+        ))
+
+    # Synthetic Growth Score Algorithm
+    # 50% based on Completion
+    completion_ratio = (completed_tasks / total_tasks) if total_tasks > 0 else 0
+    
+    # 50% based on Accuracy (Successful / Total Attempts)
+    accuracy_ratio = (successful_attempts / total_attempts) if total_attempts > 0 else 0
+    
+    # If they completed things flawlessly, they get 100
+    # If they completed things but brute forced, they might get 70
+    growth_score = int((completion_ratio * 50) + (accuracy_ratio * 50))
+    
+    return GrowthAnalyticsResponse(
+        overall_growth_score=growth_score,
+        total_tasks=total_tasks,
+        completed_tasks=completed_tasks,
+        total_attempts=total_attempts,
+        successful_attempts=successful_attempts,
+        module_breakdown=breakdown
+    )
+
+@router.get("/analytics/growth", response_model=GrowthAnalyticsResponse)
+def get_student_growth_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Only students can view their personal growth dashboard")
+    
+    return calculate_growth_for_student(db, current_user.user_id)
