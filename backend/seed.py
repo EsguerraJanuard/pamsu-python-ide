@@ -71,6 +71,77 @@ def seed_database():
         db.add(task)
         db.commit()
 
+
+        from app.models.domain_models import PracticeModule, PracticeTask
+        
+        db.execute(text("TRUNCATE TABLE practice_modules CASCADE"))
+        db.commit()
+
+        # Module 1: Python Basics
+        mod1 = PracticeModule(
+            title="Python Basics",
+            description="Learn the basic syntax and structure of Python.",
+            order_index=1
+        )
+        db.add(mod1)
+        db.commit()
+
+        task1_1 = PracticeTask(
+            module_id=mod1.module_id,
+            title="Hello World",
+            instructions="Print 'Hello, World!' to the console.",
+            starter_code="# Write your code here\n",
+            expected_output="Hello, World!\n",
+            expected_ast_patterns={
+                "required": [
+                    {"type": "Call", "func": "print"}
+                ]
+            },
+            order_index=1
+        )
+        task1_2 = PracticeTask(
+            module_id=mod1.module_id,
+            title="Variables",
+            instructions="Create a variable named 'x' and assign the value 5 to it. Print 'x'.",
+            starter_code="# Create variable x\n",
+            expected_output="5\n",
+            expected_ast_patterns={
+                "required": [
+                    {"type": "Assign", "targets": ["x"]},
+                    {"type": "Call", "func": "print", "args": ["x"]}
+                ]
+            },
+            order_index=2
+        )
+        db.add_all([task1_1, task1_2])
+
+        # Module 2: Control Flow
+        mod2 = PracticeModule(
+            title="Control Flow",
+            description="Learn how to make decisions in your code using if statements and loops.",
+            order_index=2
+        )
+        db.add(mod2)
+        db.commit()
+        
+        task2_1 = PracticeTask(
+            module_id=mod2.module_id,
+            title="If Statements",
+            instructions="Write an if statement that prints 'Positive' if x is greater than 0. x is already defined for you as 10.",
+            starter_code="x = 10\n# Write your if statement here\n",
+            expected_output="Positive\n",
+            expected_ast_patterns={
+                "required": [
+                    {"type": "If"}
+                ]
+            },
+            order_index=1
+        )
+        db.add(task2_1)
+        db.commit()
+        
+        print("Successfully seeded Practice Modules and Tasks!")
+
         print("Successfully updated test accounts, classroom, and task!")
 
     except Exception as e:

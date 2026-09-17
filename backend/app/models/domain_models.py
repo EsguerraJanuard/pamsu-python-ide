@@ -1974,3 +1974,77 @@ class Notification(Base):
     # DELIVERY BOUNDARY:
     # This table represents in-app notifications only. Email, SMS, push,
     # and other external delivery adapters are outside Pillar 11.
+
+
+class PracticeModule(Base):
+    __tablename__ = "practice_modules"
+
+    module_id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    order_index = Column(Integer, nullable=False, default=0)
+
+    tasks = relationship(
+        "PracticeTask",
+        back_populates="module",
+        cascade="all, delete-orphan",
+        order_by="PracticeTask.order_index",
+    )
+
+
+class PracticeTask(Base):
+    __tablename__ = "practice_tasks"
+
+    task_id = Column(Integer, primary_key=True, index=True)
+    module_id = Column(Integer, ForeignKey("practice_modules.module_id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(255), nullable=False)
+    instructions = Column(Text, nullable=False)
+    starter_code = Column(Text, nullable=True)
+    expected_output = Column(Text, nullable=False)
+    expected_ast_patterns = Column(JSON, nullable=True)
+    order_index = Column(Integer, nullable=False, default=0)
+
+    module = relationship("PracticeModule", back_populates="tasks")
+    progress_records = relationship(
+        "PracticeProgress",
+        back_populates="task",
+        cascade="all, delete-orphan",
+    )
+    attempts = relationship(
+        "PracticeAttempt",
+        back_populates="task",
+        cascade="all, delete-orphan",
+    )
+
+
+class PracticeProgress(Base):
+    __tablename__ = "practice_progress"
+    __table_args__ = (
+        UniqueConstraint("student_id", "task_id", name="uq_practice_progress_student_task"),
+    )
+
+    progress_id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(Integer, ForeignKey("practice_tasks.task_id", ondelete="CASCADE"), nullable=False)
+    is_completed = Column(Boolean, default=False, nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    attempts_count = Column(Integer, default=0, nullable=False)
+
+    student = relationship("User")
+    task = relationship("PracticeTask", back_populates="progress_records")
+
+
+class PracticeAttempt(Base):
+    __tablename__ = "practice_attempts"
+
+    attempt_id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(Integer, ForeignKey("practice_tasks.task_id", ondelete="CASCADE"), nullable=False)
+    submitted_code = Column(Text, nullable=False)
+    is_successful = Column(Boolean, default=False, nullable=False)
+    execution_feedback = Column(Text, nullable=True)
+    ast_feedback = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    student = relationship("User")
+    task = relationship("PracticeTask", back_populates="attempts")
