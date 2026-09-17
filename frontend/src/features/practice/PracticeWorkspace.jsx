@@ -24,7 +24,7 @@ export default function PracticeWorkspace() {
   const navigate = useNavigate();
   const taskId = searchParams.get("task");
   
-  const { settings, applySettings } = useEditorSettings();
+  const { settings } = useEditorSettings();
   const [taskDetails, setTaskDetails] = useState(null);
   const [moduleDetails, setModuleDetails] = useState(null);
   
@@ -33,8 +33,8 @@ export default function PracticeWorkspace() {
   const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
-    applySettings();
-  }, [settings, applySettings]);
+    // Monaco editor applies settings dynamically via the options prop.
+  }, [settings]);
 
   useEffect(() => {
     if (!taskId) {
