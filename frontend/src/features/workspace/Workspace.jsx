@@ -237,6 +237,37 @@ export default function Workspace() {
     };
   }, [code, draftStorageKey]);
 
+  const ws = useRef(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    
+    // Connect to WebSocket
+    const wsUrl = `ws://localhost:8000/api/v1/ws/student?token=${token}`;
+    ws.current = new WebSocket(wsUrl);
+    
+    // Heartbeat
+    const interval = setInterval(() => {
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({ 
+          event_type: "heartbeat",
+          task_id: activityId ? parseInt(activityId) : null,
+          tab_switch_count: tabSwitchCount,
+          blocked_paste_count: blockedPasteCount,
+          mouseleave_count: mouseLeaveCount
+        }));
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
+  }, [activityId, tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
+
   useEffect(() => {
     const handleLossOfFocus = () => {
       setTabSwitchCount((currentCount) => currentCount + 1);
