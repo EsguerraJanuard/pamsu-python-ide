@@ -577,6 +577,7 @@ def evaluate_submission_by_id(
     jaccard_details = find_highest_similarity(
         target_code=submission.raw_code,
         comparison_submissions=(comparison_submissions),
+        shingle_size=3,
     )
 
     if not isinstance(jaccard_details, dict):
