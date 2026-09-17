@@ -137,7 +137,8 @@ def submit_practice_task(
             if ast_res.get("syntax_error"):
                 ast_feedback_msgs.append(f"Syntax Error: {ast_res['syntax_error']}")
             
-            ast_feedback_msgs.extend(ast_res.get("findings", []))
+            for finding in ast_res.get("findings", []):
+                ast_feedback_msgs.append(finding.get("message", str(finding)))
             
             if not ast_res.get("passed"):
                 is_successful = False

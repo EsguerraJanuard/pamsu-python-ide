@@ -93,9 +93,7 @@ def seed_database():
             starter_code="# Write your code here\n",
             expected_output="Hello, World!\n",
             expected_ast_patterns={
-                "required": [
-                    {"type": "Call", "func": "print"}
-                ]
+                "require_print_call": True
             },
             order_index=1
         )
@@ -106,10 +104,7 @@ def seed_database():
             starter_code="# Create variable x\n",
             expected_output="5\n",
             expected_ast_patterns={
-                "required": [
-                    {"type": "Assign", "targets": ["x"]},
-                    {"type": "Call", "func": "print", "args": ["x"]}
-                ]
+                "require_print_call": True
             },
             order_index=2
         )
@@ -131,9 +126,8 @@ def seed_database():
             starter_code="x = 10\n# Write your if statement here\n",
             expected_output="Positive\n",
             expected_ast_patterns={
-                "required": [
-                    {"type": "If"}
-                ]
+                "require_if_statement": True,
+                "require_print_call": True
             },
             order_index=1
         )
