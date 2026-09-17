@@ -40,3 +40,17 @@ class PracticeSubmissionResponse(BaseModel):
     execution_feedback: Optional[str] = None
     ast_feedback: Optional[List[str]] = None
     message: str
+
+class ModuleBreakdown(BaseModel):
+    module_title: str
+    total_tasks: int
+    completed_tasks: int
+    attempts_count: int
+
+class GrowthAnalyticsResponse(BaseModel):
+    overall_growth_score: int
+    total_tasks: int
+    completed_tasks: int
+    total_attempts: int
+    successful_attempts: int
+    module_breakdown: List[ModuleBreakdown] = []
