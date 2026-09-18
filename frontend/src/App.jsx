@@ -16,6 +16,13 @@ const RoleRoute = ({ allowedRole }) => {
   return role === allowedRole ? <Outlet /> : <Navigate to="/unauthorized" replace />;
 };
 
+// Intelligently route the root URL based on role
+const RootRoute = () => {
+  const { isAuthenticated, role } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
+};
+
 // Redirects already-authenticated users away from login/register
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
@@ -75,7 +82,7 @@ export const App = () => {
         <Router>
           <Routes>
             {/* Root redirect */}
-            <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
+            <Route path="/" element={<RootRoute />} />
 
             {/* Public Authentication Routes — redirect to dashboard if already logged in */}
               <Route element={<GuestRoute />}>
