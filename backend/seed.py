@@ -13,9 +13,9 @@ def seed_database():
         hashed_password = get_password_hash("Password123!")
 
         instructor = User(
-            name="Prof. Juan Dela Cruz",
+            name="QA Test Instructor",
             school_id="2026-00001",
-            email="instructor@pampangastateu.edu.ph",
+            email="qa.instructor@pamsu.edu.ph",
             role="instructor",
             password_hash=hashed_password,
             email_verified=True,
@@ -23,9 +23,9 @@ def seed_database():
         )
 
         student = User(
-            name="Miguel Santos",
+            name="QA Test Student",
             school_id="2026-00002",
-            email="student@pampangastateu.edu.ph",
+            email="qa.student@pamsu.edu.ph",
             role="student",
             password_hash=hashed_password,
             email_verified=True,
@@ -40,9 +40,9 @@ def seed_database():
 
         # Create a test classroom
         classroom = Classroom(
-            name="Load Testing Class",
+            name="QA Automated Testing Classroom",
             section="A",
-            class_code="LOAD101",
+            class_code="QATEST1",
             instructor_id=instructor.user_id,
             is_active=True
         )
