@@ -15,7 +15,7 @@ def seed_database():
         instructor = User(
             name="QA Test Instructor",
             school_id="2026-00001",
-            email="qa.instructor@pamsu.edu.ph",
+            email="qa.instructor@pampangastateu.edu.ph",
             role="instructor",
             password_hash=hashed_password,
             email_verified=True,
@@ -25,7 +25,7 @@ def seed_database():
         student = User(
             name="QA Test Student",
             school_id="2026-00002",
-            email="qa.student@pamsu.edu.ph",
+            email="qa.student@pampangastateu.edu.ph",
             role="student",
             password_hash=hashed_password,
             email_verified=True,
