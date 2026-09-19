@@ -88,6 +88,8 @@ def submit_practice_task(
 
     # 1. Gate 1: Judge0 Execution (Synchronous wait=true for fast practice feedback)
     judge0_url = os.environ.get("JUDGE0_API_URL", "http://judge0-server:2358")
+    judge0_key = os.environ.get("JUDGE0_API_KEY")
+    judge0_host = os.environ.get("JUDGE0_HOST")
     
     source_b64 = base64.b64encode(request.code.encode('utf-8')).decode('utf-8')
     expected_out_b64 = base64.b64encode(task.expected_output.encode('utf-8')).decode('utf-8') if task.expected_output else None
@@ -105,8 +107,16 @@ def submit_practice_task(
     is_successful = False
     
     try:
+        
+        headers = {}
+        if judge0_key:
+            headers["X-RapidAPI-Key"] = judge0_key
+            headers["X-Auth-Token"] = judge0_key
+        if judge0_host:
+            headers["X-RapidAPI-Host"] = judge0_host
+
         with httpx.Client(timeout=httpx.Timeout(15.0)) as client:
-            res = client.post(f"{judge0_url}/submissions?base64_encoded=true&wait=true", json=payload)
+            res = client.post(f"{judge0_url}/submissions?base64_encoded=true&wait=true", json=payload, headers=headers)
             res.raise_for_status()
             data = res.json()
             

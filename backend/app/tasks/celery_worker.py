@@ -33,6 +33,8 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
     from sqlalchemy.exc import SQLAlchemyError
     
     judge0_url = os.getenv("JUDGE0_API_URL", "http://mock_judge0:8001")
+    judge0_key = os.getenv("JUDGE0_API_KEY")
+    judge0_host = os.getenv("JUDGE0_HOST")
     webhook_base = os.getenv("WEBHOOK_BASE_URL", "http://backend:8000")
     
     db = SessionLocal()
@@ -70,8 +72,16 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         }
         
         # Dispatch to partner with base64_encoded=true
+        
+        headers = {}
+        if judge0_key:
+            headers["X-RapidAPI-Key"] = judge0_key
+            headers["X-Auth-Token"] = judge0_key
+        if judge0_host:
+            headers["X-RapidAPI-Host"] = judge0_host
+
         with httpx.Client(timeout=httpx.Timeout(2.0, read=2.0)) as client:
-            response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload)
+            response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
             
