@@ -80,7 +80,7 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         if judge0_host:
             headers["X-RapidAPI-Host"] = judge0_host
 
-        with httpx.Client(timeout=httpx.Timeout(2.0, read=2.0)) as client:
+        with httpx.Client(timeout=httpx.Timeout(10.0, read=10.0)) as client:
             response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
@@ -95,6 +95,15 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
     except Exception as e:
         db.rollback()
         print(f"Failed to dispatch to partner: {e}")
+        try:
+            db.begin()
+            req = db.query(ExecutionRequest).filter(ExecutionRequest.execution_id == execution_request_id).first()
+            if req:
+                req.status = "failed"
+                req.stderr = f"System Error: Failed to contact Judge0 - {str(e)}"
+                db.commit()
+        except Exception as inner_e:
+            db.rollback()
         # Retry task if partner is down
         raise self.retry(exc=e, countdown=5)
     finally:
