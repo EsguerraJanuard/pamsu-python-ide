@@ -46,7 +46,12 @@ export default function PracticeWorkspace() {
     const fetchTask = async () => {
       try {
         const response = await api.get("/practice/modules");
-        let foundTask = null;
+        if (!Array.isArray(response.data)) {
+            console.error("Expected array but got:", typeof response.data);
+            setIsLoading(false);
+            return;
+          }
+          let foundTask = null;
         let foundModule = null;
         let nTaskId = null;
         

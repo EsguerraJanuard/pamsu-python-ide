@@ -56,7 +56,13 @@ export default function SoloPractice() {
     const fetchModules = async () => {
       try {
         const response = await api.get("/practice/modules");
-        setModules(response.data);
+        // Ensure response is an array before setting to prevent crash on 404 HTML responses
+        if (Array.isArray(response.data)) {
+          setModules(response.data);
+        } else {
+          console.error("Expected array but got:", typeof response.data);
+          setModules([]);
+        }
       } catch (err) {
         console.error("Failed to load practice modules:", err);
       } finally {
