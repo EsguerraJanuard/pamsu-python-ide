@@ -218,9 +218,28 @@ export default function ClassRosterView() {
                   <p className="mt-1 max-w-sm text-sm text-text-muted">
                     You haven't assigned any activities or tasks to this classroom.
                   </p>
-                </div>
+                  <div className="mt-6">
+                      <button 
+                        onClick={() => navigate(`/instructor/activities/create?class=${id}`)}
+                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Create Activity
+                      </button>
+                    </div>
+                  </div>
               ) : (
-                tasks.map(task => (
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-end">
+                    <button 
+                      onClick={() => navigate(`/instructor/activities/create?class=${id}`)}
+                      className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Assign New Activity
+                    </button>
+                  </div>
+                  {tasks.map(task => (
                   <div key={task.task_id} className="flex items-center justify-between rounded-xl border border-border-subtle bg-bg-glass p-5 transition hover:border-emerald-500/30 hover:bg-bg-glass/80">
                     <div className="flex items-center gap-4">
                       <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-emerald-500/10 text-text-emerald' : 'bg-bg-glass border border-border-subtle text-text-muted'}`}>
@@ -270,8 +289,9 @@ export default function ClassRosterView() {
                       </button>
                     </div>
                   </div>
-                ))
-              )}
+                ))}
+                  </div>
+                )}
             </div>
           )}
         </div>

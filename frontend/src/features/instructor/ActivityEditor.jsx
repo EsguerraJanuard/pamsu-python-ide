@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import CustomSelect from '../../components/ui/CustomSelect';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/themes/dark.css';
@@ -8,10 +8,13 @@ import InstructorSidebar from "../../components/layout/InstructorSidebar";
 
 const ActivityEditor = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialClassId = searchParams.get('class');
+  
   const [classrooms, setClassrooms] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
-    class_ids: [],
+    class_ids: initialClassId ? [parseInt(initialClassId)] : [],
     due_at: '',
     scheduled_publish_at: '',
     description: '',
