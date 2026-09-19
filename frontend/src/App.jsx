@@ -56,9 +56,9 @@ import ClassRosterView from './features/dashboard/ClassRosterView';
 import ClassManagement from './features/instructor/ClassManagement';
 import ActivityEditor from './features/instructor/ActivityEditor';
 import ActivityDetails from './features/instructor/ActivityDetails';
-import InstructorReviewQueue from './features/instructor/InstructorReviewQueue';
-import InstructorGradebook from './features/instructor/InstructorGradebook';
-import GradingWorkspace from './features/instructor/GradingWorkspace';
+import GradingBenchRoot from './features/instructor/grading/GradingBenchRoot';
+import GradingClassView from './features/instructor/grading/GradingClassView';
+import SplitPaneGradingWorkspace from './features/instructor/grading/SplitPaneGradingWorkspace';
 import LiveMonitoring from './features/instructor/LiveMonitoring';
 import MyClasses from './features/classes/MyClasses';
 import ClassDetails from './features/classes/ClassDetails';
@@ -119,9 +119,9 @@ export const App = () => {
                 <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
                 <Route path="/instructor/activities/create" element={<ActivityEditor />} />
                 <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
-                <Route path="/instructor/submissions" element={<InstructorReviewQueue />} />
-                <Route path="/instructor/gradebook" element={<InstructorGradebook />} />
-                <Route path="/instructor/submissions/:id" element={<GradingWorkspace />} />
+                <Route path="/instructor/bench" element={<GradingBenchRoot />} />
+                <Route path="/instructor/bench/:classId" element={<GradingClassView />} />
+                <Route path="/instructor/bench/:classId/:taskId" element={<SplitPaneGradingWorkspace />} />
                 <Route path="/instructor/notifications" element={<NotificationsPage role="instructor" />} />
                 <Route path="/instructor/audit-logs" element={<AuditLogsPage role="instructor" />} />
                 <Route path="/instructor/monitoring" element={<LiveMonitoring />} />

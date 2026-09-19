@@ -32,7 +32,7 @@ const INSTRUCTOR_NAV = [
       {
         icon: "check",
         label: "Grading Bench",
-        path: "/instructor/submissions",
+        path: "/instructor/bench",
       },
       {
         icon: "list",
