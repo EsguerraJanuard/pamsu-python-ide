@@ -66,6 +66,7 @@ def seed_database():
             instructions="Run this code.",
             required_ast_rules={},
             is_published=True,
+            published_at=datetime.now(timezone.utc),
             paste_policy="internal_only"
         )
         db.add(task)
