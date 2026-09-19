@@ -117,7 +117,7 @@ export const App = () => {
                 <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                 <Route path="/instructor/classes" element={<ClassManagement />} />
                 <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
-                <Route path="/instructor/activities" element={<ActivityEditor />} />
+                <Route path="/instructor/activities/create" element={<ActivityEditor />} />
                 <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
                 <Route path="/instructor/submissions" element={<InstructorReviewQueue />} />
                 <Route path="/instructor/gradebook" element={<InstructorGradebook />} />
