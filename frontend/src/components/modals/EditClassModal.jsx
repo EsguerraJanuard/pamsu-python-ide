@@ -80,7 +80,7 @@ export default function EditClassModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl space-y-6">
+      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl space-y-6">
         <div className="flex items-center justify-between border-b border-border-subtle pb-4">
           <div>
             <h2 className="text-lg font-bold text-text-main">Classroom Settings</h2>
@@ -88,7 +88,7 @@ export default function EditClassModal({
           </div>
           <button
             onClick={onClose}
-            className="text-text-muted hover:text-text-main text-lg font-bold p-1 rounded-lg hover:bg-bg-glass-hover transition"
+            className="text-text-muted hover:text-text-main text-lg font-bold p-1 rounded-lg hover:bg-border-subtle transition"
           >
             ✕
           </button>
@@ -116,7 +116,7 @@ export default function EditClassModal({
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               placeholder="e.g. CS101 — Intro to Programming"
-              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
+              className="w-full rounded-lg border border-border-subtle bg-bg-base px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
               required
             />
           </div>
@@ -130,12 +130,12 @@ export default function EditClassModal({
               value={schedule}
               onChange={(e) => setSchedule(e.target.value)}
               placeholder="e.g. Mon / Wed 10:00 AM - 12:00 PM"
-              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
+              className="w-full rounded-lg border border-border-subtle bg-bg-base px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
             />
           </div>
 
           {/* Invite Code Regeneration Section */}
-          <div className="rounded-xl border border-border-subtle/80 bg-bg-glass/50 p-4 space-y-2">
+          <div className="rounded-xl border border-border-subtle/80 bg-bg-base p-4 space-y-2">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-text-muted">Student Invite Code</div>
@@ -161,7 +161,7 @@ export default function EditClassModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-medium text-text-muted hover:bg-bg-glass-hover transition"
+              className="rounded-lg border border-border-subtle bg-bg-panel px-4 py-2 text-xs font-medium text-text-muted hover:bg-border-subtle transition"
             >
               Cancel
             </button>
