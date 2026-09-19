@@ -15,6 +15,8 @@ export default function EditClassModal({
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [copied, setCopied] = useState(false);
+
 
   useEffect(() => {
     if (classroom) {
@@ -141,9 +143,29 @@ export default function EditClassModal({
                 <div className="text-xs font-semibold text-text-muted">Student Invite Code</div>
                 <div className="text-[11px] text-text-muted">Share with students to enroll.</div>
               </div>
-              <div className="font-mono text-base font-extrabold text-text-blue bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1 rounded">
+              <div className="flex items-center gap-0">
+                  <div className="font-mono text-base font-extrabold text-blue-700 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-l-md">
                 {classCode || "------"}
               </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (classCode) {
+                        navigator.clipboard.writeText(classCode);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                    title="Copy code"
+                    className="flex items-center justify-center bg-blue-500/10 border border-blue-500/20 border-l-0 px-2.5 py-1 rounded-r-md text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 transition-colors h-[34px]"
+                  >
+                    {copied ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    )}
+                  </button>
+                </div>
             </div>
 
             <button
