@@ -621,14 +621,27 @@ export default function Workspace() {
 
   if (!activity) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-sm text-text-muted">No activity selected or failed to load.</p>
-        <button 
-          onClick={() => navigate('/student/dashboard')}
-          className="rounded-lg bg-white/[0.05] px-4 py-2 text-xs font-semibold text-text-main hover:bg-white/[0.1]"
-        >
-          &larr; Back to Dashboard
-        </button>
+      <div className="flex h-full flex-col items-center justify-center bg-bg-base p-6">
+        <div className="flex max-w-md flex-col items-center text-center">
+          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-bg-alt shadow-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <h2 className="mb-2 text-2xl font-bold text-text-main">Activity Not Found</h2>
+          <p className="mb-8 text-sm text-text-muted">
+            We couldn't load the requested activity. It might have been deleted, the server is unreachable, or you haven't selected a valid task.
+          </p>
+          <button 
+            onClick={() => navigate('/student/dashboard')}
+            className="flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-violet-500 hover:shadow-violet-500/25"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Return to Dashboard
+          </button>
+        </div>
       </div>
     );
   }

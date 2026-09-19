@@ -120,10 +120,35 @@ export default function PracticeWorkspace() {
     automaticLayout: true,
   };
 
-  if (!taskDetails) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-violet-500"></div>
+      </div>
+    );
+  }
+
+  if (!taskDetails) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-bg-base p-6 text-center">
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-bg-alt shadow-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <h2 className="mb-2 text-2xl font-bold text-text-main">Practice Task Not Found</h2>
+        <p className="mb-8 max-w-md text-sm text-text-muted">
+          We couldn't load this practice module. Either the task doesn't exist, it's locked, or the backend API is currently unavailable.
+        </p>
+        <button 
+          onClick={() => navigate('/student/practice')}
+          className="flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-violet-500 hover:shadow-violet-500/25"
+        >
+          <ArrowLeftIcon className="h-5 w-5" />
+          Return to Modules
+        </button>
       </div>
     );
   }
