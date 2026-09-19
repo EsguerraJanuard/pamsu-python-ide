@@ -382,14 +382,13 @@ export default function Login() {
             </button>
 
             <p className="text-center text-xs text-text-muted select-none cursor-default">
-              Need a verified university account?{" "}
               <button
                 type="button"
                 onClick={() => navigate("/register")}
                 className="font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline"
                 disabled={isLoading}
               >
-                Create one
+                Sign up using university account
               </button>
             </p>
           </form>

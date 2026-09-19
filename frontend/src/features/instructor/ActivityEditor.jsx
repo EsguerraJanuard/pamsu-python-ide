@@ -5,6 +5,17 @@ import 'flatpickr/dist/themes/dark.css';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 
+const AST_OPTIONS = [
+  { value: 'require_print_call', label: 'Require print() call' },
+  { value: 'require_for_loop', label: 'Require for loop' },
+  { value: 'require_while_loop', label: 'Require while loop' },
+  { value: 'require_if_statement', label: 'Require if statement' },
+  { value: 'require_function_def', label: 'Require function definition' },
+  { value: 'require_list_comp', label: 'Require list comprehension' },
+  { value: 'require_dict_comp', label: 'Require dictionary comprehension' },
+  { value: 'require_try_except', label: 'Require try/except block' }
+];
+
 const ActivityEditor = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -14,12 +25,12 @@ const ActivityEditor = () => {
   const [formData, setFormData] = useState({
     title: '',
     class_ids: initialClassId ? [parseInt(initialClassId)] : [],
-    due_at: '',
-    scheduled_publish_at: '',
+    due_at: null,
+    scheduled_publish_at: null,
     description: '',
     instructions: '',
     expected_output: '',
-    requirements: '',
+    requirements: [],
     starter_code: '',
     activity_type: 'laboratory',
     is_published: false,
@@ -66,14 +77,10 @@ const ActivityEditor = () => {
         scheduled_publish_at: (!formData.is_published && formData.scheduled_publish_at) 
           ? new Date(formData.scheduled_publish_at).toISOString() 
           : null,
-        required_ast_rules: formData.requirements
-          .split(',')
-          .map((req) => req.trim())
-          .filter((req) => req !== '')
-          .reduce((acc, req) => {
-             acc[req] = { required: true, min_count: 1 };
-             return acc;
-          }, {}),
+        required_ast_rules: formData.requirements.reduce((acc, req) => {
+           acc[req] = { required: true, min_count: 1 };
+           return acc;
+        }, {}),
       };
 
       delete payload.requirements;
@@ -256,16 +263,28 @@ const ActivityEditor = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="requirements" className="block text-xs font-semibold text-text-muted mb-1.5">AST Checklist Requirements</label>
-                    <textarea
-                      id="requirements"
-                      name="requirements"
-                      value={formData.requirements}
-                      onChange={handleChange}
-                      rows={3}
-                      placeholder="Define function, Use a loop, Accept input..."
-                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-xs text-text-main focus:outline-none focus:border-emerald-500 transition-colors"
-                    />
+                    <label className="block text-xs font-semibold text-text-muted mb-1.5">AST Checklist Requirements</label>
+                    <div className="flex flex-col gap-2">
+                      {AST_OPTIONS.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-2 text-xs text-text-main cursor-pointer hover:text-emerald-400 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={formData.requirements.includes(opt.value)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setFormData(prev => ({
+                                ...prev,
+                                requirements: checked 
+                                  ? [...prev.requirements, opt.value]
+                                  : prev.requirements.filter(req => req !== opt.value)
+                              }));
+                            }}
+                            className="w-4 h-4 rounded border-border-subtle bg-bg-base text-emerald-500 focus:ring-emerald-500 focus:ring-offset-bg-glass"
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

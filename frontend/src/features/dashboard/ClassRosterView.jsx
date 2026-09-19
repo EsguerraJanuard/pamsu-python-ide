@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import EditClassModal from "../../components/modals/EditClassModal";
+import StudentGradebookModal from "../../components/modals/StudentGradebookModal";
 export default function ClassRosterView() {
   const { id: classId } = useParams();
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function ClassRosterView() {
   const [activeTab, setActiveTab] = useState("roster");
   const [searchQuery, setSearchQuery] = useState("");
   const [studentToRemove, setStudentToRemove] = useState(null);
+  const [studentToInspect, setStudentToInspect] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -75,9 +77,12 @@ export default function ClassRosterView() {
             <div>
               <button 
                 onClick={() => navigate('/instructor/classes')}
-                className="mb-4 flex items-center gap-2 text-xs font-semibold text-text-emerald transition-colors hover:text-text-emerald"
+                className="mb-4 flex w-fit items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-xs font-medium text-text-muted shadow-sm transition hover:bg-bg-glass-hover hover:text-text-main"
               >
-                ← Back to Classrooms
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Classrooms
               </button>
               <h1 className="text-2xl font-bold text-text-main">
                 {classroom ? `${classroom.subject_code || classroom.name} ${classroom.section ? `- ${classroom.section}` : ''}` : "Class Roster"}
@@ -173,7 +178,11 @@ export default function ClassRosterView() {
                       }
                       
                       return filteredStudents.map((student) => (
-                        <tr key={student.enrollment_id || student.id} className="transition-colors hover:bg-bg-glass">
+                        <tr 
+                          key={student.enrollment_id || student.id} 
+                          onClick={() => setStudentToInspect(student)}
+                          className="transition-colors hover:bg-bg-glass cursor-pointer"
+                        >
                           <td className="px-6 py-4 font-medium text-text-main">{student.name}</td>
                           <td className="px-6 py-4">
                             <div className="text-text-main">{student.school_id || "2026-N/A"}</div>
@@ -189,7 +198,7 @@ export default function ClassRosterView() {
                           <td className="px-6 py-4 text-center font-mono text-text-muted">0</td>
                           <td className="px-6 py-4 text-right">
                             <button
-                              onClick={() => setStudentToRemove(student)}
+                              onClick={(e) => { e.stopPropagation(); setStudentToRemove(student); }}
                               className="rounded p-1.5 text-text-muted transition hover:bg-red-500/10 hover:text-text-rose"
                               title="Remove Student"
                             >
@@ -298,14 +307,21 @@ export default function ClassRosterView() {
       </div>
 
       {/* Edit Classroom Settings Modal */}
-      <EditClassModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        classroom={classroom}
-        onSuccess={(updated) => setClassroom((prev) => ({ ...prev, ...updated }))}
-      />
+        <EditClassModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          classroom={classroom}
+          onSuccess={(updated) => setClassroom((prev) => ({ ...prev, ...updated }))}
+        />
 
-      {/* Confirm Remove Student Modal */}
+        <StudentGradebookModal
+          isOpen={!!studentToInspect}
+          onClose={() => setStudentToInspect(null)}
+          student={studentToInspect}
+          classId={classId}
+        />
+
+        {/* Confirm Remove Student Modal */}
       {studentToRemove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl">

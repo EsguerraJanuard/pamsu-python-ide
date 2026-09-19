@@ -508,7 +508,6 @@ export default function Register() {
                         type={showConfirmPassword ? "text" : "password"}
                         value={form.confirmPassword}
                         onChange={(e) => updateField("confirmPassword", e.target.value)}
-                        placeholder="Repeat password"
                         minLength={8}
                         required
                         disabled={isLoading}

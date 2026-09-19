@@ -101,8 +101,7 @@ export default function Settings() {
 
 
   const readonlyInputClass =
-
-    "flex-1 cursor-not-allowed bg-transparent text-sm text-text-main outline-none";
+    "flex-1 cursor-not-allowed bg-transparent text-sm text-text-muted outline-none select-none";
 
 
 
@@ -576,17 +575,21 @@ export default function Settings() {
 
                   <div className="flex justify-end pt-1">
 
-                    <button
+                    {user?.role !== 'student' && (
 
-                      type="submit"
+                      <button
 
-                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                        type="submit"
 
-                    >
+                        className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
 
-                      Save profile
+                      >
 
-                    </button>
+                        Save profile
+
+                      </button>
+
+                    )}
 
                   </div>
 

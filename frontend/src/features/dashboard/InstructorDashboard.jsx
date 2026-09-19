@@ -117,6 +117,7 @@ export default function InstructorDashboard() {
       description: "Enrolled laboratory sections",
       progress: activeClassesCount > 0 ? 100 : 0,
       color: "#10b981", 
+      path: "/instructor/classes"
     },
     {
       value: reviewQueue.length.toString(),
@@ -124,6 +125,7 @@ export default function InstructorDashboard() {
       description: "Submissions awaiting grade",
       progress: reviewQueue.length > 0 ? 100 : 0,
       color: "#3b82f6",
+      path: "/instructor/submissions"
     },
     {
       value: activitiesAuthoredCount.toString(),
@@ -131,6 +133,7 @@ export default function InstructorDashboard() {
       description: "Published programming labs",
       progress: activitiesAuthoredCount > 0 ? 100 : 0,
       color: "#f59e0b",
+      path: "/instructor/gradebook"
     },
     {
       value: "0%",
@@ -138,6 +141,7 @@ export default function InstructorDashboard() {
       description: "Passing automated test thresholds",
       progress: 0,
       color: "#a78bfa",
+      path: "/instructor/submissions"
     },
   ], [activeClassesCount, activitiesAuthoredCount, reviewQueue]);
 
@@ -251,7 +255,8 @@ export default function InstructorDashboard() {
                 {dynamicStats.map((stat, index) => (
                   <article
                     key={stat.label}
-                    className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-4"
+                    onClick={() => stat.path && navigate(stat.path)}
+                    className={`dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-4 ${stat.path ? 'cursor-pointer hover:border-blue-500/30 hover:bg-bg-glass-hover hover:-translate-y-1 transition-all duration-300' : ''}`}
                     style={{ animation: `dashboardFadeUp 400ms ease ${index * 70}ms both` }}
                   >
                     <p className="mb-1 text-3xl font-bold" style={{ color: stat.color }}>
