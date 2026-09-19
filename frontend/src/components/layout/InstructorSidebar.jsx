@@ -22,7 +22,7 @@ const INSTRUCTOR_NAV = [
       {
         icon: "code",
         label: "Activity Authoring",
-        path: "/instructor/activities",
+        path: "/instructor/activities/create",
       },
     ],
   },

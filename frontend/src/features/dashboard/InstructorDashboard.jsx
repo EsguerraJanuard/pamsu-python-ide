@@ -272,12 +272,14 @@ export default function InstructorDashboard() {
                     <h2 className="text-base font-semibold">Managed Activities</h2>
                     <p className="mt-1 text-[11px] text-text-muted">Review submissions, grade outputs, or update parameters.</p>
                   </div>
-                  <button
-                    onClick={() => navigate("/instructor/activities")}
-                    className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-xs font-medium text-text-emerald hover:bg-emerald-500/10 hover:border-emerald-500/30 transition"
-                  >
-                    Author new activity
-                  </button>
+                  <div className="mt-6">
+                    <button
+                      onClick={() => navigate("/instructor/activities/create")}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-bg-panel border border-border-subtle py-2.5 px-4 text-sm font-semibold text-text-main shadow-sm hover:bg-bg-glass-hover hover:border-emerald-500/50 hover:text-emerald-500 transition-all"
+                    >
+                      Author new activity
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -307,7 +309,7 @@ export default function InstructorDashboard() {
                         You haven't authored any activities. Create your first assignment or lab exercise.
                       </p>
                       <button 
-                        onClick={() => navigate("/instructor/activities")}
+                        onClick={() => navigate("/instructor/activities/create")}
                         className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
                       >
                         + Create Activity
