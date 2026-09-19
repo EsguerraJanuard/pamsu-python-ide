@@ -144,7 +144,7 @@ export default function PracticeWorkspace() {
         </p>
         <button 
           onClick={() => navigate('/student/practice')}
-          className="flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-violet-500 hover:shadow-violet-500/25"
+          className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-blue-500/25"
         >
           <ArrowLeftIcon className="h-5 w-5" />
           Return to Modules
