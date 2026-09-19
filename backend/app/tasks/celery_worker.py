@@ -33,6 +33,8 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
     from sqlalchemy.exc import SQLAlchemyError
     
     judge0_url = os.getenv("JUDGE0_API_URL", "http://mock_judge0:8001")
+    if judge0_url and not judge0_url.startswith("http"):
+        judge0_url = f"https://{judge0_url}"
     judge0_key = os.getenv("JUDGE0_API_KEY")
     judge0_host = os.getenv("JUDGE0_HOST")
     webhook_base = os.getenv("WEBHOOK_BASE_URL", "http://backend:8000")

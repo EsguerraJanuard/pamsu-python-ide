@@ -88,6 +88,8 @@ def submit_practice_task(
 
     # 1. Gate 1: Judge0 Execution (Synchronous wait=true for fast practice feedback)
     judge0_url = os.environ.get("JUDGE0_API_URL", "http://judge0-server:2358")
+    if judge0_url and not judge0_url.startswith("http"):
+        judge0_url = f"https://{judge0_url}"
     judge0_key = os.environ.get("JUDGE0_API_KEY")
     judge0_host = os.environ.get("JUDGE0_HOST")
     
