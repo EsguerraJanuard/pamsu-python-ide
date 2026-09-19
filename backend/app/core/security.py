@@ -138,8 +138,13 @@ def get_current_user(
             raise authentication_error
 
         jti = payload.get("jti")
-        if jti and redis_client.get(f"blacklist:{jti}"):
-            raise authentication_error
+        if jti:
+            try:
+                if redis_client.get(f"blacklist:{jti}"):
+                    raise authentication_error
+            except redis.exceptions.ConnectionError:
+                # If Redis is completely offline, bypass the blacklist check
+                pass
         
         pwd_ver = payload.get("pwd_ver", 1)
 
