@@ -722,6 +722,7 @@ def apply_judge0_callback_endpoint(
         except ValueError:
             pass
 
+    now_ts = datetime.now(timezone.utc)
     update_data = PartnerExecutionResultUpdate(
         execution_id=execution_id,
         correlation_id=correlation_id,
@@ -734,7 +735,8 @@ def apply_judge0_callback_endpoint(
         exit_code=0 if mapped_status == "completed" else 1,
         execution_time_ms=exec_time_ms,
         limit_reason=limit_reason,
-        completed_at=datetime.now(timezone.utc),
+        started_at=now_ts,
+        completed_at=now_ts,
     )
 
     from app.services.execution_service import apply_partner_execution_result_update
