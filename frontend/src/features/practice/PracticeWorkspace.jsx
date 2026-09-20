@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
@@ -25,6 +25,7 @@ export default function PracticeWorkspace() {
   const taskId = searchParams.get("task");
   
   const { settings } = useEditorSettings();
+  const [loading, setLoading] = useState(true);
   const [taskDetails, setTaskDetails] = useState(null);
   const [moduleDetails, setModuleDetails] = useState(null);
   const [nextTaskId, setNextTaskId] = useState(null);
@@ -48,7 +49,7 @@ export default function PracticeWorkspace() {
         const response = await api.get("/practice/modules");
         if (!Array.isArray(response.data)) {
             console.error("Expected array but got:", typeof response.data);
-            setIsLoading(false);
+            setLoading(false);
             return;
           }
           let foundTask = null;
@@ -120,7 +121,7 @@ export default function PracticeWorkspace() {
     automaticLayout: true,
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-violet-500"></div>
