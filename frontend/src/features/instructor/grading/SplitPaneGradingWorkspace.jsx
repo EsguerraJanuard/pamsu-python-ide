@@ -8,6 +8,7 @@ const SplitPaneGradingWorkspace = () => {
   const [students, setStudents] = useState([]);
   const [submissions, setSubmissions] = useState({});
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [detailedSub, setDetailedSub] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Grade form state
@@ -20,7 +21,7 @@ const SplitPaneGradingWorkspace = () => {
       try {
         setLoading(true);
         // Fetch roster
-        const rosterRes = await api.get(`/classrooms/${classId}/roster`);
+        const rosterRes = await api.get(`/classrooms/${classId}/members`);
         const roster = rosterRes.data;
         setStudents(roster);
 
@@ -29,10 +30,10 @@ const SplitPaneGradingWorkspace = () => {
         const subsRes = await api.get(`/instructors/review-queue`, { params: { task_id: taskId } });
         // Map submissions by student_id
         const subsMap = {};
-        if (Array.isArray(subsRes.data)) {
-          subsRes.data.forEach(sub => {
-              if (sub.task_id === parseInt(taskId) || sub.task_id === taskId) {
-                 subsMap[sub.student_id] = sub;
+        if (subsRes.data && Array.isArray(subsRes.data.items)) {
+          subsRes.data.items.forEach(sub => {
+              if (sub.activity?.task_id === parseInt(taskId)) {
+                 subsMap[sub.student.student_id] = sub;
               }
           });
         }
@@ -48,15 +49,32 @@ const SplitPaneGradingWorkspace = () => {
     }
   }, [classId, taskId]);
 
-  const handleSelectStudent = (student) => {
+  const handleSelectStudent = async (student) => {
     setSelectedStudent(student);
+    setDetailedSub(null); // Clear previous
+    setGradeScore('');
+    setFeedbackText('');
+
     const sub = submissions[student.id];
-    if (sub) {
-      setGradeScore(sub.grade_score !== null && sub.grade_score !== undefined ? sub.grade_score : '');
-      setFeedbackText(sub.feedback_text || '');
-    } else {
-      setGradeScore('');
-      setFeedbackText('');
+    if (sub && sub.sub_id) {
+      try {
+        // 1. Fetch the raw code from the instructor submissions endpoint
+        const codeRes = await api.get(`/instructors/submissions/${sub.sub_id}`);
+        
+        // 2. Fetch the evaluation details (which contains the AST analyses and the instructor grade)
+        const evalRes = await api.get(`/evaluation/submissions/${sub.sub_id}`);
+        
+        setDetailedSub(codeRes.data);
+        
+        // Pre-fill grade if it exists
+        const manualGrade = evalRes.data.instructor_grade;
+        if (manualGrade) {
+          setGradeScore(manualGrade.score);
+          setFeedbackText(manualGrade.feedback || '');
+        }
+      } catch (err) {
+        console.error("Failed to fetch submission details", err);
+      }
     }
   };
 
@@ -64,22 +82,23 @@ const SplitPaneGradingWorkspace = () => {
     e.preventDefault();
     if (!selectedStudent) return;
     const sub = submissions[selectedStudent.id];
-    if (!sub || !sub.id) return;
+    if (!sub || !sub.sub_id) return;
 
     try {
       setSavingGrade(true);
-      const res = await api.patch(`/evaluation/submissions/${sub.id}/grade`, {
-        grade_score: parseFloat(gradeScore),
-        feedback_text: feedbackText
+      // MUST send 'score' and 'feedback' to match InstructorGradeUpdate Pydantic schema
+      const res = await api.patch(`/evaluation/submissions/${sub.sub_id}/grade`, {
+        score: parseFloat(gradeScore),
+        feedback: feedbackText
       });
-      // Update local state
+      
+      // Update local state so the badge updates immediately
       setSubmissions(prev => ({
         ...prev,
         [selectedStudent.id]: {
           ...prev[selectedStudent.id],
-          grade_score: res.data.grade_score !== undefined ? res.data.grade_score : parseFloat(gradeScore),
-          feedback_text: res.data.feedback_text !== undefined ? res.data.feedback_text : feedbackText,
-          status: 'graded' // Assuming updating grade sets status to graded
+          has_manual_grade: true,
+          status: 'graded'
         }
       }));
       alert('Grade saved successfully');
@@ -140,7 +159,7 @@ const SplitPaneGradingWorkspace = () => {
             let badgeColor = 'bg-red-900/50 text-red-400 border border-red-800';
             
             if (sub) {
-              if (sub.status === 'graded' || sub.grade_score !== null) {
+              if (sub.has_manual_grade || sub.status === 'graded') {
                 badgeText = 'Graded';
                 badgeColor = 'bg-green-900/50 text-green-400 border border-green-800';
               } else if (sub.status === 'late') {
@@ -189,14 +208,14 @@ const SplitPaneGradingWorkspace = () => {
                 <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
                   <h3 className="text-lg font-medium text-white mb-2">Submitted Code</h3>
                   <pre className="bg-[#0b0c10] p-4 rounded text-sm text-blue-300 overflow-x-auto border border-slate-800">
-                    {selectedSub.raw_code || '# No code provided'}
+                    {detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
                   </pre>
                 </div>
 
                 <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
                   <h3 className="text-lg font-medium text-white mb-2">Execution Feedback / Logs</h3>
                   <pre className="bg-[#0b0c10] p-4 rounded text-sm text-gray-300 overflow-x-auto border border-slate-800 whitespace-pre-wrap">
-                    {selectedSub.execution_log || selectedSub.feedback_text || 'No execution logs available.'}
+                    {detailedSub?.execution_log || detailedSub?.feedback_text || detailedSub?.ast_feedback?.join('\n') || 'Loading execution logs or not available.'}
                   </pre>
                 </div>
 
