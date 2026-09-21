@@ -2,6 +2,7 @@ from app.core.database import SessionLocal
 from app.core.security import get_password_hash
 from app.models.domain_models import User
 from sqlalchemy import text
+from datetime import datetime, timezone
 
 def seed_database():
     db = SessionLocal()
