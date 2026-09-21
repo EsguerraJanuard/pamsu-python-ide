@@ -1,4 +1,5 @@
-import csv
+import openpyxl
+from io import BytesIO
 from datetime import datetime, timezone
 from io import StringIO
 from typing import Any
@@ -50,6 +51,8 @@ APPROVED_MISSING_SUBMISSION_SORT_FIELDS = {
     "due_at",
 }
 
+EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
 
 GRADE_DISTRIBUTION_BANDS = (
@@ -1505,6 +1508,564 @@ def get_student_progress_summary(
         "generated_at": _utc_now(),
     }
 
+
+def _sanitize_csv_cell(
+    value: Any,
+) -> Any:
+    if value is None:
+        return ""
+
+    if isinstance(
+        value,
+        datetime,
+    ):
+        return value.isoformat()
+
+    if isinstance(
+        value,
+        bool,
+    ):
+        return (
+            "true"
+            if value
+            else "false"
+        )
+
+    if not isinstance(
+        value,
+        str,
+    ):
+        return value
+
+    if value and value[0] in (
+        "=",
+        "+",
+        "-",
+        "@",
+    ):
+        return "'" + value
+
+    return value
+
+
+def build_gradebook_excel_export(
+    db: Session,
+    *,
+    instructor_id: int,
+    class_id: int,
+    task_id: int | None = None,
+) -> dict[str, Any]:
+    classroom, task = _validate_owned_filters(
+        db,
+        instructor_id=instructor_id,
+        class_id=class_id,
+        task_id=task_id,
+    )
+
+    if classroom is None:
+        raise ReportingClassroomNotFoundError("Classroom not found.")
+
+    percentage_expression = _grade_percentage_expression()
+
+    query = (
+        db.query(
+            User.name.label("student_name"),
+            User.school_id.label("school_id"),
+            Classroom.name.label("class_name"),
+            Classroom.subject_code.label("subject_code"),
+            Classroom.section.label("section"),
+            Task.title.label("activity_title"),
+            Task.activity_type.label("activity_type"),
+            Submission.attempt_number.label("attempt_number"),
+            Submission.status.label("submission_status"),
+            InstructorGrade.grade_id.label("grade_id"),
+            InstructorGrade.score.label("score"),
+            InstructorGrade.max_score.label("max_score"),
+            InstructorGrade.is_released.label("is_released"),
+            InstructorGrade.updated_at.label("grade_updated_at"),
+            percentage_expression.label("percentage"),
+        )
+        .join(User, User.user_id == Submission.student_id)
+        .join(Task, Task.task_id == Submission.task_id)
+        .join(Classroom, Classroom.class_id == Task.class_id)
+        .outerjoin(InstructorGrade, InstructorGrade.submission_id == Submission.sub_id)
+        .filter(
+            Classroom.class_id == classroom.class_id,
+            Classroom.instructor_id == instructor_id,
+            Task.instructor_id == instructor_id,
+            Submission.is_official.is_(True),
+            User.role == "student",
+        )
+    )
+
+    if task is not None:
+        query = query.filter(Task.task_id == task.task_id)
+
+    rows = (
+        query.order_by(
+            func.lower(User.name).asc(),
+            User.school_id.asc(),
+            func.lower(Task.title).asc(),
+            Submission.sub_id.asc(),
+        )
+        .all()
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Gradebook"
+
+    headers = [
+        "student_name", "school_id", "class_name", "subject_code", "section",
+        "activity_title", "activity_type", "attempt_number", "submission_status",
+        "has_manual_grade", "score", "max_score", "percentage",
+        "grade_is_released", "grade_updated_at"
+    ]
+    ws.append(headers)
+
+    try:
+        from openpyxl.styles import Font, PatternFill
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="10B981", end_color="10B981", fill_type="solid")
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+    except Exception:
+        pass
+
+    for row in rows:
+        has_manual_grade = row.grade_id is not None
+        ws.append([
+            row.student_name,
+            row.school_id,
+            row.class_name,
+            row.subject_code,
+            row.section,
+            row.activity_title,
+            row.activity_type,
+            row.attempt_number,
+            row.submission_status,
+            has_manual_grade,
+            float(row.score) if has_manual_grade else "",
+            float(row.max_score) if has_manual_grade else "",
+            _round_percentage(float(row.percentage)) if has_manual_grade and row.percentage is not None else "",
+            bool(row.is_released) if has_manual_grade else False,
+            row.grade_updated_at.isoformat() if has_manual_grade and row.grade_updated_at else ""
+        ])
+    
+    # Auto-adjust column widths
+    try:
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter # Get the column name
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column].width = adjusted_width
+    except Exception:
+        pass
+
+    generated_at = _utc_now()
+    
+    filename = (
+        f"classroom-{classroom.class_id}-activity-{task.task_id}-gradebook.xlsx"
+        if task is not None
+        else f"classroom-{classroom.class_id}-gradebook.xlsx"
+    )
+
+    output = BytesIO()
+    try:
+        wb.save(output)
+        content = output.getvalue()
+    except Exception as error:
+        raise ReportingExportError("The gradebook Excel export could not be generated.") from error
+    finally:
+        output.close()
+
+    return {
+        "content": content,
+        "media_type": EXCEL_MEDIA_TYPE,
+        "filename": filename,
+        "row_count": len(rows),
+        "generated_at": generated_at,
+        "includes_raw_source": False,
+    }
+
+def _sanitize_csv_cell(
+    value: Any,
+) -> Any:
+    if value is None:
+        return ""
+
+    if isinstance(
+        value,
+        datetime,
+    ):
+        return value.isoformat()
+
+    if isinstance(
+        value,
+        bool,
+    ):
+        return (
+            "true"
+            if value
+            else "false"
+        )
+
+    if not isinstance(
+        value,
+        str,
+    ):
+        return value
+
+    if value and value[0] in (
+        "=",
+        "+",
+        "-",
+        "@",
+    ):
+        return "'" + value
+
+    return value
+
+
+def build_gradebook_excel_export(
+    db: Session,
+    *,
+    instructor_id: int,
+    class_id: int,
+    task_id: int | None = None,
+) -> dict[str, Any]:
+    classroom, task = _validate_owned_filters(
+        db,
+        instructor_id=instructor_id,
+        class_id=class_id,
+        task_id=task_id,
+    )
+
+    if classroom is None:
+        raise ReportingClassroomNotFoundError("Classroom not found.")
+
+    percentage_expression = _grade_percentage_expression()
+
+    query = (
+        db.query(
+            User.name.label("student_name"),
+            User.school_id.label("school_id"),
+            Classroom.name.label("class_name"),
+            Classroom.subject_code.label("subject_code"),
+            Classroom.section.label("section"),
+            Task.title.label("activity_title"),
+            Task.activity_type.label("activity_type"),
+            Submission.attempt_number.label("attempt_number"),
+            Submission.status.label("submission_status"),
+            InstructorGrade.grade_id.label("grade_id"),
+            InstructorGrade.score.label("score"),
+            InstructorGrade.max_score.label("max_score"),
+            InstructorGrade.is_released.label("is_released"),
+            InstructorGrade.updated_at.label("grade_updated_at"),
+            percentage_expression.label("percentage"),
+        )
+        .join(User, User.user_id == Submission.student_id)
+        .join(Task, Task.task_id == Submission.task_id)
+        .join(Classroom, Classroom.class_id == Task.class_id)
+        .outerjoin(InstructorGrade, InstructorGrade.submission_id == Submission.sub_id)
+        .filter(
+            Classroom.class_id == classroom.class_id,
+            Classroom.instructor_id == instructor_id,
+            Task.instructor_id == instructor_id,
+            Submission.is_official.is_(True),
+            User.role == "student",
+        )
+    )
+
+    if task is not None:
+        query = query.filter(Task.task_id == task.task_id)
+
+    rows = (
+        query.order_by(
+            func.lower(User.name).asc(),
+            User.school_id.asc(),
+            func.lower(Task.title).asc(),
+            Submission.sub_id.asc(),
+        )
+        .all()
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Gradebook"
+
+    headers = [
+        "student_name", "school_id", "class_name", "subject_code", "section",
+        "activity_title", "activity_type", "attempt_number", "submission_status",
+        "has_manual_grade", "score", "max_score", "percentage",
+        "grade_is_released", "grade_updated_at"
+    ]
+    ws.append(headers)
+
+    try:
+        from openpyxl.styles import Font, PatternFill
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="10B981", end_color="10B981", fill_type="solid")
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+    except Exception:
+        pass
+
+    for row in rows:
+        has_manual_grade = row.grade_id is not None
+        ws.append([
+            row.student_name,
+            row.school_id,
+            row.class_name,
+            row.subject_code,
+            row.section,
+            row.activity_title,
+            row.activity_type,
+            row.attempt_number,
+            row.submission_status,
+            has_manual_grade,
+            float(row.score) if has_manual_grade else "",
+            float(row.max_score) if has_manual_grade else "",
+            _round_percentage(float(row.percentage)) if has_manual_grade and row.percentage is not None else "",
+            bool(row.is_released) if has_manual_grade else False,
+            row.grade_updated_at.isoformat() if has_manual_grade and row.grade_updated_at else ""
+        ])
+    
+    # Auto-adjust column widths
+    try:
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter # Get the column name
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column].width = adjusted_width
+    except Exception:
+        pass
+
+    generated_at = _utc_now()
+    
+    filename = (
+        f"classroom-{classroom.class_id}-activity-{task.task_id}-gradebook.xlsx"
+        if task is not None
+        else f"classroom-{classroom.class_id}-gradebook.xlsx"
+    )
+
+    output = BytesIO()
+    try:
+        wb.save(output)
+        content = output.getvalue()
+    except Exception as error:
+        raise ReportingExportError("The gradebook Excel export could not be generated.") from error
+    finally:
+        output.close()
+
+    return {
+        "content": content,
+        "media_type": EXCEL_MEDIA_TYPE,
+        "filename": filename,
+        "row_count": len(rows),
+        "generated_at": generated_at,
+        "includes_raw_source": False,
+    }
+
+def _sanitize_csv_cell(
+    value: Any,
+) -> Any:
+    if value is None:
+        return ""
+
+    if isinstance(
+        value,
+        datetime,
+    ):
+        return value.isoformat()
+
+    if isinstance(
+        value,
+        bool,
+    ):
+        return (
+            "true"
+            if value
+            else "false"
+        )
+
+    if not isinstance(
+        value,
+        str,
+    ):
+        return value
+
+    if value and value[0] in (
+        "=",
+        "+",
+        "-",
+        "@",
+    ):
+        return "'" + value
+
+    return value
+
+
+def build_gradebook_excel_export(
+    db: Session,
+    *,
+    instructor_id: int,
+    class_id: int,
+    task_id: int | None = None,
+) -> dict[str, Any]:
+    classroom, task = _validate_owned_filters(
+        db,
+        instructor_id=instructor_id,
+        class_id=class_id,
+        task_id=task_id,
+    )
+
+    if classroom is None:
+        raise ReportingClassroomNotFoundError("Classroom not found.")
+
+    percentage_expression = _grade_percentage_expression()
+
+    query = (
+        db.query(
+            User.name.label("student_name"),
+            User.school_id.label("school_id"),
+            Classroom.name.label("class_name"),
+            Classroom.subject_code.label("subject_code"),
+            Classroom.section.label("section"),
+            Task.title.label("activity_title"),
+            Task.activity_type.label("activity_type"),
+            Submission.attempt_number.label("attempt_number"),
+            Submission.status.label("submission_status"),
+            InstructorGrade.grade_id.label("grade_id"),
+            InstructorGrade.score.label("score"),
+            InstructorGrade.max_score.label("max_score"),
+            InstructorGrade.is_released.label("is_released"),
+            InstructorGrade.updated_at.label("grade_updated_at"),
+            percentage_expression.label("percentage"),
+        )
+        .join(User, User.user_id == Submission.student_id)
+        .join(Task, Task.task_id == Submission.task_id)
+        .join(Classroom, Classroom.class_id == Task.class_id)
+        .outerjoin(InstructorGrade, InstructorGrade.submission_id == Submission.sub_id)
+        .filter(
+            Classroom.class_id == classroom.class_id,
+            Classroom.instructor_id == instructor_id,
+            Task.instructor_id == instructor_id,
+            Submission.is_official.is_(True),
+            User.role == "student",
+        )
+    )
+
+    if task is not None:
+        query = query.filter(Task.task_id == task.task_id)
+
+    rows = (
+        query.order_by(
+            func.lower(User.name).asc(),
+            User.school_id.asc(),
+            func.lower(Task.title).asc(),
+            Submission.sub_id.asc(),
+        )
+        .all()
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Gradebook"
+
+    headers = [
+        "student_name", "school_id", "class_name", "subject_code", "section",
+        "activity_title", "activity_type", "attempt_number", "submission_status",
+        "has_manual_grade", "score", "max_score", "percentage",
+        "grade_is_released", "grade_updated_at"
+    ]
+    ws.append(headers)
+
+    try:
+        from openpyxl.styles import Font, PatternFill
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="10B981", end_color="10B981", fill_type="solid")
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+    except Exception:
+        pass
+
+    for row in rows:
+        has_manual_grade = row.grade_id is not None
+        ws.append([
+            row.student_name,
+            row.school_id,
+            row.class_name,
+            row.subject_code,
+            row.section,
+            row.activity_title,
+            row.activity_type,
+            row.attempt_number,
+            row.submission_status,
+            has_manual_grade,
+            float(row.score) if has_manual_grade else "",
+            float(row.max_score) if has_manual_grade else "",
+            _round_percentage(float(row.percentage)) if has_manual_grade and row.percentage is not None else "",
+            bool(row.is_released) if has_manual_grade else False,
+            row.grade_updated_at.isoformat() if has_manual_grade and row.grade_updated_at else ""
+        ])
+    
+    # Auto-adjust column widths
+    try:
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter # Get the column name
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column].width = adjusted_width
+    except Exception:
+        pass
+
+    generated_at = _utc_now()
+    
+    filename = (
+        f"classroom-{classroom.class_id}-activity-{task.task_id}-gradebook.xlsx"
+        if task is not None
+        else f"classroom-{classroom.class_id}-gradebook.xlsx"
+    )
+
+    output = BytesIO()
+    try:
+        wb.save(output)
+        content = output.getvalue()
+    except Exception as error:
+        raise ReportingExportError("The gradebook Excel export could not be generated.") from error
+    finally:
+        output.close()
+
+    return {
+        "content": content,
+        "media_type": EXCEL_MEDIA_TYPE,
+        "filename": filename,
+        "row_count": len(rows),
+        "generated_at": generated_at,
+        "includes_raw_source": False,
+    }
 
 def _sanitize_csv_cell(
     value: Any,

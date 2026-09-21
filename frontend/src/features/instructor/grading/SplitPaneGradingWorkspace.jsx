@@ -110,27 +110,39 @@ const SplitPaneGradingWorkspace = () => {
     }
   };
 
-  const handleExport = () => {
-    let csv = "Student Name,School ID,Status,Score,Submitted At,Feedback\n";
-    students.forEach((s) => {
-      const sub = submissions[s.student_id];
-      const name = s.full_name || s.name || '';
-      const sid = s.school_id || '';
-      const status = sub?.status || 'Missing';
-      const score = sub?.grade_score ?? '';
-      const submitted = sub?.submitted_at ? new Date(sub.submitted_at).toLocaleString() : '';
-      const feedback = sub?.feedback_text ? `"${sub.feedback_text.replace(/"/g, '""')}"` : '';
-      csv += `"${name}","${sid}","${status}","${score}","${submitted}",${feedback}\n`;
-    });
+  const handleExport = async () => {
+    try {
+      const token = localStorage.getItem('pamsu_access_token');
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseUrl}/reports/classrooms/${classId}/tasks/${taskId}/excel`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to export grades from server");
+      }
+      
+      // Get filename from Content-Disposition header if possible
+      let filename = `class_${classId}_task_${taskId}_grades.xlsx`;
+      const disposition = response.headers.get('Content-Disposition');
+      if (disposition && disposition.includes('filename="')) {
+        filename = disposition.split('filename="')[1].split('"')[0];
+      }
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `class_${classId}_task_${taskId}_grades.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Export Error:", err);
+      alert("Failed to export Excel gradebook. Please try again.");
+    }
   };
 
   if (loading) {
