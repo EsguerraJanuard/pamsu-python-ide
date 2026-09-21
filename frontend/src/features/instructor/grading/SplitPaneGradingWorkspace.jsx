@@ -22,12 +22,12 @@ const SplitPaneGradingWorkspace = () => {
         setLoading(true);
         // Fetch roster
         const rosterRes = await api.get(`/classrooms/${classId}/members`);
-        const roster = rosterRes;
+        const roster = Array.isArray(rosterRes) ? rosterRes : (rosterRes?.data || []);
         setStudents(roster);
 
         // Fetch submissions for this task
-        // We might not have a direct endpoint, but let's assume we can fetch submissions for a task or get them from review queue
-        const subsRes = await api.get(`/instructors/review-queue`, { params: { task_id: taskId } });
+        // We append task_id to URL directly since custom fetch api wrapper ignores params object
+        const subsRes = await api.get(`/instructors/review-queue?task_id=${taskId}`);
         // Map submissions by student_id
         const subsMap = {};
         if (subsRes && Array.isArray(subsRes.items)) {

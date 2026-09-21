@@ -125,7 +125,7 @@ export default function InstructorDashboard() {
       description: "Submissions awaiting grade",
       progress: reviewQueue.length > 0 ? 100 : 0,
       color: "#3b82f6",
-      path: "/instructor/submissions"
+      path: "/instructor/bench"
     },
     {
       value: activitiesAuthoredCount.toString(),
@@ -141,7 +141,7 @@ export default function InstructorDashboard() {
       description: "Passing automated test thresholds",
       progress: 0,
       color: "#a78bfa",
-      path: "/instructor/submissions"
+      path: "/instructor/bench"
     },
   ], [activeClassesCount, activitiesAuthoredCount, reviewQueue]);
 
@@ -209,7 +209,7 @@ export default function InstructorDashboard() {
       navigate(`/instructor/classes/${activity.id}`);
       return;
     }
-    navigate(`/instructor/submissions?activity=${activity.id}`);
+    navigate(`/instructor/bench`);
   };
 
   return (
