@@ -22,7 +22,7 @@ const SplitPaneGradingWorkspace = () => {
         setLoading(true);
         // Fetch roster
         const rosterRes = await api.get(`/classrooms/${classId}/members`);
-        const roster = rosterRes.data;
+        const roster = rosterRes;
         setStudents(roster);
 
         // Fetch submissions for this task
@@ -30,8 +30,8 @@ const SplitPaneGradingWorkspace = () => {
         const subsRes = await api.get(`/instructors/review-queue`, { params: { task_id: taskId } });
         // Map submissions by student_id
         const subsMap = {};
-        if (subsRes.data && Array.isArray(subsRes.data.items)) {
-          subsRes.data.items.forEach(sub => {
+        if (subsRes && Array.isArray(subsRes.items)) {
+          subsRes.items.forEach(sub => {
               if (sub.activity?.task_id === parseInt(taskId)) {
                  subsMap[sub.student.student_id] = sub;
               }
@@ -64,10 +64,10 @@ const SplitPaneGradingWorkspace = () => {
         // 2. Fetch the evaluation details (which contains the AST analyses and the instructor grade)
         const evalRes = await api.get(`/evaluation/submissions/${sub.sub_id}`);
         
-        setDetailedSub(codeRes.data);
+        setDetailedSub(codeRes);
         
         // Pre-fill grade if it exists
-        const manualGrade = evalRes.data.instructor_grade;
+        const manualGrade = evalRes.instructor_grade;
         if (manualGrade) {
           setGradeScore(manualGrade.score);
           setFeedbackText(manualGrade.feedback || '');

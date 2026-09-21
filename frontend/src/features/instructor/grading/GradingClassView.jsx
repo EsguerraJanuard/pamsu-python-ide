@@ -14,12 +14,12 @@ const GradingClassView = () => {
     const fetchData = async () => {
       try {
         const classRes = await api.get(`/classrooms/${classId}`);
-        setClassroom(classRes.data);
+        setClassroom(classRes);
 
         // Fetch tasks
         const tasksRes = await api.get('/instructors/tasks/');
         // Filter by class_id
-        const filteredTasks = tasksRes.data.filter(task => String(task.class_id) === String(classId));
+        const filteredTasks = tasksRes.filter(task => String(task.class_id) === String(classId));
         setActivities(filteredTasks);
       } catch (error) {
         console.error('Error fetching data:', error);
