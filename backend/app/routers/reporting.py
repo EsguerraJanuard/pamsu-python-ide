@@ -35,7 +35,7 @@ from app.services.reporting_service import (
     ReportingServiceError,
     ReportingTaskNotFoundError,
     ReportingTaskUnavailableError,
-    build_gradebook_csv_export,
+    build_gradebook_excel_export,
     get_activity_completion_summary,
     get_classroom_completion_summary,
     get_grade_distribution,
@@ -372,7 +372,7 @@ def read_authenticated_student_progress(
 @router.get(
     "/classrooms/{class_id}/gradebook.csv",
     response_class=Response,
-    summary="Export privacy-safe gradebook CSV",
+    summary="Export privacy-safe gradebook Excel",
     description=(
         "Export official submission and manual-grade summary rows for an "
         "instructor-owned classroom or activity. The CSV excludes source "
@@ -384,14 +384,14 @@ def read_authenticated_student_progress(
     responses={
         status.HTTP_200_OK: {
             "content": {
-                "text/csv": {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                     "schema": {
                         "type": "string",
                         "format": "binary",
                     },
                 },
             },
-            "description": "Privacy-safe gradebook CSV.",
+            "description": "Privacy-safe gradebook Excel.",
         },
         status.HTTP_400_BAD_REQUEST: {
             "description": ("The selected classroom and activity filters conflict."),
@@ -405,14 +405,14 @@ def read_authenticated_student_progress(
             "description": "The classroom or activity does not exist.",
         },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "The CSV export could not be generated.",
+            "description": "The Excel export could not be generated.",
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": "The reporting operation is temporarily unavailable.",
         },
     },
 )
-def export_gradebook_csv(
+def export_gradebook_excel(
     class_id: int = Path(
         ...,
         gt=0,
@@ -429,7 +429,7 @@ def export_gradebook_csv(
     current_instructor: User = Depends(get_current_instructor),
 ) -> Response:
     try:
-        export = build_gradebook_csv_export(
+        export = build_gradebook_excel_export(
             db,
             instructor_id=current_instructor.user_id,
             class_id=class_id,
@@ -456,7 +456,7 @@ def export_gradebook_csv(
 # impersonate another report owner.
 
 # PRIVACY BOUNDARY:
-# Reporting responses and CSV exports exclude raw source code, standard
+# Reporting responses and Excel exports exclude raw source code, standard
 # input, hidden tests, AST findings, similarity records, execution
 # output, coding-session telemetry, clipboard or paste contents,
 # browsing history, surveillance data, credentials, OTPs, JWTs,
