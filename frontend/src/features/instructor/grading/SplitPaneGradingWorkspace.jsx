@@ -55,7 +55,7 @@ const SplitPaneGradingWorkspace = () => {
     setGradeScore('');
     setFeedbackText('');
 
-    const sub = submissions[student.id];
+    const sub = submissions[student.student_id];
     if (sub && sub.sub_id) {
       try {
         // 1. Fetch the raw code from the instructor submissions endpoint
@@ -113,7 +113,7 @@ const SplitPaneGradingWorkspace = () => {
   const handleExport = () => {
     let csv = "Student Name,School ID,Status,Score,Submitted At,Feedback\n";
     students.forEach((s) => {
-      const sub = submissions[s.id];
+      const sub = submissions[s.student_id];
       const name = s.full_name || s.name || '';
       const sid = s.school_id || '';
       const status = sub?.status || 'Missing';
@@ -154,7 +154,7 @@ const SplitPaneGradingWorkspace = () => {
         </div>
         <div className="flex-1 overflow-y-auto">
           {students.map(student => {
-            const sub = submissions[student.id];
+            const sub = submissions[student.student_id];
             let badgeText = 'Missing';
             let badgeColor = 'bg-red-900/50 text-red-400 border border-red-800';
             
@@ -173,12 +173,12 @@ const SplitPaneGradingWorkspace = () => {
 
             return (
               <div 
-                key={student.id}
+                key={student.student_id}
                 onClick={() => handleSelectStudent(student)}
-                className={`p-4 border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors flex justify-between items-center ${selectedStudent?.id === student.id ? 'bg-slate-800/80' : ''}`}
+                className={`p-4 border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors flex justify-between items-center ${selectedStudent?.student_id === student.student_id ? 'bg-slate-800/80' : ''}`}
               >
                 <div>
-                  <p className="font-medium text-white">{student.name || student.email || `Student ${student.id}`}</p>
+                  <p className="font-medium text-white">{student.name || student.email || `Student ${student.student_id}`}</p>
                   <p className="text-sm text-slate-400">{student.email}</p>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${badgeColor}`}>
