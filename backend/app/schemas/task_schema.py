@@ -14,6 +14,12 @@ ActivityType = Literal[
     "homework",
 ]
 
+ActivityDifficulty = Literal[
+    "beginner",
+    "intermediate",
+    "expert",
+]
+
 PastePolicy = Literal[
     "internal_only",
     "disabled",
@@ -110,6 +116,10 @@ class TaskBase(BaseModel):
     activity_type: ActivityType = Field(
         default="laboratory",
         description="Laboratory or homework activity.",
+    )
+    difficulty: ActivityDifficulty = Field(
+        default="beginner",
+        description="Difficulty level of the activity.",
     )
     required_ast_rules: dict[str, Any] = Field(
         default_factory=dict,
@@ -224,6 +234,7 @@ class TaskUpdate(BaseModel):
         max_length=10000,
     )
     activity_type: ActivityType | None = None
+    difficulty: ActivityDifficulty | None = None
     required_ast_rules: dict[str, Any] | None = None
     starter_code: str | None = Field(
         default=None,
@@ -320,6 +331,7 @@ class TaskResponseBase(BaseModel):
         max_length=10000,
     )
     activity_type: ActivityType
+    difficulty: ActivityDifficulty
     required_ast_rules: dict[str, Any] = Field(
         default_factory=dict,
     )

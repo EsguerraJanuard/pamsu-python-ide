@@ -1,20 +1,177 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/themes/dark.css';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 
-const AST_OPTIONS = [
-  { value: 'require_print_call', label: 'Require print() call' },
-  { value: 'require_for_loop', label: 'Require for loop' },
-  { value: 'require_while_loop', label: 'Require while loop' },
-  { value: 'require_if_statement', label: 'Require if statement' },
-  { value: 'require_function_def', label: 'Require function definition' },
-  { value: 'require_list_comp', label: 'Require list comprehension' },
-  { value: 'require_dict_comp', label: 'Require dictionary comprehension' },
-  { value: 'require_try_except', label: 'Require try/except block' }
+const AST_GROUPS = [
+  {
+    title: "Output & Input",
+    levels: ["beginner", "intermediate", "expert"],
+    rules: [
+      { id: "require_print_call", label: "Require print() call" },
+      { id: "require_input_call", label: "Require input() call" }
+    ]
+  },
+  {
+    title: "Control Flow",
+    levels: ["beginner", "intermediate", "expert"],
+    rules: [
+      { id: "require_if_statement", label: "Require if statement" },
+      { id: "require_for_loop", label: "Require for loop" },
+      { id: "require_while_loop", label: "Require while loop" },
+      { id: "require_break_statement", label: "Require break statement" },
+      { id: "require_continue_statement", label: "Require continue statement" },
+      { id: "require_with_statement", label: "Require with statement" }
+    ]
+  },
+  {
+    title: "Functions",
+    levels: ["intermediate", "expert"],
+    rules: [
+      { id: "require_function_def", label: "Require function definition" },
+      { id: "require_function_call", label: "Require function call" },
+      { id: "require_return_statement", label: "Require return statement" }
+    ]
+  },
+  {
+    title: "Data Structures",
+    levels: ["intermediate", "expert"],
+    rules: [
+      { id: "require_list", label: "Require list literal" },
+      { id: "require_dict", label: "Require dictionary literal" },
+      { id: "require_tuple", label: "Require tuple literal" },
+      { id: "require_set", label: "Require set literal" },
+      { id: "require_list_comprehension", label: "Require list comprehension" },
+      { id: "require_dict_comprehension", label: "Require dictionary comprehension" }
+    ]
+  },
+  {
+    title: "OOP & Advanced",
+    levels: ["expert"],
+    rules: [
+      { id: "require_class_def", label: "Require class definition" },
+      { id: "require_try_except", label: "Require try/except block" },
+      { id: "require_lambda", label: "Require lambda function" },
+      { id: "require_import", label: "Require import statement" },
+      { id: "require_match_statement", label: "Require match statement" },
+      { id: "require_yield", label: "Require yield (Generator)" },
+      { id: "require_assert_statement", label: "Require assert statement" },
+      { id: "require_raise_statement", label: "Require raise statement" }
+    ]
+  }
 ];
+
+const DIFFICULTY_SUGGESTIONS = {
+  beginner: ["require_print_call", "require_input_call", "require_if_statement"],
+  intermediate: ["require_if_statement", "require_for_loop", "require_function_def", "require_return_statement"],
+  expert: ["require_class_def", "require_try_except", "require_list_comprehension"]
+};
+
+// Accordion for AST Category
+const ASTCategoryAccordion = ({ category, requirements, onToggleRule }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const checkedCount = category.rules.filter(r => requirements[r.id]).length;
+
+  return (
+    <div className="bg-bg-base border border-border-subtle rounded-xl overflow-hidden mb-3 shadow-sm">
+      <div 
+        className="flex items-center p-4 cursor-pointer hover:bg-bg-glass transition-colors group gap-4"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="text-sm font-bold text-text-main group-hover:text-emerald-500 transition-colors flex-1">
+          {category.title}
+        </span>
+        
+        <div className="flex items-center gap-3">
+          {checkedCount > 0 && (
+            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+              {checkedCount} selected
+            </span>
+          )}
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="16" 
+            height="16" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-emerald-500' : ''}`}
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      
+      {isOpen && (
+        <div className="p-2 border-t border-border-subtle bg-bg-panel flex flex-col gap-1">
+          <div className="flex justify-end px-3 py-1.5 mb-1 border-b border-border-subtle/50">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const allSelected = checkedCount === category.rules.length;
+                onToggleCategory(category, !allSelected);
+              }}
+              className="text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-emerald-500 transition-colors"
+            >
+              {checkedCount === category.rules.length ? "Deselect All" : "Select All"}
+            </button>
+          </div>
+          {category.rules.map(rule => {
+            const isChecked = !!requirements[rule.id];
+            
+            return (
+              <label 
+                key={rule.id} 
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border ${
+                  isChecked 
+                    ? 'bg-emerald-500/5 border-emerald-500/20' 
+                    : 'bg-transparent border-transparent hover:bg-bg-glass hover:border-border-subtle'
+                }`}
+              >
+                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-main'}`}>
+                  {rule.label}
+                </span>
+                
+                <div className="relative inline-flex items-center group ml-4">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => onToggleRule(rule.id, e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+ASTCategoryAccordion.propTypes = {
+  category: PropTypes.shape({
+    title: PropTypes.string.isRequired,
+    rules: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
+      })
+    ).isRequired,
+  }).isRequired,
+  requirements: PropTypes.object.isRequired,
+  onToggleRule: PropTypes.func.isRequired,
+  onToggleCategory: PropTypes.func.isRequired,
+};
 
 const ActivityEditor = () => {
   const navigate = useNavigate();
@@ -30,9 +187,10 @@ const ActivityEditor = () => {
     description: '',
     instructions: '',
     expected_output: '',
-    requirements: [],
+    requirements: {},
     starter_code: '',
     activity_type: 'laboratory',
+    difficulty: '',
     is_published: false,
     allow_paste: false,
   });
@@ -45,6 +203,67 @@ const ActivityEditor = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const handleDifficultyChange = (newDifficulty) => {
+    // Merge automatically suggested requirements
+    const suggestions = DIFFICULTY_SUGGESTIONS[newDifficulty];
+    const newReqs = { ...formData.requirements };
+    
+    // Add missing suggestions with default count 1
+    suggestions.forEach(ruleId => {
+      if (!newReqs[ruleId]) {
+        newReqs[ruleId] = { required: true, min_count: 1 };
+      }
+    });
+
+    setFormData(prev => ({
+      ...prev,
+      difficulty: newDifficulty,
+      requirements: newReqs
+    }));
+  };
+
+  const handleToggleRule = (ruleId, isChecked) => {
+    setFormData(prev => {
+      const newReqs = { ...prev.requirements };
+      if (isChecked) {
+        newReqs[ruleId] = { required: true, min_count: 1 };
+      } else {
+        delete newReqs[ruleId];
+      }
+      return { ...prev, requirements: newReqs };
+    });
+  };
+
+  const handleToggleCategory = (category, isChecked) => {
+    setFormData(prev => {
+      const newReqs = { ...prev.requirements };
+      category.rules.forEach(rule => {
+        if (isChecked) {
+          newReqs[rule.id] = { required: true, min_count: 1 };
+        } else {
+          delete newReqs[rule.id];
+        }
+      });
+      return { ...prev, requirements: newReqs };
+    });
+  };
+
+  const handleSelectAllVisible = () => {
+    const visibleGroups = AST_GROUPS.filter(group => group.levels.includes(formData.difficulty || 'expert'));
+    const allVisibleRules = visibleGroups.flatMap(g => g.rules);
+    const allVisibleSelected = allVisibleRules.every(r => formData.requirements[r.id]);
+
+    setFormData(prev => {
+      const newReqs = { ...prev.requirements };
+      if (allVisibleSelected) {
+        allVisibleRules.forEach(r => delete newReqs[r.id]);
+      } else {
+        allVisibleRules.forEach(r => newReqs[r.id] = { required: true, min_count: 1 });
+      }
+      return { ...prev, requirements: newReqs };
+    });
   };
 
   useEffect(() => {
@@ -65,6 +284,10 @@ const ActivityEditor = () => {
       setError('Please select at least one classroom.');
       return;
     }
+    if (!formData.difficulty) {
+      setError('Please select a difficulty level.');
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -77,10 +300,7 @@ const ActivityEditor = () => {
         scheduled_publish_at: (!formData.is_published && formData.scheduled_publish_at) 
           ? new Date(formData.scheduled_publish_at).toISOString() 
           : null,
-        required_ast_rules: formData.requirements.reduce((acc, req) => {
-           acc[req] = { required: true, min_count: 1 };
-           return acc;
-        }, {}),
+        required_ast_rules: formData.requirements,
       };
 
       delete payload.requirements;
@@ -221,6 +441,8 @@ const ActivityEditor = () => {
                     )}
                   </div>
                 </div>
+                
+
 
                 <div>
                   <label htmlFor="description" className="block text-xs font-semibold text-text-muted mb-1.5">Overview / Description</label>
@@ -248,7 +470,7 @@ const ActivityEditor = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
                   <div>
                     <label htmlFor="expected_output" className="block text-xs font-semibold text-text-muted mb-1.5">Expected Output</label>
                     <textarea
@@ -258,32 +480,72 @@ const ActivityEditor = () => {
                       onChange={handleChange}
                       rows={3}
                       placeholder="Target output string..."
-                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-text-emerald focus:outline-none focus:border-emerald-500 transition-colors"
+                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-text-emerald focus:outline-none focus:border-emerald-500 transition-colors h-full"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">AST Checklist Requirements</label>
-                    <div className="flex flex-col gap-2">
-                      {AST_OPTIONS.map((opt) => (
-                        <label key={opt.value} className="flex items-center gap-2 text-xs text-text-main cursor-pointer hover:text-emerald-400 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={formData.requirements.includes(opt.value)}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setFormData(prev => ({
-                                ...prev,
-                                requirements: checked 
-                                  ? [...prev.requirements, opt.value]
-                                  : prev.requirements.filter(req => req !== opt.value)
-                              }));
-                            }}
-                            className="w-4 h-4 rounded border-border-subtle bg-bg-base text-emerald-500 focus:ring-emerald-500 focus:ring-offset-bg-glass"
+                  <div className="relative h-full flex flex-col gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                        Difficulty Level <span className="text-text-emerald">*</span>
+                      </label>
+                      <div className="flex bg-bg-base border border-border-subtle rounded-xl p-1">
+                        {['beginner', 'intermediate', 'expert'].map(level => (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={() => handleDifficultyChange(level)}
+                            className={`flex-1 py-2 text-xs font-semibold capitalize rounded-lg transition-colors ${
+                              formData.difficulty === level 
+                                ? 'bg-bg-glass text-emerald-600 dark:text-emerald-400 shadow-sm border border-border-subtle' 
+                                : 'text-text-muted hover:text-text-main hover:bg-bg-glass/50'
+                            }`}
+                          >
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 relative min-h-[200px]">
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
+                        <span>AST Checklist Requirements</span>
+                        <div className="flex items-center gap-3">
+                          {formData.difficulty && (
+                            <button
+                              type="button"
+                              onClick={handleSelectAllVisible}
+                              className="text-text-emerald hover:text-emerald-400 font-bold transition-colors text-[10px] uppercase tracking-wider"
+                            >
+                              Toggle All
+                            </button>
+                          )}
+                          <span className="text-text-muted font-normal text-[10px]">{Object.keys(formData.requirements).length} active</span>
+                        </div>
+                      </label>
+                      <div className={`flex flex-col h-full transition-opacity duration-300 ${!formData.difficulty ? 'opacity-30 pointer-events-none blur-[2px]' : ''}`}>
+                        {AST_GROUPS.filter(group => group.levels.includes(formData.difficulty || 'expert')).map((group) => (
+                          <ASTCategoryAccordion 
+                            key={group.title}
+                            category={group}
+                            requirements={formData.requirements}
+                            onToggleRule={handleToggleRule}
+                            onToggleCategory={handleToggleCategory}
                           />
-                          {opt.label}
-                        </label>
-                      ))}
+                        ))}
+                      </div>
+                      {!formData.difficulty && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4 text-center mt-6">
+                          <div className="bg-bg-panel/90 backdrop-blur-sm border border-border-strong rounded-xl p-4 shadow-lg shadow-black/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-text-emerald">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            <p className="text-xs font-bold text-text-main mb-1">Requirements Locked</p>
+                            <p className="text-[10px] text-text-muted">Select a Difficulty Level first to configure AST requirements.</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -130,6 +130,76 @@ SUPPORTED_AST_RULES: dict[str, ASTRuleDefinition] = {
             (ast.Lambda,),
         ),
     },
+    "require_list": {
+        "label": "List literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.List,),
+        ),
+    },
+    "require_dict": {
+        "label": "Dictionary literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Dict,),
+        ),
+    },
+    "require_tuple": {
+        "label": "Tuple literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Tuple,),
+        ),
+    },
+    "require_set": {
+        "label": "Set literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Set,),
+        ),
+    },
+    "require_break_statement": {
+        "label": "Break statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Break,),
+        ),
+    },
+    "require_continue_statement": {
+        "label": "Continue statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Continue,),
+        ),
+    },
+    "require_yield": {
+        "label": "Yield statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Yield, ast.YieldFrom),
+        ),
+    },
+    "require_with_statement": {
+        "label": "With statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.With, ast.AsyncWith),
+        ),
+    },
+    "require_assert_statement": {
+        "label": "Assert statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Assert,),
+        ),
+    },
+    "require_raise_statement": {
+        "label": "Raise statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Raise,),
+        ),
+    },
 }
 
 if hasattr(ast, "Match"):
