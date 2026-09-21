@@ -35,11 +35,6 @@ const INSTRUCTOR_NAV = [
         path: "/instructor/bench",
       },
       {
-        icon: "list",
-        label: "Gradebook",
-        path: "/instructor/gradebook",
-      },
-      {
         icon: "terminal",
         label: "Live Monitoring",
         path: "/instructor/monitoring",
