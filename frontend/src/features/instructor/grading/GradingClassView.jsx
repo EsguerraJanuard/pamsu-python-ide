@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
+import InstructorSidebar from '../../../components/layout/InstructorSidebar';
 
 const GradingClassView = () => {
   const { classId } = useParams();
@@ -34,15 +35,18 @@ const GradingClassView = () => {
   }, [classId]);
 
   if (loading) {
-    return <div className="p-8 text-white/80 bg-[#0f1117] min-h-screen">Loading class details...</div>;
+    return (<div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none"><InstructorSidebar /><div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-white/80 bg-transparent">Loading class details...</div></div>);
   }
 
   if (!classroom) {
-    return <div className="p-8 text-white/80 bg-[#0f1117] min-h-screen">Class not found.</div>;
+    return (<div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none"><InstructorSidebar /><div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-red-400 bg-transparent">Class not found.</div></div>);
   }
 
   return (
-    <div className="p-8 bg-[#0f1117] min-h-screen text-white/80">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+      <InstructorSidebar />
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col overflow-y-auto">
+        <main className="p-8 bg-transparent min-h-screen text-white/80">
       <div className="max-w-4xl mx-auto">
         <button 
           onClick={() => navigate('/instructor/bench')}
@@ -91,6 +95,8 @@ const GradingClassView = () => {
             ))
           )}
         </div>
+      </div>
+        </main>
       </div>
     </div>
   );

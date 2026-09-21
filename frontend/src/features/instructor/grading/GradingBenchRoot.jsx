@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
+import InstructorSidebar from '../../../components/layout/InstructorSidebar';
 
 const GradingBenchRoot = () => {
   const [classes, setClasses] = useState([]);
@@ -26,25 +27,34 @@ const GradingBenchRoot = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-white/80 bg-[#0f1117]">
+      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+      <InstructorSidebar />
+      <div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-white/80 bg-transparent">
         <div className="animate-pulse flex flex-col items-center">
           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p>Loading classes...</p>
         </div>
+      </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-red-400 bg-[#0f1117]">
+      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+      <InstructorSidebar />
+      <div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-red-400 bg-transparent">
         <p>{error}</p>
+      </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8 bg-[#0f1117] text-white/80">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+      <InstructorSidebar />
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col overflow-y-auto">
+        <main className="min-h-screen p-8 bg-transparent">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Grading Bench</h1>
@@ -89,6 +99,8 @@ const GradingBenchRoot = () => {
             ))}
           </div>
         )}
+      </div>
+        </main>
       </div>
     </div>
   );
