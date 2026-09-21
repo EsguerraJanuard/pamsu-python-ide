@@ -67,7 +67,7 @@ class GradebookStudentSummary(BaseModel):
 
     school_id: str = Field(
         ...,
-        pattern=r"^\d{10}$",
+        pattern=r"^(\d{10}|\d{4}-\d{5})$",
     )
 
 

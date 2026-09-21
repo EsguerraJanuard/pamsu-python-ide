@@ -105,7 +105,7 @@ class ClassMemberResponse(BaseModel):
         ...,
         min_length=10,
         max_length=10,
-        pattern=r"^\d{10}$",
+        pattern=r"^(\d{10}|\d{4}-\d{5})$",
     )
     name: str = Field(
         ...,
