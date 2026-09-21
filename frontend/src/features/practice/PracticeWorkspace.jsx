@@ -86,6 +86,8 @@ export default function PracticeWorkspace() {
         }
       } catch (err) {
         console.error("Failed to load task:", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchTask();
