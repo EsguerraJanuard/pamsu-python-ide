@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import api from "../../services/api";
@@ -133,7 +133,7 @@ export default function InstructorDashboard() {
       description: "Published programming labs",
       progress: activitiesAuthoredCount > 0 ? 100 : 0,
       color: "#f59e0b",
-      path: "/instructor/gradebook"
+      path: "/instructor/bench"
     },
     {
       value: "0%",
