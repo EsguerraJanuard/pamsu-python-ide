@@ -45,7 +45,7 @@ const GradingClassView = () => {
     <div className="p-8 bg-[#0f1117] min-h-screen text-white/80">
       <div className="max-w-4xl mx-auto">
         <button 
-          onClick={() => navigate('/instructor/grading')}
+          onClick={() => navigate('/instructor/bench')}
           className="mb-6 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@ const GradingClassView = () => {
           ) : (
             activities.map(activity => (
               <div 
-                key={activity.id} 
+                key={activity.task_id} 
                 className="p-6 bg-slate-900/50 border border-slate-800 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-700 transition-colors"
               >
                 <div>
@@ -79,7 +79,7 @@ const GradingClassView = () => {
                   )}
                 </div>
                 <button
-                  onClick={() => navigate(`/instructor/grading/classes/${classId}/activities/${activity.id}`)}
+                  onClick={() => navigate(`/instructor/bench/${classId}/${activity.task_id}`)}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center"
                 >
                   View details

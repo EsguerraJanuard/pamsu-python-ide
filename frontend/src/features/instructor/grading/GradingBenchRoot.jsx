@@ -59,8 +59,8 @@ const GradingBenchRoot = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {classes.map((cls) => (
               <div
-                key={cls.id}
-                onClick={() => navigate(`/instructor/grading/classes/${cls.id}`)}
+                key={cls.class_id}
+                onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
                 className="group cursor-pointer bg-slate-900/50 hover:bg-slate-800/80 transition-all duration-200 rounded-xl border border-slate-800 hover:border-emerald-500/50 overflow-hidden flex flex-col h-48"
               >
                 <div className="p-6 flex-grow">
