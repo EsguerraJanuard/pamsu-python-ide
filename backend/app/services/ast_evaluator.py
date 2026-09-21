@@ -200,6 +200,63 @@ SUPPORTED_AST_RULES: dict[str, ASTRuleDefinition] = {
             (ast.Raise,),
         ),
     },
+    "require_async_function": {
+        "label": "Async function",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.AsyncFunctionDef,),
+        ),
+    },
+    "require_await": {
+        "label": "Await expression",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Await,),
+        ),
+    },
+    "require_global": {
+        "label": "Global keyword",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Global,),
+        ),
+    },
+    "require_nonlocal": {
+        "label": "Nonlocal keyword",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Nonlocal,),
+        ),
+    },
+    "require_del_statement": {
+        "label": "Del statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Delete,),
+        ),
+    },
+    "require_pass_statement": {
+        "label": "Pass statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Pass,),
+        ),
+    },
+    "require_decorator": {
+        "label": "Decorator",
+        "detector": lambda tree: [
+            node for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and hasattr(node, "decorator_list") and getattr(node, "decorator_list")
+        ],
+    },
+    "require_open_call": {
+        "label": "open() call",
+        "detector": lambda tree: [
+            node for node in _find_nodes(tree, (ast.Call,))
+            if hasattr(node, "func") and isinstance(node.func, ast.Name) and node.func.id == "open"
+        ],
+    },
 }
 
 if hasattr(ast, "Match"):

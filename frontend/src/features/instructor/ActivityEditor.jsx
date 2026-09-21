@@ -25,7 +25,8 @@ const AST_GROUPS = [
       { id: "require_while_loop", label: "Require while loop" },
       { id: "require_break_statement", label: "Require break statement" },
       { id: "require_continue_statement", label: "Require continue statement" },
-      { id: "require_with_statement", label: "Require with statement" }
+      { id: "require_with_statement", label: "Require with statement" },
+      { id: "require_pass_statement", label: "Require pass statement" }
     ]
   },
   {
@@ -34,7 +35,9 @@ const AST_GROUPS = [
     rules: [
       { id: "require_function_def", label: "Require function definition" },
       { id: "require_function_call", label: "Require function call" },
-      { id: "require_return_statement", label: "Require return statement" }
+      { id: "require_return_statement", label: "Require return statement" },
+      { id: "require_global", label: "Require global keyword" },
+      { id: "require_nonlocal", label: "Require nonlocal keyword" }
     ]
   },
   {
@@ -46,7 +49,15 @@ const AST_GROUPS = [
       { id: "require_tuple", label: "Require tuple literal" },
       { id: "require_set", label: "Require set literal" },
       { id: "require_list_comprehension", label: "Require list comprehension" },
-      { id: "require_dict_comprehension", label: "Require dictionary comprehension" }
+      { id: "require_dict_comprehension", label: "Require dictionary comprehension" },
+      { id: "require_del_statement", label: "Require del statement" }
+    ]
+  },
+  {
+    title: "File Handling",
+    levels: ["intermediate", "expert"],
+    rules: [
+      { id: "require_open_call", label: "Require open() call" }
     ]
   },
   {
@@ -60,7 +71,10 @@ const AST_GROUPS = [
       { id: "require_match_statement", label: "Require match statement" },
       { id: "require_yield", label: "Require yield (Generator)" },
       { id: "require_assert_statement", label: "Require assert statement" },
-      { id: "require_raise_statement", label: "Require raise statement" }
+      { id: "require_raise_statement", label: "Require raise statement" },
+      { id: "require_decorator", label: "Require decorator (@)" },
+      { id: "require_async_function", label: "Require async def" },
+      { id: "require_await", label: "Require await" }
     ]
   }
 ];
@@ -72,9 +86,10 @@ const DIFFICULTY_SUGGESTIONS = {
 };
 
 // Accordion for AST Category
-const ASTCategoryAccordion = ({ category, requirements, onToggleRule }) => {
+const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCategory }) => {
   const [isOpen, setIsOpen] = useState(false);
   const checkedCount = category.rules.filter(r => requirements[r.id]).length;
+  const allSelected = checkedCount === category.rules.length;
 
   return (
     <div className="bg-bg-base border border-border-subtle rounded-xl overflow-hidden mb-3 shadow-sm">
@@ -111,19 +126,20 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule }) => {
       
       {isOpen && (
         <div className="p-2 border-t border-border-subtle bg-bg-panel flex flex-col gap-1">
-          <div className="flex justify-end px-3 py-1.5 mb-1 border-b border-border-subtle/50">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const allSelected = checkedCount === category.rules.length;
-                onToggleCategory(category, !allSelected);
-              }}
-              className="text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-emerald-500 transition-colors"
-            >
-              {checkedCount === category.rules.length ? "Deselect All" : "Select All"}
-            </button>
-          </div>
+          <label className="flex justify-between items-center px-3 py-2.5 mb-1 border-b border-border-subtle/50 bg-bg-base/30 rounded-t-lg cursor-pointer group">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted group-hover:text-text-main transition-colors">
+              Select All Rules
+            </span>
+            <div className="relative inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => onToggleCategory(category, e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+            </div>
+          </label>
           {category.rules.map(rule => {
             const isChecked = !!requirements[rule.id];
             
@@ -206,7 +222,6 @@ const ActivityEditor = () => {
   };
 
   const handleDifficultyChange = (newDifficulty) => {
-    // Merge automatically suggested requirements
     const suggestions = DIFFICULTY_SUGGESTIONS[newDifficulty];
     const newReqs = { ...formData.requirements };
     
@@ -214,6 +229,16 @@ const ActivityEditor = () => {
     suggestions.forEach(ruleId => {
       if (!newReqs[ruleId]) {
         newReqs[ruleId] = { required: true, min_count: 1 };
+      }
+    });
+
+    // Prune requirements that are no longer available in the new difficulty
+    const allowedGroups = AST_GROUPS.filter(g => g.levels.includes(newDifficulty));
+    const allowedRuleIds = new Set(allowedGroups.flatMap(g => g.rules).map(r => r.id));
+    
+    Object.keys(newReqs).forEach(ruleId => {
+      if (!allowedRuleIds.has(ruleId)) {
+        delete newReqs[ruleId];
       }
     });
 
@@ -250,14 +275,13 @@ const ActivityEditor = () => {
     });
   };
 
-  const handleSelectAllVisible = () => {
+  const handleSelectAllVisible = (isChecked) => {
     const visibleGroups = AST_GROUPS.filter(group => group.levels.includes(formData.difficulty || 'expert'));
     const allVisibleRules = visibleGroups.flatMap(g => g.rules);
-    const allVisibleSelected = allVisibleRules.every(r => formData.requirements[r.id]);
 
     setFormData(prev => {
       const newReqs = { ...prev.requirements };
-      if (allVisibleSelected) {
+      if (!isChecked) {
         allVisibleRules.forEach(r => delete newReqs[r.id]);
       } else {
         allVisibleRules.forEach(r => newReqs[r.id] = { required: true, min_count: 1 });
@@ -340,6 +364,10 @@ const ActivityEditor = () => {
       setLoading(false);
     }
   };
+
+  const visibleGroups = AST_GROUPS.filter(group => group.levels.includes(formData.difficulty || 'expert'));
+  const allVisibleRules = visibleGroups.flatMap(g => g.rules);
+  const allVisibleSelected = allVisibleRules.length > 0 && allVisibleRules.every(r => formData.requirements[r.id]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
@@ -510,15 +538,22 @@ const ActivityEditor = () => {
                     <div className="flex-1 relative min-h-[200px]">
                       <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
                         <span>AST Checklist Requirements</span>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                           {formData.difficulty && (
-                            <button
-                              type="button"
-                              onClick={handleSelectAllVisible}
-                              className="text-text-emerald hover:text-emerald-400 font-bold transition-colors text-[10px] uppercase tracking-wider"
-                            >
-                              Toggle All
-                            </button>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-text-emerald group-hover:text-emerald-400 transition-colors">
+                                Toggle All
+                              </span>
+                              <div className="relative inline-flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={allVisibleSelected}
+                                  onChange={(e) => handleSelectAllVisible(e.target.checked)}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                              </div>
+                            </label>
                           )}
                           <span className="text-text-muted font-normal text-[10px]">{Object.keys(formData.requirements).length} active</span>
                         </div>
