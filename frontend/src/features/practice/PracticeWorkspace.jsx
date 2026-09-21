@@ -47,8 +47,8 @@ export default function PracticeWorkspace() {
     const fetchTask = async () => {
       try {
         const response = await api.get("/practice/modules");
-        if (!Array.isArray(response.data)) {
-            console.error("Expected array but got:", typeof response.data);
+        if (!Array.isArray(response)) {
+            console.error("Expected array but got:", typeof response);
             setLoading(false);
             return;
           }
@@ -57,14 +57,14 @@ export default function PracticeWorkspace() {
         let nTaskId = null;
         
         const allTasks = [];
-        response.data.forEach(m => {
+        response.forEach(m => {
           m.tasks.forEach(t => allTasks.push(t));
         });
 
         for (let i = 0; i < allTasks.length; i++) {
           if (allTasks[i].task_id === parseInt(taskId)) {
             foundTask = allTasks[i];
-            foundModule = response.data.find(m => m.module_id === foundTask.module_id);
+            foundModule = response.find(m => m.module_id === foundTask.module_id);
             if (i + 1 < allTasks.length) {
               nTaskId = allTasks[i + 1].task_id;
             }

@@ -57,10 +57,10 @@ export default function SoloPractice() {
       try {
         const response = await api.get("/practice/modules");
         // Ensure response is an array before setting to prevent crash on 404 HTML responses
-        if (Array.isArray(response.data)) {
-          setModules(response.data);
+        if (Array.isArray(response)) {
+          setModules(response);
         } else {
-          console.error("Expected array but got:", typeof response.data);
+          console.error("Expected array but got:", typeof response);
           setModules([]);
         }
       } catch (err) {
