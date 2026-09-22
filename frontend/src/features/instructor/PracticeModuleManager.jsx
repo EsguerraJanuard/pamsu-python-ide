@@ -133,8 +133,9 @@ export default function PracticeModuleManager() {
   };
 
   return (
-    <InstructorSidebar>
-      <div className="flex-1 overflow-y-auto bg-bg-base p-6 sm:p-8">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+      <InstructorSidebar />
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col overflow-y-auto bg-bg-base p-6 sm:p-8">
         <div className="mx-auto max-w-6xl space-y-6">
           <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-subtle pb-6">
             <div>
@@ -304,6 +305,6 @@ export default function PracticeModuleManager() {
           </div>
         </div>
       )}
-    </InstructorSidebar>
+    </div>
   );
 }
