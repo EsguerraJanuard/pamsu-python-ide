@@ -1,3 +1,4 @@
+import BulkEnrollModal from "../../components/modals/BulkEnrollModal";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
@@ -16,6 +17,7 @@ export default function ClassRosterView() {
   const [studentToInspect, setStudentToInspect] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBulkEnrollModalOpen, setIsBulkEnrollModalOpen] = useState(false);
 
   const [classroom, setClassroom] = useState(null);
 
@@ -93,6 +95,12 @@ export default function ClassRosterView() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsBulkEnrollModalOpen(true)}
+                className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main shadow hover:bg-bg-glass-hover transition"
+              >
+                + Bulk Enroll
+              </button>
               <button
                 onClick={() => setIsEditModalOpen(true)}
                 className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main shadow hover:bg-bg-glass-hover transition"

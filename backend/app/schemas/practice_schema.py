@@ -47,6 +47,7 @@ class ModuleBreakdown(BaseModel):
     completed_tasks: int
     attempts_count: int
 
+
 class GrowthAnalyticsResponse(BaseModel):
     overall_growth_score: int
     total_tasks: int
@@ -54,3 +55,42 @@ class GrowthAnalyticsResponse(BaseModel):
     total_attempts: int
     successful_attempts: int
     module_breakdown: List[ModuleBreakdown] = []
+
+class PracticeModuleCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    order_index: int = 0
+    
+    class Config:
+        extra = "forbid"
+
+class PracticeModuleUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    order_index: Optional[int] = None
+    
+    class Config:
+        extra = "forbid"
+
+class PracticeTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    instructions: str = Field(..., min_length=1)
+    starter_code: Optional[str] = None
+    expected_output: str = Field(..., min_length=1)
+    expected_ast_patterns: Optional[Dict[str, Any]] = None
+    order_index: int = 0
+    
+    class Config:
+        extra = "forbid"
+
+class PracticeTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    instructions: Optional[str] = Field(None, min_length=1)
+    starter_code: Optional[str] = None
+    expected_output: Optional[str] = Field(None, min_length=1)
+    expected_ast_patterns: Optional[Dict[str, Any]] = None
+    order_index: Optional[int] = None
+    
+    class Config:
+        extra = "forbid"
+

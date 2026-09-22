@@ -1,6 +1,8 @@
 from typing import NoReturn
 
 from fastapi import (
+    UploadFile,
+    File,
     APIRouter,
     Depends,
     HTTPException,
@@ -26,6 +28,8 @@ from app.schemas.classroom_schema import (
     ClassroomUpdate,
 )
 from app.schemas.enrollment_schema import (
+    BulkEnrollmentRequest,
+    BulkEnrollmentResponse,
     ClassMemberResponse,
     EnrollmentJoinRequest,
     EnrollmentResponse,
@@ -292,6 +296,76 @@ def update_enrollment_status_endpoint(
     ) as exc:
         raise_classroom_service_http_exception(exc)
 
+
+
+@router.post(
+    "/{class_id}/bulk-enroll",
+    response_model=BulkEnrollmentResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="bulk_enroll_json",
+    summary="Bulk enroll students via JSON",
+)
+def bulk_enroll_json_endpoint(
+    class_id: int = Path(..., gt=0),
+    request: BulkEnrollmentRequest = ...,
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> BulkEnrollmentResponse:
+    from app.services.classroom_service import bulk_enroll_students
+    return bulk_enroll_students(
+        db=db,
+        instructor_id=current_instructor.user_id,
+        class_id=class_id,
+        emails=request.emails,
+    )
+
+@router.post(
+    "/{class_id}/bulk-enroll/file",
+    response_model=BulkEnrollmentResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="bulk_enroll_file",
+    summary="Bulk enroll students via CSV/Excel",
+)
+async def bulk_enroll_file_endpoint(
+    class_id: int = Path(..., gt=0),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> BulkEnrollmentResponse:
+    from app.services.classroom_service import bulk_enroll_students
+    import re
+    
+    content = await file.read()
+    text = ""
+    try:
+        # Try to parse as excel first
+        import openpyxl
+        from io import BytesIO
+        wb = openpyxl.load_workbook(BytesIO(content), read_only=True, data_only=True)
+        for sheet in wb.worksheets:
+            for row in sheet.iter_rows(values_only=True):
+                for cell in row:
+                    if isinstance(cell, str) and "@pampangastateu.edu.ph" in cell.lower():
+                        text += cell + " "
+    except Exception:
+        # Fallback to string decoding (CSV or plain text)
+        try:
+            text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                text = content.decode("latin-1")
+            except:
+                pass
+    
+    # Extract all emails using regex
+    emails = re.findall(r'[a-zA-Z0-9_.+-]+@pampangastateu\\.edu\\.ph', text.lower())
+    
+    return bulk_enroll_students(
+        db=db,
+        instructor_id=current_instructor.user_id,
+        class_id=class_id,
+        emails=emails,
+    )
 
 @router.get(
     "/{class_id}/members",

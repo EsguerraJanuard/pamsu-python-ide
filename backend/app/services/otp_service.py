@@ -549,6 +549,20 @@ def verify_registration_otp(
     try:
         db.add(new_user)
         db.flush()
+        
+        # Process pending enrollments
+        from app.models.domain_models import PendingEnrollment, Enrollment
+        from app.core.request_context import get_utc_now
+        pending_enrollments = db.query(PendingEnrollment).filter(PendingEnrollment.email == new_user.email).all()
+        for pe in pending_enrollments:
+            # Add enrollment
+            enrollment = Enrollment(
+                class_id=pe.class_id,
+                student_id=new_user.user_id,
+                status="active",
+            )
+            db.add(enrollment)
+            db.delete(pe)
 
         db.delete(pending_registration)
 

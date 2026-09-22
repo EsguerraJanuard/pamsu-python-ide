@@ -124,6 +124,30 @@ class ClassMemberResponse(BaseModel):
     )
 
 
+
+class BulkEnrollmentRequest(BaseModel):
+    emails: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="List of student email addresses to bulk-enroll.",
+    )
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+
+class BulkEnrollmentResponse(BaseModel):
+    enrolled: int = Field(..., description="Number of students successfully enrolled.")
+    queued: int = Field(..., description="Number of students queued pending registration.")
+    invalid: int = Field(..., description="Number of invalid emails ignored.")
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+
 class StudentClassroomResponse(BaseModel):
     enrollment_id: int = Field(
         ...,

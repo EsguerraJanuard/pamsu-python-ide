@@ -11,6 +11,15 @@ from app.models.domain_models import User, PracticeModule, PracticeTask, Practic
 from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown
 from sqlalchemy import func
 
+from app.core.security import get_current_instructor
+from app.schemas.practice_schema import (
+    PracticeModuleCreate,
+    PracticeModuleUpdate,
+    PracticeTaskCreate,
+    PracticeTaskUpdate,
+    PracticeModuleBase,
+    PracticeTaskBase
+)
 from app.services.ast_evaluator import evaluate_ast_details
 
 router = APIRouter(prefix="/practice", tags=["Solo Practice"])
@@ -276,3 +285,184 @@ def get_student_growth_analytics(
         raise HTTPException(status_code=403, detail="Only students can view their personal growth dashboard")
     
     return calculate_growth_for_student(db, current_user.user_id)
+
+
+# ==============================================================================
+# INSTRUCTOR CRUD ENDPOINTS
+# ==============================================================================
+
+@router.get("/instructor/modules", response_model=List[PracticeModuleList])
+def get_practice_modules_instructor(
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    # Instructors can see all modules
+    modules = db.query(PracticeModule).order_by(PracticeModule.order_index).all()
+    response_modules = []
+    
+    for mod in modules:
+        tasks = db.query(PracticeTask).filter(PracticeTask.module_id == mod.module_id).order_by(PracticeTask.order_index).all()
+        task_details = []
+        for t in tasks:
+            task_details.append(
+                PracticeTaskDetail(
+                    task_id=t.task_id,
+                    title=t.title,
+                    instructions=t.instructions,
+                    starter_code=t.starter_code,
+                    order_index=t.order_index,
+                    expected_ast_patterns=t.expected_ast_patterns,
+                    is_completed=False,
+                    attempts_count=0,
+                    is_locked=False
+                )
+            )
+        response_modules.append(
+            PracticeModuleList(
+                module_id=mod.module_id,
+                title=mod.title,
+                description=mod.description,
+                order_index=mod.order_index,
+                is_completed=False,
+                is_locked=False,
+                tasks=task_details
+            )
+        )
+    return response_modules
+
+@router.post("/modules", response_model=PracticeModuleBase)
+def create_practice_module(
+    request: PracticeModuleCreate,
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    mod = PracticeModule(
+        title=request.title,
+        description=request.description,
+        order_index=request.order_index,
+        instructor_id=current_instructor.user_id
+    )
+    db.add(mod)
+    db.commit()
+    db.refresh(mod)
+    return mod
+
+@router.put("/modules/{module_id}", response_model=PracticeModuleBase)
+def update_practice_module(
+    module_id: int,
+    request: PracticeModuleUpdate,
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    mod = db.query(PracticeModule).filter(PracticeModule.module_id == module_id).first()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Module not found")
+    
+    if mod.instructor_id is None:
+        raise HTTPException(status_code=403, detail="Cannot edit default seeded modules")
+    
+    if request.title is not None:
+        mod.title = request.title
+    if request.description is not None:
+        mod.description = request.description
+    if request.order_index is not None:
+        mod.order_index = request.order_index
+        
+    db.commit()
+    db.refresh(mod)
+    return mod
+
+@router.delete("/modules/{module_id}")
+def delete_practice_module(
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    mod = db.query(PracticeModule).filter(PracticeModule.module_id == module_id).first()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Module not found")
+        
+    if mod.instructor_id is None:
+        raise HTTPException(status_code=403, detail="Cannot delete default seeded modules")
+        
+    db.delete(mod)
+    db.commit()
+    return {"message": "Module deleted"}
+
+@router.post("/modules/{module_id}/tasks", response_model=PracticeTaskBase)
+def create_practice_task(
+    module_id: int,
+    request: PracticeTaskCreate,
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    mod = db.query(PracticeModule).filter(PracticeModule.module_id == module_id).first()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Module not found")
+        
+    if mod.instructor_id is None:
+        raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+        
+    task = PracticeTask(
+        module_id=module_id,
+        title=request.title,
+        instructions=request.instructions,
+        starter_code=request.starter_code,
+        expected_output=request.expected_output,
+        expected_ast_patterns=request.expected_ast_patterns,
+        order_index=request.order_index
+    )
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+@router.put("/tasks/{task_id}", response_model=PracticeTaskBase)
+def update_practice_task(
+    task_id: int,
+    request: PracticeTaskUpdate,
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    task = db.query(PracticeTask).filter(PracticeTask.task_id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    mod = task.module
+    if mod.instructor_id is None:
+        raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+        
+    if request.title is not None:
+        task.title = request.title
+    if request.instructions is not None:
+        task.instructions = request.instructions
+    if request.starter_code is not None:
+        task.starter_code = request.starter_code
+    if request.expected_output is not None:
+        task.expected_output = request.expected_output
+    if request.expected_ast_patterns is not None:
+        task.expected_ast_patterns = request.expected_ast_patterns
+    if request.order_index is not None:
+        task.order_index = request.order_index
+        
+    db.commit()
+    db.refresh(task)
+    return task
+
+@router.delete("/tasks/{task_id}")
+def delete_practice_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor)
+):
+    task = db.query(PracticeTask).filter(PracticeTask.task_id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    mod = task.module
+    if mod.instructor_id is None:
+        raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+        
+    db.delete(task)
+    db.commit()
+    return {"message": "Task deleted"}

@@ -471,6 +471,43 @@ class Enrollment(Base):
     )
 
 
+
+class PendingEnrollment(Base):
+    __tablename__ = "pending_enrollments"
+    __table_args__ = (
+        UniqueConstraint(
+            "class_id",
+            "email",
+            name="uq_pending_enrollment_class_email",
+        ),
+    )
+
+    pending_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    class_id = Column(
+        Integer,
+        ForeignKey(
+            "classrooms.class_id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+    email = Column(
+        String(255),
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = (
@@ -1976,10 +2013,17 @@ class Notification(Base):
     # and other external delivery adapters are outside Pillar 11.
 
 
+
 class PracticeModule(Base):
     __tablename__ = "practice_modules"
 
     module_id = Column(Integer, primary_key=True, index=True)
+    instructor_id = Column(
+        Integer, 
+        ForeignKey("users.user_id", ondelete="CASCADE"), 
+        nullable=True,
+        index=True
+    )
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     order_index = Column(Integer, nullable=False, default=0)
