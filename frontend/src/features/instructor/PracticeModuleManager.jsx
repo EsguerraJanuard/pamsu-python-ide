@@ -47,6 +47,162 @@ function InfoTooltip({ title, children, align = 'left', position = 'bottom' }) {
   );
 }
 
+
+const AST_GROUPS = [
+  {
+    title: "Output & Input",
+    rules: [
+      { id: "require_print_call", label: "Require print() call" },
+      { id: "require_input_call", label: "Require input() call" }
+    ]
+  },
+  {
+    title: "Control Flow",
+    rules: [
+      { id: "require_if_statement", label: "Require if statement" },
+      { id: "require_for_loop", label: "Require for loop" },
+      { id: "require_while_loop", label: "Require while loop" },
+      { id: "require_break_statement", label: "Require break statement" },
+      { id: "require_continue_statement", label: "Require continue statement" },
+      { id: "require_with_statement", label: "Require with statement" },
+      { id: "require_pass_statement", label: "Require pass statement" }
+    ]
+  },
+  {
+    title: "Functions",
+    rules: [
+      { id: "require_function_def", label: "Require function definition" },
+      { id: "require_function_call", label: "Require function call" },
+      { id: "require_return_statement", label: "Require return statement" },
+      { id: "require_global", label: "Require global keyword" },
+      { id: "require_nonlocal", label: "Require nonlocal keyword" }
+    ]
+  },
+  {
+    title: "Data Structures",
+    rules: [
+      { id: "require_list", label: "Require list literal" },
+      { id: "require_dict", label: "Require dictionary literal" },
+      { id: "require_tuple", label: "Require tuple literal" },
+      { id: "require_set", label: "Require set literal" },
+      { id: "require_list_comprehension", label: "Require list comprehension" },
+      { id: "require_dict_comprehension", label: "Require dictionary comprehension" },
+      { id: "require_del_statement", label: "Require del statement" }
+    ]
+  },
+  {
+    title: "File Handling",
+    rules: [
+      { id: "require_open_call", label: "Require open() call" }
+    ]
+  },
+  {
+    title: "OOP & Advanced",
+    rules: [
+      { id: "require_class_def", label: "Require class definition" },
+      { id: "require_try_except", label: "Require try/except block" },
+      { id: "require_lambda", label: "Require lambda function" },
+      { id: "require_import", label: "Require import statement" },
+      { id: "require_match_statement", label: "Require match statement" },
+      { id: "require_yield", label: "Require yield (Generator)" },
+      { id: "require_assert_statement", label: "Require assert statement" },
+      { id: "require_raise_statement", label: "Require raise statement" },
+      { id: "require_decorator", label: "Require decorator (@)" },
+      { id: "require_async_function", label: "Require async def" },
+      { id: "require_await", label: "Require await" }
+    ]
+  }
+];
+
+const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCategory }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const checkedCount = category.rules.filter(r => requirements[r.id]).length;
+  const allSelected = checkedCount === category.rules.length;
+
+  return (
+    <div className="bg-bg-base border border-border-subtle rounded-xl overflow-hidden mb-3 shadow-sm">
+      <div 
+        className="flex items-center p-4 cursor-pointer hover:bg-bg-glass transition-colors group gap-4"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="text-sm font-bold text-text-main group-hover:text-emerald-500 transition-colors flex-1">
+          {category.title}
+        </span>
+        
+        <div className="flex items-center gap-3">
+          {checkedCount > 0 && (
+            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+              {checkedCount} selected
+            </span>
+          )}
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="16" 
+            height="16" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-emerald-500' : ''}`}
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      
+      {isOpen && (
+        <div className="p-2 border-t border-border-subtle bg-bg-panel flex flex-col gap-1">
+          <label className="flex justify-between items-center px-3 py-2.5 mb-1 border-b border-border-subtle/50 bg-bg-base/30 rounded-t-lg cursor-pointer group">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted group-hover:text-text-main transition-colors">
+              Select All Rules
+            </span>
+            <div className="relative inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => onToggleCategory(category, e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+            </div>
+          </label>
+          {category.rules.map(rule => {
+            const isChecked = !!requirements[rule.id];
+            
+            return (
+              <label 
+                key={rule.id} 
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border ${
+                  isChecked 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 shadow-sm' 
+                    : 'bg-transparent border-transparent hover:bg-bg-glass'
+                }`}
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className={`text-sm font-semibold transition-colors ${isChecked ? 'text-emerald-400' : 'text-text-main'}`}>
+                    {rule.label}
+                  </span>
+                </div>
+                <div className="relative inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => onToggleRule(rule.id, e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function PracticeModuleManager() {
   const navigate = useNavigate();
   const [modules, setModules] = useState([]);
@@ -64,8 +220,34 @@ export default function PracticeModuleManager() {
   // Form states
   const [moduleForm, setModuleForm] = useState({ title: '', description: '', order_index: 0 });
   const [taskForm, setTaskForm] = useState({ 
-    title: '', instructions: '', starter_code: '', expected_output: '', order_index: 0, expected_ast_patterns: ''
+    title: '', instructions: '', starter_code: '', expected_output: '', order_index: 0, expected_ast_patterns: {}
   });
+
+  const handleToggleRule = (ruleId, isEnabled) => {
+    setTaskForm(prev => {
+      const newReqs = { ...prev.expected_ast_patterns };
+      if (isEnabled) {
+        newReqs[ruleId] = true;
+      } else {
+        delete newReqs[ruleId];
+      }
+      return { ...prev, expected_ast_patterns: newReqs };
+    });
+  };
+
+  const handleToggleCategory = (category, isEnabled) => {
+    setTaskForm(prev => {
+      const newReqs = { ...prev.expected_ast_patterns };
+      category.rules.forEach(rule => {
+        if (isEnabled) {
+          newReqs[rule.id] = true;
+        } else {
+          delete newReqs[rule.id];
+        }
+      });
+      return { ...prev, expected_ast_patterns: newReqs };
+    });
+  };
 
   useEffect(() => {
     fetchModules();
@@ -113,7 +295,7 @@ export default function PracticeModuleManager() {
     try {
       const payload = {
         ...taskForm,
-        expected_ast_patterns: taskForm.expected_ast_patterns ? JSON.parse(taskForm.expected_ast_patterns) : null
+        expected_ast_patterns: Object.keys(taskForm.expected_ast_patterns).length > 0 ? taskForm.expected_ast_patterns : null
       };
 
       if (editingTask) {
@@ -159,7 +341,7 @@ export default function PracticeModuleManager() {
         starter_code: task.starter_code || '',
         expected_output: task.expected_output,
         order_index: task.order_index,
-        expected_ast_patterns: task.expected_ast_patterns ? JSON.stringify(task.expected_ast_patterns, null, 2) : ''
+        expected_ast_patterns: task.expected_ast_patterns || {}
       });
     } else {
       setEditingTask(null);
@@ -170,7 +352,7 @@ export default function PracticeModuleManager() {
         starter_code: '',
         expected_output: '',
         order_index: mod ? mod.tasks.length + 1 : 1,
-        expected_ast_patterns: ''
+        expected_ast_patterns: {}
       });
     }
     setIsTaskModalOpen(true);
@@ -427,21 +609,27 @@ export default function PracticeModuleManager() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
-                    Expected AST Patterns (JSON)
-                    <InfoTooltip title="Abstract Syntax Tree Patterns" position="top">
-                      <p className="mb-2">Enforce specific Python constructs in the student's code. Define the node name and the minimum count required.</p>
-                      <pre className="bg-bg-base p-2 rounded text-[10px] text-blue-300 font-mono border border-border-subtle mb-2">
-{`{
-  "For": 1,
-  "FunctionDef": 2
-}`}
-                      </pre>
-                      <p className="text-text-muted">Common nodes: <code className="text-emerald-400">For</code>, <code className="text-emerald-400">While</code>, <code className="text-emerald-400">If</code>, <code className="text-emerald-400">FunctionDef</code>, <code className="text-emerald-400">ListComp</code></p>
-                    </InfoTooltip>
+                  <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center justify-between">
+                    <div className="flex items-center">
+                      AST Checklist Requirements
+                      <InfoTooltip title="Abstract Syntax Tree Patterns" position="top">
+                        <p className="mb-2">Enforce specific Python constructs in the student's code without writing complex tests.</p>
+                        <p className="text-text-muted">For example, if you toggle "Require for loop", the student's submission will be automatically rejected if they don't use a for loop.</p>
+                      </InfoTooltip>
+                    </div>
                   </label>
-                  <textarea value={taskForm.expected_ast_patterns} onChange={e => setTaskForm({...taskForm, expected_ast_patterns: e.target.value})} placeholder='{&#10;  "For": 1,&#10;  "Call": 2&#10;}' className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-blue-400 placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono whitespace-pre" rows="4" />
-                  <p className="mt-1.5 text-[10px] text-text-muted">Define required Python AST nodes and their minimum counts to enforce specific implementations (e.g. forcing a student to use a for loop).</p>
+                  
+                  <div className="flex flex-col h-full transition-opacity duration-300">
+                    {AST_GROUPS.map((group) => (
+                      <ASTCategoryAccordion 
+                        key={group.title}
+                        category={group}
+                        requirements={taskForm.expected_ast_patterns}
+                        onToggleRule={handleToggleRule}
+                        onToggleCategory={handleToggleCategory}
+                      />
+                    ))}
+                  </div>
                 </div>
               </form>
             </div>
