@@ -108,10 +108,9 @@ def login(
                     actor_user_id=user_obj.user_id,
                     action_type="login_failed",
                     resource_type="user",
-                    resource_id=user_obj.user_id,
-                    outcome="failure",
-                    metadata_json={"email": normalized_email},
-                    ip_address=None
+                    resource_id=str(user_obj.user_id),
+                    outcome="failed",
+                    audit_data={"email": normalized_email}
                 )
             )
         raise invalid_credentials_exception()
@@ -177,10 +176,9 @@ def login(
             actor_user_id=user.user_id,
             action_type="login_succeeded",
             resource_type="user",
-            resource_id=user.user_id,
-            outcome="success",
-            metadata_json={"email": user.email},
-            ip_address=None
+            resource_id=str(user.user_id),
+            outcome="succeeded",
+            audit_data={"email": user.email}
         )
     )
 
