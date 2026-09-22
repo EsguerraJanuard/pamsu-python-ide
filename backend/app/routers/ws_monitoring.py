@@ -49,6 +49,7 @@ async def student_telemetry_ws(
         return
 
     try:
+        await async_redis_client.sadd("presence:online_students", user.user_id)
         while True:
             data = await websocket.receive_text()
             try:
@@ -77,6 +78,8 @@ async def student_telemetry_ws(
     except Exception as e:
         print(f"WS Student Error: {e}")
         await websocket.close(code=1011)
+    finally:
+        await async_redis_client.srem("presence:online_students", user.user_id)
 
 @router.websocket("/instructor")
 async def instructor_monitoring_ws(

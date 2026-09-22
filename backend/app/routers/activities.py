@@ -569,7 +569,10 @@ def analyze_student_ast_endpoint(
         raise_student_activity_http_exception(exc)
         
     from app.services.ast_evaluator import evaluate_ast_details
-    details = evaluate_ast_details(request.source_code, task.required_ast_rules)
+    from app.models.domain_models import User
+    instructor = db.query(User).filter(User.user_id == task.instructor_id).first()
+    strictness = instructor.ast_strictness_level if instructor else "moderate"
+    details = evaluate_ast_details(request.source_code, task.required_ast_rules, strictness_level=strictness)
     
     # Strip line_numbers to respect the student-safe boundary
     for finding in details.get("findings", []):

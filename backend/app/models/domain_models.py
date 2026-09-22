@@ -73,6 +73,12 @@ class User(Base):
         nullable=False,
         default=True,
     )
+    ast_strictness_level = Column(
+        String(20),
+        nullable=False,
+        server_default="moderate",
+        default="moderate"
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
