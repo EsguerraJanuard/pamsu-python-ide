@@ -60,6 +60,8 @@ import GradingBenchRoot from './features/instructor/grading/GradingBenchRoot';
 import GradingClassView from './features/instructor/grading/GradingClassView';
 import SplitPaneGradingWorkspace from './features/instructor/grading/SplitPaneGradingWorkspace';
 import LiveMonitoring from './features/instructor/LiveMonitoring';
+import PracticeModuleManager from './features/instructor/PracticeModuleManager';
+
 import MyClasses from './features/classes/MyClasses';
 import ClassDetails from './features/classes/ClassDetails';
 
@@ -116,6 +118,8 @@ export const App = () => {
               <Route element={<RoleRoute allowedRole="instructor" />}>
                 <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                 <Route path="/instructor/classes" element={<ClassManagement />} />
+                <Route path="/instructor/practice" element={<PracticeModuleManager />} />
+
                 <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
                 <Route path="/instructor/activities/create" element={<ActivityEditor />} />
                 <Route path="/instructor/activities/:id" element={<ActivityDetails />} />

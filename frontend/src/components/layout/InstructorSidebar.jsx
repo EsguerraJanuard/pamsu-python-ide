@@ -20,6 +20,11 @@ const INSTRUCTOR_NAV = [
         path: "/instructor/classes",
       },
       {
+        icon: "monitor",
+        label: "Practice Modules",
+        path: "/instructor/practice",
+      },
+      {
         icon: "code",
         label: "Activity Authoring",
         path: "/instructor/activities/create",
@@ -101,6 +106,11 @@ function Icon({ name, size = 15 }) {
     terminal: (
       <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M2 3l5 5-5 5M9 13h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    monitor: (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M2 3h12a1 1 0 011 1v6a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1zM6 13h4M8 11v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
     bell: (
