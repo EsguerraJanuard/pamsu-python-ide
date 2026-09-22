@@ -533,9 +533,15 @@ def evaluate_submission_by_id(
             instructor_id=instructor_id,
         )
 
+    # Fetch instructor to get strictness level
+    from app.models.domain_models import User
+    instructor = db.query(User).filter(User.user_id == task.instructor_id).first()
+    strictness = instructor.ast_strictness_level if instructor else "moderate"
+
     ast_details = evaluate_ast_details(
         raw_code=submission.raw_code,
         rules=task.required_ast_rules,
+        strictness_level=strictness,
     )
 
     if not isinstance(ast_details, dict):

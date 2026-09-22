@@ -82,6 +82,7 @@ class UserResponse(UserBase):
     role: Literal["student", "instructor"]
     email_verified: bool
     is_active: bool
+    ast_strictness_level: str
     created_at: datetime
     updated_at: datetime
 
@@ -92,6 +93,7 @@ class UserResponse(UserBase):
 
 class UserUpdate(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
+    ast_strictness_level: str | None = Field(default=None, max_length=20)
 
     model_config = ConfigDict(
         extra="forbid",

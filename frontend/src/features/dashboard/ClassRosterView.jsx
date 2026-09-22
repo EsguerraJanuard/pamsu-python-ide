@@ -197,10 +197,19 @@ export default function ClassRosterView() {
                             <div className="text-xs text-text-muted">{student.email}</div>
                           </td>
                           <td className="px-6 py-4 text-text-muted">
-                            {student.status === "active" || student.status === "approved" ? (
-                               <span className="text-text-emerald">Active</span>
+                            {student.is_online ? (
+                               <span className="text-text-emerald flex items-center gap-2">
+                                 <span className="relative flex h-2 w-2">
+                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                 </span>
+                                 Online
+                               </span>
                             ) : (
-                               <span className="text-text-amber">Disabled</span>
+                               <span className="text-text-muted flex items-center gap-2">
+                                 <span className="inline-block w-2 h-2 rounded-full bg-slate-600"></span>
+                                 Offline
+                               </span>
                             )}
                           </td>
                           <td className="px-6 py-4 text-center font-mono text-text-muted">0</td>

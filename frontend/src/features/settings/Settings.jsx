@@ -855,12 +855,15 @@ export default function Settings() {
 
                   <div className="flex items-center gap-3 mt-6 mb-2">
                     <label className="text-xs text-text-muted cursor-pointer flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        checked={showPasswords} 
-                        onChange={() => setShowPasswords(!showPasswords)} 
-                        className="rounded border-border-subtle text-emerald-500 focus:ring-emerald-500"
-                      />
+                      <div className="relative group flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={showPasswords}
+                          onChange={() => setShowPasswords(!showPasswords)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                      </div>
                       Show passwords
                     </label>
                   </div>

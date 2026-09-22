@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 
 const DownloadIcon = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
 const XIcon = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
@@ -163,21 +164,16 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
         <div className="border-t border-border-subtle p-6 flex justify-end gap-3">
           <button
             onClick={() => {
-              const csvData = [
-                ["Activity", "Status", "Auto Score", "Final Score"],
-                ...grades.map(g => [
-                  `"${g.activity?.title || ''}"`, 
-                  g.submission?.status || 'N/A', 
-                  g.submission?.auto_score !== null && g.submission?.auto_score !== undefined ? `${g.submission.auto_score}%` : 'N/A', 
-                  g.manual_grade?.score_value ?? 'N/A'
-                ])
-              ].map(e => e.join(",")).join("\n");
-              const blob = new Blob([csvData], { type: 'text/csv' });
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `${student?.name || 'student'}_grades.csv`;
-              a.click();
+              const data = grades.map(g => ({
+                "Activity": g.activity?.title || '',
+                "Status": g.submission?.status || 'N/A',
+                "Auto Score": g.submission?.auto_score !== null && g.submission?.auto_score !== undefined ? `${g.submission.auto_score}%` : 'N/A',
+                "Final Score": g.manual_grade?.score_value ?? 'N/A'
+              }));
+              const ws = XLSX.utils.json_to_sheet(data);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, "Grades");
+              XLSX.writeFile(wb, `${student?.name || 'student'}_grades.xlsx`);
             }}
             disabled={grades.length === 0}
             className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-sm font-semibold text-text-main transition hover:bg-bg-glass-hover disabled:opacity-50"

@@ -86,7 +86,7 @@ export default function InstructorSettings() {
     email: "instructor@pamsu.edu.ph",
     department: "College of Computing Studies",
     defaultCourse: "CCS101",
-    astStrictness: "moderate",
+    astStrictness: user?.ast_strictness_level || "moderate",
     emailNotifications: true,
     liveMonitoringAlerts: true,
   });
@@ -196,13 +196,19 @@ export default function InstructorSettings() {
                 </div>
               <div>
                 <label className="block text-xs text-text-muted mb-1">Department</label>
-                <input
-                  type="text"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
-                />
+                <div className="relative">
+                  <select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="w-full appearance-none rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="College of Computing Studies">College of Computing Studies</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-muted">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-text-muted mb-1">Default Course</label>
@@ -226,7 +232,7 @@ export default function InstructorSettings() {
                 onChange={(val) => setFormData(prev => ({ ...prev, astStrictness: val }))}
                 className="w-full px-3 py-2 text-xs"
                 options={[
-                  { value: "lenient", label: "Lenient (Focus on execution output only)" },
+                  { value: "lax", label: "Lenient (Focus on execution output only)" },
                   { value: "moderate", label: "Moderate (Standard AST pattern checks)" },
                   { value: "strict", label: "Strict (Enforce rigid structural loop/function rules)" }
                 ]}
@@ -349,12 +355,15 @@ export default function InstructorSettings() {
 
             <div className="flex items-center gap-3 mt-6 mb-2">
               <label className="text-xs text-text-muted cursor-pointer flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  checked={showPasswords} 
-                  onChange={() => setShowPasswords(!showPasswords)} 
-                  className="rounded border-border-subtle text-emerald-500 focus:ring-emerald-500"
-                />
+                  <div className="relative group flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={showPasswords}
+                      onChange={() => setShowPasswords(!showPasswords)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                  </div>
                 Show passwords
               </label>
             </div>

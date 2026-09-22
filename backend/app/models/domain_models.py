@@ -73,6 +73,12 @@ class User(Base):
         nullable=False,
         default=True,
     )
+    ast_strictness_level = Column(
+        String(20),
+        nullable=False,
+        server_default="moderate",
+        default="moderate"
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -519,6 +525,10 @@ class Task(Base):
             "paste_policy IN ('internal_only', 'disabled')",
             name="ck_tasks_paste_policy",
         ),
+        CheckConstraint(
+            "difficulty IN ('beginner', 'intermediate', 'expert')",
+            name="ck_tasks_difficulty",
+        ),
     )
 
     task_id = Column(
@@ -560,6 +570,12 @@ class Task(Base):
         String(20),
         nullable=False,
         default="laboratory",
+    )
+    difficulty = Column(
+        String(20),
+        nullable=False,
+        default="beginner",
+        server_default="beginner",
     )
     required_ast_rules = Column(
         JSON,
