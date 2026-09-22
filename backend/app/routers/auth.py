@@ -114,11 +114,11 @@ def login(
                     ip_address=None
                 )
             )
-        raise_invalid(user if 'user' in locals() else None)
+        raise invalid_credentials_exception()
 
 
     if not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN):
-        raise_invalid(user if 'user' in locals() else None)
+        raise invalid_credentials_exception()
 
     user = get_user_by_email(
         db=db,
@@ -126,13 +126,13 @@ def login(
     )
 
     if user is None:
-        raise_invalid(user if 'user' in locals() else None)
+        raise invalid_credentials_exception()
 
     if not verify_password(
         form_data.password,
         user.password_hash,
     ):
-        raise_invalid(user if 'user' in locals() else None)
+        raise invalid_credentials_exception()
 
     if not user.is_active:
         raise HTTPException(
