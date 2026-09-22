@@ -23,6 +23,8 @@ def update_profile(
     current_user: User = Depends(get_current_user),
 ) -> User:
     current_user.name = update_data.name
+    if update_data.ast_strictness_level is not None:
+        current_user.ast_strictness_level = update_data.ast_strictness_level
     db.commit()
     db.refresh(current_user)
     return current_user

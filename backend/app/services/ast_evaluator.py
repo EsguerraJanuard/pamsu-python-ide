@@ -329,6 +329,7 @@ def _normalize_rule_configuration(
 def evaluate_ast_details(
     raw_code: str,
     rules: dict[str, Any],
+    strictness_level: str = "moderate",
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "passed": False,
@@ -401,7 +402,16 @@ def evaluate_ast_details(
         definition = SUPPORTED_AST_RULES[rule_name]
         detected_nodes = detected_by_rule[rule_name]
         detected_count = len(detected_nodes)
-        passed = detected_count >= minimum_count
+        
+        if strictness_level == "strict":
+            passed = detected_count == minimum_count
+            message = f"Detected {detected_count}; strict mode requires exactly {minimum_count}."
+        elif strictness_level == "lax":
+            passed = detected_count > 0 if minimum_count > 0 else True
+            message = f"Detected {detected_count}; lax mode requires at least 1."
+        else:
+            passed = detected_count >= minimum_count
+            message = f"Detected {detected_count}; required at least {minimum_count}."
 
         finding = {
             "rule": rule_name,
@@ -410,9 +420,7 @@ def evaluate_ast_details(
             "detected_count": detected_count,
             "passed": passed,
             "line_numbers": result["detected_lines"][rule_name],
-            "message": (
-                f"Detected {detected_count}; required at least {minimum_count}."
-            ),
+            "message": message,
         }
 
         result["findings"].append(finding)

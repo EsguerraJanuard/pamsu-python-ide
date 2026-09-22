@@ -605,6 +605,14 @@ def list_class_members(
         .all()
     )
 
+    # Get online users from Redis
+    online_users = set()
+    try:
+        online_members = redis_client.smembers("presence:online_students")
+        online_users = {int(x) for x in online_members}
+    except Exception:
+        pass
+
     return [
         {
             "enrollment_id": enrollment.enrollment_id,
@@ -613,6 +621,7 @@ def list_class_members(
             "name": user.name,
             "email": user.email,
             "status": enrollment.status,
+            "is_online": user.user_id in online_users,
         }
         for enrollment, user in member_rows
     ]
