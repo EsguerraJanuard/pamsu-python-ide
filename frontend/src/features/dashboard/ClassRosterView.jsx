@@ -29,18 +29,8 @@ export default function ClassRosterView() {
     setIsLoading(true);
     try {
       const [classData, membersData, tasksData] = await Promise.all([
-        api.get(`/classrooms/${classId}`).catch(() => ({
-          id: classId,
-          name: "CS101 — Intro to Programming",
-          subject_code: "CS101",
-          section: "Sec 01",
-          code: "XYZ890",
-          schedule: "Mon/Wed 10:00 AM - 12:00 PM",
-        })),
-        api.get(`/classrooms/${classId}/members`).catch(() => [
-          { enrollment_id: "enr-1", name: "Dela Cruz, Juan", school_id: "2024-0012", email: "juan@univ.edu", status: "active" },
-          { enrollment_id: "enr-2", name: "Santos, Maria", school_id: "2024-0019", email: "maria@univ.edu", status: "active" },
-        ]),
+        api.get(`/classrooms/${classId}`),
+        api.get(`/classrooms/${classId}/members`),
         api.get(`/instructors/tasks/?class_id=${classId}`).catch(() => []),
       ]);
       setClassroom(classData);
