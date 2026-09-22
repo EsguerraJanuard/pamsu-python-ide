@@ -5,15 +5,28 @@ import InstructorSidebar from '../../components/layout/InstructorSidebar';
 
 
 
-function InfoTooltip({ title, children }) {
+function InfoTooltip({ title, children, align = 'left', position = 'bottom' }) {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Determine alignment classes to prevent horizontal clipping
+  const alignmentClass = align === 'center' 
+    ? 'left-1/2 -translate-x-1/2' 
+    : align === 'right' 
+      ? 'right-0' 
+      : 'left-0';
+
+  // Determine vertical positioning to prevent vertical clipping in scrollable modals
+  const positionStyle = position === 'top' 
+    ? { bottom: '100%', marginBottom: '0.5rem' } 
+    : { top: '100%', marginTop: '0.5rem' };
+
   return (
     <div className="relative inline-flex items-center ml-2 align-middle">
       <button 
         type="button"
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => { e.preventDefault(); setIsOpen(!isOpen); }}
         className="text-text-muted hover:text-emerald-400 focus:outline-none transition-colors"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -22,8 +35,11 @@ function InfoTooltip({ title, children }) {
       </button>
       
       {isOpen && (
-        <div className="absolute left-1/2 -translate-x-1/2 mt-6 w-64 md:w-72 p-3 bg-bg-panel border border-border-subtle rounded-lg shadow-xl z-50 text-xs font-normal normal-case text-text-main leading-relaxed" style={{ top: '100%' }}>
-          <div className="font-semibold text-emerald-400 mb-1">{title}</div>
+        <div 
+          className={`absolute w-64 md:w-80 p-4 bg-bg-panel border border-border-subtle rounded-lg shadow-2xl z-50 text-xs font-normal normal-case text-text-main leading-relaxed ${alignmentClass}`} 
+          style={positionStyle}
+        >
+          <div className="font-bold text-emerald-400 mb-2 border-b border-border-subtle pb-1">{title}</div>
           {children}
         </div>
       )}
@@ -413,7 +429,7 @@ export default function PracticeModuleManager() {
                 <div>
                   <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
                     Expected AST Patterns (JSON)
-                    <InfoTooltip title="Abstract Syntax Tree Patterns">
+                    <InfoTooltip title="Abstract Syntax Tree Patterns" position="top">
                       <p className="mb-2">Enforce specific Python constructs in the student's code. Define the node name and the minimum count required.</p>
                       <pre className="bg-bg-base p-2 rounded text-[10px] text-blue-300 font-mono border border-border-subtle mb-2">
 {`{
