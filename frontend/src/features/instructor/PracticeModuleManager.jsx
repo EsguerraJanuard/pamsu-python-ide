@@ -3,6 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InstructorSidebar from '../../components/layout/InstructorSidebar';
 
+
+
+function InfoTooltip({ title, children }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="relative inline-flex items-center ml-2 align-middle">
+      <button 
+        type="button"
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
+        onClick={() => setIsOpen(!isOpen)}
+        className="text-text-muted hover:text-emerald-400 focus:outline-none transition-colors"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+      
+      {isOpen && (
+        <div className="absolute left-1/2 -translate-x-1/2 mt-6 w-64 md:w-72 p-3 bg-bg-panel border border-border-subtle rounded-lg shadow-xl z-50 text-xs font-normal normal-case text-text-main leading-relaxed" style={{ top: '100%' }}>
+          <div className="font-semibold text-emerald-400 mb-1">{title}</div>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PracticeModuleManager() {
   const navigate = useNavigate();
   const [modules, setModules] = useState([]);
@@ -352,7 +380,17 @@ export default function PracticeModuleManager() {
                 </div>
                 
                 <div>
-                  <label className="block text-xs font-semibold text-text-main mb-1.5">Instructions (Markdown Supported)</label>
+                  <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
+                  Instructions
+                  <InfoTooltip title="Markdown Support">
+                    <p>You can use standard Markdown to format the instructions.</p>
+                    <ul className="mt-1 ml-4 list-disc text-text-muted">
+                      <li><code className="text-emerald-400">**bold**</code></li>
+                      <li><code className="text-emerald-400">`code blocks`</code></li>
+                      <li><code className="text-emerald-400"># Headers</code></li>
+                    </ul>
+                  </InfoTooltip>
+                </label>
                   <textarea required value={taskForm.instructions} onChange={e => setTaskForm({...taskForm, instructions: e.target.value})} placeholder="Write the prompt for the student here..." className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono" rows="4" />
                 </div>
 
@@ -362,13 +400,30 @@ export default function PracticeModuleManager() {
                     <textarea value={taskForm.starter_code} onChange={e => setTaskForm({...taskForm, starter_code: e.target.value})} placeholder="# Write your code below" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-emerald-400 placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono whitespace-pre" rows="5" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-main mb-1.5">Expected Output (Exact string match)</label>
+                    <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
+                      Expected Output
+                      <InfoTooltip title="Expected Output">
+                        The exact console output the student's code must produce to pass. Trailing whitespaces and empty newlines at the end are ignored, but exact casing and spelling are required.
+                      </InfoTooltip>
+                    </label>
                     <textarea required value={taskForm.expected_output} onChange={e => setTaskForm({...taskForm, expected_output: e.target.value})} placeholder="Hello World" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-amber-400 placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono whitespace-pre" rows="5" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text-main mb-1.5">Expected AST Patterns (JSON format, Optional)</label>
+                  <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
+                    Expected AST Patterns (JSON)
+                    <InfoTooltip title="Abstract Syntax Tree Patterns">
+                      <p className="mb-2">Enforce specific Python constructs in the student's code. Define the node name and the minimum count required.</p>
+                      <pre className="bg-bg-base p-2 rounded text-[10px] text-blue-300 font-mono border border-border-subtle mb-2">
+{`{
+  "For": 1,
+  "FunctionDef": 2
+}`}
+                      </pre>
+                      <p className="text-text-muted">Common nodes: <code className="text-emerald-400">For</code>, <code className="text-emerald-400">While</code>, <code className="text-emerald-400">If</code>, <code className="text-emerald-400">FunctionDef</code>, <code className="text-emerald-400">ListComp</code></p>
+                    </InfoTooltip>
+                  </label>
                   <textarea value={taskForm.expected_ast_patterns} onChange={e => setTaskForm({...taskForm, expected_ast_patterns: e.target.value})} placeholder='{&#10;  "For": 1,&#10;  "Call": 2&#10;}' className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-blue-400 placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono whitespace-pre" rows="4" />
                   <p className="mt-1.5 text-[10px] text-text-muted">Define required Python AST nodes and their minimum counts to enforce specific implementations (e.g. forcing a student to use a for loop).</p>
                 </div>
