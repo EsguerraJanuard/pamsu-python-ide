@@ -105,7 +105,7 @@ export default function PracticeWorkspace() {
       const res = await api.post(`/practice/tasks/${taskId}/submit`, {
         code: code
       });
-      setFeedback(res.data);
+      setFeedback(res);
     } catch (err) {
       setFeedback({
         is_successful: false,
