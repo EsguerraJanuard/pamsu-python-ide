@@ -209,7 +209,7 @@ def get_current_instructor(
 def get_current_student(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    if current_user.role.strip() not in ["student", "student_user"]:
+    if current_user.role != "student":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Student access required.",
