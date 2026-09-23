@@ -2,6 +2,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
+import { useTheme } from "../theme/ThemeContext";
 import api from "../../services/api";
 
 
@@ -25,6 +26,7 @@ export default function PracticeWorkspace() {
   const taskId = searchParams.get("task");
   
   const { settings } = useEditorSettings();
+  const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [taskDetails, setTaskDetails] = useState(null);
   const [moduleDetails, setModuleDetails] = useState(null);
@@ -255,7 +257,7 @@ export default function PracticeWorkspace() {
              <MonacoEditor
               height="100%"
               language="python"
-              theme={settings.theme === "vs-dark" ? "vs-dark" : "light"}
+              theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
               value={code}
               onChange={(value) => setCode(value || "")}
               options={monacoOptions}

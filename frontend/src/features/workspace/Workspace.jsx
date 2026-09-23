@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
+import { useTheme } from "../theme/ThemeContext";
 import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
@@ -76,6 +77,7 @@ function formatEventTime() {
 
 export default function Workspace() {
   const { settings } = useEditorSettings();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity");
