@@ -475,7 +475,7 @@ def bulk_enroll_students(
     class_id: int,
     emails: list[str],
 ) -> BulkEnrollmentResponse:
-    classroom = get_owned_classroom(db, class_id=class_id, instructor_id=instructor_id)
+    classroom = get_owned_classroom(db=db, class_id=class_id, instructor_id=instructor_id)
 
     # Normalize emails
     emails = [e.strip().lower() for e in emails if e.strip()]
