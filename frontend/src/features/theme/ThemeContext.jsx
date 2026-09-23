@@ -7,6 +7,7 @@ export function ThemeProvider({ children }) {
     const saved = localStorage.getItem("pamsu_theme");
     return saved || "system";
   });
+  const [resolvedTheme, setResolvedTheme] = useState("light");
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -17,8 +18,10 @@ export function ThemeProvider({ children }) {
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       root.classList.add(systemTheme);
+      setResolvedTheme(systemTheme);
     } else {
       root.classList.add(theme);
+      setResolvedTheme(theme);
     }
 
     localStorage.setItem("pamsu_theme", theme);
@@ -31,8 +34,10 @@ export function ThemeProvider({ children }) {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
       const root = window.document.documentElement;
+      const systemTheme = mediaQuery.matches ? "dark" : "light";
       root.classList.remove("light", "dark");
-      root.classList.add(mediaQuery.matches ? "dark" : "light");
+      root.classList.add(systemTheme);
+      setResolvedTheme(systemTheme);
     };
 
     mediaQuery.addEventListener("change", handleChange);
@@ -40,7 +45,7 @@ export function ThemeProvider({ children }) {
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
       {children}
     </ThemeContext.Provider>
   );

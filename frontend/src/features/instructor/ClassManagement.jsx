@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import InstructorSidebar from '../../components/layout/InstructorSidebar';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import api from '../../services/api';
+import AlertModal from '../../components/modals/AlertModal';
 
 export default function ClassManagement() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [alertConfig, setAlertConfig] = useState(null);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +53,7 @@ export default function ClassManagement() {
       await fetchClasses();
     } catch (err) {
       console.error('Failed to create classroom:', err);
-      alert(typeof err === 'string' ? err : err.message || 'Failed to create classroom');
+      setAlertConfig({ title: 'Error', message: typeof err === 'string' ? err : err.message || 'Failed to create classroom', isError: true });
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +77,7 @@ export default function ClassManagement() {
       setConfirmModal({ isOpen: false, classToToggle: null });
     } catch (err) {
       console.error('Failed to update classroom status:', err);
-      alert('Failed to update classroom status.');
+      setAlertConfig({ title: 'Error', message: 'Failed to update classroom status.', isError: true });
     }
   };
 
@@ -291,6 +293,14 @@ export default function ClassManagement() {
           </main>
         </div>
       </div>
-    </div>
+    
+      <AlertModal 
+        isOpen={!!alertConfig} 
+        title={alertConfig?.title} 
+        message={alertConfig?.message} 
+        isError={alertConfig?.isError} 
+        onClose={() => setAlertConfig(null)} 
+      />
+</div>
   );
 }

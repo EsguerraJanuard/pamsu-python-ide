@@ -7,6 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+
+from app.services.audit_service import create_audit_record
+from app.schemas.audit_schema import AuditRecordCreateInternal
+from uuid import uuid4
 from app.core.database import get_db
 from app.core.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -95,6 +99,23 @@ def login(
 ) -> TokenResponse:
     normalized_email = form_data.username.strip().lower()
 
+    def raise_invalid(user_obj=None):
+        if user_obj:
+            create_audit_record(
+                db=db,
+                payload=AuditRecordCreateInternal(
+                    audit_key=f"login_failed_{user_obj.user_id}_{uuid4().hex[:8]}",
+                    actor_user_id=user_obj.user_id,
+                    action_type="login_failed",
+                    resource_type="user",
+                    resource_id=str(user_obj.user_id),
+                    outcome="failed",
+                    audit_data={"email": normalized_email}
+                )
+            )
+        raise invalid_credentials_exception()
+
+
     if not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN):
         raise invalid_credentials_exception()
 
@@ -146,6 +167,19 @@ def login(
             "pwd_ver": user.password_version,
         },
         expires_delta=access_token_expires,
+    )
+
+    create_audit_record(
+        db=db,
+        payload=AuditRecordCreateInternal(
+            audit_key=f"login_{user.user_id}_{uuid4().hex[:8]}",
+            actor_user_id=user.user_id,
+            action_type="login_succeeded",
+            resource_type="user",
+            resource_id=str(user.user_id),
+            outcome="succeeded",
+            audit_data={"email": user.email}
+        )
     )
 
     return TokenResponse(

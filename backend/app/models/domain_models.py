@@ -73,6 +73,12 @@ class User(Base):
         nullable=False,
         default=True,
     )
+    ast_strictness_level = Column(
+        String(20),
+        nullable=False,
+        server_default="moderate",
+        default="moderate"
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -471,6 +477,43 @@ class Enrollment(Base):
     )
 
 
+
+class PendingEnrollment(Base):
+    __tablename__ = "pending_enrollments"
+    __table_args__ = (
+        UniqueConstraint(
+            "class_id",
+            "email",
+            name="uq_pending_enrollment_class_email",
+        ),
+    )
+
+    pending_id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    class_id = Column(
+        Integer,
+        ForeignKey(
+            "classrooms.class_id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+    email = Column(
+        String(255),
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = (
@@ -481,6 +524,10 @@ class Task(Base):
         CheckConstraint(
             "paste_policy IN ('internal_only', 'disabled')",
             name="ck_tasks_paste_policy",
+        ),
+        CheckConstraint(
+            "difficulty IN ('beginner', 'intermediate', 'expert')",
+            name="ck_tasks_difficulty",
         ),
     )
 
@@ -523,6 +570,12 @@ class Task(Base):
         String(20),
         nullable=False,
         default="laboratory",
+    )
+    difficulty = Column(
+        String(20),
+        nullable=False,
+        default="beginner",
+        server_default="beginner",
     )
     required_ast_rules = Column(
         JSON,
@@ -1512,7 +1565,7 @@ class SimilarityResult(Base):
     algorithm = Column(
         String(100),
         nullable=False,
-        default="jaccard",
+        default="ast_jaccard",
     )
     created_at = Column(
         DateTime(timezone=True),
@@ -1974,3 +2027,84 @@ class Notification(Base):
     # DELIVERY BOUNDARY:
     # This table represents in-app notifications only. Email, SMS, push,
     # and other external delivery adapters are outside Pillar 11.
+
+
+
+class PracticeModule(Base):
+    __tablename__ = "practice_modules"
+
+    module_id = Column(Integer, primary_key=True, index=True)
+    instructor_id = Column(
+        Integer, 
+        ForeignKey("users.user_id", ondelete="CASCADE"), 
+        nullable=True,
+        index=True
+    )
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    order_index = Column(Integer, nullable=False, default=0)
+
+    tasks = relationship(
+        "PracticeTask",
+        back_populates="module",
+        cascade="all, delete-orphan",
+        order_by="PracticeTask.order_index",
+    )
+
+
+class PracticeTask(Base):
+    __tablename__ = "practice_tasks"
+
+    task_id = Column(Integer, primary_key=True, index=True)
+    module_id = Column(Integer, ForeignKey("practice_modules.module_id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(255), nullable=False)
+    instructions = Column(Text, nullable=False)
+    starter_code = Column(Text, nullable=True)
+    expected_output = Column(Text, nullable=False)
+    expected_ast_patterns = Column(JSON, nullable=True)
+    order_index = Column(Integer, nullable=False, default=0)
+
+    module = relationship("PracticeModule", back_populates="tasks")
+    progress_records = relationship(
+        "PracticeProgress",
+        back_populates="task",
+        cascade="all, delete-orphan",
+    )
+    attempts = relationship(
+        "PracticeAttempt",
+        back_populates="task",
+        cascade="all, delete-orphan",
+    )
+
+
+class PracticeProgress(Base):
+    __tablename__ = "practice_progress"
+    __table_args__ = (
+        UniqueConstraint("student_id", "task_id", name="uq_practice_progress_student_task"),
+    )
+
+    progress_id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(Integer, ForeignKey("practice_tasks.task_id", ondelete="CASCADE"), nullable=False)
+    is_completed = Column(Boolean, default=False, nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    attempts_count = Column(Integer, default=0, nullable=False)
+
+    student = relationship("User")
+    task = relationship("PracticeTask", back_populates="progress_records")
+
+
+class PracticeAttempt(Base):
+    __tablename__ = "practice_attempts"
+
+    attempt_id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(Integer, ForeignKey("practice_tasks.task_id", ondelete="CASCADE"), nullable=False)
+    submitted_code = Column(Text, nullable=False)
+    is_successful = Column(Boolean, default=False, nullable=False)
+    execution_feedback = Column(Text, nullable=True)
+    ast_feedback = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    student = relationship("User")
+    task = relationship("PracticeTask", back_populates="attempts")

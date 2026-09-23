@@ -465,6 +465,94 @@ def regenerate_class_code(
     )
 
 
+from app.models.domain_models import PendingEnrollment
+from app.schemas.enrollment_schema import BulkEnrollmentResponse
+
+def bulk_enroll_students(
+    *,
+    db: Session,
+    instructor_id: int,
+    class_id: int,
+    emails: list[str],
+) -> BulkEnrollmentResponse:
+    classroom = get_owned_classroom(db=db, class_id=class_id, instructor_id=instructor_id)
+
+    # Normalize emails
+    emails = [e.strip().lower() for e in emails if e.strip()]
+    emails = list(set(emails))
+    
+    valid_emails = [e for e in emails if e.endswith("@pampangastateu.edu.ph")]
+    invalid_count = len(emails) - len(valid_emails)
+
+    if not valid_emails:
+        return BulkEnrollmentResponse(enrolled=0, queued=0, invalid=invalid_count)
+
+    # Find existing users
+    existing_users = db.query(User).filter(User.email.in_(valid_emails), User.role == "student").all()
+    existing_user_map = {u.email: u for u in existing_users}
+
+    enrolled_count = 0
+    queued_count = 0
+    occurred_at = get_utc_now()
+
+    # Process enrollments
+    for email in valid_emails:
+        if email in existing_user_map:
+            user = existing_user_map[email]
+            existing_enrollment = (
+                db.query(Enrollment)
+                .filter(Enrollment.class_id == classroom.class_id, Enrollment.student_id == user.user_id)
+                .first()
+            )
+            if not existing_enrollment:
+                enrollment = Enrollment(
+                    class_id=classroom.class_id,
+                    student_id=user.user_id,
+                    status="active",
+                    deactivated_at=None,
+                )
+                db.add(enrollment)
+                db.flush()
+
+                _record_audit(
+                    db=db,
+                    audit_key=_build_audit_key(
+                        action_type="student_enrolled",
+                        resource_type="enrollment",
+                        resource_id=enrollment.enrollment_id,
+                        repeatable=False,
+                    ),
+                    actor_user_id=instructor_id,
+                    action_type="student_enrolled",
+                    resource_type="enrollment",
+                    resource_id=enrollment.enrollment_id,
+                    audit_data={
+                        "class_id": classroom.class_id,
+                        "student_id": user.user_id,
+                    },
+                    occurred_at=occurred_at,
+                )
+                enrolled_count += 1
+        else:
+            # Add to pending enrollments if not already there
+            existing_pending = (
+                db.query(PendingEnrollment)
+                .filter(PendingEnrollment.class_id == classroom.class_id, PendingEnrollment.email == email)
+                .first()
+            )
+            if not existing_pending:
+                pending = PendingEnrollment(class_id=classroom.class_id, email=email)
+                db.add(pending)
+                queued_count += 1
+
+    db.commit()
+
+    return BulkEnrollmentResponse(
+        enrolled=enrolled_count,
+        queued=queued_count,
+        invalid=invalid_count,
+    )
+
 def join_classroom(
     *,
     db: Session,
@@ -605,6 +693,14 @@ def list_class_members(
         .all()
     )
 
+    # Get online users from Redis
+    online_users = set()
+    try:
+        online_members = redis_client.smembers("presence:online_students")
+        online_users = {int(x) for x in online_members}
+    except Exception:
+        pass
+
     return [
         {
             "enrollment_id": enrollment.enrollment_id,
@@ -613,6 +709,7 @@ def list_class_members(
             "name": user.name,
             "email": user.email,
             "status": enrollment.status,
+            "is_online": user.user_id in online_users,
         }
         for enrollment, user in member_rows
     ]

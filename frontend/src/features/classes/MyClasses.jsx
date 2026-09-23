@@ -121,11 +121,13 @@ export default function MyClasses() {
                     <PlusIcon className="h-4 w-4" />
                     Join a Class
                   </button>
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-glass border border-border-subtle text-xs font-bold shadow-sm"
+                  <button
+                    onClick={() => navigate("/student/settings")}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-glass border border-border-subtle text-xs font-bold shadow-sm cursor-pointer hover:border-text-muted hover:bg-bg-glass-hover transition-colors"
+                    title="Account Settings"
                   >
                     {user.initials}
-                  </div>
+                  </button>
                 </div>
               </header>
 
@@ -198,13 +200,25 @@ export default function MyClasses() {
                           </div>
                           
                           <div className="flex items-center gap-4 border-t border-border-subtle pt-5 mt-auto relative z-10">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1.5">Status</span>
-                              <span className="text-xs font-medium text-text-emerald flex items-center gap-1.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
-                                Enrolled
-                              </span>
-                            </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1.5">Status</span>
+                                {cls.enrollment_status === 'disabled' ? (
+                                  <span className="text-xs font-medium text-text-amber flex items-center gap-1.5">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]"></span>
+                                    Pending Approval
+                                  </span>
+                                ) : cls.enrollment_status === 'removed' ? (
+                                  <span className="text-xs font-medium text-text-rose flex items-center gap-1.5">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(2fb,113,133,0.5)]"></span>
+                                    Removed
+                                  </span>
+                                ) : (
+                                  <span className="text-xs font-medium text-text-emerald flex items-center gap-1.5">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
+                                    Enrolled
+                                  </span>
+                                )}
+                              </div>
                             <div className="h-8 w-px bg-white/[0.06]"></div>
                             <div className="flex flex-col">
                               <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1.5">Joined</span>

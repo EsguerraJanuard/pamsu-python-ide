@@ -22,7 +22,7 @@ const INSTRUCTOR_NAV = [
       {
         icon: "code",
         label: "Activity Authoring",
-        path: "/instructor/activities",
+        path: "/instructor/activities/create",
       },
     ],
   },
@@ -33,11 +33,6 @@ const INSTRUCTOR_NAV = [
         icon: "check",
         label: "Grading Bench",
         path: "/instructor/submissions",
-      },
-      {
-        icon: "list",
-        label: "Gradebook",
-        path: "/instructor/gradebook",
       },
       {
         icon: "terminal",

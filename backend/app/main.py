@@ -19,7 +19,9 @@ from app.core.request_context import (
 from app.integrations.partner_auth import (
     PARTNER_EXECUTION_TOKEN_HEADER,
 )
+from app.routers import ws_monitoring
 from app.routers import (
+    practice,
     activities,
     audit_records,
     auth,
@@ -318,6 +320,7 @@ app.include_router(evaluation.router)
 app.include_router(notifications.router)
 app.include_router(audit_records.router)
 app.include_router(reporting.router)
+app.include_router(practice.router)
 
 
 @app.on_event("startup")

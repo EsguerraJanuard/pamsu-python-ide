@@ -28,7 +28,7 @@ class ReportingSchemaBase(BaseModel):
 class ReportingStudentSummary(ReportingSchemaBase):
     student_id: int = Field(..., gt=0)
     name: str = Field(..., min_length=1, max_length=150)
-    school_id: str = Field(..., pattern=r"^\d{10}$")
+    school_id: str = Field(..., pattern=r"^(\d{10}|\d{4}-\d{5})$")
 
 
 class ReportingClassroomSummary(ReportingSchemaBase):

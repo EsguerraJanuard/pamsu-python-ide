@@ -130,6 +130,133 @@ SUPPORTED_AST_RULES: dict[str, ASTRuleDefinition] = {
             (ast.Lambda,),
         ),
     },
+    "require_list": {
+        "label": "List literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.List,),
+        ),
+    },
+    "require_dict": {
+        "label": "Dictionary literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Dict,),
+        ),
+    },
+    "require_tuple": {
+        "label": "Tuple literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Tuple,),
+        ),
+    },
+    "require_set": {
+        "label": "Set literal",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Set,),
+        ),
+    },
+    "require_break_statement": {
+        "label": "Break statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Break,),
+        ),
+    },
+    "require_continue_statement": {
+        "label": "Continue statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Continue,),
+        ),
+    },
+    "require_yield": {
+        "label": "Yield statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Yield, ast.YieldFrom),
+        ),
+    },
+    "require_with_statement": {
+        "label": "With statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.With, ast.AsyncWith),
+        ),
+    },
+    "require_assert_statement": {
+        "label": "Assert statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Assert,),
+        ),
+    },
+    "require_raise_statement": {
+        "label": "Raise statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Raise,),
+        ),
+    },
+    "require_async_function": {
+        "label": "Async function",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.AsyncFunctionDef,),
+        ),
+    },
+    "require_await": {
+        "label": "Await expression",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Await,),
+        ),
+    },
+    "require_global": {
+        "label": "Global keyword",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Global,),
+        ),
+    },
+    "require_nonlocal": {
+        "label": "Nonlocal keyword",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Nonlocal,),
+        ),
+    },
+    "require_del_statement": {
+        "label": "Del statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Delete,),
+        ),
+    },
+    "require_pass_statement": {
+        "label": "Pass statement",
+        "detector": lambda tree: _find_nodes(
+            tree,
+            (ast.Pass,),
+        ),
+    },
+    "require_decorator": {
+        "label": "Decorator",
+        "detector": lambda tree: [
+            node for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and hasattr(node, "decorator_list") and getattr(node, "decorator_list")
+        ],
+    },
+    "require_open_call": {
+        "label": "open() call",
+        "detector": lambda tree: [
+            node for node in _find_nodes(tree, (ast.Call,))
+            if hasattr(node, "func") and isinstance(node.func, ast.Name) and node.func.id == "open"
+        ],
+    },
 }
 
 if hasattr(ast, "Match"):
@@ -202,6 +329,7 @@ def _normalize_rule_configuration(
 def evaluate_ast_details(
     raw_code: str,
     rules: dict[str, Any],
+    strictness_level: str = "moderate",
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "passed": False,
@@ -274,7 +402,16 @@ def evaluate_ast_details(
         definition = SUPPORTED_AST_RULES[rule_name]
         detected_nodes = detected_by_rule[rule_name]
         detected_count = len(detected_nodes)
-        passed = detected_count >= minimum_count
+        
+        if strictness_level == "strict":
+            passed = detected_count == minimum_count
+            message = f"Detected {detected_count}; strict mode requires exactly {minimum_count}."
+        elif strictness_level == "lax":
+            passed = detected_count > 0 if minimum_count > 0 else True
+            message = f"Detected {detected_count}; lax mode requires at least 1."
+        else:
+            passed = detected_count >= minimum_count
+            message = f"Detected {detected_count}; required at least {minimum_count}."
 
         finding = {
             "rule": rule_name,
@@ -283,9 +420,7 @@ def evaluate_ast_details(
             "detected_count": detected_count,
             "passed": passed,
             "line_numbers": result["detected_lines"][rule_name],
-            "message": (
-                f"Detected {detected_count}; required at least {minimum_count}."
-            ),
+            "message": message,
         }
 
         result["findings"].append(finding)

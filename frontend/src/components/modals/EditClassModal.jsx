@@ -15,6 +15,8 @@ export default function EditClassModal({
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [copied, setCopied] = useState(false);
+
 
   useEffect(() => {
     if (classroom) {
@@ -80,7 +82,7 @@ export default function EditClassModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl space-y-6">
+      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl space-y-6">
         <div className="flex items-center justify-between border-b border-border-subtle pb-4">
           <div>
             <h2 className="text-lg font-bold text-text-main">Classroom Settings</h2>
@@ -88,7 +90,7 @@ export default function EditClassModal({
           </div>
           <button
             onClick={onClose}
-            className="text-text-muted hover:text-text-main text-lg font-bold p-1 rounded-lg hover:bg-bg-glass-hover transition"
+            className="text-text-muted hover:text-text-main text-lg font-bold p-1 rounded-lg hover:bg-border-subtle transition"
           >
             ✕
           </button>
@@ -116,7 +118,7 @@ export default function EditClassModal({
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               placeholder="e.g. CS101 — Intro to Programming"
-              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
+              className="w-full rounded-lg border border-border-subtle bg-bg-base px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
               required
             />
           </div>
@@ -130,20 +132,40 @@ export default function EditClassModal({
               value={schedule}
               onChange={(e) => setSchedule(e.target.value)}
               placeholder="e.g. Mon / Wed 10:00 AM - 12:00 PM"
-              className="w-full rounded-lg border border-border-subtle bg-bg-glass/80 px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
+              className="w-full rounded-lg border border-border-subtle bg-bg-base px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
             />
           </div>
 
           {/* Invite Code Regeneration Section */}
-          <div className="rounded-xl border border-border-subtle/80 bg-bg-glass/50 p-4 space-y-2">
+          <div className="rounded-xl border border-border-subtle/80 bg-bg-base p-4 space-y-2">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-text-muted">Student Invite Code</div>
                 <div className="text-[11px] text-text-muted">Share with students to enroll.</div>
               </div>
-              <div className="font-mono text-base font-extrabold text-text-blue bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1 rounded">
+              <div className="flex items-center gap-0">
+                  <div className="font-mono text-base font-extrabold text-blue-700 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-l-md">
                 {classCode || "------"}
               </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (classCode) {
+                        navigator.clipboard.writeText(classCode);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                    title="Copy code"
+                    className="flex items-center justify-center bg-blue-500/10 border border-blue-500/20 border-l-0 px-2.5 py-1 rounded-r-md text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 transition-colors h-[34px]"
+                  >
+                    {copied ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    )}
+                  </button>
+                </div>
             </div>
 
             <button
@@ -161,7 +183,7 @@ export default function EditClassModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-medium text-text-muted hover:bg-bg-glass-hover transition"
+              className="rounded-lg border border-border-subtle bg-bg-panel px-4 py-2 text-xs font-medium text-text-muted hover:bg-border-subtle transition"
             >
               Cancel
             </button>

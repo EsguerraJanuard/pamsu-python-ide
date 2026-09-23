@@ -16,6 +16,13 @@ const RoleRoute = ({ allowedRole }) => {
   return role === allowedRole ? <Outlet /> : <Navigate to="/unauthorized" replace />;
 };
 
+// Intelligently route the root URL based on role
+const RootRoute = () => {
+  const { isAuthenticated, role } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
+};
+
 // Redirects already-authenticated users away from login/register
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
@@ -33,6 +40,7 @@ import AuditLogsPage from './pages/AuditLogsPage';
 // Feature Components
 import Login from './features/auth/Login';
 import Register from './features/auth/Register';
+import ForgotPassword from './features/auth/ForgotPassword';
 import StudentDashboard from './features/dashboard/StudentDashboard';
 import InstructorDashboard from './features/dashboard/InstructorDashboard';
 import InstructorSettings from "./features/settings/InstructorSettings";
@@ -41,18 +49,21 @@ import Submissions from './features/submissions/Submissions';
 import SubmissionDetails from './features/submissions/SubmissionDetails';
 import Analytics from './features/dashboard/Analytics';
 import Workspace from './features/workspace/Workspace';
+import SoloPractice from './features/practice/SoloPractice';
+import PracticeWorkspace from './features/practice/PracticeWorkspace';
 import Settings from './features/settings/Settings';
 import ClassRosterView from './features/dashboard/ClassRosterView';
 import ClassManagement from './features/instructor/ClassManagement';
 import ActivityEditor from './features/instructor/ActivityEditor';
 import ActivityDetails from './features/instructor/ActivityDetails';
-import InstructorReviewQueue from './features/instructor/InstructorReviewQueue';
-import InstructorGradebook from './features/instructor/InstructorGradebook';
-import GradingWorkspace from './features/instructor/GradingWorkspace';
+import GradingBenchRoot from './features/instructor/grading/GradingBenchRoot';
+import GradingClassView from './features/instructor/grading/GradingClassView';
+import SplitPaneGradingWorkspace from './features/instructor/grading/SplitPaneGradingWorkspace';
 import LiveMonitoring from './features/instructor/LiveMonitoring';
+import PracticeModuleManager from './features/instructor/PracticeModuleManager';
+
 import MyClasses from './features/classes/MyClasses';
 import ClassDetails from './features/classes/ClassDetails';
-import SoloPractice from './features/practice/SoloPractice';
 
 const PlaceholderView = ({ title, description }) => (
   <div className="rounded-xl border border-border-subtle bg-bg-glass/50 p-8 text-center">
@@ -73,13 +84,14 @@ export const App = () => {
         <Router>
           <Routes>
             {/* Root redirect */}
-            <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
+            <Route path="/" element={<RootRoute />} />
 
             {/* Public Authentication Routes — redirect to dashboard if already logged in */}
-            <Route element={<GuestRoute />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-            </Route>
+              <Route element={<GuestRoute />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+              </Route>
             <Route path="/unauthorized" element={<Unauthorized />} />
 
              {/* Protected Route Tree - Requires Valid JWT/Session */}
@@ -93,6 +105,7 @@ export const App = () => {
                 <Route path="/student/assignments" element={<Assignments />} />
                 <Route path="/student/workspace" element={<Workspace />} />
                 <Route path="/student/practice" element={<SoloPractice />} />
+                <Route path="/student/practice/workspace" element={<PracticeWorkspace />} />
                 <Route path="/student/submissions" element={<Submissions />} />
                 <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
                 <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
@@ -105,12 +118,14 @@ export const App = () => {
               <Route element={<RoleRoute allowedRole="instructor" />}>
                 <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                 <Route path="/instructor/classes" element={<ClassManagement />} />
+                <Route path="/instructor/practice" element={<PracticeModuleManager />} />
+
                 <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
-                <Route path="/instructor/activities" element={<ActivityEditor />} />
+                <Route path="/instructor/activities/create" element={<ActivityEditor />} />
                 <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
-                <Route path="/instructor/submissions" element={<InstructorReviewQueue />} />
-                <Route path="/instructor/gradebook" element={<InstructorGradebook />} />
-                <Route path="/instructor/submissions/:id" element={<GradingWorkspace />} />
+                <Route path="/instructor/bench" element={<GradingBenchRoot />} />
+                <Route path="/instructor/bench/:classId" element={<GradingClassView />} />
+                <Route path="/instructor/bench/:classId/:taskId" element={<SplitPaneGradingWorkspace />} />
                 <Route path="/instructor/notifications" element={<NotificationsPage role="instructor" />} />
                 <Route path="/instructor/audit-logs" element={<AuditLogsPage role="instructor" />} />
                 <Route path="/instructor/monitoring" element={<LiveMonitoring />} />

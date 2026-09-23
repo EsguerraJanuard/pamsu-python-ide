@@ -29,6 +29,19 @@ function SettingsIcon(props) {
   );
 }
 
+function getPasswordStrength(password) {
+  if (!password) return null;
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#ef4444", width: "25%" };
+  if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
+  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
+  return { label: "Strong password", color: "#22c55e", width: "100%" };
+}
+
 export default function Settings() {
   const { user, updateUser, logout } = useAuth();
   
@@ -88,8 +101,7 @@ export default function Settings() {
 
 
   const readonlyInputClass =
-
-    "flex-1 cursor-not-allowed bg-transparent text-sm text-text-main outline-none";
+    "flex-1 cursor-not-allowed bg-transparent text-sm text-text-muted outline-none select-none";
 
 
 
@@ -355,32 +367,14 @@ export default function Settings() {
 
 
 
-                    <div className={inputWrap}>
-
+                    <div className={`${inputWrap} opacity-100 bg-bg-glass cursor-not-allowed`}>
                       <input
-
                         id="settings-full-name"
-
                         type="text"
-
                         value={profile.fullName}
-
-                        onChange={(event) =>
-
-                          updateProfileName(event.target.value)
-
-                        }
-
-                        autoComplete="name"
-
-                        required
-
-                        className={inputClass}
-
-                        style={{ caretColor: "#3b82f6" }}
-
+                        disabled
+                        className={readonlyInputClass}
                       />
-
                     </div>
 
                   </div>
@@ -581,17 +575,21 @@ export default function Settings() {
 
                   <div className="flex justify-end pt-1">
 
-                    <button
+                    {user?.role !== 'student' && (
 
-                      type="submit"
+                      <button
 
-                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                        type="submit"
 
-                    >
+                        className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
 
-                      Save profile
+                      >
 
-                    </button>
+                        Save profile
+
+                      </button>
+
+                    )}
 
                   </div>
 
@@ -668,6 +666,8 @@ export default function Settings() {
                   onSubmit={handleChangePassword}
 
                   className="space-y-4"
+
+                  noValidate
 
                 >
 
@@ -748,47 +748,45 @@ export default function Settings() {
 
 
                     <div className={inputWrap}>
-
                       <input
-
                         id="new-password"
-
                         type={
-
                           showPasswords ? "text" : "password"
-
                         }
-
                         value={passwords.newPassword}
-
                         onChange={(event) =>
-
                           updatePasswordField(
-
                             "newPassword",
-
                             event.target.value,
-
                           )
-
                         }
-
                         placeholder="At least 8 characters"
-
                         autoComplete="new-password"
-
                         minLength={8}
-
                         required
-
                         className={inputClass}
-
                         style={{ caretColor: "#3b82f6" }}
-
                       />
-
                     </div>
-
+                    {passwords.newPassword && getPasswordStrength(passwords.newPassword) && (() => {
+                      const strength = getPasswordStrength(passwords.newPassword);
+                      return (
+                        <div className="mt-2.5">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: strength.color }}>
+                              {strength.label.split(' - ')[0] || strength.label}
+                            </span>
+                          </div>
+                          <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+                            <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />
+                          </div>
+                          {strength.label.includes(' - ') && (
+                            <p className="mt-1.5 text-[10px] text-text-muted">{strength.label.split(' - ')[1]}</p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
 
@@ -855,22 +853,20 @@ export default function Settings() {
 
 
 
-                  <label className="flex cursor-pointer items-center justify-between mt-6 mb-2">
-                    <span className="text-xs font-medium text-text-muted">
+                  <div className="flex items-center gap-3 mt-6 mb-2">
+                    <label className="text-xs text-text-muted cursor-pointer flex items-center gap-2">
+                      <div className="relative group flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={showPasswords}
+                          onChange={() => setShowPasswords(!showPasswords)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                      </div>
                       Show passwords
-                    </span>
-                    <div className="relative inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={showPasswords}
-                        onChange={(event) =>
-                          setShowPasswords(event.target.checked)
-                        }
-                        className="peer sr-only"
-                      />
-                      <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                    </div>
-                  </label>
+                    </label>
+                  </div>
 
 
 

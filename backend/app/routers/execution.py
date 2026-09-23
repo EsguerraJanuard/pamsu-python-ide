@@ -679,6 +679,7 @@ def apply_judge0_callback_endpoint(
     # unless we configure it in Judge0 config, but query params act as a signature.
 ) -> PartnerExecutionUpdateAcceptedResponse:
     import base64
+    from datetime import datetime, timezone
     import uuid
     from app.schemas.execution_schema import MAX_EXECUTION_OUTPUT_LENGTH
 
@@ -721,6 +722,7 @@ def apply_judge0_callback_endpoint(
         except ValueError:
             pass
 
+    now_ts = datetime.now(timezone.utc)
     update_data = PartnerExecutionResultUpdate(
         execution_id=execution_id,
         correlation_id=correlation_id,
@@ -733,6 +735,8 @@ def apply_judge0_callback_endpoint(
         exit_code=0 if mapped_status == "completed" else 1,
         execution_time_ms=exec_time_ms,
         limit_reason=limit_reason,
+        started_at=now_ts,
+        completed_at=now_ts,
     )
 
     from app.services.execution_service import apply_partner_execution_result_update

@@ -30,8 +30,8 @@ class ClassroomBase(BaseModel):
         description="Descriptive classroom name.",
         examples=["Programming Fundamentals"],
     )
-    subject_code: str = Field(
-        ...,
+    subject_code: str | None = Field(
+        default=None,
         min_length=2,
         max_length=30,
         description="Academic subject or course code.",
@@ -65,8 +65,11 @@ class ClassroomBase(BaseModel):
     @classmethod
     def validate_subject_code(
         cls,
-        value: str,
-    ) -> str:
+        value: str | None,
+    ) -> str | None:
+        if value is None:
+            return None
+        
         normalized_value = normalize_required_text(
             value,
             field_name="Subject code",

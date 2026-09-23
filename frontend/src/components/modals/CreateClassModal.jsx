@@ -37,10 +37,10 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl">
         {!generatedCode ? (
           <>
-            <h2 className="mb-2 text-lg font-bold text-text-main">Create New Cohort</h2>
+            <h2 className="mb-2 text-lg font-bold text-text-main">Create New Class</h2>
             <p className="mb-6 text-sm text-text-muted">
               Initialize a new class section for automated grading.
             </p>
@@ -93,7 +93,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                 <button
                   type="button"
                   onClick={handleResetAndClose}
-                  className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted hover:bg-bg-glass hover:text-text-main"
+                  className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted hover:bg-bg-panel hover:text-text-main"
                 >
                   Cancel
                 </button>
@@ -125,7 +125,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
             </div>
             <button
               onClick={handleResetAndClose}
-              className="w-full rounded-lg bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-text-main hover:bg-bg-glass-hover"
+              className="w-full rounded-lg bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-text-main hover:bg-border-subtle"
             >
               Done
             </button>

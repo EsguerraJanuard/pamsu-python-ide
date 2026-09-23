@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
+import { useTheme } from "../theme/ThemeContext";
 import api from "../../services/api";
 
 import Sidebar from "../../components/layout/Sidebar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import Statusbar from "../../components/layout/Statusbar";
+import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const DEFAULT_CODE = `# Fibonacci Sequence
 # Write your solution below.
@@ -75,6 +77,7 @@ function formatEventTime() {
 
 export default function Workspace() {
   const { settings } = useEditorSettings();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity");
@@ -236,6 +239,37 @@ export default function Workspace() {
       window.clearTimeout(autosaveTimer);
     };
   }, [code, draftStorageKey]);
+
+  const ws = useRef(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    
+    // Connect to WebSocket
+    const wsUrl = `ws://localhost:8000/api/v1/ws/student?token=${token}`;
+    ws.current = new WebSocket(wsUrl);
+    
+    // Heartbeat
+    const interval = setInterval(() => {
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({ 
+          event_type: "heartbeat",
+          task_id: activityId ? parseInt(activityId) : null,
+          tab_switch_count: tabSwitchCount,
+          blocked_paste_count: blockedPasteCount,
+          mouseleave_count: mouseLeaveCount
+        }));
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
+  }, [activityId, tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
 
   useEffect(() => {
     const handleLossOfFocus = () => {
@@ -537,19 +571,17 @@ export default function Workspace() {
   };
 
   const handleResetDraft = () => {
-    const confirmed = window.confirm(
-      "Reset this draft to the starter code?",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    // Attempt to use activity starter code if available
-    setCode(DEFAULT_CODE);
-    setOutput("Draft reset to the starter code.");
-    setExecutionStatus("idle");
-    setNotice("Draft reset successfully.");
+    setConfirmConfig({
+      title: "Reset Draft",
+      message: "Reset this draft to the starter code?",
+      onConfirm: () => {
+        setCode(DEFAULT_CODE);
+        setOutput("Draft reset to the starter code.");
+        setExecutionStatus("idle");
+        setNotice("Draft reset successfully.");
+        setConfirmConfig(null);
+      }
+    });
   };
 
   const toggleProblemPanel = () => {
@@ -590,14 +622,27 @@ export default function Workspace() {
 
   if (!activity) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-bg-base text-text-muted gap-4">
-        <p className="text-sm font-semibold tracking-wide">No activity selected or failed to load.</p>
-        <button 
-          onClick={() => navigate('/student/dashboard')}
-          className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded transition-colors"
-        >
-          Back to Dashboard
-        </button>
+      <div className="flex h-full flex-col items-center justify-center bg-bg-base p-6">
+        <div className="flex max-w-md flex-col items-center text-center">
+          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-bg-alt shadow-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <h2 className="mb-2 text-2xl font-bold text-text-main">Activity Not Found</h2>
+          <p className="mb-8 text-sm text-text-muted">
+            We couldn't load the requested activity. It might have been deleted, the server is unreachable, or you haven't selected a valid task.
+          </p>
+          <button 
+            onClick={() => navigate('/student/dashboard')}
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-blue-500/25"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Return to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
@@ -1185,6 +1230,16 @@ export default function Workspace() {
 
         <Statusbar pythonVersion="Python 3" />
       </div>
-    </div>
+    
+      <ConfirmationModal 
+        isOpen={!!confirmConfig} 
+        title={confirmConfig?.title} 
+        message={confirmConfig?.message} 
+        onConfirm={confirmConfig?.onConfirm}
+        onCancel={() => setConfirmConfig(null)} 
+        isDanger={confirmConfig?.isDanger}
+        confirmText="Confirm"
+      />
+</div>
   );
 }

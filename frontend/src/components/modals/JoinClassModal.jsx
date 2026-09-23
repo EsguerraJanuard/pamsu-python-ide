@@ -36,7 +36,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl">
         <h2 className="mb-2 text-lg font-bold text-text-main">Join a Class</h2>
         <p className="mb-6 text-sm text-text-muted">
           Ask your instructor for the class code and enter it below.
@@ -68,7 +68,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted transition hover:bg-bg-glass hover:text-text-main"
+              className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted transition hover:bg-bg-panel hover:text-text-main"
             >
               Cancel
             </button>
