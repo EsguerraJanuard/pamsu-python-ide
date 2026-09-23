@@ -41,7 +41,7 @@ const GradingClassView = () => {
         <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1">
             <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-              <div className="max-w-4xl mx-auto animate-pulse">
+              <div className="max-w-6xl mx-auto w-full animate-pulse">
                 <div className="w-24 h-4 bg-border-subtle rounded mb-6"></div>
                 <div className="dashboard-card p-8 border border-border-subtle bg-bg-glass mb-8 rounded-xl shadow-sm">
                   <div className="h-8 bg-border-subtle rounded w-64 mb-4"></div>
@@ -77,7 +77,7 @@ const GradingClassView = () => {
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
         <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 text-text-main">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto w-full">
         <button 
           onClick={() => navigate('/instructor/bench')}
           className="mb-6 flex items-center text-text-muted hover:text-emerald-500 transition-colors"
@@ -85,7 +85,7 @@ const GradingClassView = () => {
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Classes
+          Back to Class
         </button>
 
         <header className="mb-8">
@@ -103,24 +103,29 @@ const GradingClassView = () => {
             activities.map(activity => (
               <div 
                 key={activity.task_id} 
-                className="p-6 bg-bg-glass border border-border-subtle rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-border-hover transition-colors"
+                onClick={() => navigate(`/instructor/bench/${classId}/${activity.task_id}`)}
+                className="p-6 bg-bg-glass border border-border-subtle rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-emerald-500/50 hover:shadow-lg cursor-pointer transition-all group relative overflow-hidden"
               >
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-emerald-500 transition-colors"></div>
                 <div>
-                  <h3 className="text-lg font-medium text-text-main">{activity.title}</h3>
+                  <h3 className="text-lg font-bold text-text-main group-hover:text-emerald-400 transition-colors">{activity.title}</h3>
                   <p className="text-sm text-text-muted mt-1">{activity.description || 'No description provided'}</p>
                   {activity.due_date && (
-                    <p className="text-xs text-text-muted mt-2">Due: {new Date(activity.due_date).toLocaleDateString()}</p>
+                    <p className="text-xs text-text-muted mt-2 font-mono">
+                      Due: {new Date(activity.due_date).toLocaleDateString()}
+                    </p>
                   )}
                 </div>
-                <button
-                  onClick={() => navigate(`/instructor/bench/${classId}/${activity.task_id}`)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center"
-                >
-                  View details
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+                <div className="w-full sm:w-auto z-10">
+                  <button 
+                    className="w-full sm:w-auto rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-2 text-sm font-semibold transition group-hover:bg-emerald-600 group-hover:text-white group-hover:border-transparent group-hover:shadow-lg group-hover:shadow-emerald-500/20 flex items-center"
+                  >
+                    View details
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))
           )}

@@ -32,7 +32,7 @@ const GradingBenchRoot = () => {
         <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1">
             <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-              <div className="max-w-6xl mx-auto">
+              <div className="max-w-6xl mx-auto w-full">
                 <header className="mb-8 animate-pulse">
                   <div className="h-8 bg-border-subtle rounded w-48 mb-4"></div>
                   <div className="h-4 bg-border-subtle rounded w-72"></div>
@@ -77,7 +77,7 @@ const GradingBenchRoot = () => {
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1">
         <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto w-full">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-text-main mb-2">Grading Bench</h1>
           <p className="text-text-muted">Select a class to view and grade assignments.</p>
