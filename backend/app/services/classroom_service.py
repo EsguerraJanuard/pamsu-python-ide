@@ -517,13 +517,13 @@ def bulk_enroll_students(
                 _record_audit(
                     db=db,
                     audit_key=_build_audit_key(
-                        action_type="student_enrolled_bulk",
+                        action_type="student_enrolled",
                         resource_type="enrollment",
                         resource_id=enrollment.enrollment_id,
                         repeatable=False,
                     ),
                     actor_user_id=instructor_id,
-                    action_type="student_enrolled_bulk",
+                    action_type="student_enrolled",
                     resource_type="enrollment",
                     resource_id=enrollment.enrollment_id,
                     audit_data={
