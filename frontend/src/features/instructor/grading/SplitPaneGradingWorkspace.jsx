@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../../services/api';
+import InstructorSidebar from '../../../components/layout/InstructorSidebar';
+import AlertModal from '../../../components/modals/AlertModal';
 
 const SplitPaneGradingWorkspace = () => {
   const { classId, taskId } = useParams();

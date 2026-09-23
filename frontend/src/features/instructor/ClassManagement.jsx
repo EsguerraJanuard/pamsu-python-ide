@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import InstructorSidebar from '../../components/layout/InstructorSidebar';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import api from '../../services/api';
+import AlertModal from '../../components/modals/AlertModal';
 
 export default function ClassManagement() {
   const [classes, setClasses] = useState([]);
