@@ -331,7 +331,7 @@ class TaskResponseBase(BaseModel):
         max_length=10000,
     )
     activity_type: ActivityType
-    difficulty: ActivityDifficulty
+    difficulty: ActivityDifficulty = "beginner"
     required_ast_rules: dict[str, Any] = Field(
         default_factory=dict,
     )
