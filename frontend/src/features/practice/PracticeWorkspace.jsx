@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import api from "../../services/api";
 
 
@@ -28,6 +30,7 @@ export default function PracticeWorkspace() {
   const { settings } = useEditorSettings();
   const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState("lesson");
   const [taskDetails, setTaskDetails] = useState(null);
   const [moduleDetails, setModuleDetails] = useState(null);
   const [nextTaskId, setNextTaskId] = useState(null);
@@ -158,6 +161,45 @@ export default function PracticeWorkspace() {
     );
   }
 
+
+  if (viewMode === "lesson") {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden bg-bg-base text-text-main">
+        <header className="flex h-14 shrink-0 items-center border-b border-border-subtle bg-bg-base px-4">
+          <button 
+            onClick={() => navigate("/student/practice")}
+            className="flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-text-muted hover:bg-bg-alt hover:text-text-main transition-colors"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to Modules
+          </button>
+        </header>
+
+        <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
+          <div className="max-w-3xl w-full">
+            <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+              Lesson
+            </div>
+            <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
+            
+            <div className="prose prose-invert prose-emerald max-w-none mb-12">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{taskDetails.instructions || 'No instructions provided.'}</ReactMarkdown>
+            </div>
+            
+            <div className="border-t border-border-subtle pt-8 flex justify-end pb-24">
+              <button 
+                onClick={() => setViewMode("coding")} 
+                className="flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-violet-500/20 transition-all hover:bg-violet-500 hover:scale-[1.02]"
+              >
+                Start Coding Challenge
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-bg-base text-text-main">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-base px-4">
@@ -209,9 +251,10 @@ export default function PracticeWorkspace() {
         {/* Left Panel: Instructions & Feedback */}
         <div className="flex w-1/3 flex-col border-r border-border-subtle bg-bg-base overflow-y-auto">
           <div className="p-6">
-            <h2 className="mb-4 text-lg font-bold text-text-main border-b border-border-subtle pb-2">Instructions</h2>
-            <div className="prose prose-invert prose-sm max-w-none text-text-main whitespace-pre-wrap">
-              {taskDetails.instructions}
+            <div className="mb-4 flex items-center justify-between border-b border-border-subtle pb-2"><h2 className="text-lg font-bold text-text-main">Instructions</h2>
+              <button onClick={() => setViewMode("lesson")} className="text-xs text-violet-400 hover:text-violet-300 font-medium">Read Full Lesson</button></div>
+            <div className="prose prose-invert prose-sm max-w-none text-text-main">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{taskDetails.instructions || ''}</ReactMarkdown>
             </div>
 
             {feedback && (
