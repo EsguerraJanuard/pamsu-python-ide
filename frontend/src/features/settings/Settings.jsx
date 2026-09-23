@@ -285,7 +285,7 @@ export default function Settings() {
 
                 <h1 className="text-2xl font-bold flex items-center gap-3">
 
-                  <SettingsIcon className="h-6 w-6 text-text-muted" />
+                  <SettingsIcon className="h-6 w-6 text-blue-500" />
 
                   Settings
                 </h1>

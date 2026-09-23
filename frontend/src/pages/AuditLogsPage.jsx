@@ -74,7 +74,7 @@ export default function AuditLogsPage({ role: propRole }) {
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
-                    <ShieldIcon className="h-6 w-6 text-text-emerald" />
+                    <ShieldIcon className={`h-6 w-6 ${isInstructor ? "text-text-emerald" : "text-blue-500"}`} />
                     {isInstructor ? "System Audit Logs" : "Audit History"}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -100,7 +100,7 @@ export default function AuditLogsPage({ role: propRole }) {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by action, resource, or IP address..."
-                      className="w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:border-emerald-500/50 focus:outline-none transition"
+                      className={`w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:outline-none transition ${isInstructor ? "focus:border-emerald-500/50" : "focus:border-blue-500/50"}`}
                     />
                   </div>
 
