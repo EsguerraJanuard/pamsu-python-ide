@@ -5,8 +5,6 @@ import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import api from "../../services/api";
 
 
