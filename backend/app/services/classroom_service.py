@@ -526,7 +526,7 @@ def bulk_enroll_students(
                     action_type="student_enrolled_bulk",
                     resource_type="enrollment",
                     resource_id=enrollment.enrollment_id,
-                    details={
+                    audit_data={
                         "class_id": classroom.class_id,
                         "student_id": user.user_id,
                     },
