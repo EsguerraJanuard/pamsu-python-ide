@@ -1,8 +1,10 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import api from "../../services/api";
@@ -177,7 +179,7 @@ export default function PracticeWorkspace() {
 
         <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
           <div className="max-w-3xl w-full">
-            <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+            <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
               Lesson
             </div>
             <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
@@ -229,7 +231,7 @@ export default function PracticeWorkspace() {
               }}
               className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-500"
             >
-              Next Task →
+              Next Task ?
             </button>
           )}
           <button
@@ -264,18 +266,11 @@ export default function PracticeWorkspace() {
                 <h3 className={`text-base font-bold flex items-center gap-2 mb-3
                   ${feedback.is_successful ? "text-emerald-500" : "text-rose-500"}`}
                 >
-                  {feedback.is_successful ? "🎉 Evaluation Passed!" : "❌ Evaluation Failed"}
+                  {feedback.is_successful ? "?? Evaluation Passed!" : "? Evaluation Failed"}
                 </h3>
                 <p className="text-sm font-medium mb-4">{feedback.message}</p>
                 
-                {feedback.execution_feedback && (
-                  <div className="mb-4">
-                    <h4 className="text-xs font-semibold uppercase text-text-muted mb-1">Execution Output</h4>
-                    <pre className="p-3 bg-black/30 rounded-md text-xs font-mono text-text-muted overflow-x-auto whitespace-pre-wrap">
-                      {feedback.execution_feedback}
-                    </pre>
-                  </div>
-                )}
+
 
                 {feedback.ast_feedback && feedback.ast_feedback.length > 0 && (
                   <div>
@@ -305,6 +300,15 @@ export default function PracticeWorkspace() {
               onChange={(value) => setCode(value || "")}
               options={monacoOptions}
             />
+          </div>
+          {/* Output Terminal */}
+          <div className="h-56 border-t border-border-subtle bg-bg-base flex flex-col">
+             <div className="flex items-center px-4 py-2 border-b border-white/5 bg-bg-panel">
+                <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
+             </div>
+             <div className="flex-1 p-4 font-mono text-sm overflow-y-auto whitespace-pre-wrap text-emerald-600 dark:text-emerald-400">
+                {feedback ? (feedback.execution_feedback || "Program exited with code 0.") : "Ready to execute..."}
+             </div>
           </div>
         </div>
       </div>
