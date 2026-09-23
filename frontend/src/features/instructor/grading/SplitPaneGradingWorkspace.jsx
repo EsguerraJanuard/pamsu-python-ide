@@ -147,15 +147,30 @@ const SplitPaneGradingWorkspace = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-text-main bg-bg-base h-screen">Loading workspace...</div>;
+    return (
+  <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+    <InstructorSidebar />
+    <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p>Loading workspace...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
   }
 
   const selectedSub = selectedStudent ? submissions[selectedStudent.id] : null;
 
   return (
-    <div className="flex flex-row h-screen bg-bg-base text-text-main">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+  <InstructorSidebar />
+  <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-row">
       {/* Left Panel: Master List */}
-      <div className="w-1/3 border-r border-border-subtle flex flex-col bg-bg-base">
+      <div className="w-1/3 border-r border-border-subtle flex flex-col bg-bg-panel/30">
         <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-glass">
           <h2 className="text-lg font-semibold text-text-main">Students</h2>
           <button 
@@ -281,8 +296,9 @@ const SplitPaneGradingWorkspace = () => {
           </div>
         )}
       </div>
-    
-      <AlertModal 
+    </div>
+  </div>
+  <AlertModal 
         isOpen={!!alertConfig} 
         title={alertConfig?.title} 
         message={alertConfig?.message} 

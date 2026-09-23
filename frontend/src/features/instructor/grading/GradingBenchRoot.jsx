@@ -53,8 +53,9 @@ const GradingBenchRoot = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <main className="min-h-screen p-8 bg-transparent">
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-text-main mb-2">Grading Bench</h1>
@@ -71,7 +72,7 @@ const GradingBenchRoot = () => {
               <div
                 key={cls.class_id}
                 onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                className="group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 overflow-hidden flex flex-col h-48"
+                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-48"
               >
                 <div className="p-6 flex-grow">
                   <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
@@ -101,6 +102,7 @@ const GradingBenchRoot = () => {
         )}
       </div>
         </main>
+        </div>
       </div>
     </div>
   );

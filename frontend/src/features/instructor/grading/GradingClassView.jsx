@@ -45,8 +45,9 @@ const GradingClassView = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <main className="p-8 bg-transparent min-h-screen text-text-main">
+      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 text-text-main">
       <div className="max-w-4xl mx-auto">
         <button 
           onClick={() => navigate('/instructor/bench')}
@@ -97,6 +98,7 @@ const GradingClassView = () => {
         </div>
       </div>
         </main>
+        </div>
       </div>
     </div>
   );
