@@ -15,6 +15,7 @@ const SplitPaneGradingWorkspace = () => {
   const [gradeScore, setGradeScore] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [savingGrade, setSavingGrade] = useState(false);
+  const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,10 +102,10 @@ const SplitPaneGradingWorkspace = () => {
           status: 'graded'
         }
       }));
-      alert('Grade saved successfully');
+      setAlertConfig({ title: 'Success', message: 'Grade saved successfully', isError: false });
     } catch (error) {
       console.error('Error saving grade:', error);
-      alert('Failed to save grade');
+      setAlertConfig({ title: 'Error', message: 'Failed to save grade', isError: true });
     } finally {
       setSavingGrade(false);
     }
@@ -141,7 +142,7 @@ const SplitPaneGradingWorkspace = () => {
       document.body.removeChild(link);
     } catch (err) {
       console.error("Export Error:", err);
-      alert("Failed to export Excel gradebook. Please try again.");
+      setAlertConfig({ title: 'Export Failed', message: 'Failed to export Excel gradebook. Please try again.', isError: true });
     }
   };
 
@@ -280,7 +281,15 @@ const SplitPaneGradingWorkspace = () => {
           </div>
         )}
       </div>
-    </div>
+    
+      <AlertModal 
+        isOpen={!!alertConfig} 
+        title={alertConfig?.title} 
+        message={alertConfig?.message} 
+        isError={alertConfig?.isError} 
+        onClose={() => setAlertConfig(null)} 
+      />
+</div>
   );
 };
 

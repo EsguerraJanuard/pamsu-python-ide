@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InstructorSidebar from '../../components/layout/InstructorSidebar';
+import AlertModal from '../../components/modals/AlertModal';
+import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 
 
@@ -215,6 +217,8 @@ export default function PracticeModuleManager() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [selectedModuleId, setSelectedModuleId] = useState(null);
+  const [alertConfig, setAlertConfig] = useState(null);
+  const [confirmConfig, setConfirmConfig] = useState(null);
 
   // Form states
   const [moduleForm, setModuleForm] = useState({ title: '', description: '', order_index: 0 });
@@ -276,18 +280,25 @@ export default function PracticeModuleManager() {
       setIsModuleModalOpen(false);
       fetchModules();
     } catch (err) {
-      alert(err.message || 'Failed to save module');
+      setAlertConfig({ title: 'Error', message: err.message || 'Failed to save module', isError: true });
     }
   };
 
-  const handleDeleteModule = async (moduleId) => {
-    if (!confirm('Are you sure you want to delete this module and ALL its tasks? This action cannot be undone.')) return;
-    try {
-      await api.delete(`/practice/modules/${moduleId}`);
-      fetchModules();
-    } catch (err) {
-      alert(err.message || 'Failed to delete module');
-    }
+  const handleDeleteModule = (moduleId) => {
+    setConfirmConfig({
+      title: 'Delete Module',
+      message: 'Are you sure you want to delete this module and ALL its tasks? This action cannot be undone.',
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmConfig(null);
+        try {
+          await api.delete(`/practice/modules/${moduleId}`);
+          fetchModules();
+        } catch (err) {
+          setAlertConfig({ title: 'Error', message: err.message || 'Failed to delete module', isError: true });
+        }
+      }
+    });
   };
 
   const handleTaskSubmit = async (e) => {
@@ -306,18 +317,25 @@ export default function PracticeModuleManager() {
       setIsTaskModalOpen(false);
       fetchModules();
     } catch (err) {
-      alert(err.message || 'Failed to save task. Ensure Expected AST Patterns is valid JSON (e.g. {"FunctionDef": 1})');
+      setAlertConfig({ title: 'Error', message: err.message || 'Failed to save task. Ensure Expected AST Patterns is valid JSON (e.g. {"FunctionDef": 1})', isError: true });
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
-    try {
-      await api.delete(`/practice/tasks/${taskId}`);
-      fetchModules();
-    } catch (err) {
-      alert(err.message || 'Failed to delete task');
-    }
+  const handleDeleteTask = (taskId) => {
+    setConfirmConfig({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task?',
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmConfig(null);
+        try {
+          await api.delete(`/practice/tasks/${taskId}`);
+          fetchModules();
+        } catch (err) {
+          setAlertConfig({ title: 'Error', message: err.message || 'Failed to delete task', isError: true });
+        }
+      }
+    });
   };
 
   const openModuleModal = (mod = null) => {
@@ -641,6 +659,24 @@ export default function PracticeModuleManager() {
           </div>
         </div>
       )}
-    </div>
+    
+      <AlertModal 
+        isOpen={!!alertConfig} 
+        title={alertConfig?.title} 
+        message={alertConfig?.message} 
+        isError={alertConfig?.isError} 
+        onClose={() => setAlertConfig(null)} 
+      />
+
+      <ConfirmationModal 
+        isOpen={!!confirmConfig} 
+        title={confirmConfig?.title} 
+        message={confirmConfig?.message} 
+        onConfirm={confirmConfig?.onConfirm}
+        onCancel={() => setConfirmConfig(null)} 
+        isDanger={confirmConfig?.isDanger}
+        confirmText="Confirm"
+      />
+</div>
   );
 }

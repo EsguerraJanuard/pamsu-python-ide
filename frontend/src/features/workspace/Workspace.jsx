@@ -568,19 +568,17 @@ export default function Workspace() {
   };
 
   const handleResetDraft = () => {
-    const confirmed = window.confirm(
-      "Reset this draft to the starter code?",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    // Attempt to use activity starter code if available
-    setCode(DEFAULT_CODE);
-    setOutput("Draft reset to the starter code.");
-    setExecutionStatus("idle");
-    setNotice("Draft reset successfully.");
+    setConfirmConfig({
+      title: "Reset Draft",
+      message: "Reset this draft to the starter code?",
+      onConfirm: () => {
+        setCode(DEFAULT_CODE);
+        setOutput("Draft reset to the starter code.");
+        setExecutionStatus("idle");
+        setNotice("Draft reset successfully.");
+        setConfirmConfig(null);
+      }
+    });
   };
 
   const toggleProblemPanel = () => {
@@ -1229,6 +1227,16 @@ export default function Workspace() {
 
         <Statusbar pythonVersion="Python 3" />
       </div>
-    </div>
+    
+      <ConfirmationModal 
+        isOpen={!!confirmConfig} 
+        title={confirmConfig?.title} 
+        message={confirmConfig?.message} 
+        onConfirm={confirmConfig?.onConfirm}
+        onCancel={() => setConfirmConfig(null)} 
+        isDanger={confirmConfig?.isDanger}
+        confirmText="Confirm"
+      />
+</div>
   );
 }
