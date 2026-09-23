@@ -434,6 +434,7 @@ export default function Submissions() {
               <>
                 <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                   <div>
+                    <p className="mb-1 font-mono text-xs text-text-blue">PROGRESS</p>
                     <h1 className="text-2xl font-bold flex items-center gap-3">
                       <ArchiveIcon className="h-6 w-6 text-blue-500" />
                       Submissions

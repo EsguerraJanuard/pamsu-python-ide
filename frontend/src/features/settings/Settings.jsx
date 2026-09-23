@@ -283,6 +283,7 @@ export default function Settings() {
 
               <div>
 
+                <p className="mb-1 font-mono text-xs text-text-blue">ACCOUNT &amp; SYSTEM</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
 
                   <SettingsIcon className="h-6 w-6 text-blue-500" />

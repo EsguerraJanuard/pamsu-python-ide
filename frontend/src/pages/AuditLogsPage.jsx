@@ -25,8 +25,6 @@ export default function AuditLogsPage({ role: propRole }) {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState("");
 
-
-
   const fetchAuditLogs = async (currentPage = 1, currentFilter = "all") => {
     setLoading(true);
     setError("");
@@ -73,6 +71,10 @@ export default function AuditLogsPage({ role: propRole }) {
             <div className="w-full">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
+                  {/* Category Label Added Here */}
+                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-text-emerald" : "text-text-blue"}`}>
+                    ACCOUNT &amp; SYSTEM
+                  </p>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
                     <ShieldIcon className={`h-6 w-6 ${isInstructor ? "text-text-emerald" : "text-blue-500"}`} />
                     {isInstructor ? "System Audit Logs" : "Audit History"}

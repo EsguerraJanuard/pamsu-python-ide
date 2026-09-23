@@ -84,8 +84,9 @@ export default function SoloPractice() {
           <div className="mx-auto w-full max-w-5xl">
             <header className="mb-8 flex flex-col gap-4 border-b border-border-subtle pb-6">
               <div>
-                <h1 className="text-3xl font-bold flex items-center gap-3">
-                  <CodeIcon className="h-8 w-8 text-violet-500" />
+                <p className="mb-1 font-mono text-xs text-text-blue">MAIN</p>
+                <h1 className="text-2xl font-bold flex items-center gap-3">
+                  <CodeIcon className="h-6 w-6 text-blue-500" />
                   Solo Practice Modules
                 </h1>
                 <p className="mt-2 text-sm text-text-muted">
@@ -96,7 +97,7 @@ export default function SoloPractice() {
 
             {isLoading ? (
               <div className="flex justify-center py-20">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-violet-500"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
               </div>
             ) : modules.length > 0 ? (
               <div className="space-y-12 pb-20">

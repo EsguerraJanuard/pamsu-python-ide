@@ -47,6 +47,7 @@ export default function Analytics() {
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
           <header className="mb-8 border-b border-border-subtle pb-6">
+            <p className="mb-1 font-mono text-xs text-text-blue">PROGRESS</p>
             <h1 className="text-2xl font-bold flex items-center gap-3">
               <LineChartIcon className="h-6 w-6 text-blue-500" />
               My Analytics & Growth

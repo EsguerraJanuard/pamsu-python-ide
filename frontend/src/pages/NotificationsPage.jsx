@@ -7,7 +7,10 @@ import { useNavigate } from "react-router-dom";
 
 function BellIcon(props) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
   );
 }
 
@@ -26,8 +29,6 @@ export default function NotificationsPage({ role: propRole }) {
   const [error, setError] = useState("");
   const [selectedNotification, setSelectedNotification] = useState(null);
 
-
-
   const fetchNotifications = async (currentPage = 1) => {
     setLoading(true);
     setError("");
@@ -37,10 +38,9 @@ export default function NotificationsPage({ role: propRole }) {
         setNotifications(response.items);
         setTotalPages(response.total_pages || 1);
         setUnreadCount(response.unread_count || response.items.filter((n) => !n.is_read).length);
-        setNotifications([]);
-        setUnreadCount(0);
       }
     } catch (err) {
+      setError("Failed to load notifications. Please try again.");
       setNotifications([]);
       setUnreadCount(0);
     } finally {
@@ -57,7 +57,7 @@ export default function NotificationsPage({ role: propRole }) {
     try {
       await api.patch("/notifications/read-all");
     } catch (err) {
-      console.log("Mock mark all read");
+      console.error("Failed to mark all as read:", err);
     } finally {
       setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
       setUnreadCount(0);
@@ -69,7 +69,7 @@ export default function NotificationsPage({ role: propRole }) {
     try {
       await api.patch(`/notifications/${id}/read`);
     } catch (err) {
-       console.log("Mock mark read");
+      console.error("Failed to mark as read:", err);
     } finally {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
@@ -101,6 +101,9 @@ export default function NotificationsPage({ role: propRole }) {
             <div className="w-full h-full flex flex-col">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6 shrink-0">
                 <div>
+                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-text-emerald" : "text-text-blue"}`}>
+                    ACCOUNT &amp; SYSTEM
+                  </p>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
                     <BellIcon className={`h-6 w-6 ${isInstructor ? "text-text-emerald" : "text-blue-500"}`} />
                     {isInstructor ? "System Alerts" : "Notifications"}
@@ -109,25 +112,23 @@ export default function NotificationsPage({ role: propRole }) {
                     View your recent alerts and system messages.
                   </p>
                 </div>
-
-                
               </header>
 
               <div className="flex-1 flex gap-6 overflow-hidden pb-4">
                 {/* Left Pane: Notification List */}
                 <div className={`flex-col flex w-full lg:w-1/3 rounded-xl border border-border-subtle bg-bg-glass overflow-hidden ${selectedNotification ? "hidden lg:flex" : "flex"}`}>
-                  <div className="border-b border-border-subtle p-4 bg-bg-glass flex items-center justify-between">
-                    <h2 className="text-sm font-semibold">Inbox</h2>
+                  <div className="border-b border-border-subtle p-4 bg-bg-glass flex items-center justify-between shrink-0">
+                    <h2 className="text-sm font-semibold">Inbox {unreadCount > 0 && `(${unreadCount})`}</h2>
                     <button
                       onClick={handleMarkAllRead}
-                      disabled={actionLoading || unreadCount === 0}
-                      className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-[10px] font-semibold hover:bg-bg-glass transition disabled:opacity-50"
+                      disabled={actionLoading || unreadCount === 0 || notifications.length === 0}
+                      className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-[10px] font-semibold hover:bg-bg-glass-hover transition disabled:opacity-50"
                     >
                       {actionLoading ? "Updating..." : "✓ Mark all as read"}
                     </button>
                   </div>
                   
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto flex flex-col">
                     {loading ? (
                       <div className="divide-y divide-white/[0.06]">
                         {[1, 2, 3, 4, 5].map((i) => (
@@ -141,52 +142,77 @@ export default function NotificationsPage({ role: propRole }) {
                           </div>
                         ))}
                       </div>
+                    ) : error ? (
+                      <div className="p-6 text-center text-red-500 text-sm">
+                        {error}
+                      </div>
                     ) : notifications.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center p-12 text-center">
+                      <div className="flex flex-col items-center justify-center p-12 text-center h-full">
                         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-bg-glass text-text-muted">
                           <BellIcon className="h-6 w-6" />
                         </div>
                         <h3 className="text-sm font-semibold text-text-muted">No Notifications</h3>
-                        <p className="mt-1 text-xs text-text-muted">
-                          You're all caught up.
-                        </p>
+                        <p className="mt-1 text-xs text-text-muted">You're all caught up.</p>
                       </div>
                     ) : (
-                      <div className="divide-y divide-white/[0.06]">
-                        {notifications.map((notif) => {
-                          const isSelected = selectedNotification?.id === notif.id;
-                          return (
-                            <div
-                              key={notif.id}
-                              onClick={() => handleNotificationClick(notif)}
-                              className={`p-4 cursor-pointer transition-colors ${
-                                isSelected 
-                                  ? "bg-bg-glass" 
-                                  : !notif.is_read 
-                                    ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.06]" 
-                                    : "hover:bg-bg-glass"
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                {!notif.is_read && (
-                                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                                )}
-                                <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
-                                  <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-text-main" : "font-medium text-text-muted"}`}>
-                                    {notif.title}
-                                  </h3>
-                                  <p className="mt-1 line-clamp-2 text-xs text-text-muted leading-relaxed">
-                                    {notif.message}
-                                  </p>
-                                  <p className="mt-2 text-[10px] font-mono text-text-muted">
-                                    {new Date(notif.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                  </p>
+                      <>
+                        <div className="divide-y divide-white/[0.06]">
+                          {notifications.map((notif) => {
+                            const isSelected = selectedNotification?.id === notif.id;
+                            return (
+                              <div
+                                key={notif.id}
+                                onClick={() => handleNotificationClick(notif)}
+                                className={`p-4 cursor-pointer transition-colors ${
+                                  isSelected 
+                                    ? "bg-bg-glass" 
+                                    : !notif.is_read 
+                                      ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.06]" 
+                                      : "hover:bg-bg-glass"
+                                }`}
+                              >
+                                <div className="flex items-start gap-3">
+                                  {!notif.is_read && (
+                                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                                  )}
+                                  <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
+                                    <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-text-main" : "font-medium text-text-muted"}`}>
+                                      {notif.title}
+                                    </h3>
+                                    <p className="mt-1 line-clamp-2 text-xs text-text-muted leading-relaxed">
+                                      {notif.message}
+                                    </p>
+                                    <p className="mt-2 text-[10px] font-mono text-text-muted">
+                                      {new Date(notif.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                          <div className="mt-auto border-t border-border-subtle p-4 flex justify-between items-center shrink-0">
+                            <button
+                              onClick={() => setPage(p => Math.max(1, p - 1))}
+                              disabled={page === 1}
+                              className="text-xs px-3 py-1 rounded bg-bg-glass hover:bg-bg-glass-hover disabled:opacity-50"
+                            >
+                              Previous
+                            </button>
+                            <span className="text-xs text-text-muted">Page {page} of {totalPages}</span>
+                            <button
+                              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                              disabled={page === totalPages}
+                              className="text-xs px-3 py-1 rounded bg-bg-glass hover:bg-bg-glass-hover disabled:opacity-50"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
