@@ -475,7 +475,7 @@ def bulk_enroll_students(
     class_id: int,
     emails: list[str],
 ) -> BulkEnrollmentResponse:
-    classroom = get_owned_classroom(db, class_id=class_id, instructor_id=instructor_id)
+    classroom = get_owned_classroom(db=db, class_id=class_id, instructor_id=instructor_id)
 
     # Normalize emails
     emails = [e.strip().lower() for e in emails if e.strip()]
@@ -517,16 +517,16 @@ def bulk_enroll_students(
                 _record_audit(
                     db=db,
                     audit_key=_build_audit_key(
-                        action_type="student_enrolled_bulk",
+                        action_type="student_enrolled",
                         resource_type="enrollment",
                         resource_id=enrollment.enrollment_id,
                         repeatable=False,
                     ),
                     actor_user_id=instructor_id,
-                    action_type="student_enrolled_bulk",
+                    action_type="student_enrolled",
                     resource_type="enrollment",
                     resource_id=enrollment.enrollment_id,
-                    details={
+                    audit_data={
                         "class_id": classroom.class_id,
                         "student_id": user.user_id,
                     },
