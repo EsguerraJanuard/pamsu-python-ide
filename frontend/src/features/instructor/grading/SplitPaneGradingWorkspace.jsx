@@ -146,20 +146,20 @@ const SplitPaneGradingWorkspace = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-white/80 bg-[#0f1117] h-screen">Loading workspace...</div>;
+    return <div className="p-6 text-text-main bg-bg-base h-screen">Loading workspace...</div>;
   }
 
   const selectedSub = selectedStudent ? submissions[selectedStudent.id] : null;
 
   return (
-    <div className="flex flex-row h-screen bg-[#0f1117] text-white/80">
+    <div className="flex flex-row h-screen bg-bg-base text-text-main">
       {/* Left Panel: Master List */}
-      <div className="w-1/3 border-r border-slate-800 flex flex-col bg-[#0f1117]">
-        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <h2 className="text-lg font-semibold text-white">Students</h2>
+      <div className="w-1/3 border-r border-border-subtle flex flex-col bg-bg-base">
+        <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-glass">
+          <h2 className="text-lg font-semibold text-text-main">Students</h2>
           <button 
             onClick={handleExport}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors"
+            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm transition-colors"
           >
             Export Submissions
           </button>
@@ -187,11 +187,11 @@ const SplitPaneGradingWorkspace = () => {
               <div 
                 key={student.student_id}
                 onClick={() => handleSelectStudent(student)}
-                className={`p-4 border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors flex justify-between items-center ${selectedStudent?.student_id === student.student_id ? 'bg-slate-800/80' : ''}`}
+                className={`p-4 border-b border-border-subtle cursor-pointer hover:bg-bg-glass transition-colors flex justify-between items-center ${selectedStudent?.student_id === student.student_id ? 'bg-bg-glass-hover' : ''}`}
               >
                 <div>
-                  <p className="font-medium text-white">{student.name || student.email || `Student ${student.student_id}`}</p>
-                  <p className="text-sm text-slate-400">{student.email}</p>
+                  <p className="font-medium text-text-main">{student.name || student.email || `Student ${student.student_id}`}</p>
+                  <p className="text-sm text-text-muted">{student.email}</p>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${badgeColor}`}>
                   {badgeText}
@@ -200,59 +200,59 @@ const SplitPaneGradingWorkspace = () => {
             );
           })}
           {students.length === 0 && (
-            <div className="p-4 text-slate-500 text-center">No students found.</div>
+            <div className="p-4 text-text-muted text-center">No students found.</div>
           )}
         </div>
       </div>
 
       {/* Right Panel: Detail View */}
-      <div className="w-2/3 flex flex-col bg-[#0f1117] overflow-y-auto">
+      <div className="w-2/3 flex flex-col bg-bg-base overflow-y-auto">
         {selectedStudent ? (
           <div className="p-6 flex flex-col gap-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-xl font-bold text-text-main">
                 Submission: {selectedStudent.name || selectedStudent.email || `Student ${selectedStudent.id}`}
               </h2>
             </div>
 
             {selectedSub ? (
               <>
-                <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Submitted Code</h3>
-                  <pre className="bg-[#0b0c10] p-4 rounded text-sm text-blue-300 overflow-x-auto border border-slate-800">
+                <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
+                  <h3 className="text-lg font-medium text-text-main mb-2">Submitted Code</h3>
+                  <pre className="bg-bg-panel p-4 rounded text-sm text-emerald-400 overflow-x-auto border border-border-subtle">
                     {detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
                   </pre>
                 </div>
 
-                <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Execution Feedback / Logs</h3>
-                  <pre className="bg-[#0b0c10] p-4 rounded text-sm text-gray-300 overflow-x-auto border border-slate-800 whitespace-pre-wrap">
+                <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
+                  <h3 className="text-lg font-medium text-text-main mb-2">Execution Feedback / Logs</h3>
+                  <pre className="bg-bg-panel p-4 rounded text-sm text-text-muted overflow-x-auto border border-border-subtle whitespace-pre-wrap">
                     {detailedSub?.execution_log || detailedSub?.feedback_text || detailedSub?.ast_feedback?.join('\n') || 'Loading execution logs or not available.'}
                   </pre>
                 </div>
 
-                <form onSubmit={handleSubmitGrade} className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 flex flex-col gap-4">
-                  <h3 className="text-lg font-medium text-white">Manual Grading</h3>
+                <form onSubmit={handleSubmitGrade} className="bg-bg-glass border border-border-subtle rounded-lg p-4 flex flex-col gap-4">
+                  <h3 className="text-lg font-medium text-text-main">Manual Grading</h3>
                   
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Score</label>
+                    <label className="block text-sm font-medium text-text-muted mb-1">Score</label>
                     <input
                       type="number"
                       step="0.01"
                       value={gradeScore}
                       onChange={(e) => setGradeScore(e.target.value)}
-                      className="w-[150px] bg-[#0b0c10] border border-slate-700 rounded p-2 text-white focus:outline-none focus:border-blue-500"
+                      className="w-[150px] bg-bg-panel border border-border-subtle rounded p-2 text-text-main focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                       placeholder="e.g. 95"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Feedback</label>
+                    <label className="block text-sm font-medium text-text-muted mb-1">Feedback</label>
                     <textarea
                       value={feedbackText}
                       onChange={(e) => setFeedbackText(e.target.value)}
-                      className="w-full bg-[#0b0c10] border border-slate-700 rounded p-2 text-white h-32 focus:outline-none focus:border-blue-500"
+                      className="w-full bg-bg-panel border border-border-subtle rounded p-2 text-text-main h-32 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                       placeholder="Enter feedback for the student..."
                     />
                   </div>
@@ -261,7 +261,7 @@ const SplitPaneGradingWorkspace = () => {
                     <button 
                       type="submit" 
                       disabled={savingGrade}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded transition-colors disabled:opacity-50"
                     >
                       {savingGrade ? 'Saving...' : 'Save Grade'}
                     </button>
@@ -269,13 +269,13 @@ const SplitPaneGradingWorkspace = () => {
                 </form>
               </>
             ) : (
-              <div className="text-slate-400 italic bg-slate-900/30 p-6 rounded border border-slate-800 text-center">
+              <div className="text-text-muted italic bg-bg-panel p-6 rounded border border-border-subtle text-center">
                 No submission found for this student.
               </div>
             )}
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-500">
+          <div className="flex-1 flex items-center justify-center text-text-muted">
             Select a student from the left panel to view their submission.
           </div>
         )}

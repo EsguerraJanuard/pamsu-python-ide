@@ -77,7 +77,11 @@ export default function Login() {
   const [capsLock, setCapsLock] = useState(false);
 
   useEffect(() => {
-    const handler = (e) => setCapsLock(e.getModifierState("CapsLock"));
+    const handler = (e) => {
+        if (typeof e.getModifierState === "function") {
+            setCapsLock(e.getModifierState("CapsLock"));
+        }
+    };
     window.addEventListener("keydown", handler);
     window.addEventListener("keyup", handler);
     return () => {

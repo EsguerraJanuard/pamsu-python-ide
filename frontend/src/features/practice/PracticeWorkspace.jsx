@@ -226,7 +226,7 @@ export default function PracticeWorkspace() {
                 {feedback.execution_feedback && (
                   <div className="mb-4">
                     <h4 className="text-xs font-semibold uppercase text-text-muted mb-1">Execution Output</h4>
-                    <pre className="p-3 bg-black/30 rounded-md text-xs font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap">
+                    <pre className="p-3 bg-black/30 rounded-md text-xs font-mono text-text-muted overflow-x-auto whitespace-pre-wrap">
                       {feedback.execution_feedback}
                     </pre>
                   </div>

@@ -206,7 +206,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
 export default function PracticeModuleManager() {
     const [modules, setModules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [, setError] = useState(null);
+  const [error, setError] = useState(null);
 
   // Modals state
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
@@ -518,7 +518,7 @@ export default function PracticeModuleManager() {
           <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             <button 
               onClick={() => setIsModuleModalOpen(false)}
-              className="absolute right-4 top-4 text-text-muted hover:text-white transition"
+              className="absolute right-4 top-4 text-text-muted hover:text-text-main transition"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
@@ -559,7 +559,7 @@ export default function PracticeModuleManager() {
               <h2 className="text-lg font-bold text-text-main">
                 {editingTask ? 'Edit Practice Task' : 'Create Practice Task'}
               </h2>
-              <button onClick={() => setIsTaskModalOpen(false)} className="text-text-muted hover:text-white transition">
+              <button onClick={() => setIsTaskModalOpen(false)} className="text-text-muted hover:text-text-main transition">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>

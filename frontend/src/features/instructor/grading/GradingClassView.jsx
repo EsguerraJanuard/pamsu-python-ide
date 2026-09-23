@@ -35,7 +35,7 @@ const GradingClassView = () => {
   }, [classId]);
 
   if (loading) {
-    return (<div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none"><InstructorSidebar /><div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-white/80 bg-transparent">Loading class details...</div></div>);
+    return (<div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none"><InstructorSidebar /><div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-text-main bg-transparent">Loading class details...</div></div>);
   }
 
   if (!classroom) {
@@ -46,11 +46,11 @@ const GradingClassView = () => {
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <main className="p-8 bg-transparent min-h-screen text-white/80">
+        <main className="p-8 bg-transparent min-h-screen text-text-main">
       <div className="max-w-4xl mx-auto">
         <button 
           onClick={() => navigate('/instructor/bench')}
-          className="mb-6 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+          className="mb-6 flex items-center text-text-muted hover:text-emerald-500 transition-colors"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -59,32 +59,32 @@ const GradingClassView = () => {
         </button>
 
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">{classroom.name || 'Class Details'}</h1>
-          <p className="text-slate-400">{classroom.description || 'View and grade activities for this class.'}</p>
+          <h1 className="text-3xl font-bold text-text-main mb-2">{classroom.name || 'Class Details'}</h1>
+          <p className="text-text-muted">{classroom.description || 'View and grade activities for this class.'}</p>
         </header>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-white mb-4">Activities</h2>
+          <h2 className="text-xl font-semibold text-text-main mb-4">Activities</h2>
           {activities.length === 0 ? (
-            <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-lg text-center text-slate-400">
+            <div className="p-6 bg-bg-glass border border-border-subtle rounded-lg text-center text-text-muted">
               No activities found for this class.
             </div>
           ) : (
             activities.map(activity => (
               <div 
                 key={activity.task_id} 
-                className="p-6 bg-slate-900/50 border border-slate-800 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-700 transition-colors"
+                className="p-6 bg-bg-glass border border-border-subtle rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-border-hover transition-colors"
               >
                 <div>
-                  <h3 className="text-lg font-medium text-white">{activity.title}</h3>
-                  <p className="text-sm text-slate-400 mt-1">{activity.description || 'No description provided'}</p>
+                  <h3 className="text-lg font-medium text-text-main">{activity.title}</h3>
+                  <p className="text-sm text-text-muted mt-1">{activity.description || 'No description provided'}</p>
                   {activity.due_date && (
-                    <p className="text-xs text-slate-500 mt-2">Due: {new Date(activity.due_date).toLocaleDateString()}</p>
+                    <p className="text-xs text-text-muted mt-2">Due: {new Date(activity.due_date).toLocaleDateString()}</p>
                   )}
                 </div>
                 <button
                   onClick={() => navigate(`/instructor/bench/${classId}/${activity.task_id}`)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center"
                 >
                   View details
                   <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
