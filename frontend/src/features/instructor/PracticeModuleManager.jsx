@@ -384,7 +384,10 @@ export default function PracticeModuleManager() {
           <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
             <div>
               <p className="mb-1 font-mono text-xs font-semibold tracking-wider text-text-emerald uppercase">MANAGEMENT</p>
-              <h1 className="text-2xl font-bold">Practice Modules</h1>
+              <h1 className="text-2xl font-bold flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9.5 8h5"/><path d="M9.5 12H16"/><path d="M9.5 16H14"/></svg>
+                Practice Modules
+              </h1>
               <p className="mt-1 text-sm text-text-muted">
                 Create and manage structured solo practice modules and coding tasks for students.
               </p>

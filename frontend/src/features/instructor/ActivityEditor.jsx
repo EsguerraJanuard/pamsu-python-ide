@@ -380,7 +380,10 @@ const ActivityEditor = () => {
             <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
                 <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-text-emerald">MANAGEMENT</p>
-                <h1 className="text-2xl font-bold tracking-tight text-text-main">Create New Activity</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-text-main flex items-center gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+                  Create New Activity
+                </h1>
                 <p className="mt-1 text-sm text-text-muted">
                   Author new laboratory activities, code templates, and automated AST testing guidelines.
                 </p>

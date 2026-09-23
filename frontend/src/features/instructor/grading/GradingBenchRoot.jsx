@@ -78,9 +78,13 @@ const GradingBenchRoot = () => {
         <div className="flex min-h-0 flex-1">
         <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
       <div className="max-w-6xl mx-auto w-full">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-text-main mb-2">Grading Bench</h1>
-          <p className="text-text-muted">Select a class to view and grade assignments.</p>
+        <header className="mb-8 border-b border-border-subtle pb-6">
+          <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING &amp; GRADING</p>
+          <h1 className="text-2xl font-bold text-text-main flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
+            Grading Bench
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">Select a class to view and grade assignments.</p>
         </header>
 
         {classes.length === 0 ? (

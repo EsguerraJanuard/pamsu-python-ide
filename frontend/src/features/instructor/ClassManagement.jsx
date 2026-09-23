@@ -100,7 +100,10 @@ export default function ClassManagement() {
               <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="mb-1 font-mono text-xs text-text-emerald">MANAGEMENT</p>
-                  <h1 className="text-2xl font-bold">My Classrooms</h1>
+                  <h1 className="text-2xl font-bold flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2.69-6.12-6-6.44"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    My Classrooms
+                  </h1>
                   <p className="mt-1 text-sm text-text-muted">
                     Create and manage your classes, generate enrollment codes, and monitor students.
                   </p>

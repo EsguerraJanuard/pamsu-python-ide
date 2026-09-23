@@ -83,7 +83,10 @@ const LiveMonitoring = () => {
           <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
-              <h1 className="text-2xl font-bold">Live Monitoring</h1>
+              <h1 className="text-2xl font-bold flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+                Live Monitoring
+              </h1>
               <p className="mt-1 text-sm text-text-muted">
                 Monitor real-time student activity and execution metrics.
               </p>
