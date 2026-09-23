@@ -160,7 +160,7 @@ const SplitPaneGradingWorkspace = () => {
                 <div className="mb-6">
             <button onClick={() => navigate(-1)} className="text-sm text-text-muted hover:text-text-main flex items-center gap-2 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-              Back to Class
+              Back to Activities
             </button>
           </div>
           <header className="mb-8">
@@ -221,7 +221,7 @@ const SplitPaneGradingWorkspace = () => {
       <div>
         <button onClick={() => navigate(-1)} className="text-sm text-text-muted hover:text-text-main flex items-center gap-2 transition-colors mb-6">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Back to Class
+          Back to Activities
         </button>
         <header className="mb-4">
           <h1 className="text-3xl font-bold text-text-main mb-2">Activity Grading Workspace</h1>
