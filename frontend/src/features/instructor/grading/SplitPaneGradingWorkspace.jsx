@@ -148,18 +148,45 @@ const SplitPaneGradingWorkspace = () => {
 
   if (loading) {
     return (
-  <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
-    <InstructorSidebar />
-    <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p>Loading workspace...</p>
+      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+        <InstructorSidebar />
+        <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-row">
+            {/* Left Panel Skeleton */}
+            <div className="w-1/3 border-r border-border-subtle flex flex-col bg-bg-panel/30">
+              <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-glass animate-pulse">
+                <div className="h-6 bg-border-subtle rounded w-24"></div>
+                <div className="h-8 bg-border-subtle rounded w-32"></div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 animate-pulse">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="p-4 border border-border-subtle rounded-lg flex justify-between items-center">
+                    <div>
+                      <div className="h-5 bg-border-subtle rounded w-32 mb-2"></div>
+                      <div className="h-4 bg-border-subtle rounded w-40"></div>
+                    </div>
+                    <div className="h-6 w-16 bg-border-subtle rounded-full"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Right Panel Skeleton */}
+            <div className="w-2/3 p-6 flex flex-col gap-6 bg-bg-base animate-pulse">
+              <div className="h-8 bg-border-subtle rounded w-64 mb-4"></div>
+              <div className="bg-bg-glass border border-border-subtle rounded-lg p-4 h-64">
+                <div className="h-6 bg-border-subtle rounded w-40 mb-4"></div>
+                <div className="h-4 bg-border-subtle rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-border-subtle rounded w-1/2"></div>
+              </div>
+              <div className="bg-bg-glass border border-border-subtle rounded-lg p-4 h-48">
+                <div className="h-6 bg-border-subtle rounded w-48 mb-4"></div>
+                <div className="h-4 bg-border-subtle rounded w-full"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-);
+    );
   }
 
   const selectedSub = selectedStudent ? submissions[selectedStudent.id] : null;

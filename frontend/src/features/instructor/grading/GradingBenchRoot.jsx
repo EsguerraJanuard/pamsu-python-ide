@@ -28,13 +28,34 @@ const GradingBenchRoot = () => {
   if (loading) {
     return (
       <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
-      <InstructorSidebar />
-      <div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-text-main bg-transparent">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p>Loading classes...</p>
+        <InstructorSidebar />
+        <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1">
+            <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+              <div className="max-w-6xl mx-auto">
+                <header className="mb-8 animate-pulse">
+                  <div className="h-8 bg-border-subtle rounded w-48 mb-4"></div>
+                  <div className="h-4 bg-border-subtle rounded w-72"></div>
+                </header>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="dashboard-card bg-bg-glass rounded-xl border border-border-subtle overflow-hidden flex flex-col h-48 animate-pulse">
+                      <div className="p-6 flex-grow">
+                        <div className="h-6 bg-border-subtle rounded w-3/4 mb-4"></div>
+                        <div className="h-4 bg-border-subtle rounded w-full mb-2"></div>
+                        <div className="h-4 bg-border-subtle rounded w-2/3"></div>
+                      </div>
+                      <div className="px-6 py-4 border-t border-border-subtle bg-bg-panel flex justify-between items-center">
+                        <div className="h-4 bg-border-subtle rounded w-32"></div>
+                        <div className="h-5 w-5 bg-border-subtle rounded-full"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
       </div>
     );
   }

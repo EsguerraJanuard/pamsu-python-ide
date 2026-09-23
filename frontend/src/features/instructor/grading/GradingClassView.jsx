@@ -35,7 +35,36 @@ const GradingClassView = () => {
   }, [classId]);
 
   if (loading) {
-    return (<div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none"><InstructorSidebar /><div className="flex min-w-0 flex-1 items-center justify-center min-h-screen text-text-main bg-transparent">Loading class details...</div></div>);
+    return (
+      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+        <InstructorSidebar />
+        <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1">
+            <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+              <div className="max-w-4xl mx-auto animate-pulse">
+                <div className="w-24 h-4 bg-border-subtle rounded mb-6"></div>
+                <div className="dashboard-card p-8 border border-border-subtle bg-bg-glass mb-8 rounded-xl shadow-sm">
+                  <div className="h-8 bg-border-subtle rounded w-64 mb-4"></div>
+                  <div className="h-4 bg-border-subtle rounded w-48"></div>
+                </div>
+                <div className="h-6 bg-border-subtle rounded w-32 mb-6"></div>
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="dashboard-card p-6 border border-border-subtle rounded-xl bg-bg-glass flex justify-between items-center">
+                      <div className="flex-1">
+                        <div className="h-6 bg-border-subtle rounded w-48 mb-2"></div>
+                        <div className="h-4 bg-border-subtle rounded w-1/3"></div>
+                      </div>
+                      <div className="w-28 h-10 bg-border-subtle rounded-lg"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!classroom) {
