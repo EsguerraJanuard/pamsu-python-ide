@@ -552,7 +552,6 @@ def verify_registration_otp(
         
         # Process pending enrollments
         from app.models.domain_models import PendingEnrollment, Enrollment
-        from app.core.request_context import get_utc_now
         pending_enrollments = db.query(PendingEnrollment).filter(PendingEnrollment.email == new_user.email).all()
         for pe in pending_enrollments:
             # Add enrollment
