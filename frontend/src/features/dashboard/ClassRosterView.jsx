@@ -10,7 +10,7 @@ export default function ClassRosterView() {
   const [students, setStudents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("roster");
   const [searchQuery, setSearchQuery] = useState("");
   const [studentToRemove, setStudentToRemove] = useState(null);
@@ -20,10 +20,6 @@ export default function ClassRosterView() {
   const [isBulkEnrollModalOpen, setIsBulkEnrollModalOpen] = useState(false);
 
   const [classroom, setClassroom] = useState(null);
-
-  useEffect(() => {
-    fetchRoster();
-  }, [classId]);
 
   const fetchRoster = async () => {
     setIsLoading(true);
@@ -42,6 +38,11 @@ export default function ClassRosterView() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRoster();
+  }, [classId]);
+
 
   const handleRemoveConfirm = async () => {
     if (!studentToRemove) return;
@@ -314,6 +315,13 @@ export default function ClassRosterView() {
       </div>
 
       {/* Edit Classroom Settings Modal */}
+                <BulkEnrollModal
+          isOpen={isBulkEnrollModalOpen}
+          onClose={() => setIsBulkEnrollModalOpen(false)}
+          classId={classId}
+          onSuccess={fetchRoster}
+        />
+
         <EditClassModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}

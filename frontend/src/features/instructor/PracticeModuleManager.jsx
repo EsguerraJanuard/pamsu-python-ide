@@ -204,10 +204,9 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
 };
 
 export default function PracticeModuleManager() {
-  const navigate = useNavigate();
-  const [modules, setModules] = useState([]);
+    const [modules, setModules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
 
   // Modals state
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
@@ -249,10 +248,6 @@ export default function PracticeModuleManager() {
     });
   };
 
-  useEffect(() => {
-    fetchModules();
-  }, []);
-
   const fetchModules = async () => {
     try {
       setIsLoading(true);
@@ -264,6 +259,11 @@ export default function PracticeModuleManager() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchModules();
+  }, []);
+
 
   const handleModuleSubmit = async (e) => {
     e.preventDefault();
