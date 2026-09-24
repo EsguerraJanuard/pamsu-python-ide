@@ -195,6 +195,7 @@ const ActivityEditor = () => {
   const initialClassId = searchParams.get('class');
   
   const [classrooms, setClassrooms] = useState([]);
+  const [classroomSearch, setClassroomSearch] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     class_ids: initialClassId ? [parseInt(initialClassId)] : [],
@@ -420,14 +421,41 @@ const ActivityEditor = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                    Target Classroom(s) <span className="text-text-emerald">*</span>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
+                    <span>Target Classroom(s) <span className="text-text-emerald">*</span></span>
+                    {classrooms.length > 0 && (
+                      <div className="relative w-48">
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                          <svg className="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Search class..."
+                          value={classroomSearch}
+                          onChange={(e) => setClassroomSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 bg-bg-base border border-border-subtle rounded-lg text-xs text-text-main focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-text-muted"
+                        />
+                      </div>
+                    )}
                   </label>
                   <div className="bg-bg-glass border border-border-subtle rounded-xl p-3 max-h-56 overflow-y-auto custom-scrollbar flex flex-col gap-2">
                     {classrooms.length === 0 ? (
                       <div className="text-sm text-text-muted italic py-2 text-center">No classrooms available</div>
-                    ) : (
-                      classrooms.map(cls => {
+                    ) : (() => {
+                      const filteredClassrooms = classrooms.filter(cls => {
+                        if (!classroomSearch.trim()) return true;
+                        const query = classroomSearch.toLowerCase();
+                        return (cls.subject_code && cls.subject_code.toLowerCase().includes(query)) || 
+                               (cls.section && cls.section.toLowerCase().includes(query));
+                      });
+
+                      if (filteredClassrooms.length === 0) {
+                        return <div className="text-sm text-text-muted italic py-2 text-center">No classrooms match your search.</div>;
+                      }
+
+                      return filteredClassrooms.map(cls => {
                         const isSelected = formData.class_ids.includes(cls.class_id);
                         return (
                           <label 
@@ -469,7 +497,7 @@ const ActivityEditor = () => {
                           </label>
                         );
                       })
-                    )}
+                    )()}
                   </div>
                 </div>
                 
