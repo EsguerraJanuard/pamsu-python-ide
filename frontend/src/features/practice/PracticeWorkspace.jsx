@@ -322,7 +322,7 @@ export default function PracticeWorkspace() {
              <div className="flex items-center px-4 py-2 border-b border-white/5 bg-bg-panel">
                 <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
              </div>
-               <div className="flex-1 p-1 bg-[#0f1117] h-full relative">
+               <div className="flex-1 p-1 bg-transparent h-full relative">
                  <InteractiveTerminal code={code} triggerRun={triggerRun} onRunFinished={() => setIsSubmitting(false)} />
                </div>
           </div>

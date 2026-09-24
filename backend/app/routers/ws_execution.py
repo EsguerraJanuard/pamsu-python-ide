@@ -27,8 +27,9 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.close(code=1008)
             return
             
-        await async_redis_client.incr(rate_limit_key)
-        await async_redis_client.expire(rate_limit_key, 60)
+        new_count = await async_redis_client.incr(rate_limit_key)
+        if new_count == 1:
+            await async_redis_client.expire(rate_limit_key, 60)
     except Exception as e:
         print(f"Redis rate limiter error: {e}")
 

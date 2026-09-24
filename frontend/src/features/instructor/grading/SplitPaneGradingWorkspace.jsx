@@ -5,8 +5,10 @@ import api from '../../../services/api';
 import InstructorSidebar from '../../../components/layout/InstructorSidebar';
 import AlertModal from '../../../components/modals/AlertModal';
 import { DiffEditor } from '@monaco-editor/react';
+import { useTheme } from '../../theme/ThemeContext';
 
 const SplitPaneGradingWorkspace = () => {
+  const { resolvedTheme } = useTheme();
   const { classId, taskId } = useParams();
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -258,18 +260,18 @@ const SplitPaneGradingWorkspace = () => {
           {students.map(student => {
             const sub = submissions[student.student_id];
             let badgeText = 'Missing';
-            let badgeColor = 'bg-red-900/50 text-red-400 border border-red-800';
+            let badgeColor = 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
             
             if (sub) {
               if (sub.has_manual_grade || sub.status === 'graded') {
                 badgeText = 'Graded';
-                badgeColor = 'bg-green-900/50 text-green-400 border border-green-800';
+                badgeColor = 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20';
               } else if (sub.status === 'late') {
                 badgeText = 'Late';
-                badgeColor = 'bg-yellow-900/50 text-yellow-400 border border-yellow-800';
+                badgeColor = 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20';
               } else {
                 badgeText = 'Submitted';
-                badgeColor = 'bg-blue-900/50 text-blue-400 border border-blue-800';
+                badgeColor = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
               }
             }
 
@@ -315,20 +317,20 @@ const SplitPaneGradingWorkspace = () => {
             {selectedSub && (
               <div className="flex flex-wrap gap-4 border-b border-border-subtle pb-4 mb-4">
                 {selectedSub.jaccard_score !== undefined && selectedSub.jaccard_score !== null && (
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.jaccard_score >= 70 ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.jaccard_score >= 70 ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                     <span className="text-sm font-medium">Similarity: {selectedSub.jaccard_score.toFixed(1)}%</span>
                   </div>
                 )}
                 {selectedSub.coding_session && (
                   <>
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.tab_switch_count > 3 ? 'bg-yellow-900/20 border-yellow-800 text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.tab_switch_count > 3 ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
                       <span className="text-sm font-medium">Tab Switches: {selectedSub.coding_session.tab_switch_count}</span>
                     </div>
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.blocked_paste_count > 0 ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.blocked_paste_count > 0 ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
                       <span className="text-sm font-medium">Blocked Pastes: {selectedSub.coding_session.blocked_paste_count}</span>
                     </div>
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.mouseleave_count > 5 ? 'bg-yellow-900/20 border-yellow-800 text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.mouseleave_count > 5 ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
                       <span className="text-sm font-medium">Mouse Leaves: {selectedSub.coding_session.mouseleave_count}</span>
                     </div>
                   </>
@@ -344,7 +346,7 @@ const SplitPaneGradingWorkspace = () => {
                     <DiffEditor
                       height="100%"
                       language="python"
-                      theme="vs-dark"
+                      theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
                       original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
                       modified={detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
                       options={{

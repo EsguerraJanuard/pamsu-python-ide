@@ -2,8 +2,10 @@
 import { Terminal } from 'xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import 'xterm/css/xterm.css';
+import { useTheme } from '../theme/ThemeContext';
 
 const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
+  const { resolvedTheme } = useTheme();
   const terminalRef = useRef(null);
   const termInstance = useRef(null);
   const wsInstance = useRef(null);
@@ -13,9 +15,9 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
     // Initialize xterm
     const term = new Terminal({
       theme: {
-        background: '#0f1117',
-        foreground: '#34d399',
-        cursor: '#34d399'
+        background: resolvedTheme === 'dark' ? '#0f1117' : '#f8fafc',
+        foreground: resolvedTheme === 'dark' ? '#34d399' : '#059669',
+        cursor: resolvedTheme === 'dark' ? '#34d399' : '#059669'
       },
       fontFamily: 'monospace',
       cursorBlink: true,
@@ -87,8 +89,18 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
     }
   }, [triggerRun, code]);
 
+  useEffect(() => {
+    if (termInstance.current) {
+      termInstance.current.options.theme = {
+        background: resolvedTheme === 'dark' ? '#0f1117' : '#f8fafc',
+        foreground: resolvedTheme === 'dark' ? '#34d399' : '#059669',
+        cursor: resolvedTheme === 'dark' ? '#34d399' : '#059669'
+      };
+    }
+  }, [resolvedTheme]);
+
   return (
-    <div className="w-full h-full p-2 bg-[#0f1117] rounded overflow-hidden relative">
+    <div className={w-full h-full p-2 rounded overflow-hidden relative }>
       <div ref={terminalRef} className="absolute inset-2" />
     </div>
   );
