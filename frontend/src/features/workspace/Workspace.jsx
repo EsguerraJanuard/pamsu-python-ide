@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
@@ -422,30 +422,10 @@ export default function Workspace() {
       setOutput("No activity selected.");
       return;
     }
-
     setRunAttemptCount((count) => count + 1);
-
     setExecutionStatus("running");
     setActivePanel("output");
-    setOutput("Sending execution request...");
-
-    try {
-      const execRes = await api.post("/execution/requests/", {
-        request_kind: "run",
-        task_id: parseInt(activityId),
-        source_code: code,
-        standard_input: standardInput || ""
-      });
-
-      // Poll for result
-      pollExecution(execRes.execution_id);
-    } catch (err) {
-      setExecutionStatus("failed");
-      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
-      const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : `Failed to start execution: ${err.message || err.detail || 'Unknown error'}`;
-      setOutput(msg);
-      setNotice(msg);
-    }
+    setTriggerRun((prev) => prev + 1);
   };
 
   const handleCheck = async () => {
@@ -819,7 +799,7 @@ export default function Workspace() {
                 className="rounded px-2 py-1 text-text-muted hover:bg-bg-glass-hover hover:text-text-main xl:hidden"
                 aria-label="Close problem panel"
               >
-                ×
+                Ã—
               </button>
             </div>
 
@@ -855,7 +835,7 @@ export default function Workspace() {
                       className="flex items-center gap-2 text-xs text-text-muted font-medium"
                     >
                       <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-text-blue border border-blue-500/20">
-                        ✓
+                        âœ“
                       </span>
                       {requirement}
                     </li>
@@ -1005,7 +985,7 @@ export default function Workspace() {
               </div>
 
               <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-black/30 px-2 py-1 font-mono text-[9px] text-text-muted">
-                {lineCount} {lineCount === 1 ? "line" : "lines"} ·
+                {lineCount} {lineCount === 1 ? "line" : "lines"} Â·
                 autosave
               </div>
             </div>
@@ -1034,9 +1014,13 @@ export default function Workspace() {
 
               <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
                 {activePanel === "output" && (
-                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-5 text-text-muted">
-                    {output}
-                  </pre>
+                  <div className="w-full h-full min-h-[300px]">
+                    <InteractiveTerminal 
+                      code={code} 
+                      triggerRun={triggerRun} 
+                      onRunFinished={() => setExecutionStatus("completed")} 
+                    />
+                  </div>
                 )}
 
                 {activePanel === "analysis" && (
@@ -1138,7 +1122,7 @@ export default function Workspace() {
                 className="rounded px-2 py-1 text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 aria-label="Close session review"
               >
-                ×
+                Ã—
               </button>
             </div>
 

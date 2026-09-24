@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+﻿/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
@@ -165,7 +165,7 @@ const SplitPaneGradingWorkspace = () => {
           </div>
           <header className="mb-8">
             <h1 className="text-3xl font-bold text-text-main mb-2">Activity Grading Workspace</h1>
-            <p className="text-text-muted">Task ID: {taskId} • Loading data...</p>
+            <p className="text-text-muted">Task ID: {taskId} â€¢ Loading data...</p>
           </header>
           <div className="flex min-h-0 flex-1 flex-row border border-border-subtle rounded-xl overflow-hidden shadow-sm">
             {/* Left Panel Skeleton */}
@@ -225,7 +225,7 @@ const SplitPaneGradingWorkspace = () => {
         </button>
         <header className="mb-4">
           <h1 className="text-3xl font-bold text-text-main mb-2">Activity Grading Workspace</h1>
-          <p className="text-text-muted">Class {classId} • Task {taskId}</p>
+          <p className="text-text-muted">Class {classId} â€¢ Task {taskId}</p>
         </header>
       </div>
       <div className="mt-10">
@@ -301,6 +301,31 @@ const SplitPaneGradingWorkspace = () => {
                 <p className="text-sm text-text-muted mt-0.5">Student ID: {selectedStudent.student_id || selectedStudent.id}</p>
               </div>
             </div>
+
+            {/* Anti-Cheating / Telemetry Indicators */}
+            {selectedSub && (
+              <div className="flex flex-wrap gap-4 border-b border-border-subtle pb-4 mb-4">
+                {selectedSub.jaccard_score !== undefined && selectedSub.jaccard_score !== null && (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.jaccard_score >= 70 ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <span className="text-sm font-medium">Similarity: {selectedSub.jaccard_score.toFixed(1)}%</span>
+                  </div>
+                )}
+                {selectedSub.coding_session && (
+                  <>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.tab_switch_count > 3 ? 'bg-yellow-900/20 border-yellow-800 text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                      <span className="text-sm font-medium">Tab Switches: {selectedSub.coding_session.tab_switch_count}</span>
+                    </div>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.blocked_paste_count > 0 ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                      <span className="text-sm font-medium">Blocked Pastes: {selectedSub.coding_session.blocked_paste_count}</span>
+                    </div>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.mouseleave_count > 5 ? 'bg-yellow-900/20 border-yellow-800 text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
+                      <span className="text-sm font-medium">Mouse Leaves: {selectedSub.coding_session.mouseleave_count}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {selectedSub ? (
               <>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import InteractiveTerminal from "../workspace/InteractiveTerminal";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
@@ -38,6 +39,7 @@ export default function PracticeWorkspace() {
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [triggerRun, setTriggerRun] = useState(0);
 
   useEffect(() => {
     // Monaco editor applies settings dynamically via the options prop.
@@ -101,20 +103,7 @@ export default function PracticeWorkspace() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setFeedback(null);
-    try {
-      const res = await api.post(`/practice/tasks/${taskId}/submit`, {
-        code: code
-      });
-      setFeedback(res);
-    } catch (err) {
-      setFeedback({
-        is_successful: false,
-        message: "An error occurred while evaluating your code.",
-        execution_feedback: err.response?.data?.detail || err.message
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setTriggerRun(prev => prev + 1);
   };
 
   const monacoOptions = {
@@ -304,9 +293,9 @@ export default function PracticeWorkspace() {
              <div className="flex items-center px-4 py-2 border-b border-white/5 bg-bg-panel">
                 <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
              </div>
-             <div className="flex-1 p-4 font-mono text-sm overflow-y-auto whitespace-pre-wrap text-emerald-600 dark:text-emerald-400">
-                {feedback ? (feedback.execution_feedback || "Program exited with code 0.") : "Ready to execute..."}
-             </div>
+               <div className="flex-1 p-1 bg-[#0f1117] h-full relative">
+                 <InteractiveTerminal code={code} triggerRun={triggerRun} onRunFinished={() => setIsSubmitting(false)} />
+               </div>
           </div>
         </div>
       </div>

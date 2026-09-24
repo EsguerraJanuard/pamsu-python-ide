@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import func
@@ -542,7 +542,8 @@ def list_instructor_task_submissions(
         task_id=task_id,
     )
 
-    query = db.query(Submission).filter(
+    from sqlalchemy.orm import joinedload
+    query = db.query(Submission).options(joinedload(Submission.coding_session)).filter(
         Submission.task_id == task.task_id,
     )
 
@@ -573,8 +574,10 @@ def get_instructor_submission(
     instructor_id: int,
     submission_id: int,
 ) -> Submission:
+    from sqlalchemy.orm import joinedload
     submission = (
         db.query(Submission)
+        .options(joinedload(Submission.coding_session))
         .join(
             Task,
             Submission.task_id == Task.task_id,

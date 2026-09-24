@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import Depends, FastAPI, status
@@ -21,6 +21,7 @@ from app.integrations.partner_auth import (
 )
 from app.routers import ws_monitoring
 from app.routers import (
+    ws_execution,
     practice,
     activities,
     audit_records,
@@ -321,6 +322,7 @@ app.include_router(notifications.router)
 app.include_router(audit_records.router)
 app.include_router(reporting.router)
 app.include_router(practice.router)
+app.include_router(ws_execution.router)
 
 
 @app.on_event("startup")

@@ -1,3 +1,9 @@
+﻿class CodingSessionTelemetry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    tab_switch_count: int
+    blocked_paste_count: int
+    mouseleave_count: int
+
 from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
@@ -221,6 +227,10 @@ class InstructorSubmissionResponse(
     ast_pass_fail: bool | None = Field(
         default=None,
         description=("Structural-analysis indicator for instructor review only."),
+    )
+    coding_session: CodingSessionTelemetry | None = Field(
+        default=None,
+        description=("Telemetry data from the student's coding session."),
     )
 
     # REVIEW BOUNDARY:

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@xterm/addon-fit": "^0.11.0",
     "flatpickr": "^4.6.13",
     "prop-types": "^15.8.1",
     "react": "^19.2.6",
@@ -19,7 +20,8 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.30.4",
     "remark-gfm": "^4.0.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xterm": "^5.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
