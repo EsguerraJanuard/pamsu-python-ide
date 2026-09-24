@@ -879,3 +879,31 @@ def update_enrollment_status(
 # data, grades, feedback, AST findings, similarity records, execution
 # output, coding-session telemetry, clipboard contents, pasted text,
 # surveillance data, and misconduct conclusions.
+
+
+def unenroll_student(db: Session, student_id: int, class_id: int) -> None:
+    classroom = get_classroom_by_id(db, class_id)
+    
+    enrollment = db.query(Enrollment).filter(
+        Enrollment.class_id == class_id,
+        Enrollment.student_id == student_id
+    ).first()
+    
+    if not enrollment:
+        raise EnrollmentNotFoundError("You are not enrolled in this classroom.")
+        
+    db.delete(enrollment)
+    
+    _record_audit(
+        db=db,
+        action="student_unenrolled",
+        actor_id=student_id,
+        resource_type="enrollment",
+        resource_id=enrollment.enrollment_id,
+        details={
+            "class_id": class_id,
+            "subject_code": classroom.subject_code,
+            "status": "removed"
+        }
+    )
+    db.commit()

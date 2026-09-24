@@ -264,7 +264,7 @@ export default function PracticeWorkspace() {
                 <h3 className={`text-base font-bold flex items-center gap-2 mb-3
                   ${feedback.is_successful ? "text-emerald-500" : "text-rose-500"}`}
                 >
-                  {feedback.is_successful ? "?? Evaluation Passed!" : "? Evaluation Failed"}
+                  {feedback.is_successful ? "Evaluation Passed!" : "Evaluation Failed"}
                 </h3>
                 <p className="text-sm font-medium mb-4">{feedback.message}</p>
                 

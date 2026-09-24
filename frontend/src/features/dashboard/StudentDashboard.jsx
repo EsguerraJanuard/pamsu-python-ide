@@ -583,9 +583,12 @@ export default function StudentDashboard() {
       <JoinClassModal 
         isOpen={isJoinModalOpen} 
         onClose={() => setIsJoinModalOpen(false)}
-        onSuccess={() => {
+        onSuccess={(classId) => {
           console.log("Successfully joined class!");
           fetchDashboardData();
+          if (classId) {
+            navigate(`/student/classes/${classId}`);
+          }
         }}
       />
     </div>

@@ -248,9 +248,12 @@ export default function MyClasses() {
       <JoinClassModal 
         isOpen={isJoinModalOpen} 
         onClose={() => setIsJoinModalOpen(false)}
-        onSuccess={() => {
+        onSuccess={(classId) => {
           console.log("Successfully joined class!");
           fetchClassesData();
+          if (classId) {
+            navigate(`/student/classes/${classId}`);
+          }
         }}
       />
     </div>

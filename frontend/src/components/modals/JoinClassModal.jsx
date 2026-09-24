@@ -20,12 +20,12 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
     setIsLoading(true);
 
     try {
-      await api.post("/classrooms/join", {
+      const res = await api.post("/classrooms/join", {
         class_code: code.trim(),
       });
 
       setCode("");
-      if (onSuccess) onSuccess(); // Triggers the parent to refresh the class list
+      if (onSuccess) onSuccess(res.data.class_id); // Triggers the parent to refresh the class list and optionally redirect
       onClose();
     } catch (err) {
       setError(err.message || "Invalid class code or class is full.");
