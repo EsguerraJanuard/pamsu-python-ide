@@ -301,7 +301,7 @@ export default function ClassDetails() {
                           </div>
                         </div>
                         <p className="text-xs leading-relaxed text-text-muted group-hover:text-text-main transition-colors">
-                          Welcome to the laboratory component! All coding activities for this course will be completed and graded here. Make sure to check the active assignments board regularly. Good luck!
+                          Welcome to <strong>{classroom.subject_name || "this class"}</strong>! All coding activities for this course will be completed and graded here. Make sure to check the active assignments board regularly. Good luck!
                         </p>
                       </div>
                       
