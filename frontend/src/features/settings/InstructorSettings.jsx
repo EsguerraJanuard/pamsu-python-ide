@@ -199,19 +199,14 @@ export default function InstructorSettings() {
                 </div>
               <div>
                 <label className="block text-xs text-text-muted mb-1">Department</label>
-                <div className="relative">
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    className="w-full appearance-none rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
-                  >
-                    <option value="College of Computing Studies">College of Computing Studies</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-muted">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </div>
-                </div>
+                <CustomSelect
+                  value={formData.department}
+                  onChange={(val) => setFormData(prev => ({ ...prev, department: val }))}
+                  options={[
+                    { value: "College of Computing Studies", label: "College of Computing Studies" }
+                  ]}
+                  className="w-full text-xs py-2"
+                />
               </div>
               <div>
                 <label className="block text-xs text-text-muted mb-1">Default Course</label>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useEditorSettings } from '../../hooks/useEditorSettings';
+import CustomSelect from '../../components/ui/CustomSelect';
 
 export default function EditorSettings() {
   const { settings, updateSetting } = useEditorSettings();
@@ -36,15 +37,16 @@ export default function EditorSettings() {
           <label className="mb-1.5 block text-xs font-medium text-text-muted">
             Tab Size
           </label>
-          <div className={inputWrap}>
-            <select 
+          <div className="mt-2">
+            <CustomSelect
               value={settings.tabSize}
-              onChange={(e) => updateSetting('tabSize', parseInt(e.target.value))}
-              className={selectClass}
-            >
-              <option value={2} className="bg-bg-base text-text-main">2 spaces</option>
-              <option value={4} className="bg-bg-base text-text-main">4 spaces</option>
-            </select>
+              onChange={(val) => updateSetting('tabSize', parseInt(val))}
+              options={[
+                { value: 2, label: "2 spaces" },
+                { value: 4, label: "4 spaces" }
+              ]}
+              className="w-full text-sm py-2"
+            />
           </div>
         </div>
 
