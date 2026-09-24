@@ -117,12 +117,14 @@ export default function InstructorSettings() {
     try {
       const updatedUser = await api.patch("/users/me", {
         name: formData.name.trim(),
+        ast_strictness_level: formData.astStrictness,
       });
       
       // Update global auth context
       updateUser({
         ...user,
         name: updatedUser.name,
+        ast_strictness_level: updatedUser.ast_strictness_level,
       });
 
       setSaved(true);
@@ -143,7 +145,7 @@ export default function InstructorSettings() {
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
             
-            <div className="mx-auto max-w-6xl ">
+            <div className="mx-auto max-w-4xl">
         <header className="mb-6 flex items-center justify-between">
           <div>
             <p className="mb-1 font-mono text-xs text-text-emerald">ACCOUNT & SYSTEM</p>
@@ -172,7 +174,7 @@ export default function InstructorSettings() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
             <h2 className="text-sm font-semibold text-text-main mb-4">Faculty Profile</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs text-text-muted mb-1">Full Name (Verified)</label>
                   <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
@@ -197,28 +199,7 @@ export default function InstructorSettings() {
                     />
                   </div>
                 </div>
-              <div>
-                <label className="block text-xs text-text-muted mb-1">Department</label>
-                <CustomSelect
-                  value={formData.department}
-                  onChange={(val) => setFormData(prev => ({ ...prev, department: val }))}
-                  options={[
-                    { value: "College of Computing Studies", label: "College of Computing Studies" }
-                  ]}
-                  className="w-full text-xs py-2"
-                />
               </div>
-              <div>
-                <label className="block text-xs text-text-muted mb-1">Default Course</label>
-                <input
-                  type="text"
-                  name="defaultCourse"
-                  value={formData.defaultCourse}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
-            </div>
           </section>
 
           <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
@@ -272,7 +253,7 @@ export default function InstructorSettings() {
             </div>
           )}
 
-          <form onSubmit={handleChangePassword} className="space-y-4" noValidate>
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-lg" noValidate>
             <div>
               <label htmlFor="current-password" className="mb-1.5 block text-xs font-medium text-text-muted">
                 Current password
