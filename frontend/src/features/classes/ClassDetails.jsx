@@ -128,7 +128,7 @@ export default function ClassDetails() {
           setClassroom({
             class_id: id,
             subject_code: "CCS101",
-            subject_name: "Computer Programming 1",
+            name: "Computer Programming 1",
             instructor_name: "Dr. Maria Santos",
             section: "BSCS-1A",
           });
@@ -228,7 +228,7 @@ export default function ClassDetails() {
                             {classroom.section}
                           </span>
                         </div>
-                        <h1 className="text-3xl font-bold text-text-main mb-3 tracking-tight">{classroom.subject_name || "Classroom"}</h1>
+                        <h1 className="text-3xl font-bold text-text-main mb-3 tracking-tight">{classroom.name || "Classroom"}</h1>
                         {classroom.instructor_name && (
                           <p className="text-sm font-medium text-text-muted">
                             Instructor: <span className="text-text-main">{classroom.instructor_name}</span>
@@ -301,7 +301,7 @@ export default function ClassDetails() {
                           </div>
                         </div>
                         <p className="text-xs leading-relaxed text-text-muted group-hover:text-text-main transition-colors">
-                          Welcome to <strong>{classroom.subject_name || "this class"}</strong>! All coding activities for this course will be completed and graded here. Make sure to check the active assignments board regularly. Good luck!
+                          Welcome to <strong>{classroom.name || "this class"}</strong>! All coding activities for this course will be completed and graded here. Make sure to check the active assignments board regularly. Good luck!
                         </p>
                       </div>
                       

@@ -183,7 +183,7 @@ export default function MyClasses() {
                           </div>
                           
                           <h3 className="text-lg font-bold text-text-main mb-2 line-clamp-1 group-hover:text-text-main transition-colors relative z-10">
-                            {cls.classroom.subject_name || 'Classroom'}
+                            {cls.classroom.name || 'Classroom'}
                           </h3>
                           
                           <div className="flex items-center gap-2 mb-6 relative z-10">
