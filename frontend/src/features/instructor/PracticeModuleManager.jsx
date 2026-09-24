@@ -252,6 +252,23 @@ export default function PracticeModuleManager() {
     });
   };
 
+  const allVisibleRules = AST_GROUPS.flatMap(group => group.rules);
+  const allVisibleSelected = allVisibleRules.length > 0 && allVisibleRules.every(rule => taskForm.expected_ast_patterns[rule.id]);
+
+  const handleSelectAllVisible = (isSelected) => {
+    setTaskForm(prev => {
+      const newReqs = { ...prev.expected_ast_patterns };
+      allVisibleRules.forEach(rule => {
+        if (isSelected) {
+          newReqs[rule.id] = true;
+        } else {
+          delete newReqs[rule.id];
+        }
+      });
+      return { ...prev, expected_ast_patterns: newReqs };
+    });
+  };
+
   const fetchModules = async () => {
     try {
       setIsLoading(true);
@@ -560,7 +577,30 @@ export default function PracticeModuleManager() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1.5">Sort Order Index</label>
-                <input required type="number" min="1" value={moduleForm.order_index} onChange={e => setModuleForm({...moduleForm, order_index: parseInt(e.target.value) || 1})} className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition" />
+                <div className="flex items-center rounded-xl border border-border-subtle bg-bg-base overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
+                  <button 
+                    type="button" 
+                    onClick={() => setModuleForm({...moduleForm, order_index: Math.max(1, moduleForm.order_index - 1)})}
+                    className="px-3 py-2 text-text-muted hover:bg-bg-glass hover:text-text-main transition border-r border-border-subtle"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                  </button>
+                  <input 
+                    required 
+                    type="number" 
+                    min="1" 
+                    value={moduleForm.order_index} 
+                    onChange={e => setModuleForm({...moduleForm, order_index: parseInt(e.target.value) || 1})} 
+                    className="w-full bg-transparent px-3 py-2 text-sm text-center text-text-main focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setModuleForm({...moduleForm, order_index: moduleForm.order_index + 1})}
+                    className="px-3 py-2 text-text-muted hover:bg-bg-glass hover:text-text-main transition border-l border-border-subtle"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  </button>
+                </div>
                 <p className="mt-1.5 text-[10px] text-text-muted">Lower numbers appear first in the curriculum.</p>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle mt-6">
@@ -594,7 +634,30 @@ export default function PracticeModuleManager() {
                   </div>
                   <div className="sm:col-span-1">
                     <label className="block text-xs font-semibold text-text-main mb-1.5">Order Index</label>
-                    <input required type="number" min="1" value={taskForm.order_index} onChange={e => setTaskForm({...taskForm, order_index: parseInt(e.target.value) || 1})} className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition" />
+                    <div className="flex items-center rounded-xl border border-border-subtle bg-bg-base overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
+                      <button 
+                        type="button" 
+                        onClick={() => setTaskForm({...taskForm, order_index: Math.max(1, taskForm.order_index - 1)})}
+                        className="px-3 py-2 text-text-muted hover:bg-bg-glass hover:text-text-main transition border-r border-border-subtle"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                      </button>
+                      <input 
+                        required 
+                        type="number" 
+                        min="1" 
+                        value={taskForm.order_index} 
+                        onChange={e => setTaskForm({...taskForm, order_index: parseInt(e.target.value) || 1})} 
+                        className="w-full bg-transparent px-3 py-2 text-sm text-center text-text-main focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setTaskForm({...taskForm, order_index: taskForm.order_index + 1})}
+                        className="px-3 py-2 text-text-muted hover:bg-bg-glass hover:text-text-main transition border-l border-border-subtle"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
@@ -637,6 +700,23 @@ export default function PracticeModuleManager() {
                         <p className="mb-2">Enforce specific Python constructs in the student's code without writing complex tests.</p>
                         <p className="text-text-muted">For example, if you toggle "Require for loop", the student's submission will be automatically rejected if they don't use a for loop.</p>
                       </InfoTooltip>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-emerald group-hover:text-emerald-400 transition-colors">
+                          Toggle All
+                        </span>
+                        <div className="relative inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={allVisibleSelected}
+                            onChange={(e) => handleSelectAllVisible(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                        </div>
+                      </label>
+                      <span className="text-text-muted font-normal text-[10px]">{Object.keys(taskForm.expected_ast_patterns).length} active</span>
                     </div>
                   </label>
                   
