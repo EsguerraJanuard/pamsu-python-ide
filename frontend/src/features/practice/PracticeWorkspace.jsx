@@ -123,7 +123,13 @@ export default function PracticeWorkspace() {
     };
   }, [code, taskId]);
 
+  const [isRunCooldown, setIsRunCooldown] = useState(false);
+
   const handleSubmit = async () => {
+    if (isRunCooldown) return;
+    setIsRunCooldown(true);
+    setTimeout(() => setIsRunCooldown(false), 3000);
+    
     setIsSubmitting(true);
     setFeedback(null);
     setTriggerRun(prev => prev + 1);
@@ -246,7 +252,7 @@ export default function PracticeWorkspace() {
           )}
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isRunCooldown}
             className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (

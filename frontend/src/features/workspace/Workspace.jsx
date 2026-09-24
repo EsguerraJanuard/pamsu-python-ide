@@ -417,17 +417,26 @@ export default function Workspace() {
     // For now we do nothing here since Monaco isn't passing standard React DOM events.
   };
 
+  const [isRunCooldown, setIsRunCooldown] = useState(false);
+
   const handleRun = async () => {
+    if (isRunCooldown) return;
     if (!activityId) {
       setExecutionStatus("unavailable");
       setActivePanel("output");
       setOutput("No activity selected.");
       return;
     }
+    
+    setIsRunCooldown(true);
+    setTimeout(() => setIsRunCooldown(false), 3000);
+    
     setRunAttemptCount((count) => count + 1);
     setExecutionStatus("running");
     setActivePanel("output");
-    setTriggerRun((prev) => prev + 1);
+    if (typeof setTriggerRun === 'function') {
+      setTriggerRun((prev) => prev + 1);
+    }
   };
 
   const handleCheck = async () => {
@@ -711,7 +720,7 @@ export default function Workspace() {
             <button
               type="button"
               onClick={handleRun}
-              disabled={executionStatus === "running"}
+              disabled={executionStatus === "running" || isRunCooldown}
               className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
