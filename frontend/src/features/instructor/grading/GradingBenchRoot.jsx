@@ -97,29 +97,30 @@ const GradingBenchRoot = () => {
               <div
                 key={cls.class_id}
                 onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-48"
+                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-40"
               >
-                <div className="p-6 flex-grow">
-                  <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
-                    {cls.name}
-                  </h2>
-                  <p className="text-sm text-text-muted line-clamp-2">
-                    {cls.description || 'No description provided.'}
-                  </p>
-                </div>
-                <div className="px-6 py-4 border-t border-border-subtle bg-bg-panel flex justify-between items-center text-sm">
-                  <span className="text-emerald-400/80 font-medium group-hover:text-emerald-400 transition-colors">
-                    Open Grading Bench
-                  </span>
-                  <svg
-                    className="w-5 h-5 text-text-muted group-hover:text-emerald-400 transition-colors transform group-hover:translate-x-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                <div className="p-6 flex-grow flex flex-col justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
+                      {cls.name}
+                    </h2>
+                    <p className="text-sm text-text-muted line-clamp-2">
+                      {cls.description || 'No description provided.'}
+                    </p>
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <div className="h-8 w-8 rounded-full bg-border-subtle/50 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                      <svg
+                        className="w-4 h-4 text-text-muted group-hover:text-emerald-400 transition-transform transform group-hover:translate-x-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
