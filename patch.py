@@ -1,13 +1,9 @@
-﻿import re
-with open('backend/Dockerfile', 'r', encoding='utf-8') as f:
-    c = f.read()
+﻿lines = []
+with open('frontend/src/features/workspace/InteractiveTerminal.jsx', 'r', encoding='utf-8') as f:
+    for line in f:
+        if '<div className={w-full h-full p-2 rounded overflow-hidden relative }>' in line:
+            line = line.replace('<div className={w-full h-full p-2 rounded overflow-hidden relative }>', '<div className={w-full h-full p-2 rounded overflow-hidden relative }>')
+        lines.append(line)
 
-t = '''# Copy requirements and install'''
-r = '''# Install Docker CLI so the FastAPI app can spawn sandbox containers
-RUN apt-get update && apt-get install -y docker.io && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements and install'''
-
-c = c.replace(t, r)
-with open('backend/Dockerfile', 'w', encoding='utf-8') as f:
-    f.write(c)
+with open('frontend/src/features/workspace/InteractiveTerminal.jsx', 'w', encoding='utf-8') as f:
+    f.writelines(lines)

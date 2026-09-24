@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import 'xterm/css/xterm.css';
@@ -100,7 +100,7 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
   }, [resolvedTheme]);
 
   return (
-    <div className={w-full h-full p-2 rounded overflow-hidden relative }>
+    <div className={`w-full h-full p-2 rounded overflow-hidden relative ${resolvedTheme === 'dark' ? 'bg-[#0f1117]' : 'bg-slate-50'}`}>
       <div ref={terminalRef} className="absolute inset-2" />
     </div>
   );
