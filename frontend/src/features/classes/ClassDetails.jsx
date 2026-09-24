@@ -5,6 +5,8 @@ import { useAuth } from "../../features/auth/AuthContext";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
+import ConfirmationModal from "../../components/modals/ConfirmationModal";
+import AlertModal from "../../components/modals/AlertModal";
 
 
 
@@ -51,6 +53,8 @@ export default function ClassDetails() {
   const [activities, setActivities] = useState([]);
   const [totalActivitiesCount, setTotalActivitiesCount] = useState(0);
   const [membersCount, setMembersCount] = useState(0);
+  const [isUnenrollModalOpen, setIsUnenrollModalOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: "", message: "", isError: false });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -137,6 +141,21 @@ export default function ClassDetails() {
     fetchData();
   }, [id]);
 
+  const handleUnenroll = async () => {
+    setIsUnenrollModalOpen(false);
+    try {
+      await api.delete(`/classrooms/${id}/enrollment`);
+      navigate("/student/classes");
+    } catch (err) {
+      setAlertConfig({
+        isOpen: true,
+        title: "Unenrollment Failed",
+        message: err.response?.data?.detail || err.message,
+        isError: true
+      });
+    }
+  };
+
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {
       navigate(`/student/submissions/${activity.id}`);
@@ -217,16 +236,7 @@ export default function ClassDetails() {
                         )}
                       </div>
                       <button
-                        onClick={async () => {
-                          if (window.confirm("Are you sure you want to drop this class? This cannot be undone.")) {
-                            try {
-                              await api.delete(`/classrooms/${id}/enrollment`);
-                              navigate("/student/classes");
-                            } catch (err) {
-                              alert("Failed to unenroll: " + (err.response?.data?.detail || err.message));
-                            }
-                          }
-                        }}
+                        onClick={() => setIsUnenrollModalOpen(true)}
                         className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-500/20 shadow-sm"
                       >
                         Unenroll
@@ -327,6 +337,25 @@ export default function ClassDetails() {
           studentName={user.name}
         />
       </div>
+      
+      <ConfirmationModal
+        isOpen={isUnenrollModalOpen}
+        title="Drop Classroom"
+        message="Are you sure you want to drop this class? You will lose access to all assignments and materials. This action cannot be undone."
+        confirmText="Unenroll"
+        cancelText="Cancel"
+        onConfirm={handleUnenroll}
+        onCancel={() => setIsUnenrollModalOpen(false)}
+        isDanger={true}
+      />
+      
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        isError={alertConfig.isError}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+      />
     </div>
   );
 }
