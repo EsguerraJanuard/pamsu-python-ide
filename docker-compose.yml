@@ -29,6 +29,8 @@ services:
     environment:
       DATABASE_URL: postgresql://user:pass@db:5432/dbname
       REDIS_URL: redis://redis:6379/0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - db
       - redis
@@ -42,6 +44,8 @@ services:
     environment:
       DATABASE_URL: postgresql://user:pass@db:5432/dbname
       REDIS_URL: redis://redis:6379/0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - db
       - redis

@@ -1,21 +1,13 @@
 ﻿import re
-with open('frontend/src/features/instructor/grading/SplitPaneGradingWorkspace.jsx', 'r', encoding='utf-8') as f:
+with open('backend/Dockerfile', 'r', encoding='utf-8') as f:
     c = f.read()
 
-t1 = "import { DiffEditor } from '@monaco-editor/react';"
-r1 = "import { DiffEditor } from '@monaco-editor/react';\nimport { useTheme } from '../../theme/ThemeContext';"
+t = '''# Copy requirements and install'''
+r = '''# Install Docker CLI so the FastAPI app can spawn sandbox containers
+RUN apt-get update && apt-get install -y docker.io && rm -rf /var/lib/apt/lists/*
 
-c = c.replace(t1, r1)
+# Copy requirements and install'''
 
-t2 = "const SplitPaneGradingWorkspace = () => {"
-r2 = "const SplitPaneGradingWorkspace = () => {\n  const { resolvedTheme } = useTheme();"
-
-c = c.replace(t2, r2)
-
-t3 = "theme=\"vs-dark\""
-r3 = "theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}"
-
-c = c.replace(t3, r3)
-
-with open('frontend/src/features/instructor/grading/SplitPaneGradingWorkspace.jsx', 'w', encoding='utf-8') as f:
+c = c.replace(t, r)
+with open('backend/Dockerfile', 'w', encoding='utf-8') as f:
     f.write(c)
