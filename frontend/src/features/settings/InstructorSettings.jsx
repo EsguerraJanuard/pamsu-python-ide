@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 import CustomSelect from "../../components/ui/CustomSelect";
+import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { api, ApiError } from "../../services/api";
 
 function getPasswordStrength(password) {
@@ -23,6 +24,7 @@ export default function InstructorSettings() {
   const { user, updateUser } = useAuth();
   const [saved, setSaved] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [isConfirmSaveOpen, setIsConfirmSaveOpen] = useState(false);
 
   const inputClass = "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
   const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/60";
@@ -109,9 +111,14 @@ export default function InstructorSettings() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+    setIsConfirmSaveOpen(true);
+  };
+
+  const performSave = async () => {
     setErrorMsg(null);
+    setIsConfirmSaveOpen(false);
     setSaved(false);
 
     try {
@@ -199,6 +206,36 @@ export default function InstructorSettings() {
                     />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-xs text-text-muted mb-1 flex items-center justify-between">
+                    Department
+                    <span className="text-[10px] text-emerald-500/80">Managed by Admin</span>
+                  </label>
+                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                    <input
+                      type="text"
+                      name="department"
+                      value="College of Computing Studies"
+                      disabled
+                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-text-muted mb-1 flex items-center justify-between">
+                    Default Course
+                    <span className="text-[10px] text-emerald-500/80">Managed by Admin</span>
+                  </label>
+                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                    <input
+                      type="text"
+                      name="defaultCourse"
+                      value="CCS101"
+                      disabled
+                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                    />
+                  </div>
+                </div>
               </div>
           </section>
 
@@ -253,9 +290,10 @@ export default function InstructorSettings() {
             </div>
           )}
 
-          <form onSubmit={handleChangePassword} className="space-y-4 max-w-lg" noValidate>
-            <div>
-              <label htmlFor="current-password" className="mb-1.5 block text-xs font-medium text-text-muted">
+          <form onSubmit={handleChangePassword} className="space-y-4" noValidate>
+            <div className="max-w-lg space-y-4">
+              <div>
+                <label htmlFor="current-password" className="mb-1.5 block text-xs font-medium text-text-muted">
                 Current password
               </label>
               <div className={inputWrap}>
@@ -346,6 +384,7 @@ export default function InstructorSettings() {
                 Show passwords
               </label>
             </div>
+            </div>
 
             <div className="flex justify-end pt-1">
               <button
@@ -361,6 +400,18 @@ export default function InstructorSettings() {
           </main>
         </div>
       </div>
+      
+      <ConfirmationModal
+        isOpen={isConfirmSaveOpen}
+        title="Save Changes"
+        message="Are you sure you want to update your faculty profile and evaluation settings?"
+        confirmText="Save"
+        cancelText="Cancel"
+        onConfirm={performSave}
+        onCancel={() => setIsConfirmSaveOpen(false)}
+      />
     </div>
   );
 }
+
+
