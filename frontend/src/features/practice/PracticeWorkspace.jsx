@@ -131,7 +131,7 @@ export default function PracticeWorkspace() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-violet-500"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
       </div>
     );
   }
@@ -189,7 +189,7 @@ export default function PracticeWorkspace() {
             <div className="border-t border-border-subtle pt-8 flex justify-end pb-24">
               <button 
                 onClick={() => setViewMode("coding")} 
-                className="flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-violet-500/20 transition-all hover:bg-violet-500 hover:scale-[1.02]"
+                className="flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 hover:scale-[1.02]"
               >
                 Start Coding Challenge
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -235,7 +235,7 @@ export default function PracticeWorkspace() {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 rounded-md bg-violet-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
@@ -252,7 +252,7 @@ export default function PracticeWorkspace() {
         <div className="flex w-1/3 flex-col border-r border-border-subtle bg-bg-base overflow-y-auto">
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between border-b border-border-subtle pb-2"><h2 className="text-lg font-bold text-text-main">Instructions</h2>
-              <button onClick={() => setViewMode("lesson")} className="text-xs text-violet-400 hover:text-violet-300 font-medium">Read Full Lesson</button></div>
+              <button onClick={() => setViewMode("lesson")} className="text-xs text-blue-400 hover:text-blue-300 font-medium">Read Full Lesson</button></div>
             <div className="prose prose-invert prose-sm max-w-none text-text-main">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{taskDetails.instructions || ''}</ReactMarkdown>
             </div>

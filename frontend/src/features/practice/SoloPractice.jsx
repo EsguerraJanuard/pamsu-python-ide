@@ -111,7 +111,7 @@ export default function SoloPractice() {
                     <div className="relative z-10 flex flex-col sm:flex-row gap-6">
                       {/* Module Icon Indicator */}
                       <div className={`shrink-0 flex h-12 w-12 items-center justify-center rounded-full border-4 border-bg-base shadow-sm
-                        ${mod.is_completed ? "bg-emerald-500 text-white" : mod.is_locked ? "bg-bg-alt text-text-muted border-border-subtle" : "bg-violet-500 text-white"}`}
+                        ${mod.is_completed ? "bg-emerald-500 text-white" : mod.is_locked ? "bg-bg-alt text-text-muted border-border-subtle" : "bg-blue-500 text-white"}`}
                       >
                         {mod.is_completed ? <CheckIcon className="h-6 w-6" /> : mod.is_locked ? <LockIcon className="h-5 w-5" /> : <UnlockIcon className="h-5 w-5" />}
                       </div>
@@ -137,7 +137,7 @@ export default function SoloPractice() {
                                   ? "border-emerald-500/30 bg-emerald-500/[0.03] hover:bg-emerald-500/[0.06]" 
                                   : task.is_locked 
                                     ? "border-border-subtle bg-bg-base cursor-not-allowed opacity-60" 
-                                    : "border-border-subtle bg-bg-base hover:border-violet-500/40 hover:bg-violet-500/[0.04]"
+                                    : "border-border-subtle bg-bg-base hover:border-blue-500/40 hover:bg-blue-500/[0.04]"
                                 }`}
                             >
                               <div className="flex w-full items-center justify-between">
@@ -149,7 +149,7 @@ export default function SoloPractice() {
                                 ) : task.is_locked ? (
                                   <LockIcon className="h-4 w-4 text-text-muted" />
                                 ) : (
-                                  <CodeIcon className="h-4 w-4 text-violet-500" />
+                                  <CodeIcon className="h-4 w-4 text-blue-500" />
                                 )}
                               </div>
                               <span className={`font-medium line-clamp-1 ${task.is_locked ? 'text-text-muted' : 'text-text-main'}`}>
