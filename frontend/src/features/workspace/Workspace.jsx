@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
@@ -81,7 +81,7 @@ export default function Workspace() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity");
-  const draftStorageKey = `pamsu-workspace-draft-${activityId}`;
+  const draftStorageKey = `pamsu_saved_code_${activityId}`;
 
   const editorRef = useRef(null);
   
@@ -125,6 +125,8 @@ export default function Workspace() {
         const savedDraft = loadDraft(draftStorageKey);
         if (savedDraft === DEFAULT_CODE && activityRes.starter_code) {
           setCode(activityRes.starter_code);
+        } else if (savedDraft !== DEFAULT_CODE) {
+          setNotice("Draft restored");
         }
 
         if (testCasesRes.length > 0 && testCasesRes[0].standard_input) {
@@ -233,7 +235,7 @@ export default function Workspace() {
       } catch {
         // Keep the editor usable when browser storage is unavailable.
       }
-    }, 500);
+    }, 2000);
 
     return () => {
       window.clearTimeout(autosaveTimer);
@@ -799,7 +801,7 @@ export default function Workspace() {
                 className="rounded px-2 py-1 text-text-muted hover:bg-bg-glass-hover hover:text-text-main xl:hidden"
                 aria-label="Close problem panel"
               >
-                Ã—
+                ×
               </button>
             </div>
 
@@ -835,7 +837,7 @@ export default function Workspace() {
                       className="flex items-center gap-2 text-xs text-text-muted font-medium"
                     >
                       <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-text-blue border border-blue-500/20">
-                        âœ“
+                        ✓
                       </span>
                       {requirement}
                     </li>
@@ -985,7 +987,7 @@ export default function Workspace() {
               </div>
 
               <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-black/30 px-2 py-1 font-mono text-[9px] text-text-muted">
-                {lineCount} {lineCount === 1 ? "line" : "lines"} Â·
+                {lineCount} {lineCount === 1 ? "line" : "lines"} ·
                 autosave
               </div>
             </div>
@@ -1122,7 +1124,7 @@ export default function Workspace() {
                 className="rounded px-2 py-1 text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 aria-label="Close session review"
               >
-                Ã—
+                ×
               </button>
             </div>
 

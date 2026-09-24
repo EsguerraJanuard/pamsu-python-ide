@@ -1,9 +1,10 @@
-﻿/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
 import InstructorSidebar from '../../../components/layout/InstructorSidebar';
 import AlertModal from '../../../components/modals/AlertModal';
+import { DiffEditor } from '@monaco-editor/react';
 
 const SplitPaneGradingWorkspace = () => {
   const { classId, taskId } = useParams();
@@ -13,6 +14,7 @@ const SplitPaneGradingWorkspace = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [detailedSub, setDetailedSub] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [taskDetails, setTaskDetails] = useState(null);
 
   // Grade form state
   const [gradeScore, setGradeScore] = useState('');
@@ -42,6 +44,13 @@ const SplitPaneGradingWorkspace = () => {
           });
         }
         setSubmissions(subsMap);
+        
+        try {
+          const taskRes = await api.get(`/instructors/tasks/${taskId}`);
+          setTaskDetails(taskRes);
+        } catch (taskErr) {
+          console.error('Error fetching task details:', taskErr);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -331,9 +340,25 @@ const SplitPaneGradingWorkspace = () => {
               <>
                 <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
                   <h3 className="text-lg font-medium text-text-main mb-2">Submitted Code</h3>
-                  <pre className="bg-bg-panel p-4 rounded text-sm text-emerald-400 overflow-x-auto border border-border-subtle">
+                  <div className="h-[400px] border border-border-subtle rounded overflow-hidden">
+                    <DiffEditor
+                      height="100%"
+                      language="python"
+                      theme="vs-dark"
+                      original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
+                      modified={detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                        renderSideBySide: true,
+                        wordWrap: "on"
+                      }}
+                    />
+                  </div>
+                  {/*
                     {detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
-                  </pre>
+                  */}
                 </div>
 
                 <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">

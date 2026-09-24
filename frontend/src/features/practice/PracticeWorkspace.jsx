@@ -86,7 +86,17 @@ export default function PracticeWorkspace() {
             setTaskDetails(foundTask);
             setModuleDetails(foundModule);
             setNextTaskId(nTaskId);
-            setCode(foundTask.starter_code || "");
+            const draftStorageKey = `pamsu_saved_code_${taskId}`;
+            try {
+              const savedCode = localStorage.getItem(draftStorageKey);
+              if (savedCode) {
+                setCode(savedCode);
+              } else {
+                setCode(foundTask.starter_code || "");
+              }
+            } catch {
+              setCode(foundTask.starter_code || "");
+            }
           }
         } else {
           navigate("/student/practice");
@@ -99,6 +109,19 @@ export default function PracticeWorkspace() {
     };
     fetchTask();
   }, [taskId, navigate]);
+  useEffect(() => {
+    if (!taskId) return;
+    const draftStorageKey = `pamsu_saved_code_${taskId}`;
+    const autosaveTimer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(draftStorageKey, code);
+      } catch {}
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(autosaveTimer);
+    };
+  }, [code, taskId]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);

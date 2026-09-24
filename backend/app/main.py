@@ -230,6 +230,7 @@ redoc_url = "/redoc" if settings.enable_api_docs else None
 openapi_url = "/openapi.json" if settings.enable_api_docs else None
 
 
+from app.integrations.llm_adapters import get_local_llm_adapter
 app = FastAPI(
     title=APP_TITLE,
     description=(
