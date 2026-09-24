@@ -86,7 +86,7 @@ export default function NotificationsPage({ role: propRole }) {
   };
 
   const handleAction = (type, refId) => {
-    if (type === "submission") navigate(`/instructor/submissions/${refId || ""}`);
+    if (type === "submission") navigate(`/instructor/bench`);
     else if (type === "classroom") navigate(`/instructor/classes/${refId || ""}`);
     else if (type === "grade") navigate(`/student/submissions/${refId || ""}`);
   };
@@ -248,19 +248,19 @@ export default function NotificationsPage({ role: propRole }) {
                           <div className="border-t border-border-subtle pt-6">
                             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Suggested Actions</h3>
                             <div className="flex flex-wrap gap-3">
-                              {selectedNotification.type === "submission" && (
-                                <button onClick={() => handleAction("submission", selectedNotification.reference_id)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
-                                  Review Submission
+                              {selectedNotification.event_type === "submission_created" && (
+                                <button onClick={() => handleAction("submission", selectedNotification.resource_id)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
+                                  Open Grading Bench
                                 </button>
                               )}
-                              {selectedNotification.type === "classroom" && (
-                                <button onClick={() => handleAction("classroom", selectedNotification.reference_id)} className={`rounded-lg border px-4 py-2 text-xs font-semibold transition ${isInstructor ? "border-emerald-500/30 bg-emerald-500/10 text-text-emerald hover:bg-emerald-500/20" : "border-blue-500/30 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"}`}>
+                              {(selectedNotification.event_type === "student_enrolled" || selectedNotification.event_type === "enrollment_status_changed") && (
+                                <button onClick={() => handleAction("classroom", selectedNotification.resource_id)} className={`rounded-lg border px-4 py-2 text-xs font-semibold transition ${isInstructor ? "border-emerald-500/30 bg-emerald-500/10 text-text-emerald hover:bg-emerald-500/20" : "border-blue-500/30 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"}`}>
                                   Manage Classroom
                                 </button>
                               )}
-                              {selectedNotification.type === "grade" && (
-                                <button onClick={() => handleAction("grade", selectedNotification.reference_id)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
-                                  View Grade
+                              {(selectedNotification.event_type === "evaluation_completed" || selectedNotification.event_type === "activity_published" || selectedNotification.event_type === "activity_updated") && !isInstructor && (
+                                <button onClick={() => handleAction("grade", selectedNotification.resource_id)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
+                                  View Details
                                 </button>
                               )}
                               <button 
