@@ -496,8 +496,8 @@ const ActivityEditor = () => {
                             />
                           </label>
                         );
-                      })
-                    )()}
+                      });
+                    })()}
                   </div>
                 </div>
                 
