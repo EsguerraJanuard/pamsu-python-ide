@@ -12,6 +12,7 @@ const LiveMonitoring = () => {
   const [error, setError] = useState(null);
   const [classrooms, setClassrooms] = useState([]);
   const [selectedClassroom, setSelectedClassroom] = useState('All');
+  const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
     const fetchClassrooms = async () => {
@@ -22,7 +23,18 @@ const LiveMonitoring = () => {
         console.error('Error fetching classrooms:', err);
       }
     };
+    
+    const fetchTasks = async () => {
+      try {
+        const response = await api.get('/instructors/tasks/');
+        setTasks(Array.isArray(response) ? response : response.items || []);
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+      }
+    };
+
     fetchClassrooms();
+    fetchTasks();
   }, []);
 
   useEffect(() => {
@@ -139,28 +151,25 @@ const LiveMonitoring = () => {
         
         {mode === 'task' && (
           <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle mb-8 shadow-sm">
-            <form onSubmit={handleMonitor} className="flex gap-4 items-end">
-              <div className="flex-1 max-w-md">
-                <label htmlFor="taskId" className="block text-sm font-medium text-text-muted mb-2">
-                  Task ID to Monitor
-                </label>
-                <input
-                  type="text"
-                  id="taskId"
-                  value={taskIdInput}
-                  onChange={(e) => setTaskIdInput(e.target.value)}
-                  className="w-full bg-bg-base border border-border-subtle rounded-lg px-4 py-2.5 text-text-main focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-                  placeholder="Enter Task ID (e.g., 123)"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!taskIdInput.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-text-muted text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
-              >
-                Monitor
-              </button>
-            </form>
+            <div className="flex flex-col gap-2 max-w-md">
+              <label htmlFor="taskId" className="block text-sm font-medium text-text-muted mb-1">
+                Select Task to Monitor
+              </label>
+              <CustomSelect
+                value={activeTaskId || ''}
+                onChange={(val) => {
+                  setActiveTaskId(val);
+                }}
+                className="w-full text-sm py-2"
+                options={[
+                  { value: "", label: "Select a task..." },
+                  ...tasks.map(t => ({
+                    value: t.id,
+                    label: `[ID: ${t.id}] ${t.title}`
+                  }))
+                ]}
+              />
+            </div>
           </div>
         )}
 
