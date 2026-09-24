@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+﻿/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
@@ -104,9 +104,14 @@ const GradingBenchRoot = () => {
                     <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
                       {cls.name}
                     </h2>
-                    <p className="text-sm text-text-muted line-clamp-2">
-                      {cls.description || 'No description provided.'}
-                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      {cls.subject_code && (
+                        <span className="bg-bg-panel border border-border-subtle px-2 py-0.5 rounded text-[10px] font-mono text-text-muted">
+                          {cls.subject_code}
+                        </span>
+                      )}
+                      <span className="text-xs font-medium text-text-muted">{cls.section}</span>
+                    </div>
                   </div>
                   <div className="flex justify-end mt-4">
                     <div className="h-8 w-8 rounded-full bg-border-subtle/50 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">

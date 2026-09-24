@@ -164,8 +164,8 @@ const LiveMonitoring = () => {
                 options={[
                   { value: "", label: "Select a task..." },
                   ...tasks.map(t => ({
-                    value: t.id,
-                    label: `[ID: ${t.id}] ${t.title}`
+                    value: t.task_id,
+                    label: t.title
                   }))
                 ]}
               />
