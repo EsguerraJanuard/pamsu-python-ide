@@ -340,7 +340,7 @@ const ActivityEditor = () => {
         if (formData.is_published) {
           for (const task of tasks) {
             try {
-              await api.patch(/instructors/tasks//publication, { is_published: true });
+              await api.patch(`/instructors/tasks/${task.task_id}/publication`, { is_published: true });
             } catch (pubErr) {
               console.error('Failed to auto-publish task', pubErr);
             }

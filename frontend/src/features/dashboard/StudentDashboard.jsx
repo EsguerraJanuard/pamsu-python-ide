@@ -409,7 +409,7 @@ export default function StudentDashboard() {
                       return (
                         <article
                           key={activity.id}
-                          className={`dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong ${status.accentClass} group`}
+                          onClick={() => navigate('/student/workspace?activity=' + activity.id)} className={`cursor-pointer dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong ${status.accentClass} group`}
                           style={{
                             animation: `dashboardFadeUp 400ms ease ${
                               200 + index * 70
