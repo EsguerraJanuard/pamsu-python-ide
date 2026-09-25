@@ -1,10 +1,4 @@
-﻿class CodingSessionTelemetry(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    tab_switch_count: int
-    blocked_paste_count: int
-    mouseleave_count: int
-
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
@@ -22,6 +16,13 @@ SubmissionStatus = Literal[
     "graded",
     "rejected",
 ]
+
+
+class CodingSessionTelemetry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    tab_switch_count: int
+    blocked_paste_count: int
+    mouseleave_count: int
 
 
 MAX_SOURCE_CODE_LENGTH = 100_000

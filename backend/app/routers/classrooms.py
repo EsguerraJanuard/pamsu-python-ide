@@ -54,7 +54,9 @@ from app.services.classroom_service import (
     list_student_classrooms,
     regenerate_class_code,
     update_classroom,
-    update_enrollment_status,\n    unenroll_student,\n    EnrollmentNotFoundError,
+    update_enrollment_status,
+    unenroll_student,
+    EnrollmentNotFoundError,
 )
 
 
@@ -583,7 +585,7 @@ def update_classroom_endpoint(
 # similarity records, hidden tests, execution output, coding-session
 # telemetry, clipboard contents, pasted text, surveillance data, and
 # automated misconduct conclusions.
-\n
+
 @router.delete(
     "/{class_id}/enrollment",
     status_code=status.HTTP_204_NO_CONTENT,
