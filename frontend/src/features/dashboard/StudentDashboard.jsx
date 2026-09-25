@@ -297,7 +297,7 @@ export default function StudentDashboard() {
                 ) : (
                   <>
                   <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
+                    onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
                     <p
@@ -325,7 +325,7 @@ export default function StudentDashboard() {
                   </article>
                   
                   <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
+                    onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
                     <p

@@ -41,7 +41,7 @@ const SplitPaneGradingWorkspace = () => {
         if (subsRes && Array.isArray(subsRes.items)) {
           subsRes.items.forEach(sub => {
               if (sub.activity?.task_id === parseInt(taskId)) {
-                 subsMap[sub.student.student_id] = sub;
+                 if (!subsMap[sub.student.student_id]) { subsMap[sub.student.student_id] = sub; }
               }
           });
         }

@@ -25,7 +25,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
       });
 
       setCode("");
-      if (onSuccess) onSuccess(res.data.class_id); // Triggers the parent to refresh the class list and optionally redirect
+      if (onSuccess) onSuccess(res.class_id); // Triggers the parent to refresh the class list and optionally redirect
       onClose();
     } catch (err) {
       setError(err.message || "Invalid class code or class is full.");

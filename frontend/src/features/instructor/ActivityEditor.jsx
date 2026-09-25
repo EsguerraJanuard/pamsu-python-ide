@@ -333,7 +333,20 @@ const ActivityEditor = () => {
       delete payload.is_published;
       delete payload.allow_paste;
 
-      const response = await api.post('/instructors/tasks/', payload);
+      
+        const response = await api.post('/instructors/tasks/', payload);
+        const tasks = Array.isArray(response) ? response : [response];
+        
+        if (formData.is_published) {
+          for (const task of tasks) {
+            try {
+              await api.patch(/instructors/tasks//publication, { is_published: true });
+            } catch (pubErr) {
+              console.error('Failed to auto-publish task', pubErr);
+            }
+          }
+        }
+
       
       // If expected output was provided, automatically convert it into a global test case
       if (formData.expected_output && formData.expected_output.trim() !== "") {

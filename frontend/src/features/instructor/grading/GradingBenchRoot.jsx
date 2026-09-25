@@ -14,7 +14,7 @@ const GradingBenchRoot = () => {
     const fetchClasses = async () => {
       try {
         const response = await api.get('/classrooms/');
-        setClasses(response);
+        setClasses(Array.isArray(response) ? response : (response?.data || []));
       } catch (err) {
         setError('Failed to load classes.');
         console.error(err);
