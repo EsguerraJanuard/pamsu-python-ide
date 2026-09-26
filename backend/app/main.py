@@ -546,9 +546,3 @@ def readiness_check(
 # does not make the core API unready until concrete adapters become required.
 
 
-
-import time
-@app.post("/sleep")
-def sleep_test():
-    time.sleep(4)
-    return {"status": "awake"}
