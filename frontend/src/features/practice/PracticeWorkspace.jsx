@@ -40,7 +40,7 @@ export default function PracticeWorkspace() {
   const [feedback, setFeedback] = useState(null);
   const [aiHint, setAiHint] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [triggerRun, setTriggerRun] = useState(0);
+  
   const [output, setOutput] = useState("");
 
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function PracticeWorkspace() {
     setAiHint(null);
 
     // Also trigger InteractiveTerminal so student sees raw output
-    setTriggerRun(prev => prev + 1);
+    
 
     try {
       const res = await api.post(`/practice/tasks/${taskId}/submit`, { code });
