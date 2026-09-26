@@ -158,6 +158,7 @@ export default function Workspace() {
   const [notice, setNotice] = useState("");
   const [visibleNotice, setVisibleNotice] = useState("");
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [triggerRun, setTriggerRun] = useState(0);
 
   // Silky-smooth auto-dismiss fade animation for notice message
   useEffect(() => {
