@@ -49,8 +49,8 @@ typing_extensions==4.16.0
 tzdata==2026.3
 tzlocal==5.3.1
 uvicorn==0.39.0
+websockets==14.0
 vine==5.1.0
 wcwidth==0.8.2
 openpyxl>=3.1.0
 openpyxl>=3.1.0
-google-generativeai
