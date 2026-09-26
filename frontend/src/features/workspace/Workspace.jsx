@@ -253,8 +253,8 @@ export default function Workspace() {
     stateRefs.current = { tabSwitchCount, blockedPasteCount, mouseLeaveCount };
   }, [tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+
+
   // Create coding session on load
   useEffect(() => {
     if (!activityId) return;
