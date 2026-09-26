@@ -322,6 +322,7 @@ def start_registration(
     db: Session,
     registration_data: RegistrationStartRequest,
     delivery_adapter: OTPEmailAdapter,
+    background_tasks: Any = None,
 ) -> OTPChallengeResponse:
     normalized_email = normalize_email(registration_data.email)
 
@@ -372,14 +373,23 @@ def start_registration(
         db.add(pending_registration)
         db.flush()
 
-        deliver_otp(
-            delivery_adapter=delivery_adapter,
-            email=normalized_email,
-            otp_code=otp_code,
-            purpose="registration",
-        )
-
         db.commit()
+        
+        if background_tasks:
+            background_tasks.add_task(
+                deliver_otp,
+                delivery_adapter=delivery_adapter,
+                email=normalized_email,
+                otp_code=otp_code,
+                purpose="registration",
+            )
+        else:
+            deliver_otp(
+                delivery_adapter=delivery_adapter,
+                email=normalized_email,
+                otp_code=otp_code,
+                purpose="registration",
+            )
 
     except IntegrityError as exc:
         db.rollback()
@@ -407,6 +417,7 @@ def resend_registration_otp(
     db: Session,
     challenge_id: str,
     delivery_adapter: OTPEmailAdapter,
+    background_tasks: Any = None,
 ) -> OTPChallengeResponse:
     challenge = get_challenge_or_raise(
         db=db,

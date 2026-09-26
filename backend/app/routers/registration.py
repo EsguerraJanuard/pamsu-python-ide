@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -67,6 +67,7 @@ DELIVERY_UNAVAILABLE_MESSAGE = "Verification email delivery is temporarily unava
 )
 def start_registration_endpoint(
     registration_data: RegistrationStartRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
 ) -> OTPChallengeResponse:
@@ -75,6 +76,7 @@ def start_registration_endpoint(
             db=db,
             registration_data=registration_data,
             delivery_adapter=delivery_adapter,
+            background_tasks=background_tasks,
         )
     except RegistrationConflictError as exc:
         raise HTTPException(
@@ -203,6 +205,7 @@ def verify_registration_endpoint(
 )
 def resend_registration_endpoint(
     resend_data: OTPResendRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
 ) -> OTPChallengeResponse:
@@ -211,6 +214,7 @@ def resend_registration_endpoint(
             db=db,
             challenge_id=resend_data.challenge_id,
             delivery_adapter=delivery_adapter,
+            background_tasks=background_tasks,
         )
     except OTPChallengeNotFoundError as exc:
         raise HTTPException(
