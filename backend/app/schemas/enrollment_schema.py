@@ -54,8 +54,7 @@ class EnrollmentJoinRequest(BaseModel):
 
 
 class EnrollmentStatusUpdate(BaseModel):
-    status: EnrollmentStatus
-    is_online: bool = False = Field(
+    status: EnrollmentStatus = Field(
         ...,
         description=(
             "Instructor-controlled enrollment status. "
@@ -177,4 +176,5 @@ class StudentClassroomResponse(BaseModel):
 # STATUS BOUNDARY:
 # Classroom availability uses Classroom.is_active.
 # Enrollment membership uses active, disabled, or removed.
+
 
