@@ -351,56 +351,6 @@ export default function PracticeWorkspace() {
                     </button>
                   )
                 )}
-
-                {feedback.is_successful && (
-                  nextTaskId ? (
-                    <button
-                      onClick={() => {
-                        setTaskDetails(null);
-                        setFeedback(null);
-                        setAiHint(null);
-                        setCode("");
-                        navigate(`/student/practice/workspace?task=${nextTaskId}`);
-                      }}
-                      className="mt-2 w-full flex justify-center items-center gap-2 rounded-md bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-500 hover:-translate-y-0.5 active:translate-y-0"
-                    >
-                      Proceed to Next Task
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => navigate('/student/practice')}
-                      className="mt-2 w-full flex justify-center items-center gap-2 rounded-md bg-slate-700 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-slate-600 hover:-translate-y-0.5 active:translate-y-0"
-                    >
-                      Module Complete! Return to Modules
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </button>
-                  )
-                )}
-
-                
-
-
-                
-                {(isAiLoading || aiHint) && (
-                  <div className="mt-6 animate-fade-in rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-5 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
-                    <h3 className="text-base font-bold flex items-center gap-2 mb-3 text-indigo-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
-                      AI Tutor Feedback
-                    </h3>
-                    {isAiLoading ? (
-                      <div className="flex items-center gap-3 text-sm text-indigo-300">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-400/20 border-t-indigo-400"></div>
-                        Generating pedagogical hint...
-                      </div>
-                    ) : (
-                      <div className="prose prose-invert prose-sm max-w-none text-indigo-100">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiHint}</ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {feedback.ast_feedback && feedback.ast_feedback.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold uppercase text-text-muted mb-1">Structural Feedback</h4>
