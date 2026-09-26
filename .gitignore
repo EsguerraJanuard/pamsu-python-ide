@@ -25,3 +25,6 @@ todo.md
 
 # Local database
 backend/pamsu.db
+
+# AI Agent Memory
+AGENTS.md
