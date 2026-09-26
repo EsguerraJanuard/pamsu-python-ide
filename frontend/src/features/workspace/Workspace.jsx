@@ -462,8 +462,22 @@ export default function Workspace() {
     setRunAttemptCount((count) => count + 1);
     setExecutionStatus("running");
     setActivePanel("output");
-    if (typeof setTriggerRun === 'function') {
-      setTriggerRun((prev) => prev + 1);
+    setOutput("Running code on Judge0 server...");
+    
+    try {
+      const execRes = await api.post("/execution/requests/", {
+        request_kind: "run",
+        task_id: parseInt(activityId),
+        source_code: code,
+        standard_input: standardInput || ""
+      });
+      pollExecution(execRes.execution_id, false);
+    } catch (err) {
+      setExecutionStatus("failed");
+      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
+      const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : `Failed to start execution: ${err.message || err.detail || 'Unknown error'}`;
+      setOutput(msg);
+      setNotice(msg);
     }
   };
 
@@ -1247,7 +1261,7 @@ export default function Workspace() {
           </aside>
         </div>
 
-        <Statusbar pythonVersion="Python 3" />
+        <Statusbar sessionStatus={sessionId ? "active" : "connecting"} pythonVersion="Python 3" />
       </div>
     
       <ConfirmationModal 
