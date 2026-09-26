@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import Depends, FastAPI, status
@@ -297,7 +297,7 @@ if settings.cors_allowed_origins:
         expose_headers=[
             settings.correlation_id_header,
         ],
-        max_age=600,
+        
     )
 
 
@@ -543,3 +543,5 @@ def readiness_check(
 # OPTIONAL-INTEGRATION BOUNDARY:
 # OTP email and local LLM integrations remain contract-only. Their absence
 # does not make the core API unready until concrete adapters become required.
+
+
