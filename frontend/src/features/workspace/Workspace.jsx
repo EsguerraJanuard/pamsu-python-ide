@@ -1033,12 +1033,8 @@ export default function Workspace() {
 
               <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
                 {activePanel === "output" && (
-                  <div className="w-full h-full min-h-[300px]">
-                    <InteractiveTerminal 
-                      code={code} 
-                      triggerRun={triggerRun} 
-                      onRunFinished={() => setExecutionStatus("completed")} 
-                    />
+                  <div className="w-full h-full min-h-[300px] bg-slate-900/50 p-4 rounded font-mono text-sm text-slate-300 whitespace-pre-wrap overflow-auto border border-slate-700/50">
+                    {output}
                   </div>
                 )}
 

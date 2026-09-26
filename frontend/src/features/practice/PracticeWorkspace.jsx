@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import InteractiveTerminal from "../workspace/InteractiveTerminal";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
@@ -42,6 +41,7 @@ export default function PracticeWorkspace() {
   const [aiHint, setAiHint] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [triggerRun, setTriggerRun] = useState(0);
+  const [output, setOutput] = useState("");
 
   useEffect(() => {
     // Monaco editor applies settings dynamically via the options prop.
@@ -143,6 +143,7 @@ export default function PracticeWorkspace() {
     try {
       const res = await api.post(`/practice/tasks/${taskId}/submit`, { code });
       setFeedback(res);
+      setOutput(res.execution_feedback || "Execution completed without output.");
       
       if (res.is_successful) {
         // Find next task id
@@ -381,7 +382,9 @@ export default function PracticeWorkspace() {
                 <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
              </div>
                <div className="flex-1 p-1 bg-transparent h-full relative">
-                 <InteractiveTerminal code={code} triggerRun={triggerRun} onRunFinished={() => setIsSubmitting(false)} />
+                 <div className="w-full h-full min-h-[150px] bg-slate-900/50 p-4 rounded font-mono text-sm text-slate-300 whitespace-pre-wrap overflow-auto border border-slate-700/50">
+                   {output || "Output will appear here..."}
+                 </div>
                </div>
           </div>
         </div>
