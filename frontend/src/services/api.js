@@ -121,8 +121,8 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
       throw new ApiError('Request timed out. Please check your connection or try again.', 408);
     }
 
-    if (!navigator.onLine || error.message.includes('Failed to fetch')) {
-      throw new ApiError('Cannot connect to the server. Please verify the backend is running.', 0);
+    if (!navigator.onLine || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      throw new ApiError('Cannot connect to the server. This may be a CORS issue (if using a preview URL) or the backend is offline.', 0);
     }
 
     throw new ApiError(error.message || 'An unexpected network error occurred.', 500);
