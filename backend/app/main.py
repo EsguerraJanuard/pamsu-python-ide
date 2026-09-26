@@ -545,3 +545,11 @@ def readiness_check(
 # does not make the core API unready until concrete adapters become required.
 
 
+
+@app.get("/fix-legacy-hashes")
+def fix_legacy_hashes(secret: str):
+    if secret != "fixitnow":
+        return {"error": "wrong secret"}
+    import seed
+    seed.seed_database()
+    return {"status": "success", "message": "Database seeded with fresh bcrypt hashes!"}
