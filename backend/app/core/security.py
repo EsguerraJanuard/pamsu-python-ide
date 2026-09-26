@@ -41,6 +41,9 @@ def verify_password(
     if not plain_password or not password_hash:
         return False
 
+    if not password_hash.startswith(("$2a$", "$2b$", "$2y$")):
+        return False
+
     try:
         return bcrypt.checkpw(
             plain_password.encode("utf-8"),
