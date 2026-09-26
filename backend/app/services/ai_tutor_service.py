@@ -9,7 +9,7 @@ def generate_pedagogical_hint(task_instructions: str, student_code: str, error_o
     try:
         genai.configure(api_key=api_key)
         # We can use flash for faster tutor responses
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-3.0-flash')
         
         prompt = f'''You are a strict but encouraging Computer Science professor helping a student. 
 The student has failed a programming practice task.
