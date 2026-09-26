@@ -8,6 +8,7 @@ import api from "../../services/api";
 import Sidebar from "../../components/layout/Sidebar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import Statusbar from "../../components/layout/Statusbar";
+import InteractiveTerminal from "./InteractiveTerminal";
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const DEFAULT_CODE = `# Fibonacci Sequence
