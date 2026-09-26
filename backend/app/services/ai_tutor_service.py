@@ -11,10 +11,15 @@ def generate_pedagogical_hint(task_instructions: str, student_code: str, error_o
         # We can use flash for faster tutor responses
         model = genai.GenerativeModel('gemini-3.8-flash')
         
-        prompt = f'''You are a strict but encouraging Computer Science professor helping a student. 
-The student has failed a programming practice task.
-Analyze their error and provide a *hint* or *conceptual explanation*. 
-COMPLETELY FORBIDDEN: Do not output direct, copy-pasteable solutions or exactly what code to write.
+        prompt = f'''You are an AI coding tutor helping a beginner Python student.
+Analyze their code and the execution error, then provide a guiding hint using Markdown.
+
+CRITICAL RULES:
+1. **Be extremely concise** (2-3 short sentences maximum). 
+2. **NEVER give the direct answer** or write the corrected code.
+3. Point out the exact line or concept they misunderstood.
+4. Use Markdown formatting (bold keywords, use bullet points if helpful, format code concepts in backticks).
+5. Cut the fluff. Do not lecture, do not roleplay, and do not say things like "Take a breath" or "Let's look at this." Just deliver the hint directly.
 
 Task Instructions:
 {task_instructions}
@@ -22,7 +27,7 @@ Task Instructions:
 Student Code:
 {student_code}
 
-Execution/Error Output:
+Execution Error:
 {error_output}
 '''
         response = model.generate_content(prompt)
