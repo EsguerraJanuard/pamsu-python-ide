@@ -277,6 +277,7 @@ if settings.cors_allowed_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
+        allow_origin_regex=r"https://pamsu-python-ide.*\.vercel\.app",
         allow_credentials=(settings.cors_allow_credentials),
         max_age=86400,
         allow_methods=[
