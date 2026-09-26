@@ -129,11 +129,29 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
   }
 };
 
+
+const pendingRequests = new Map();
+
 export const api = {
-  get: (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT) =>
-    request(endpoint, { ...options, method: 'GET' }, timeoutMs),
+  get: (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT) => {
+    const url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const key = `GET::${url}`;
+    
+    if (pendingRequests.has(key)) {
+      return pendingRequests.get(key);
+    }
+    
+    const promise = request(endpoint, { ...options, method: 'GET' }, timeoutMs)
+      .finally(() => {
+        pendingRequests.delete(key);
+      });
+      
+    pendingRequests.set(key, promise);
+    return promise;
+  },
 
   post: (endpoint, body, options = {}, timeoutMs = DEFAULT_TIMEOUT) =>
+
     request(
       endpoint,
       {

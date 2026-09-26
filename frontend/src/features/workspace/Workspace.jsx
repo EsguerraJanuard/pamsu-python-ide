@@ -243,6 +243,11 @@ export default function Workspace() {
   }, [code, draftStorageKey]);
 
   const ws = useRef(null);
+  
+  const stateRefs = useRef({ tabSwitchCount: 0, blockedPasteCount: 0, mouseLeaveCount: 0 });
+  useEffect(() => {
+    stateRefs.current = { tabSwitchCount, blockedPasteCount, mouseLeaveCount };
+  }, [tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -258,9 +263,9 @@ export default function Workspace() {
         ws.current.send(JSON.stringify({ 
           event_type: "heartbeat",
           task_id: activityId ? parseInt(activityId) : null,
-          tab_switch_count: tabSwitchCount,
-          blocked_paste_count: blockedPasteCount,
-          mouseleave_count: mouseLeaveCount
+          tab_switch_count: stateRefs.current.tabSwitchCount,
+          blocked_paste_count: stateRefs.current.blockedPasteCount,
+          mouseleave_count: stateRefs.current.mouseLeaveCount
         }));
       }
     }, 5000);
@@ -271,7 +276,7 @@ export default function Workspace() {
         ws.current.close();
       }
     };
-  }, [activityId, tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
+  }, [activityId]);
 
   useEffect(() => {
     const handleLossOfFocus = () => {
@@ -541,8 +546,8 @@ export default function Workspace() {
         await api.post("/logs/behavioral/", {
           sub_id: subId,
           tab_switches_count: tabSwitchCount,
-          blocked_paste_count: blockedPasteCount,
-          mouseleave_count: mouseLeaveCount,
+          blocked_paste_count: stateRefs.current.blockedPasteCount,
+          mouseleave_count: stateRefs.current.mouseLeaveCount,
           run_attempt_count: runAttemptCount,
           idle_duration_seconds: 0,
           ...(lastBlockedPasteIso && { last_blocked_paste_at: lastBlockedPasteIso })

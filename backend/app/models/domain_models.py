@@ -422,6 +422,7 @@ class Enrollment(Base):
             "student_id",
             name="uq_enrollment_class_student",
         ),
+        Index("ix_enrollments_class_student", "class_id", "student_id"),
         CheckConstraint(
             "status IN ('active', 'disabled', 'removed')",
             name="ck_enrollments_status",
@@ -517,6 +518,7 @@ class PendingEnrollment(Base):
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = (
+        Index("ix_tasks_class_pub", "class_id", "is_published"),
         CheckConstraint(
             "activity_type IN ('laboratory', 'homework')",
             name="ck_tasks_activity_type",
@@ -717,6 +719,7 @@ class TaskTestCase(Base):
 class Submission(Base):
     __tablename__ = "submissions"
     __table_args__ = (
+        Index("ix_submissions_task_student", "task_id", "student_id"),
         UniqueConstraint(
             "student_id",
             "task_id",
