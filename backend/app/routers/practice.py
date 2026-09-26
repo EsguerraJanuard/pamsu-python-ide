@@ -8,7 +8,8 @@ from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.domain_models import User, PracticeModule, PracticeTask, PracticeProgress, PracticeAttempt
-from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown
+from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown, PracticeAiHintResponse
+from app.services.ai_tutor_service import generate_pedagogical_hint
 from sqlalchemy import func
 
 from app.core.security import get_current_instructor
@@ -206,6 +207,7 @@ def submit_practice_task(
     db.commit()
 
     return PracticeSubmissionResponse(
+        attempt_id=attempt.attempt_id,
         is_successful=is_successful,
         execution_feedback=execution_feedback,
         ast_feedback=ast_feedback_msgs,
@@ -469,3 +471,35 @@ def delete_practice_task(
     db.delete(task)
     db.commit()
     return {"message": "Task deleted"}
+
+
+
+@router.post("/attempts/{attempt_id}/ai-hint", response_model=PracticeAiHintResponse)
+def get_ai_hint(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id, PracticeAttempt.student_id == current_user.user_id).first()
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Practice attempt not found.")
+    
+    if attempt.is_successful:
+        raise HTTPException(status_code=400, detail="Cannot generate AI hint for successful attempts.")
+
+    if attempt.ai_hint:
+        return PracticeAiHintResponse(ai_hint=attempt.ai_hint)
+        
+    task = attempt.task
+    error_output = attempt.execution_feedback or "Unknown Error"
+    
+    hint = generate_pedagogical_hint(
+        task_instructions=task.instructions,
+        student_code=attempt.submitted_code,
+        error_output=error_output
+    )
+    
+    attempt.ai_hint = hint
+    db.commit()
+    
+    return PracticeAiHintResponse(ai_hint=hint)

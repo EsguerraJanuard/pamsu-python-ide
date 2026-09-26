@@ -2104,7 +2104,9 @@ class PracticeAttempt(Base):
     is_successful = Column(Boolean, default=False, nullable=False)
     execution_feedback = Column(Text, nullable=True)
     ast_feedback = Column(JSON, nullable=True)
+    ai_hint = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     student = relationship("User")
     task = relationship("PracticeTask", back_populates="attempts")
+

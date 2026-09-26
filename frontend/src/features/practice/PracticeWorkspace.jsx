@@ -39,6 +39,8 @@ export default function PracticeWorkspace() {
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [aiHint, setAiHint] = useState(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [triggerRun, setTriggerRun] = useState(0);
 
   useEffect(() => {
@@ -132,7 +134,42 @@ export default function PracticeWorkspace() {
     
     setIsSubmitting(true);
     setFeedback(null);
+    setAiHint(null);
+    setNextTaskId(null);
+
+    // Also trigger InteractiveTerminal so student sees raw output
     setTriggerRun(prev => prev + 1);
+
+    try {
+      const res = await api.post(`/practice/tasks/${taskId}/submit`, { code });
+      setFeedback(res);
+      
+      if (res.is_successful) {
+        // Find next task id
+        if (moduleDetails) {
+          const tIndex = moduleDetails.tasks.findIndex(t => String(t.task_id) === String(taskId));
+          if (tIndex !== -1 && tIndex < moduleDetails.tasks.length - 1) {
+            setNextTaskId(moduleDetails.tasks[tIndex + 1].task_id);
+          }
+        }
+      } else {
+        // Fetch AI hint
+        setIsAiLoading(true);
+        try {
+          const aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
+          setAiHint(aiRes.ai_hint);
+        } catch (aiErr) {
+          console.error("AI hint fetch failed", aiErr);
+          setAiHint("The AI Tutor is currently unavailable. Please check your syntax and try again.");
+        } finally {
+          setIsAiLoading(false);
+        }
+      }
+    } catch (err) {
+      console.error("Submission failed", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const monacoOptions = {
@@ -242,6 +279,7 @@ export default function PracticeWorkspace() {
               onClick={() => {
                 setTaskDetails(null); // trigger re-fetch/loading
                 setFeedback(null);
+    setAiHint(null);
                 setCode("");
                 navigate(`/student/practice/workspace?task=${nextTaskId}`);
               }}
@@ -287,6 +325,26 @@ export default function PracticeWorkspace() {
                 <p className="text-sm font-medium mb-4">{feedback.message}</p>
                 
 
+
+                
+                {(isAiLoading || aiHint) && (
+                  <div className="mt-6 animate-fade-in rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-5 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                    <h3 className="text-base font-bold flex items-center gap-2 mb-3 text-indigo-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
+                      AI Tutor Feedback
+                    </h3>
+                    {isAiLoading ? (
+                      <div className="flex items-center gap-3 text-sm text-indigo-300">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-400/20 border-t-indigo-400"></div>
+                        Generating pedagogical hint...
+                      </div>
+                    ) : (
+                      <div className="prose prose-invert prose-sm max-w-none text-indigo-100">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiHint}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {feedback.ast_feedback && feedback.ast_feedback.length > 0 && (
                   <div>
@@ -337,3 +395,4 @@ export default function PracticeWorkspace() {
     </div>
   );
 }
+

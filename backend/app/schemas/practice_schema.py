@@ -36,6 +36,7 @@ class PracticeSubmissionRequest(BaseModel):
     code: str
 
 class PracticeSubmissionResponse(BaseModel):
+    attempt_id: int
     is_successful: bool
     execution_feedback: Optional[str] = None
     ast_feedback: Optional[List[str]] = None
@@ -94,3 +95,7 @@ class PracticeTaskUpdate(BaseModel):
     class Config:
         extra = "forbid"
 
+
+
+class PracticeAiHintResponse(BaseModel):
+    ai_hint: str
