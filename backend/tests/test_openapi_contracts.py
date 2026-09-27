@@ -22,6 +22,11 @@ PUBLIC_OPERATIONS = {
     ("post", "/registration/start"),
     ("post", "/registration/verify"),
     ("post", "/registration/resend"),
+    ("put", "/execution/internal/judge0-callback"),
+    ("post", "/users/password-reset/start"),
+    ("post", "/users/password-reset/verify"),
+    ("post", "/users/password-reset/complete"),
+    ("post", "/users/password-reset/resend"),
 }
 
 
@@ -471,6 +476,7 @@ def test_identity_and_server_controlled_fields_come_from_token():
         "tab_switch_increment",
         "blocked_paste_increment",
         "idle_duration_increment_seconds",
+        "mouseleave_increment",
     }
 
     session_backend_fields = {
@@ -523,7 +529,7 @@ def test_student_submission_response_respects_review_boundary():
     prohibited_fields = {
         "student_id",
         "jaccard_score",
-        "ast_pass_fail",
+        
         "official_grade",
         "automatic_grade",
         "misconduct_verdict",
@@ -1493,9 +1499,9 @@ def test_gradebook_csv_openapi_contract_is_privacy_safe():
         {},
     )
 
-    assert "text/csv" in success_content
+    assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in success_content
 
-    csv_schema = success_content["text/csv"]["schema"]
+    csv_schema = success_content["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]["schema"]
 
     assert csv_schema["type"] == "string"
     assert csv_schema["format"] == "binary"

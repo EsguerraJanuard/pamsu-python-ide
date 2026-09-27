@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   --color-bg-base: var(--bg-base);
@@ -163,3 +164,4 @@ input:-webkit-autofill:active {
 .flatpickr-time .flatpickr-am-pm {
   color: rgba(255, 255, 255, 0.8) !important;
 }
+

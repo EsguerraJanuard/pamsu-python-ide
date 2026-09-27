@@ -209,6 +209,7 @@ def test_task_update_schema_excludes_publication_and_ownership_fields():
         "paste_policy",
         "is_graded",
         "due_at",
+        "difficulty",
         "scheduled_publish_at",
     }
 

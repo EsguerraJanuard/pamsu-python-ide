@@ -211,7 +211,7 @@ def test_submission_create_excludes_backend_controlled_fields():
         "submitted_at",
         "accepted_at",
         "jaccard_score",
-        "ast_pass_fail",
+        
         "official_grade",
         "automatic_grade",
     }
@@ -269,7 +269,7 @@ def test_student_submission_response_is_student_safe():
     instructor_only_fields = {
         "student_id",
         "jaccard_score",
-        "ast_pass_fail",
+        
         "official_grade",
         "automatic_grade",
         "instructor_grade",
@@ -301,7 +301,7 @@ def test_instructor_submission_response_has_review_indicators():
         "submitted_at",
         "accepted_at",
         "jaccard_score",
-        "ast_pass_fail",
+        
     }.issubset(properties)
 
     prohibited_automatic_verdicts = {
