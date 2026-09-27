@@ -5,7 +5,7 @@ import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
 
 export default function SubmissionDetails() {
-  const { id } = useParams();
+  const { id, taskId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState(null);
@@ -14,10 +14,13 @@ export default function SubmissionDetails() {
   useEffect(() => {
     let isMounted = true;
     const fetchSubmissionDetails = async () => {
-      if (!id) return;
+      if (!id && !taskId) return;
       setLoading(true);
       try {
-        const response = await api.get(`/submissions/${id}`);
+        const endpoint = taskId 
+          ? `/submissions/official/${taskId}`
+          : `/submissions/${id}`;
+        const response = await api.get(endpoint);
         // We only have limited data from the backend
         if (isMounted && response) {
           setSubmission(response);
@@ -33,7 +36,7 @@ export default function SubmissionDetails() {
 
     fetchSubmissionDetails();
     return () => { isMounted = false; };
-  }, [id]);
+  }, [id, taskId]);
 
   if (loading) {
     return (

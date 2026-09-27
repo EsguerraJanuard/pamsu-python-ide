@@ -216,7 +216,7 @@ export default function Assignments() {
 
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {
-      navigate(`/student/submissions/${activity.id}`);
+      navigate(`/student/submissions/task/${activity.id}`);
       return;
     }
 
