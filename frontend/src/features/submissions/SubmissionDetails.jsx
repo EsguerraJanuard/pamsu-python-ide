@@ -122,6 +122,7 @@ export default function SubmissionDetails() {
               </div>
 
               <div className="flex flex-col items-end gap-2">
+                 {submission.ast_pass_fail !== undefined && (
                  <div className="text-right">
                     <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">AST Validation</p>
                     {submission.ast_pass_fail === null ? (
@@ -132,6 +133,7 @@ export default function SubmissionDetails() {
                       <span className="text-text-rose font-bold px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded inline-block mt-1">FAILED</span>
                     )}
                  </div>
+                 )}
               </div>
             </div>
           </div>
