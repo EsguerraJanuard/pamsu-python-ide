@@ -493,7 +493,8 @@ def get_all_active_instructor_sessions(
         .join(Classroom, Task.class_id == Classroom.class_id)
         .filter(
             Classroom.instructor_id == instructor_id,
-            CodingSession.ended_at.is_(None)
+            CodingSession.ended_at.is_(None),
+            CodingSession.last_activity_at >= _utc_now() - timedelta(minutes=2)
         )
         .order_by(
             CodingSession.started_at.desc(),

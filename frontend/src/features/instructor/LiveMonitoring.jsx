@@ -49,7 +49,7 @@ const LiveMonitoring = () => {
       try {
         const url = mode === 'global' 
           ? `/instructors/coding-sessions/live`
-          : `/instructors/tasks/${activeTaskId}/coding-sessions`;
+          : `/instructors/tasks/${activeTaskId}/coding-sessions?active_only=true`;
           
         const response = await api.get(url);
         // Handle both possible wrapper object or direct array
@@ -327,8 +327,8 @@ const LiveMonitoring = () => {
                       Last Heartbeat
                     </span>
                     <span className="font-medium text-text-muted">
-                      {session.last_heartbeat 
-                        ? new Date(session.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
+                      {session.last_activity_at 
+                        ? new Date(session.last_activity_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
                         : 'Never'}
                     </span>
                   </div>
