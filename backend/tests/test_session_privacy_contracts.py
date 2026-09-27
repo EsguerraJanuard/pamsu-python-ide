@@ -118,6 +118,7 @@ def test_coding_session_database_has_only_approved_fields():
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",
+        "mouseleave_count",
         "last_blocked_paste_at",
     }
 
@@ -135,6 +136,7 @@ def test_behavioral_log_database_has_only_approved_fields():
         "mouseleave_count",
         "run_attempt_count",
         "idle_duration_seconds",
+        "mouseleave_count",
         "last_blocked_paste_at",
         "created_at",
         "updated_at",
@@ -169,6 +171,7 @@ def test_activity_update_accepts_only_aggregate_increments():
         "tab_switch_increment",
         "blocked_paste_increment",
         "idle_duration_increment_seconds",
+        "mouseleave_increment",
     }
 
     valid_update = CodingSessionActivityUpdate(
@@ -260,6 +263,7 @@ def test_session_response_models_are_review_only():
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",
+        "mouseleave_count",
         "last_blocked_paste_at",
     }
 
@@ -300,6 +304,7 @@ def test_openapi_session_requests_exclude_private_fields():
         "tab_switch_increment",
         "blocked_paste_increment",
         "idle_duration_increment_seconds",
+        "mouseleave_increment",
     }
 
     server_controlled_fields = {
@@ -313,6 +318,7 @@ def test_openapi_session_requests_exclude_private_fields():
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",
+        "mouseleave_count",
         "last_blocked_paste_at",
     }
 

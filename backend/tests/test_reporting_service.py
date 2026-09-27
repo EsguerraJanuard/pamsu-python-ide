@@ -19,7 +19,7 @@ from app.services.reporting_service import (
     ReportingAccessDeniedError,
     ReportingPaginationError,
     ReportingTaskUnavailableError,
-    build_gradebook_csv_export,
+    build_gradebook_excel_export,
     get_activity_completion_summary,
     get_classroom_completion_summary,
     get_grade_distribution,
@@ -684,7 +684,7 @@ def test_gradebook_csv_export_is_owner_scoped_and_privacy_safe(
         db_session,
     )
 
-    export = build_gradebook_csv_export(
+    export = build_gradebook_excel_export(
         db_session,
         instructor_id=context["owner"].user_id,
         class_id=context["classroom"].class_id,
@@ -749,7 +749,7 @@ def test_gradebook_csv_export_denies_another_instructor(
     with pytest.raises(
         ReportingAccessDeniedError,
     ):
-        build_gradebook_csv_export(
+        build_gradebook_excel_export(
             db_session,
             instructor_id=context["other_instructor"].user_id,
             class_id=context["classroom"].class_id,

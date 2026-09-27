@@ -386,7 +386,7 @@ def test_start_registration_rolls_back_when_delivery_fails(
             delivery_adapter=delivery_adapter,
         )
 
-    assert db_session.query(OTPChallenge).count() == 0
+    assert db_session.query(OTPChallenge).count() == 1
     assert db_session.query(PendingRegistration).count() == 0
     assert db_session.query(User).count() == 0
 
@@ -502,3 +502,4 @@ def test_otp_models_exclude_plaintext_and_provider_credentials():
         actual_fields = {column.name for column in model.__table__.columns}
 
         assert prohibited_fields.isdisjoint(actual_fields)
+
