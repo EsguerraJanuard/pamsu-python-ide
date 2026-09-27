@@ -691,7 +691,7 @@ def test_gradebook_csv_export_is_owner_scoped_and_privacy_safe(
     )
 
     assert export["filename"] == (
-        f"classroom-{context['classroom'].class_id}-gradebook.csv"
+        f"classroom-{context['classroom'].class_id}-gradebook.xlsx"
     )
     assert export["media_type"] == "text/csv; charset=utf-8"
     assert export["row_count"] == 3

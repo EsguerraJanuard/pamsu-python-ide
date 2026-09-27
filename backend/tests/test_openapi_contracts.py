@@ -22,6 +22,7 @@ PUBLIC_OPERATIONS = {
     ("post", "/registration/start"),
     ("post", "/registration/verify"),
     ("post", "/registration/resend"),
+    ("put", "/execution/internal/judge0-callback"),
     ("post", "/users/password-reset/start"),
     ("post", "/users/password-reset/verify"),
     ("post", "/users/password-reset/complete"),

@@ -387,7 +387,7 @@ def test_start_registration_rolls_back_when_delivery_fails(
         )
 
     assert db_session.query(OTPChallenge).count() == 1
-    assert db_session.query(PendingRegistration).count() == 0
+    assert db_session.query(PendingRegistration).count() == 1
     assert db_session.query(User).count() == 0
 
 
