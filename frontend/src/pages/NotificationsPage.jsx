@@ -240,7 +240,7 @@ export default function NotificationsPage({ role: propRole }) {
                           
                           <h1 className="text-2xl font-bold mb-4">{selectedNotification.title}</h1>
                           
-                          <div className="prose prose-invert prose-sm max-w-none text-text-muted mb-8">
+                          <div className="prose dark:prose-invert prose-sm max-w-none text-text-muted mb-8">
                             <p className="leading-relaxed text-sm">
                               {selectedNotification.message}
                             </p>
@@ -292,3 +292,4 @@ export default function NotificationsPage({ role: propRole }) {
     </div>
   );
 }
+

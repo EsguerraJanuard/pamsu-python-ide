@@ -6,6 +6,7 @@ import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import api from "../../services/api";
 
 
@@ -237,8 +238,8 @@ export default function PracticeWorkspace() {
             </div>
             <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
             
-            <div className="prose prose-invert prose-emerald max-w-none mb-12">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{taskDetails.instructions || 'No instructions provided.'}</ReactMarkdown>
+            <div className="prose dark:prose-invert prose-emerald max-w-none mb-12">
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || 'No instructions provided.'}</ReactMarkdown>
             </div>
             
             <div className="border-t border-border-subtle pt-8 flex justify-end pb-24">
@@ -309,8 +310,8 @@ export default function PracticeWorkspace() {
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between border-b border-border-subtle pb-2"><h2 className="text-lg font-bold text-text-main">Instructions</h2>
               <button onClick={() => setViewMode("lesson")} className="text-xs text-blue-400 hover:text-blue-300 font-medium">Read Full Lesson</button></div>
-            <div className="prose prose-invert prose-sm max-w-none text-text-main">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{taskDetails.instructions || ''}</ReactMarkdown>
+            <div className="prose dark:prose-invert prose-sm max-w-none text-text-main">
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || ''}</ReactMarkdown>
             </div>
 
             {feedback && (
@@ -339,8 +340,8 @@ export default function PracticeWorkspace() {
                         Generating pedagogical hint...
                       </div>
                     ) : (
-                      <div className="prose prose-invert prose-sm max-w-none text-indigo-100">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiHint}</ReactMarkdown>
+                      <div className="prose dark:prose-invert prose-sm max-w-none text-indigo-900 dark:text-indigo-100">
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{aiHint}</ReactMarkdown>
                       </div>
                     )}
                   </div>
