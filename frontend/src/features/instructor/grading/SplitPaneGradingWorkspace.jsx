@@ -96,7 +96,7 @@ const SplitPaneGradingWorkspace = () => {
   const handleSubmitGrade = async (e) => {
     e.preventDefault();
     if (!selectedStudent) return;
-    const sub = submissions[selectedStudent.id];
+    const sub = submissions[(selectedStudent.student_id || selectedStudent.id)];
     if (!sub || !sub.sub_id) return;
 
     try {
@@ -110,8 +110,8 @@ const SplitPaneGradingWorkspace = () => {
       // Update local state so the badge updates immediately
       setSubmissions(prev => ({
         ...prev,
-        [selectedStudent.id]: {
-          ...prev[selectedStudent.id],
+        [(selectedStudent.student_id || selectedStudent.id)]: {
+          ...prev[(selectedStudent.student_id || selectedStudent.id)],
           has_manual_grade: true,
           status: 'graded'
         }
@@ -219,7 +219,7 @@ const SplitPaneGradingWorkspace = () => {
     );
   }
 
-  const selectedSub = selectedStudent ? submissions[selectedStudent.id] : null;
+  const selectedSub = selectedStudent ? submissions[selectedStudent.student_id || selectedStudent.id] : null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
@@ -307,7 +307,7 @@ const SplitPaneGradingWorkspace = () => {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-text-main">
-                  {selectedStudent.name || selectedStudent.email || `Student ${selectedStudent.id}`}
+                  {selectedStudent.name || selectedStudent.email || `Student ${(selectedStudent.student_id || selectedStudent.id)}`}
                 </h2>
                 <p className="text-sm text-text-muted mt-0.5">Student ID: {selectedStudent.student_id || selectedStudent.id}</p>
               </div>
