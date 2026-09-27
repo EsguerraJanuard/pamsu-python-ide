@@ -101,11 +101,21 @@ const SplitPaneGradingWorkspace = () => {
 
     try {
       setSavingGrade(true);
-      // MUST send 'score' and 'feedback' to match InstructorGradeUpdate Pydantic schema
-      const res = await api.patch(`/evaluation/submissions/${sub.sub_id}/grade`, {
-        score: parseFloat(gradeScore),
-        feedback: feedbackText
-      });
+      let res;
+      if (sub.has_manual_grade) {
+        // MUST send 'score' and 'feedback' to match InstructorGradeUpdate Pydantic schema
+        res = await api.patch(`/evaluation/submissions/${sub.sub_id}/grade`, {
+          score: parseFloat(gradeScore),
+          feedback: feedbackText
+        });
+      } else {
+        res = await api.put(`/evaluation/submissions/${sub.sub_id}/grade`, {
+          score: parseFloat(gradeScore),
+          max_score: 100,
+          feedback: feedbackText,
+          is_released: true
+        });
+      }
       
       // Update local state so the badge updates immediately
       setSubmissions(prev => ({
