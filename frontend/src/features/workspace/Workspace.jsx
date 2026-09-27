@@ -8,7 +8,6 @@ import api from "../../services/api";
 import Sidebar from "../../components/layout/Sidebar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import Statusbar from "../../components/layout/Statusbar";
-import InteractiveTerminal from "./InteractiveTerminal";
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const DEFAULT_CODE = `# Fibonacci Sequence
@@ -159,8 +158,6 @@ export default function Workspace() {
   const [notice, setNotice] = useState("");
   const [visibleNotice, setVisibleNotice] = useState("");
   const [isFadingOut, setIsFadingOut] = useState(false);
-  const [confirmConfig, setConfirmConfig] = useState(null);
-  
 
   // Silky-smooth auto-dismiss fade animation for notice message
   useEffect(() => {
@@ -246,14 +243,12 @@ export default function Workspace() {
     };
   }, [code, draftStorageKey]);
 
-  
+  const ws = useRef(null);
   
   const stateRefs = useRef({ tabSwitchCount: 0, blockedPasteCount: 0, mouseLeaveCount: 0 });
   useEffect(() => {
     stateRefs.current = { tabSwitchCount, blockedPasteCount, mouseLeaveCount };
   }, [tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
-
-
 
   // Create coding session on load
   useEffect(() => {
@@ -462,22 +457,8 @@ export default function Workspace() {
     setRunAttemptCount((count) => count + 1);
     setExecutionStatus("running");
     setActivePanel("output");
-    setOutput("Running code on Judge0 server...");
-    
-    try {
-      const execRes = await api.post("/execution/requests/", {
-        request_kind: "run",
-        task_id: parseInt(activityId),
-        source_code: code,
-        standard_input: standardInput || ""
-      });
-      pollExecution(execRes.execution_id, false);
-    } catch (err) {
-      setExecutionStatus("failed");
-      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
-      const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : `Failed to start execution: ${err.message || err.detail || 'Unknown error'}`;
-      setOutput(msg);
-      setNotice(msg);
+    if (typeof setTriggerRun === 'function') {
+      setTriggerRun((prev) => prev + 1);
     }
   };
 
@@ -1067,8 +1048,12 @@ export default function Workspace() {
 
               <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
                 {activePanel === "output" && (
-                  <div className="w-full h-full min-h-[300px] bg-slate-900/50 p-4 rounded font-mono text-sm text-slate-300 whitespace-pre-wrap overflow-auto border border-slate-700/50">
-                    {output}
+                  <div className="w-full h-full min-h-[300px]">
+                    <InteractiveTerminal 
+                      code={code} 
+                      triggerRun={triggerRun} 
+                      onRunFinished={() => setExecutionStatus("completed")} 
+                    />
                   </div>
                 )}
 
