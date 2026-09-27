@@ -274,25 +274,29 @@ export default function Workspace() {
   }, [activityId]);
 
   // Handle telemetry interval
-  const lastCounts = useRef({ tab: 0, paste: 0, idle: 0 });
+  const lastCounts = useRef({ tab: 0, paste: 0, mouse: 0, idle: 0 });
   useEffect(() => {
     if (!sessionId) return;
     const interval = setInterval(async () => {
       const currentTab = stateRefs.current.tabSwitchCount;
       const currentPaste = stateRefs.current.blockedPasteCount;
+      const currentMouse = stateRefs.current.mouseLeaveCount;
       
       const tabInc = Math.max(0, currentTab - lastCounts.current.tab);
       const pasteInc = Math.max(0, currentPaste - lastCounts.current.paste);
+      const mouseInc = Math.max(0, currentMouse - lastCounts.current.mouse);
       
       try {
         await api.patch(`/activities/coding-sessions/${sessionId}/activity`, {
           tab_switch_increment: tabInc,
           blocked_paste_increment: pasteInc,
-          idle_seconds_increment: 0
+          mouseleave_increment: mouseInc,
+          idle_duration_increment_seconds: 0
         });
         
         lastCounts.current.tab = currentTab;
         lastCounts.current.paste = currentPaste;
+        lastCounts.current.mouse = currentMouse;
       } catch (err) {
         console.error("Failed to send heartbeat", err);
       }
