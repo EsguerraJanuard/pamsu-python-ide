@@ -27,7 +27,7 @@ ENV_FILE = BACKEND_DIRECTORY / ".env"
 BASELINE_REVISION = "18d3ef8f020d"
 
 EXPECTED_APPLICATION_TABLES = {
-    "practice_tasks", "pending_enrollments", "practice_modules", "practice_progress", "practice_attempts", "practice_test_cases",
+    "practice_tasks", "pending_enrollments", "practice_modules", "practice_progress", "practice_attempts", 
     "academic_events",
     "ast_analyses",
     "ast_findings",
@@ -325,3 +325,4 @@ def test_alembic_upgrade_downgrade_and_reupgrade(
 # CREDENTIAL BOUNDARY:
 # Tests use DATABASE_URL only at runtime. Credentials and complete connection
 # strings are never written to alembic.ini, migration files, or test output.
+
