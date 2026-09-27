@@ -208,8 +208,11 @@ class StudentSubmissionResponse(
     # STUDENT-SAFE BOUNDARY:
     # This response represents only the authenticated student's own
     # attempt. It intentionally excludes student_id, similarity scores,
-    # AST results, instructor grades, and internal review records.
-    pass
+    # instructor grades, and internal review records.
+    ast_pass_fail: bool | None = Field(
+        default=None,
+        description=("Structural-analysis indicator."),
+    )
 
 
 class InstructorSubmissionResponse(

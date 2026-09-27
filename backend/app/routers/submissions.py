@@ -2,6 +2,7 @@ from typing import NoReturn
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -122,6 +123,7 @@ def _raise_submission_service_error(
 )
 def create_submission_endpoint(
     payload: SubmissionCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_student: User = Depends(get_current_student),
 ) -> StudentSubmissionResponse:
@@ -145,6 +147,9 @@ def create_submission_endpoint(
         )
     except SubmissionServiceError as error:
         _raise_submission_service_error(error)
+
+    from app.services.evaluation_service import evaluate_submission_background
+    background_tasks.add_task(evaluate_submission_background, submission.sub_id)
 
     return StudentSubmissionResponse.model_validate(submission)
 
