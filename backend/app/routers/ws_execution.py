@@ -1,6 +1,7 @@
 ﻿import asyncio
 import tempfile
 import os
+import sys
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter(
@@ -53,13 +54,9 @@ async def websocket_endpoint(websocket: WebSocket):
         encoded_code = base64.b64encode(data.encode('utf-8')).decode('utf-8')
         runner_cmd = f"import base64; exec(base64.b64decode('{encoded_code}').decode('utf-8'))"
         
+        # Render Free Tier does not support Docker. Fallback to native python process.
         process = await asyncio.create_subprocess_exec(
-            "docker", "run", "-i", "--rm",
-            "--network", "none",
-            "--cpus", "0.5",
-            "--memory", "128m",
-            "python:3.13-slim",
-            "python", "-u", "-c", runner_cmd,
+            sys.executable, "-u", "-c", runner_cmd,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT
@@ -94,7 +91,12 @@ async def websocket_endpoint(websocket: WebSocket):
         stdin_task = asyncio.create_task(write_stdin())
         
         # Wait for the process to finish
-        await process.wait()
+        try:
+            await asyncio.wait_for(process.wait(), timeout=15.0)
+        except asyncio.TimeoutError:
+            process.terminate()
+            await websocket.send_text("\r\n\r\n[Process terminated: Time limit exceeded (15s)]")
+            # Let the finally block handle cleanup
         
         # Wait a tiny bit for stdout to flush
         await asyncio.wait_for(stdout_task, timeout=1.0)
