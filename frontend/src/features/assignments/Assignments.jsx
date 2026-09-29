@@ -150,10 +150,11 @@ export default function Assignments() {
   const fetchActivities = async () => {
     setIsLoading(true);
     try {
-      const [classRes, activityRes, subRes] = await Promise.all([
+      const [classRes, activityRes, subRes, gradesRes] = await Promise.all([
         api.get("/classrooms/mine"),
         api.get("/activities/"),
-        api.get("/submissions/")
+        api.get("/submissions/"),
+        api.get("/activities/released-grades?page_size=100").catch(() => ({ items: [] }))
       ]);
       
       const classMap = {};
@@ -170,6 +171,14 @@ export default function Assignments() {
             submissionMap[s.task_id] = st;
         }
       });
+
+
+      const gradeMap = {};
+      if (gradesRes && gradesRes.items) {
+        gradesRes.items.forEach(g => {
+          gradeMap[g.activity.task_id] = { score: g.score, maximum: g.max_score };
+        });
+      }
 
       const mappedActivities = activityRes.map(task => {
         const due = task.due_at ? new Date(task.due_at) : null;
@@ -199,7 +208,7 @@ export default function Assignments() {
           note: "No official submission has been recorded.",
           actionLabel: status === "submitted" ? "View submission" : "Open",
           latestSubmission: null,
-          instructorGrade: null,
+          instructorGrade: gradeMap[task.task_id] || null,
         };
       });
       setActivities(mappedActivities);

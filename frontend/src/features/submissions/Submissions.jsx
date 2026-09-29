@@ -324,10 +324,11 @@ export default function Submissions() {
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const [subRes, actRes, classRes] = await Promise.all([
+        const [subRes, actRes, classRes, gradesRes] = await Promise.all([
           api.get("/submissions/"),
           api.get("/activities/"),
           api.get("/classrooms/mine"),
+          api.get("/activities/released-grades?page_size=100").catch(() => ({ items: [] })),
         ]);
 
         const classMap = {};
@@ -344,6 +345,14 @@ export default function Submissions() {
           };
         });
 
+
+        const gradeMap = {};
+        if (gradesRes && gradesRes.items) {
+          gradesRes.items.forEach(g => {
+            gradeMap[g.sub_id] = { score: g.score, maximum: g.max_score, feedback: g.feedback };
+          });
+        }
+
         const mappedSubs = subRes.map((sub) => {
           const act = actMap[sub.task_id] || { title: "Unknown", type: "Unknown", course: "Unknown" };
           return {
@@ -356,8 +365,8 @@ export default function Submissions() {
             totalAttempts: sub.attempt_number,
             submittedLabel: new Date(sub.submitted_at).toLocaleString(),
             isOfficial: sub.is_official,
-            instructorGrade: null,
-            instructorFeedback: "Awaiting instructor review.",
+            instructorGrade: gradeMap[sub.sub_id] ? { score: gradeMap[sub.sub_id].score, maximum: gradeMap[sub.sub_id].maximum } : null,
+            instructorFeedback: gradeMap[sub.sub_id]?.feedback || "Awaiting instructor review.",
             attempts: [
               {
                 attemptNumber: sub.attempt_number,
