@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
+import Flatpickr from 'react-flatpickr';
+import 'flatpickr/dist/themes/dark.css';
 import AlertModal from '../../components/modals/AlertModal';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
@@ -207,6 +209,34 @@ const ActivityDetails = () => {
             <h3 className="text-sm font-medium text-text-emerald">Requirements</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.required_ast_rules && Object.keys(activity.required_ast_rules).length > 0 ? Object.keys(activity.required_ast_rules).join(", ") : 'No requirements provided.'}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-text-emerald">Due Date</h3>
+            <div className="mt-1 flex items-center gap-3">
+              <Flatpickr
+                data-enable-time
+                value={activity.due_at ? new Date(activity.due_at) : null}
+                onChange={async ([date]) => {
+                  try {
+                    const due_at = date ? date.toISOString() : null;
+                    await api.patch(`/instructors/tasks/${id}`, { due_at });
+                    setActivity(prev => ({ ...prev, due_at }));
+                  } catch (err) {
+                    console.error('Failed to update due date', err);
+                    const msg = err.response?.data?.detail || "Could not update due date";
+                    setAlertConfig({ title: "Update Failed", message: msg, type: "error" });
+                  }
+                }}
+                options={{
+                  minDate: "today",
+                  dateFormat: "Y-m-d H:i",
+                  time_24hr: true
+                }}
+                className="bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none w-64 cursor-pointer"
+                placeholder="No due date set"
+              />
+              <span className="text-xs text-text-muted">Changes are saved automatically</span>
             </div>
           </div>
 
