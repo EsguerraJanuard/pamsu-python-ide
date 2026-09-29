@@ -136,8 +136,6 @@ export default function PracticeWorkspace() {
     setIsSubmitting(true);
     setFeedback(null);
     setAiHint(null);
-    setNextTaskId(null);
-
     // Also trigger InteractiveTerminal so student sees raw output
     setTriggerRun(prev => prev + 1);
 
@@ -145,15 +143,7 @@ export default function PracticeWorkspace() {
       const res = await api.post(`/practice/tasks/${taskId}/submit`, { code });
       setFeedback(res);
       
-      if (res.is_successful) {
-        // Find next task id
-        if (moduleDetails) {
-          const tIndex = moduleDetails.tasks.findIndex(t => String(t.task_id) === String(taskId));
-          if (tIndex !== -1 && tIndex < moduleDetails.tasks.length - 1) {
-            setNextTaskId(moduleDetails.tasks[tIndex + 1].task_id);
-          }
-        }
-      } else {
+      if (!res.is_successful) {
         // Fetch AI hint with polling
         setIsAiLoading(true);
         try {
