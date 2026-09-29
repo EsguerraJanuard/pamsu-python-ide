@@ -363,21 +363,25 @@ const SplitPaneGradingWorkspace = () => {
                 <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
                   <h3 className="text-lg font-medium text-text-main mb-2">Submitted Code</h3>
                   <div className="h-[400px] border border-border-subtle rounded overflow-hidden">
-                    <DiffEditor
-                      height="100%"
-                      language="python"
-                      theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
-                      original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
-                      modified={detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
-                      options={{
-                        ...editorOptions,
-                          readOnly: true,
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                        renderSideBySide: true,
-                        wordWrap: "on"
-                      }}
-                    />
+                    {!detailedSub ? (
+                       <div className="flex items-center justify-center h-full text-sm text-text-muted animate-pulse">Loading submission code...</div>
+                    ) : (
+                      <DiffEditor
+                        height="100%"
+                        language="python"
+                        theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                        original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
+                        modified={detailedSub?.raw_code || detailedSub?.code || '# No code provided'}
+                        options={{
+                          ...editorOptions,
+                            readOnly: true,
+                          minimap: { enabled: false },
+                          scrollBeyondLastLine: false,
+                          renderSideBySide: true,
+                          wordWrap: "on"
+                        }}
+                      />
+                    )}
                   </div>
                   {/*
                     {detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
