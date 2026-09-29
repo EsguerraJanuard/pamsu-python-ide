@@ -150,12 +150,32 @@ export default function Assignments() {
   const fetchActivities = async () => {
     setIsLoading(true);
     try {
-      const [classRes, activityRes, subRes, gradesRes] = await Promise.all([
+      const [classRes, activityRes, subRes] = await Promise.all([
         api.get("/classrooms/mine"),
         api.get("/activities/"),
-        api.get("/submissions/"),
-        api.get("/activities/released-grades?page_size=100").catch(() => ({ items: [] }))
+        api.get("/submissions/")
       ]);
+
+      let allGrades = [];
+      let currentPage = 1;
+      let totalPages = 1;
+
+      while (currentPage <= totalPages) {
+        try {
+          const gradesPage = await api.get(`/activities/released-grades?page=${currentPage}&page_size=100`);
+          if (gradesPage && gradesPage.items) {
+            allGrades = [...allGrades, ...gradesPage.items];
+            totalPages = gradesPage.total_pages || gradesPage.pages || 1;
+          } else {
+            break;
+          }
+        } catch (e) {
+          console.error("Failed to fetch grades page", e);
+          break;
+        }
+        currentPage++;
+      }
+      const gradesRes = { items: allGrades };
       
       const classMap = {};
       classRes.forEach(c => {

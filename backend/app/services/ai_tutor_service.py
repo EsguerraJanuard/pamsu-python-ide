@@ -9,7 +9,7 @@ def generate_pedagogical_hint(task_instructions: str, student_code: str, error_o
     try:
         genai.configure(api_key=api_key)
         # We can use flash for faster tutor responses
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('models/gemini-3.8-flash')
         
         prompt = f'''You are an AI coding tutor helping a beginner Python student.
 Analyze their code and the execution error, then provide a guiding hint using Markdown.

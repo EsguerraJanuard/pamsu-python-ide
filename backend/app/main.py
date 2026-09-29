@@ -19,7 +19,6 @@ from app.core.request_context import (
 from app.integrations.partner_auth import (
     PARTNER_EXECUTION_TOKEN_HEADER,
 )
-from app.routers import ws_monitoring
 from app.routers import (
     ws_execution,
     practice,
