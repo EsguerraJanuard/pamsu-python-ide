@@ -13,15 +13,18 @@ import time
 
 @router.websocket("/execute")
 async def websocket_endpoint(websocket: WebSocket):
-    # Retrieve user_id from headers/cookies or assume anonymous IP
-    # For a robust implementation, you should parse the token here
-    client_id = websocket.client.host if websocket.client else "unknown"
+    # Extract real client IP if behind proxy
+    forwarded_for = websocket.headers.get("x-forwarded-for")
+    if forwarded_for:
+        client_id = forwarded_for.split(",")[0].strip()
+    else:
+        client_id = websocket.client.host if websocket.client else "unknown"
     
-    # Simple Redis Rate Limiter: max 3 requests per minute per client
+    # Redis Rate Limiter: max 30 requests per minute per client
     rate_limit_key = f"ws_rate_limit:{client_id}"
     try:
         current_requests = await async_redis_client.get(rate_limit_key)
-        if current_requests and int(current_requests) >= 3:
+        if current_requests and int(current_requests) >= 30:
             await websocket.accept()
             await websocket.send_text("Rate limit exceeded. Please wait a minute before running code again.")
             await websocket.close(code=1008)
