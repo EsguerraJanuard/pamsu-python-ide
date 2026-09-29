@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
+import EditorSettings from "./EditorSettings";
 import CustomSelect from "../../components/ui/CustomSelect";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { api, ApiError } from "../../services/api";
@@ -56,7 +56,6 @@ function getPasswordStrength(password) {
 /* ── Component ─────────────────────────────────────────── */
 
 export default function InstructorSettings() {
-  const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [saved, setSaved] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -381,6 +380,9 @@ export default function InstructorSettings() {
                 </form>
 
               </section>
+
+              {/* ── Section 2b: Editor Preferences ────── */}
+              <EditorSettings />
 
               {/* ── Section 3: Change Password ─────────── */}
               <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
