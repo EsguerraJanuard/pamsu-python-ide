@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 import sys
 from dotenv import load_dotenv
 
@@ -50,7 +51,11 @@ def seed_database():
         db.query(Enrollment).delete()
         db.query(Classroom).delete()
         
-        # We will NOT delete Users. We assume the QA users exist!
+        # Delete old dummy users to prevent unique constraint violation
+        db.query(User).filter(User.email.notin_(["qa.instructor@pampangastateu.edu.ph", "qa.student@pampangastateu.edu.ph"])).delete(synchronize_session=False)
+        db.commit()
+
+        # We will NOT delete QA Users. We assume the QA users exist!
         qa_instructor = db.query(User).filter_by(email="qa.instructor@pampangastateu.edu.ph").first()
         qa_student = db.query(User).filter_by(email="qa.student@pampangastateu.edu.ph").first()
         
@@ -98,7 +103,7 @@ def seed_database():
                 instructor_id=instructors[0 if idx < 2 else 1].user_id,
                 name=name,
                 section=f"Section {chr(65+idx)}",
-                class_code=f"QA{idx}X9",
+                class_code=f"QA{idx}X9Z",
                 is_active=True
             )
             db.add(classroom)
@@ -138,7 +143,8 @@ def seed_database():
                 difficulty=diff,
                 required_ast_rules=config,
                 starter_code="# Write your code here\n",
-                is_published=True
+                is_published=True,
+                published_at=datetime.now(timezone.utc)
             )
             db.add(task)
             db.commit()
