@@ -844,25 +844,27 @@ export default function Workspace() {
                 </p>
               </section>
 
-              <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
-                <h3 className="mb-2 text-xs font-bold text-text-main">
-                  Requirements Checklist
-                </h3>
+              {activity.requirements && activity.requirements.length > 0 && (
+                <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
+                  <h3 className="mb-2 text-xs font-bold text-text-main">
+                    Requirements Checklist
+                  </h3>
 
-                <ul className="space-y-2">
-                  {activity.requirements.map((requirement) => (
-                    <li
-                      key={requirement}
-                      className="flex items-center gap-2 text-xs text-text-muted font-medium"
-                    >
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-text-blue border border-blue-500/20">
-                        ✓
-                      </span>
-                      {requirement}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                  <ul className="space-y-2">
+                    {activity.requirements.map((requirement) => (
+                      <li
+                        key={requirement}
+                        className="flex items-center gap-2 text-xs text-text-muted font-medium"
+                      >
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-text-blue border border-blue-500/20">
+                          ✓
+                        </span>
+                        {requirement}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
                 <h3 className="mb-1.5 text-xs font-bold text-text-main">
@@ -1065,12 +1067,26 @@ export default function Workspace() {
                 {activePanel === "analysis" && (
                   <div className="space-y-2">
                     {astResults ? (
-                      <div className={`rounded-lg border p-3 ${astResults.passed ? "border-emerald-500/15 bg-emerald-500/[0.05]" : "border-amber-500/15 bg-amber-500/[0.05]"}`}>
-                        <h3 className={`text-xs font-semibold ${astResults.passed ? "text-text-emerald" : "text-text-amber"}`}>
-                          {astResults.passed ? "AST Requirements Met" : "Missing AST Requirements"}
+                      <div className={`rounded-lg border p-3 ${
+                        !activity.requirements || activity.requirements.length === 0 
+                          ? "border-blue-500/15 bg-blue-500/[0.05]" 
+                          : astResults.passed ? "border-emerald-500/15 bg-emerald-500/[0.05]" : "border-amber-500/15 bg-amber-500/[0.05]"
+                      }`}>
+                        <h3 className={`text-xs font-semibold ${
+                          !activity.requirements || activity.requirements.length === 0 
+                            ? "text-text-blue" 
+                            : astResults.passed ? "text-text-emerald" : "text-text-amber"
+                        }`}>
+                          {!activity.requirements || activity.requirements.length === 0 
+                            ? "No AST Requirements"
+                            : astResults.passed ? "AST Requirements Met" : "Missing AST Requirements"}
                         </h3>
                         <p className="mt-1 text-[10px] leading-relaxed text-text-muted">
-                          {astResults.syntax_error ? `Syntax Error on line ${astResults.syntax_error.line}: ${astResults.syntax_error.message}` : "Verified structure results from the backend AST service."}
+                          {astResults.syntax_error 
+                            ? `Syntax Error on line ${astResults.syntax_error.line}: ${astResults.syntax_error.message}` 
+                            : (!activity.requirements || activity.requirements.length === 0) 
+                              ? "This activity does not have any specific structural requirements." 
+                              : "Verified structure results from the backend AST service."}
                         </p>
                       </div>
                     ) : (
