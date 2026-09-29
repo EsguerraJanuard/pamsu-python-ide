@@ -1,4 +1,4 @@
-﻿/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
@@ -93,30 +93,29 @@ const GradingBenchRoot = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map((cls) => (
+            {classes.map((cls, idx) => (
               <div
-                key={cls.class_id}
+                key={cls.class_id || idx}
                 onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-40"
+                className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner hover:border-emerald-500/30 hover:bg-bg-glass-hover hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                style={{ animation: `pageFadeUp 400ms ease ${idx * 70}ms both` }}
               >
-                <div className="p-6 flex-grow flex flex-col justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
-                      {cls.name}
-                    </h2>
-                    <div className="mt-3 flex items-center gap-2">
-                      {cls.subject_code && (
-                        <span className="bg-bg-panel border border-border-subtle px-2 py-0.5 rounded text-[10px] font-mono text-text-muted">
-                          {cls.subject_code}
-                        </span>
-                      )}
-                      <span className="text-xs font-medium text-text-muted">{cls.section}</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-4">
-                    <div className="h-8 w-8 rounded-full bg-border-subtle/50 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                
+                <div className="p-6 flex-1 flex flex-col relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                    {cls.subject_code ? (
+                      <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-text-emerald shadow-sm">
+                        {cls.subject_code}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full border border-border-strong bg-bg-panel px-2.5 py-0.5 text-xs font-semibold tracking-wide text-text-muted shadow-sm">
+                        Classroom
+                      </span>
+                    )}
+                    <div className="h-8 w-8 rounded-full bg-bg-panel border border-border-subtle flex items-center justify-center group-hover:bg-emerald-500 group-hover:border-emerald-500 transition-colors shadow-sm">
                       <svg
-                        className="w-4 h-4 text-text-muted group-hover:text-emerald-400 transition-transform transform group-hover:translate-x-0.5"
+                        className="w-4 h-4 text-text-muted group-hover:text-white transition-transform transform group-hover:translate-x-0.5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -125,6 +124,16 @@ const GradingBenchRoot = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-text-main mb-2 line-clamp-2 group-hover:text-text-main transition-colors">
+                    {cls.name}
+                  </h3>
+                  
+                  <div className="flex items-center gap-2 mb-6 mt-auto pt-4">
+                    <span className="text-sm font-medium text-text-muted group-hover:text-text-main transition-colors">
+                      Section {cls.section || 'Unknown'}
+                    </span>
                   </div>
                 </div>
               </div>
