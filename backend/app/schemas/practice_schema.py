@@ -98,4 +98,5 @@ class PracticeTaskUpdate(BaseModel):
 
 
 class PracticeAiHintResponse(BaseModel):
-    ai_hint: str
+    ai_hint: str | None = None
+    status: str = "completed"

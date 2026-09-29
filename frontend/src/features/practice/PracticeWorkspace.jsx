@@ -154,11 +154,21 @@ export default function PracticeWorkspace() {
           }
         }
       } else {
-        // Fetch AI hint
+        // Fetch AI hint with polling
         setIsAiLoading(true);
         try {
-          const aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
-          setAiHint(aiRes.ai_hint);
+          let aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
+          let attempts = 0;
+          while (aiRes.status === "processing" && attempts < 15) {
+             await new Promise(resolve => setTimeout(resolve, 2000));
+             aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
+             attempts++;
+          }
+          if (aiRes.ai_hint) {
+             setAiHint(aiRes.ai_hint);
+          } else {
+             setAiHint("The AI Tutor timed out. Please try submitting again.");
+          }
         } catch (aiErr) {
           console.error("AI hint fetch failed", aiErr);
           setAiHint("The AI Tutor is currently unavailable. Please check your syntax and try again.");
