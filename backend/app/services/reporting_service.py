@@ -1,4 +1,5 @@
 import csv
+import logging
 import openpyxl
 from io import BytesIO
 from datetime import datetime, timezone
@@ -36,6 +37,8 @@ from app.schemas.reporting_schema import (
 )
 
 
+logger = logging.getLogger(__name__)
+
 MIN_REPORT_PAGE_SIZE = GLOBAL_MIN_PAGE_SIZE
 MAX_REPORT_PAGE_SIZE = GLOBAL_MAX_PAGE_SIZE
 
@@ -52,7 +55,6 @@ APPROVED_MISSING_SUBMISSION_SORT_FIELDS = {
     "due_at",
 }
 
-EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
 
@@ -1632,7 +1634,7 @@ def build_gradebook_excel_export(
             cell.font = header_font
             cell.fill = header_fill
     except Exception:
-        pass
+        logger.warning("Excel header styling could not be applied.", exc_info=True)
 
     for row in rows:
         has_manual_grade = row.grade_id is not None
@@ -1668,7 +1670,7 @@ def build_gradebook_excel_export(
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
-        pass
+        logger.warning("Excel header styling could not be applied.", exc_info=True)
 
     generated_at = _utc_now()
     
@@ -1818,7 +1820,7 @@ def build_gradebook_excel_export(
             cell.font = header_font
             cell.fill = header_fill
     except Exception:
-        pass
+        logger.warning("Excel header styling could not be applied.", exc_info=True)
 
     for row in rows:
         has_manual_grade = row.grade_id is not None
@@ -1854,7 +1856,7 @@ def build_gradebook_excel_export(
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
-        pass
+        logger.warning("Excel header styling could not be applied.", exc_info=True)
 
     generated_at = _utc_now()
     
@@ -2004,7 +2006,7 @@ def build_gradebook_excel_export(
             cell.font = header_font
             cell.fill = header_fill
     except Exception:
-        pass
+        logger.warning("Excel header styling could not be applied.", exc_info=True)
 
     for row in rows:
         has_manual_grade = row.grade_id is not None
@@ -2040,7 +2042,7 @@ def build_gradebook_excel_export(
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
-        pass
+        logger.warning("Excel header styling could not be applied.", exc_info=True)
 
     generated_at = _utc_now()
     

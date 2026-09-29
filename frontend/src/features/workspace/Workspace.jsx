@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
 import api from "../../services/api";
+import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 
 import Sidebar from "../../components/layout/Sidebar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import Statusbar from "../../components/layout/Statusbar";
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
+import InteractiveTerminal from './InteractiveTerminal';
 
 const DEFAULT_CODE = `# Fibonacci Sequence
 # Write your solution below.
@@ -85,6 +87,8 @@ export default function Workspace() {
   const draftStorageKey = `pamsu_saved_code_${activityId}`;
 
   const editorRef = useRef(null);
+  const pollIntervalRef = useRef(null);
+  const [triggerRun, setTriggerRun] = useState(0);
   
   const [activity, setActivity] = useState(null);
   const [astResults, setAstResults] = useState(null);
@@ -145,6 +149,16 @@ export default function Workspace() {
     loadActivity();
   }, [activityId]);
 
+  // Cleanup polling interval on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   const [code, setCode] = useState(() =>
     loadDraft(draftStorageKey),
   );
@@ -182,13 +196,18 @@ export default function Workspace() {
     };
   }, [notice]);
   const [internalClipboard, setInternalClipboard] = useState("");
-  const [blockedPasteCount, setBlockedPasteCount] = useState(0);
-  const [mouseLeaveCount, setMouseLeaveCount] = useState(0);
+  const {
+    tabSwitchCount,
+    mouseLeaveCount,
+    blockedPasteCount,
+    setBlockedPasteCount,
+    showBehaviorNotice,
+    setShowBehaviorNotice,
+  } = useBehaviorTracking({ sessionId });
+
   const [lastBlockedPasteAt, setLastBlockedPasteAt] = useState("");
   const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [runAttemptCount, setRunAttemptCount] = useState(0);
-  const [showBehaviorNotice, setShowBehaviorNotice] = useState(false);
 
   const [showProblemPanel, setShowProblemPanel] = useState(
     () => window.matchMedia("(min-width: 1280px)").matches,
@@ -243,13 +262,6 @@ export default function Workspace() {
     };
   }, [code, draftStorageKey]);
 
-  const ws = useRef(null);
-  
-  const stateRefs = useRef({ tabSwitchCount: 0, blockedPasteCount: 0, mouseLeaveCount: 0 });
-  useEffect(() => {
-    stateRefs.current = { tabSwitchCount, blockedPasteCount, mouseLeaveCount };
-  }, [tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
-
   // Create coding session on load
   useEffect(() => {
     if (!activityId) return;
@@ -267,66 +279,6 @@ export default function Workspace() {
     startSession();
     return () => { mounted = false; };
   }, [activityId]);
-
-  // Handle telemetry interval
-  const lastCounts = useRef({ tab: 0, paste: 0, mouse: 0, idle: 0 });
-  useEffect(() => {
-    if (!sessionId) return;
-    const interval = setInterval(async () => {
-      const currentTab = stateRefs.current.tabSwitchCount;
-      const currentPaste = stateRefs.current.blockedPasteCount;
-      const currentMouse = stateRefs.current.mouseLeaveCount;
-      
-      const tabInc = Math.max(0, currentTab - lastCounts.current.tab);
-      const pasteInc = Math.max(0, currentPaste - lastCounts.current.paste);
-      const mouseInc = Math.max(0, currentMouse - lastCounts.current.mouse);
-      
-      try {
-        await api.patch(`/activities/coding-sessions/${sessionId}/activity`, {
-          tab_switch_increment: tabInc,
-          blocked_paste_increment: pasteInc,
-          mouseleave_increment: mouseInc,
-          idle_duration_increment_seconds: 0
-        });
-        
-        lastCounts.current.tab = currentTab;
-        lastCounts.current.paste = currentPaste;
-        lastCounts.current.mouse = currentMouse;
-      } catch (err) {
-        console.error("Failed to send heartbeat", err);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [sessionId]);
-
-  useEffect(() => {
-    const handleLossOfFocus = () => {
-      setTabSwitchCount((currentCount) => currentCount + 1);
-      setShowBehaviorNotice(true);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        handleLossOfFocus();
-      }
-    };
-
-    const handleMouseLeave = () => {
-      setMouseLeaveCount((currentCount) => currentCount + 1);
-      setShowBehaviorNotice(true);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleLossOfFocus);
-    document.addEventListener("mouseleave", handleMouseLeave);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleLossOfFocus);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia(
@@ -461,8 +413,28 @@ export default function Workspace() {
     setRunAttemptCount((count) => count + 1);
     setExecutionStatus("running");
     setActivePanel("output");
-    if (typeof setTriggerRun === 'function') {
-      setTriggerRun((prev) => prev + 1);
+
+    // Trigger the InteractiveTerminal WebSocket execution
+    setTriggerRun((prev) => prev + 1);
+
+    // Also fire a REST execution request for telemetry/logging
+    try {
+      const execRes = await api.post("/execution/requests/", {
+        request_kind: "run",
+        task_id: parseInt(activityId),
+        source_code: code,
+        standard_input: standardInput || ""
+      });
+
+      pollExecution(execRes.execution_id, false);
+    } catch (err) {
+      // If REST fails, the WebSocket terminal still works for output.
+      // Only update status if the terminal hasn't already handled it.
+      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
+      if (isOffline) {
+        setExecutionStatus("failed");
+        setOutput("Backend server is not connected or python sandbox is offline.");
+      }
     }
   };
 
@@ -502,6 +474,11 @@ export default function Workspace() {
   };
 
   const pollExecution = async (executionId, isCheck = false) => {
+    // Clear any previous polling interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
     let pollCount = 0;
     const poll = setInterval(async () => {
       try {
@@ -509,6 +486,7 @@ export default function Workspace() {
         const statusRes = await api.get(`/execution/requests/${executionId}`);
         if (["completed", "syntax_error", "runtime_error", "timed_out", "memory_limit", "output_limit", "process_limit", "failed"].includes(statusRes.status)) {
           clearInterval(poll);
+          pollIntervalRef.current = null;
           if (statusRes.status === "completed") {
             setExecutionStatus("completed");
           } else {
@@ -526,6 +504,7 @@ export default function Workspace() {
         } else if (pollCount >= 5) {
           // If the worker isn't running in dev, time it out locally
           clearInterval(poll);
+          pollIntervalRef.current = null;
           setExecutionStatus("unavailable");
           const msg = "Backend server is not connected or python sandbox is offline.";
           if (isCheck) {
@@ -537,6 +516,7 @@ export default function Workspace() {
         }
       } catch (err) {
         clearInterval(poll);
+        pollIntervalRef.current = null;
         setExecutionStatus("failed");
         const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
         const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : "Polling failed.";
@@ -547,6 +527,8 @@ export default function Workspace() {
         }
       }
     }, 1000);
+
+    pollIntervalRef.current = poll;
   };
 
   const handleSubmit = async () => {
@@ -994,7 +976,25 @@ export default function Workspace() {
                   theme={editorTheme}
                   value={code}
                   onChange={(value) => setCode(value || "")}
-                  onMount={(editor) => { editorRef.current = editor; }}
+                  onMount={(editor, monaco) => {
+                    editorRef.current = editor;
+
+                    // Intercept Ctrl+V / Cmd+V at the Monaco level
+                    editor.addCommand(
+                      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
+                      () => recordBlockedPaste()
+                    );
+                    // Intercept Ctrl+C / Cmd+C at the Monaco level
+                    editor.addCommand(
+                      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC,
+                      () => copySelectionToInternalBuffer()
+                    );
+                    // Intercept Ctrl+X / Cmd+X at the Monaco level
+                    editor.addCommand(
+                      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX,
+                      () => cutSelectionToInternalBuffer()
+                    );
+                  }}
                   options={{
                     minimap: { enabled: settings.minimap },
                     fontSize: settings.fontSize,
