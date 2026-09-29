@@ -8,8 +8,23 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 # Ensure backend path is in sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from app.core.database import SessionLocal
-from app.core.security import get_password_hash
+# Bypass app config entirely so we don't need JWT_SECRET_KEY locally
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import bcrypt
+
+def get_password_hash(password: str) -> str:
+    salt = bcrypt.gensalt(rounds=4)
+    hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed_bytes.decode("utf-8")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is missing in .env")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 from app.models.domain_models import User, Classroom, Enrollment, Task, TaskTestCase, Submission, PracticeModule, PracticeTask, PracticeAttempt
 
 def seed_database():
