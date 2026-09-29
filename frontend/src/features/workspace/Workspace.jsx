@@ -550,8 +550,8 @@ export default function Workspace() {
         await api.post("/logs/behavioral/", {
           sub_id: subId,
           tab_switches_count: tabSwitchCount,
-          blocked_paste_count: stateRefs.current.blockedPasteCount,
-          mouseleave_count: stateRefs.current.mouseLeaveCount,
+          blocked_paste_count: blockedPasteCount,
+          mouseleave_count: mouseLeaveCount,
           run_attempt_count: runAttemptCount,
           idle_duration_seconds: 0,
           ...(lastBlockedPasteIso && { last_blocked_paste_at: lastBlockedPasteIso })
