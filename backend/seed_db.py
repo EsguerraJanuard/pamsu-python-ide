@@ -209,6 +209,7 @@ def seed_database():
                     instructor_id=qa_instructor.user_id,
                     score=95.0,
                     max_score=100.0,
+                    is_released=True,
                     feedback="Good job!",
                 )
                 grades_to_add.append(grade)
