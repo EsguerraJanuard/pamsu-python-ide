@@ -25,16 +25,35 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-from app.models.domain_models import User, Classroom, Enrollment, Task, TaskTestCase, Submission, PracticeModule, PracticeTask, PracticeAttempt
+from app.models.domain_models import (
+    User, Classroom, Enrollment, Task, TaskTestCase, Submission, 
+    PracticeModule, PracticeTask, PracticeAttempt, PracticeProgress,
+    BehavioralLog, ExecutionRequest, PartnerExecutionUpdateRecord, 
+    ASTAnalysis, ASTFinding, SimilarityResult, InstructorGrade, 
+    AcademicEvent, AuditRecord, Notification, CodingSession
+)
 
 def seed_database():
     db = SessionLocal()
     try:
-        # 1. Clean existing records safely
+        # 1. Clean existing records safely (Leaf tables first)
+        db.query(Notification).delete()
+        db.query(AuditRecord).delete()
+        db.query(AcademicEvent).delete()
+        db.query(InstructorGrade).delete()
+        db.query(SimilarityResult).delete()
+        db.query(ASTFinding).delete()
+        db.query(ASTAnalysis).delete()
+        db.query(PartnerExecutionUpdateRecord).delete()
+        db.query(ExecutionRequest).delete()
+        db.query(BehavioralLog).delete()
+        
         db.query(PracticeAttempt).delete()
+        db.query(PracticeProgress).delete()
         db.query(PracticeTask).delete()
         db.query(PracticeModule).delete()
         db.query(Submission).delete()
+        db.query(CodingSession).delete()
         db.query(TaskTestCase).delete()
         db.query(Task).delete()
         db.query(Enrollment).delete()
@@ -52,9 +71,9 @@ def seed_database():
                 name=f"Prof. Instructor {i}",
                 school_id=f"20230000{i:02d}",
                 email=f"prof{i}@pampangastateu.edu.ph",
-                hashed_password=get_password_hash("Password123!"),
+                password_hash=get_password_hash("Password123!"),
                 role="instructor",
-                is_verified=True,
+                email_verified=True,
                 is_active=True
             )
             db.add(instructor)
@@ -68,9 +87,9 @@ def seed_database():
                 name=f"Student {i}",
                 school_id=f"20240000{i:02d}",
                 email=f"student{i}@pampangastateu.edu.ph",
-                hashed_password=get_password_hash("Password123!"),
+                password_hash=get_password_hash("Password123!"),
                 role="student",
-                is_verified=True,
+                email_verified=True,
                 is_active=True
             )
             db.add(student)
@@ -174,9 +193,8 @@ def seed_database():
             attempt_number=1,
             status="graded",
             raw_code="print('Hello World')",
-            grade_score=100.0,
-            feedback_text="Perfect execution and structure!"
-        )
+            
+            )
         
         # AST Flagged submission
         sub2 = Submission(
@@ -185,9 +203,8 @@ def seed_database():
             attempt_number=1,
             status="rejected",
             raw_code="print('I did not use a loop')",
-            grade_score=0.0,
-            feedback_text="AST Check Failed: Missing iterative loop structure."
-        )
+            
+            )
         
         # Pending submission
         sub3 = Submission(
@@ -195,8 +212,7 @@ def seed_database():
             student_id=students[2].user_id,
             attempt_number=1,
             status="submitted",
-            raw_code="def my_func():\n    for i in range(5):\n        pass",
-            grade_score=None
+            raw_code="def my_func():\n    for i in range(5):\n        pass"
         )
         
         db.add_all([sub1, sub2, sub3])
