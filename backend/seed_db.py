@@ -188,6 +188,22 @@ def seed_database():
                         code = "def get_list():\n    return [x for x in range(5)]"
                         status_val = "submitted"
                     
+                    # Create a dummy CodingSession for Telemetry
+                    import uuid
+                    session_id = str(uuid.uuid4())
+                    session = CodingSession(
+                        session_id=session_id,
+                        student_id=student.user_id,
+                        task_id=task.task_id,
+                        started_at=datetime.now(timezone.utc),
+                        last_activity_at=datetime.now(timezone.utc),
+                        tab_switch_count=random.randint(0, 5),
+                        blocked_paste_count=random.randint(0, 2),
+                        mouseleave_count=random.randint(0, 10),
+                    )
+                    db.add(session)
+                    db.commit()
+
                     sub = Submission(
                         task_id=task.task_id,
                         student_id=student.user_id,
@@ -195,6 +211,8 @@ def seed_database():
                         status=status_val,
                         accepted_at=datetime.now(timezone.utc),
                         raw_code=code,
+                        jaccard_score=random.choice([15.5, 30.0, 75.2, 90.0, 12.0]),
+                        coding_session_id=session_id,
                     )
                     submissions_to_add.append(sub)
         
