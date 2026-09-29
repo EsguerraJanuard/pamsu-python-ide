@@ -1,29 +1,22 @@
-import sys
 import os
+import sys
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
-
-# Ensure backend path is in sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Bypass app config entirely so we don't need JWT_SECRET_KEY locally
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import bcrypt
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_password_hash(password: str) -> str:
     salt = bcrypt.gensalt(rounds=4)
     hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed_bytes.decode("utf-8")
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is missing in .env")
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from app.models.domain_models import (
     User, Classroom, Enrollment, Task, TaskTestCase, Submission, 
@@ -36,7 +29,7 @@ from app.models.domain_models import (
 def seed_database():
     db = SessionLocal()
     try:
-        # 1. Clean existing records safely (Leaf tables first)
+        # 1. Clean existing records safely (DO NOT wipe Users or PracticeModules)
         db.query(Notification).delete()
         db.query(AuditRecord).delete()
         db.query(AcademicEvent).delete()
@@ -50,8 +43,6 @@ def seed_database():
         
         db.query(PracticeAttempt).delete()
         db.query(PracticeProgress).delete()
-        db.query(PracticeTask).delete()
-        db.query(PracticeModule).delete()
         db.query(Submission).delete()
         db.query(CodingSession).delete()
         db.query(TaskTestCase).delete()
@@ -59,14 +50,18 @@ def seed_database():
         db.query(Enrollment).delete()
         db.query(Classroom).delete()
         
-        # Delete users EXCEPT the specified QA accounts
-        qa_emails = ['qa.instructor@pampangastateu.edu.ph', 'qa.student@pampangastateu.edu.ph']
-        db.query(User).filter(User.email.notin_(qa_emails)).delete(synchronize_session=False)
-        db.commit()
+        # We will NOT delete Users. We assume the QA users exist!
+        qa_instructor = db.query(User).filter_by(email="qa.instructor@pampangastateu.edu.ph").first()
+        qa_student = db.query(User).filter_by(email="qa.student@pampangastateu.edu.ph").first()
         
-        # 2. Create 3 Verified Instructors
-        instructors = []
-        for i in range(1, 4):
+        if not qa_instructor or not qa_student:
+            print("ERROR: Run seed.py first to create the QA accounts!")
+            return
+
+        print("Creating Dummy Users...")
+        # Create Dummy Instructors
+        instructors = [qa_instructor]
+        for i in range(1, 3):
             instructor = User(
                 name=f"Prof. Instructor {i}",
                 school_id=f"20230000{i:02d}",
@@ -78,13 +73,12 @@ def seed_database():
             )
             db.add(instructor)
             instructors.append(instructor)
-        db.commit()
-        
-        # 3. Create 15 Students
-        students = []
-        for i in range(1, 16):
+            
+        # Create Dummy Students
+        students = [qa_student]
+        for i in range(1, 15):
             student = User(
-                name=f"Student {i}",
+                name=f"Dummy Student {i}",
                 school_id=f"20240000{i:02d}",
                 email=f"student{i}@pampangastateu.edu.ph",
                 password_hash=get_password_hash("Password123!"),
@@ -95,57 +89,33 @@ def seed_database():
             db.add(student)
             students.append(student)
         db.commit()
-        
-        # 4. Create 3 Classes
+
+        print("Creating Classes...")
         classes = []
         class_names = ["CS101: Intro to Python", "CS102: Data Structures", "CS201: Algorithms"]
         for idx, name in enumerate(class_names):
             classroom = Classroom(
-                instructor_id=instructors[idx].user_id,
+                instructor_id=instructors[0 if idx < 2 else 1].user_id,
                 name=name,
                 section=f"Section {chr(65+idx)}",
-                class_code=f"CLS{idx}X9",
+                class_code=f"QA{idx}X9",
                 is_active=True
             )
             db.add(classroom)
             classes.append(classroom)
         db.commit()
-        
-        # 5. Bulk Enrollments (Enroll 5 students per class)
-        for idx, classroom in enumerate(classes):
-            class_students = students[idx*5 : (idx+1)*5]
-            for student in class_students:
-                enrollment = Enrollment(
-                    class_id=classroom.class_id,
-                    student_id=student.user_id,
-                    status="active"
-                )
-                db.add(enrollment)
+
+        print("Enrolling Students...")
+        for student in students:
+            enrollment = Enrollment(
+                class_id=classes[0].class_id,
+                student_id=student.user_id,
+                status="active"
+            )
+            db.add(enrollment)
         db.commit()
-        
-        # 6. Create Practice Modules for Solo Practice Demo
-        module = PracticeModule(
-            instructor_id=instructors[0].user_id,
-            title="Python Fundamentals Bootcamp",
-            description="A self-paced, progressive solo practice module.",
-            order_index=1
-        )
-        db.add(module)
-        db.commit()
-        
-        practice_task = PracticeTask(
-            module_id=module.module_id,
-            title="Variables & Data Types",
-            instructions="Print the string 'Python is Awesome!' exactly as shown.",
-            expected_output="Python is Awesome!\n",
-            expected_ast_patterns={},
-            starter_code="# Write your code below\n",
-            order_index=1
-        )
-        db.add(practice_task)
-        db.commit()
-        
-        # 7. Create 5 Activities with Varied AST Requirements & Test Cases
+
+        print("Creating Tasks...")
         tasks = []
         ast_configs = [
             {"require_loops": False, "require_functions": False, "desc": "Basic Print Statement"},
@@ -163,7 +133,7 @@ def seed_database():
                 instructor_id=target_class.instructor_id,
                 title=f"Activity {idx+1}: {config['desc']}",
                 description=f"Demonstrate {config['desc']}.",
-                instructions=f"Write a Python script for {config['desc']}.",
+                instructions=f"Write a Python script for {config['desc']}. Make sure your output says 'Success'.",
                 activity_type="laboratory",
                 difficulty=diff,
                 required_ast_rules=config,
@@ -173,7 +143,6 @@ def seed_database():
             db.add(task)
             db.commit()
             
-            # Add a basic test case for each task
             tc = TaskTestCase(
                 task_id=task.task_id,
                 name="Default Output Check",
@@ -184,41 +153,36 @@ def seed_database():
             db.add(tc)
             tasks.append(task)
         db.commit()
-        
-        # 8. Create Realistic Submissions
-        # Perfect submission
+
+        print("Creating Submissions...")
         sub1 = Submission(
             task_id=tasks[0].task_id,
-            student_id=students[0].user_id,
+            student_id=students[1].user_id,
             attempt_number=1,
             status="graded",
-            raw_code="print('Hello World')",
-            
-            )
+            raw_code="print('Success')",
+        )
         
-        # AST Flagged submission
         sub2 = Submission(
             task_id=tasks[2].task_id,
-            student_id=students[1].user_id,
+            student_id=students[2].user_id,
             attempt_number=1,
             status="rejected",
             raw_code="print('I did not use a loop')",
-            
-            )
+        )
         
-        # Pending submission
         sub3 = Submission(
             task_id=tasks[3].task_id,
-            student_id=students[2].user_id,
+            student_id=qa_student.user_id,
             attempt_number=1,
             status="submitted",
-            raw_code="def my_func():\n    for i in range(5):\n        pass"
+            raw_code="def my_func():\n    for i in range(5):\n        pass",
         )
         
         db.add_all([sub1, sub2, sub3])
         db.commit()
-        
-        print("Database successfully seeded with realistic dummy data!")
+
+        print("Finished injecting realistic panelist demo data to QA accounts!")
         
     finally:
         db.close()
