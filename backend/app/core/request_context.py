@@ -24,6 +24,11 @@ _correlation_id_context: ContextVar[str | None] = ContextVar(
     default=None,
 )
 
+_client_ip_context: ContextVar[str | None] = ContextVar(
+    "pamsu_client_ip",
+    default=None,
+)
+
 
 class PrivacySafeJsonFormatter(logging.Formatter):
     """
