@@ -6,9 +6,11 @@ import InstructorSidebar from '../../../components/layout/InstructorSidebar';
 import AlertModal from '../../../components/modals/AlertModal';
 import { DiffEditor } from '@monaco-editor/react';
 import { useTheme } from '../../theme/ThemeContext';
+import { useEditorSettings } from '../../../hooks/useEditorSettings';
 
 const SplitPaneGradingWorkspace = () => {
   const { resolvedTheme } = useTheme();
+  const { editorOptions } = useEditorSettings();
   const { classId, taskId } = useParams();
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -360,7 +362,8 @@ const SplitPaneGradingWorkspace = () => {
                       original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
                       modified={detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
                       options={{
-                        readOnly: true,
+                        ...editorOptions,
+                          readOnly: true,
                         minimap: { enabled: false },
                         scrollBeyondLastLine: false,
                         renderSideBySide: true,
