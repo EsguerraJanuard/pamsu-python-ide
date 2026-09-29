@@ -161,8 +161,8 @@ def create_submission_endpoint(
                 request_kind="submit",
                 task_id=payload.task_id,
                 submission_id=submission.sub_id,
-                source_code=payload.raw_code,
-                standard_input=payload.standard_input,
+                source_code=None,
+                standard_input="",
                 coding_session_id=payload.coding_session_id,
             ),
         )
