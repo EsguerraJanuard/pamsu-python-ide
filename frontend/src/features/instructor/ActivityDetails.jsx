@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
+import AlertModal from '../../components/modals/AlertModal';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const ActivityDetails = () => {
@@ -19,6 +20,7 @@ const ActivityDetails = () => {
   });
 
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, testCaseId: null });
+  const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
     fetchActivityDetails();
@@ -53,6 +55,8 @@ const ActivityDetails = () => {
       setActivity(prev => ({ ...prev, is_published: newStatus }));
     } catch (err) {
       console.error('Failed to toggle publication status', err);
+      const msg = err.response?.data?.detail || "Failed to publish activity. Check due date and classroom.";
+      setAlertConfig({ title: "Publication Failed", message: msg, type: "error" });
     }
   };
 
@@ -69,11 +73,24 @@ const ActivityDetails = () => {
   const handleAddTestCase = async (e) => {
     e.preventDefault();
     try {
-      await api.post(`/instructors/tasks/${id}/test-cases`, newTestCase);
+      const payload = {
+        name: `Test Case ${testCases.length + 1}`,
+        standard_input: newTestCase.input_data || "",
+        expected_output: newTestCase.expected_output || "",
+        is_hidden: newTestCase.is_hidden || false,
+        display_order: testCases.length
+      };
+      await api.post(`/instructors/tasks/${id}/test-cases`, payload);
       setNewTestCase({ input_data: '', expected_output: '', is_hidden: false });
       fetchTestCases();
     } catch (err) {
       console.error('Failed to add test case', err);
+      const msg = err.response?.data?.detail || "Failed to add test case. Please check your inputs.";
+      if (Array.isArray(msg)) {
+         setAlertConfig({ title: "Validation Error", message: "Invalid inputs.", type: "error" });
+      } else {
+         setAlertConfig({ title: "Error", message: msg, type: "error" });
+      }
     }
   };
 
@@ -205,7 +222,7 @@ const ActivityDetails = () => {
               <p className="text-text-muted">No test cases found.</p>
             ) : (
               testCases.map((tc, idx) => (
-                <div key={tc.id || idx} className="bg-bg-glass p-4 rounded border border-border-subtle flex flex-col md:flex-row gap-4 justify-between items-start">
+                <div key={tc.test_case_id || idx} className="bg-bg-glass p-4 rounded border border-border-subtle flex flex-col md:flex-row gap-4 justify-between items-start">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center space-x-2">
                       <span className="font-semibold text-text-main">Test Case #{idx + 1}</span>
@@ -214,7 +231,7 @@ const ActivityDetails = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="text-xs text-text-muted mb-1">Input Data</div>
-                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.input_data || '-'}</pre>
+                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.standard_input || '-'}</pre>
                       </div>
                       <div>
                         <div className="text-xs text-text-muted mb-1">Expected Output</div>
@@ -224,7 +241,7 @@ const ActivityDetails = () => {
                   </div>
                     {!activity.is_published && (
                       <button 
-                        onClick={() => promptDeleteTestCase(tc.id)}
+                        onClick={() => promptDeleteTestCase(tc.test_case_id)}
                         className="text-text-rose hover:text-text-rose px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
                       >
                         Delete
@@ -303,6 +320,13 @@ const ActivityDetails = () => {
         isDanger={true}
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmModal({ isOpen: false, testCaseId: null })}
+      />
+      <AlertModal 
+        isOpen={!!alertConfig} 
+        title={alertConfig?.title || "Notification"}
+        message={alertConfig?.message || ""}
+        type={alertConfig?.type || "info"}
+        onClose={() => setAlertConfig(null)} 
       />
     </div>
   );
