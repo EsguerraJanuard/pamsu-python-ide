@@ -119,6 +119,10 @@ def get_current_correlation_id() -> str | None:
 
     return _correlation_id_context.get()
 
+def get_current_client_ip() -> str | None:
+    """Return the client IP associated with the current request context."""
+    return _client_ip_context.get()
+
 
 def _generate_correlation_id() -> str:
     return str(uuid4())
@@ -239,10 +243,21 @@ class RequestContextMiddleware:
             scope,
             header_name=(self.correlation_id_header),
         )
+        
+        # Extract IP
+        client_ip = _read_request_header(scope, header_name="x-forwarded-for")
+        if client_ip:
+            client_ip = client_ip.split(",")[0].strip()
+        else:
+            client_ip = None
+            
+        if not client_ip and scope.get("client"):
+            client_ip = scope["client"][0]
 
         correlation_id = _normalize_correlation_id(supplied_correlation_id)
 
         context_token: Token[str | None] = _correlation_id_context.set(correlation_id)
+        ip_context_token: Token[str | None] = _client_ip_context.set(client_ip)
 
         scope.setdefault(
             "state",
@@ -335,6 +350,7 @@ class RequestContextMiddleware:
 
         finally:
             _correlation_id_context.reset(context_token)
+            _client_ip_context.reset(ip_context_token)
 
 
 # CORRELATION BOUNDARY:

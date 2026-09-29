@@ -1,11 +1,13 @@
 from datetime import datetime
 from typing import Any, Literal
+from app.core.request_context import get_current_client_ip
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
     field_validator,
+    model_validator,
 )
 
 
@@ -201,6 +203,13 @@ class AuditRecordCreateInternal(BaseModel):
         default_factory=dict,
     )
     occurred_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def _inject_client_ip(self) -> "AuditRecordCreateInternal":
+        ip = get_current_client_ip()
+        if ip and "ip_address" not in self.audit_data:
+            self.audit_data["ip_address"] = ip
+        return self
 
     @field_validator(
         "audit_key",
