@@ -168,18 +168,19 @@ def seed_database():
         
         for task_idx, task in enumerate(tasks):
             for student_idx, student in enumerate(all_students):
-                # 80% chance a student submitted something for early tasks, decreasing for later tasks
-                if random.random() < (0.9 - (task_idx * 0.1)):
+                # QA student ALWAYS submits everything so the demo looks complete!
+                # Other dummy students submit randomly
+                if student.email == "qa.student@pampangastateu.edu.ph" or random.random() < (0.9 - (task_idx * 0.1)):
                     # Provide code that matches the AST config roughly
                     if task_idx == 0:
                         code = "print('Success')"
-                        status_val = "graded" if random.random() < 0.7 else "submitted"
+                        status_val = "graded" if student.email == "qa.student@pampangastateu.edu.ph" or random.random() < 0.7 else "submitted"
                     elif task_idx == 1:
                         code = "def my_func():\n    return 'Success'\nprint(my_func())"
-                        status_val = "graded" if random.random() < 0.6 else "submitted"
+                        status_val = "graded" if student.email == "qa.student@pampangastateu.edu.ph" or random.random() < 0.6 else "submitted"
                     elif task_idx == 2:
                         code = "for i in range(3):\n    print('Success')"
-                        status_val = "submitted" if random.random() < 0.5 else "awaiting_review"
+                        status_val = "submitted" if student.email == "qa.student@pampangastateu.edu.ph" or random.random() < 0.5 else "awaiting_review"
                     elif task_idx == 3:
                         code = "x = 0\nwhile x < 3:\n    if x == 1:\n        print('Success')\n    x += 1"
                         status_val = "submitted"
