@@ -179,222 +179,230 @@ export default function InstructorSettings() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
-            <h2 className="text-sm font-semibold text-text-main mb-4">Faculty Profile</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <section className="rounded-xl border border-border-subtle bg-bg-glass overflow-hidden shadow-sm">
+            <div className="p-6">
+              <h2 className="text-base font-semibold text-text-main mb-1">Faculty Profile</h2>
+              <p className="text-xs text-text-muted mb-6">Verified identity details cannot be changed from this page.</p>
+              
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs text-text-muted mb-1">Full Name (Verified)</label>
-                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                  <label className="block text-xs font-medium text-text-muted mb-1.5">Full Name</label>
+                  <div className="bg-bg-panel/50 rounded-lg border border-border-subtle px-3 py-2.5 shadow-sm">
                     <input
                       type="text"
                       name="name"
                       value={formData.name}
                       disabled
-                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                      className="w-full bg-transparent text-sm text-text-muted outline-none cursor-not-allowed"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-text-muted mb-1">Email Address (Verified)</label>
-                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                  <label className="block text-xs font-medium text-text-muted mb-1.5">Email Address</label>
+                  <div className="bg-bg-panel/50 rounded-lg border border-border-subtle px-3 py-2.5 shadow-sm">
                     <input
                       type="email"
                       name="email"
                       value={formData.email}
                       disabled
-                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                      className="w-full bg-transparent text-sm text-text-muted outline-none cursor-not-allowed"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-text-muted mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-medium text-text-muted mb-1.5 flex items-center justify-between">
                     Department
-                    <span className="text-[10px] text-emerald-500/80">Managed by Admin</span>
+                    <span className="text-[10px] text-emerald-500/80 font-normal">Managed by Admin</span>
                   </label>
-                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                  <div className="bg-bg-panel/50 rounded-lg border border-border-subtle px-3 py-2.5 shadow-sm">
                     <input
                       type="text"
                       name="department"
                       value="College of Computing Studies"
                       disabled
-                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                      className="w-full bg-transparent text-sm text-text-muted outline-none cursor-not-allowed"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-text-muted mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-medium text-text-muted mb-1.5 flex items-center justify-between">
                     Default Course
-                    <span className="text-[10px] text-emerald-500/80">Managed by Admin</span>
+                    <span className="text-[10px] text-emerald-500/80 font-normal">Managed by Admin</span>
                   </label>
-                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
+                  <div className="bg-bg-panel/50 rounded-lg border border-border-subtle px-3 py-2.5 shadow-sm">
                     <input
                       type="text"
                       name="defaultCourse"
                       value="CCS101"
                       disabled
-                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
+                      className="w-full bg-transparent text-sm text-text-muted outline-none cursor-not-allowed"
                     />
                   </div>
                 </div>
               </div>
-          </section>
-
-          <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
-            <h2 className="text-sm font-semibold text-text-main mb-4">AST & Automated Grading Policy</h2>
-            <div>
-              <label className="block text-xs text-text-muted mb-1">Default AST Strictness Level</label>
-              <CustomSelect
-                value={formData.astStrictness}
-                onChange={(val) => setFormData(prev => ({ ...prev, astStrictness: val }))}
-                className="w-full px-3 py-2 text-xs"
-                options={[
-                  { value: "lax", label: "Lenient (Focus on execution output only)" },
-                  { value: "moderate", label: "Moderate (Standard AST pattern checks)" },
-                  { value: "strict", label: "Strict (Enforce rigid structural loop/function rules)" }
-                ]}
-              />
             </div>
-          </section>
 
-          <div className="flex justify-end gap-3">
-            <button
-              type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition"
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-
-        <section className="rounded-xl border border-border-subtle bg-bg-glass p-5 mt-6">
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-text-main">
-              Change Password
-            </h2>
-            <p className="mt-1 text-[11px] text-text-muted">
-              Your current password must be verified by the server.
-            </p>
-          </div>
-
-          {passwordMessage && (
-            <div
-              role={passwordMessageType === "error" ? "alert" : "status"}
-              aria-live="polite"
-              className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
-                passwordMessageType === "error"
-                  ? "border-red-500/20 bg-red-500/10 text-text-rose"
-                  : "border-emerald-500/20 bg-emerald-500/10 text-text-emerald"
-              }`}
-            >
-              {passwordMessage}
-            </div>
-          )}
-
-          <form onSubmit={handleChangePassword} className="space-y-4" noValidate>
-            <div className="max-w-lg space-y-4">
-              <div>
-                <label htmlFor="current-password" className="mb-1.5 block text-xs font-medium text-text-muted">
-                Current password
-              </label>
-              <div className={inputWrap}>
-                <input
-                  id="current-password"
-                  type={showPasswords ? "text" : "password"}
-                  value={passwords.currentPassword}
-                  onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
-                  placeholder="Enter your current password"
-                  autoComplete="current-password"
-                  required
-                  className={inputClass}
-                  style={{ caretColor: "#10b981" }}
+            <div className="border-t border-border-subtle p-6">
+              <h2 className="text-base font-semibold text-text-main mb-1">AST & Automated Grading Policy</h2>
+              <p className="text-xs text-text-muted mb-6">Configure the default strictness level for evaluating student code structures.</p>
+              
+              <div className="max-w-2xl">
+                <label className="block text-xs font-medium text-text-muted mb-1.5">Default AST Strictness Level</label>
+                <CustomSelect
+                  value={formData.astStrictness}
+                  onChange={(val) => setFormData(prev => ({ ...prev, astStrictness: val }))}
+                  className="w-full text-sm shadow-sm"
+                  options={[
+                    { value: "lax", label: "Lenient (Focus on execution output only)" },
+                    { value: "moderate", label: "Moderate (Standard AST pattern checks)" },
+                    { value: "strict", label: "Strict (Enforce rigid structural loop/function rules)" }
+                  ]}
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="new-password" className="mb-1.5 block text-xs font-medium text-text-muted">
-                New password
-              </label>
-              <div className={inputWrap}>
-                <input
-                  id="new-password"
-                  type={showPasswords ? "text" : "password"}
-                  value={passwords.newPassword}
-                  onChange={(event) => updatePasswordField("newPassword", event.target.value)}
-                  placeholder="At least 8 characters"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  className={inputClass}
-                  style={{ caretColor: "#10b981" }}
-                />
-              </div>
-              {passwords.newPassword && getPasswordStrength(passwords.newPassword) && (() => {
-                const strength = getPasswordStrength(passwords.newPassword);
-                return (
-                  <div className="mt-2.5">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: strength.color }}>
-                        {strength.label.split(' - ')[0] || strength.label}
-                      </span>
-                    </div>
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
-                      <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />
-                    </div>
-                    {strength.label.includes(' - ') && (
-                      <p className="mt-1.5 text-[10px] text-text-muted">{strength.label.split(' - ')[1]}</p>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div>
-              <label htmlFor="confirm-new-password" className="mb-1.5 block text-xs font-medium text-text-muted">
-                Confirm new password
-              </label>
-              <div className={inputWrap}>
-                <input
-                  id="confirm-new-password"
-                  type={showPasswords ? "text" : "password"}
-                  value={passwords.confirmPassword}
-                  onChange={(event) => updatePasswordField("confirmPassword", event.target.value)}
-                  placeholder="Enter the new password again"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  className={inputClass}
-                  style={{ caretColor: "#10b981" }}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 mt-6 mb-2">
-              <label className="text-xs text-text-muted cursor-pointer flex items-center gap-2">
-                  <div className="relative group flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={showPasswords}
-                      onChange={() => setShowPasswords(!showPasswords)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
-                  </div>
-                Show passwords
-              </label>
-            </div>
-            </div>
-
-            <div className="flex justify-end pt-1">
+            <div className="border-t border-border-subtle bg-bg-panel/40 px-6 py-4 flex items-center justify-between">
+              <p className="text-xs text-text-muted">Changes apply to all future assignments by default.</p>
               <button
                 type="submit"
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition duration-150"
+                className="rounded-lg bg-emerald-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 hover:shadow-emerald-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0"
               >
-                Update password
+                Save Changes
               </button>
             </div>
-          </form>
+          </section>
+        </form>
+
+        <section className="rounded-xl border border-border-subtle bg-bg-glass overflow-hidden shadow-sm mt-6">
+          <div className="p-6">
+            <h2 className="text-base font-semibold text-text-main mb-1">
+              Change Password
+            </h2>
+            <p className="text-xs text-text-muted mb-6">
+              Your current password must be verified by the server before updating.
+            </p>
+
+            {passwordMessage && (
+              <div
+                role={passwordMessageType === "error" ? "alert" : "status"}
+                aria-live="polite"
+                className={`mb-6 rounded-lg border px-4 py-3 text-sm flex items-center gap-3 ${passwordMessageType === "error" ? "border-red-500/20 bg-red-500/10 text-text-rose" : "border-emerald-500/20 bg-emerald-500/10 text-text-emerald"}`}
+              >
+                {passwordMessageType === "error" ? (
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                )}
+                {passwordMessage}
+              </div>
+            )}
+
+            <form id="password-form" onSubmit={handleChangePassword} className="space-y-5" noValidate>
+              <div className="max-w-lg space-y-5">
+                <div>
+                  <label htmlFor="current-password" className="mb-1.5 block text-xs font-medium text-text-muted">
+                    Current password
+                  </label>
+                  <div className={`${inputWrap} shadow-sm`}>
+                    <input
+                      id="current-password"
+                      type={showPasswords ? "text" : "password"}
+                      value={passwords.currentPassword}
+                      onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
+                      placeholder="Enter your current password"
+                      autoComplete="current-password"
+                      required
+                      className={inputClass}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="new-password" className="mb-1.5 block text-xs font-medium text-text-muted">
+                    New password
+                  </label>
+                  <div className={`${inputWrap} shadow-sm`}>
+                    <input
+                      id="new-password"
+                      type={showPasswords ? "text" : "password"}
+                      value={passwords.newPassword}
+                      onChange={(event) => updatePasswordField("newPassword", event.target.value)}
+                      placeholder="At least 8 characters"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      className={inputClass}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                  </div>
+                  {passwords.newPassword && getPasswordStrength(passwords.newPassword) && (() => {
+                    const strength = getPasswordStrength(passwords.newPassword);
+                    return (
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: strength.color }}>
+                            {strength.label.split(' - ')[0] || strength.label}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-border-strong">
+                          <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />
+                        </div>
+                        {strength.label.includes(' - ') && (
+                          <p className="mt-1.5 text-[10px] text-text-muted">{strength.label.split(' - ')[1]}</p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label htmlFor="confirm-new-password" className="mb-1.5 block text-xs font-medium text-text-muted">
+                    Confirm new password
+                  </label>
+                  <div className={`${inputWrap} shadow-sm`}>
+                    <input
+                      id="confirm-new-password"
+                      type={showPasswords ? "text" : "password"}
+                      value={passwords.confirmPassword}
+                      onChange={(event) => updatePasswordField("confirmPassword", event.target.value)}
+                      placeholder="Enter the new password again"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      className={inputClass}
+                      style={{ caretColor: "#10b981" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <label className="text-xs font-medium text-text-muted cursor-pointer flex items-center gap-2 select-none group">
+                    <div className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={showPasswords}
+                        onChange={() => setShowPasswords(!showPasswords)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:opacity-80 transition-opacity shadow-inner"></div>
+                    </div>
+                    Show passwords
+                  </label>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div className="border-t border-border-subtle bg-bg-panel/40 px-6 py-4 flex justify-end">
+            <button
+              type="submit"
+              form="password-form"
+              className="rounded-lg bg-emerald-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 hover:shadow-emerald-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0"
+            >
+              Update password
+            </button>
+          </div>
         </section>
       </div>
           </main>
