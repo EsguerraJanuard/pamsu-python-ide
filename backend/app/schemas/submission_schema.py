@@ -236,6 +236,10 @@ class InstructorSubmissionResponse(
         default=None,
         description=("Telemetry data from the student's coding session."),
     )
+    execution_log: str | None = Field(
+        default=None,
+        description=("Execution log if available from background checks."),
+    )
 
     # REVIEW BOUNDARY:
     # jaccard_score and ast_pass_fail are review indicators only.

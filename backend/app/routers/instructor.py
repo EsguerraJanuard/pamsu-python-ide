@@ -1219,7 +1219,22 @@ def get_submission_endpoint(
     except SubmissionServiceError as exc:
         raise_submission_service_http_exception(exc)
 
-    return InstructorSubmissionResponse.model_validate(submission)
+    from app.models.domain_models import ExecutionRequest
+    exec_request = db.query(ExecutionRequest).filter(
+        ExecutionRequest.submission_id == submission_id,
+        ExecutionRequest.request_kind == "submit"
+    ).order_by(ExecutionRequest.queued_at.desc()).first()
+    
+    exec_log = None
+    if exec_request:
+        if exec_request.stderr:
+            exec_log = f"ERROR:\n{exec_request.stderr}\n\nOUTPUT:\n{exec_request.stdout}"
+        else:
+            exec_log = exec_request.stdout
+
+    response = InstructorSubmissionResponse.model_validate(submission)
+    response.execution_log = exec_log
+    return response
 
 
 @router.get(

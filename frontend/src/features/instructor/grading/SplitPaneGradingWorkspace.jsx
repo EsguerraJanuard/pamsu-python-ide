@@ -81,7 +81,15 @@ const SplitPaneGradingWorkspace = () => {
         // 2. Fetch the evaluation details (which contains the AST analyses and the instructor grade)
         const evalRes = await api.get(`/evaluation/submissions/${sub.sub_id}`);
         
-        setDetailedSub(codeRes);
+        const astFeedback = evalRes.ast_analyses?.length > 0 && evalRes.ast_analyses[0].details?.findings
+          ? evalRes.ast_analyses[0].details.findings.map(f => `[${f.rule}] ${f.passed ? "PASSED" : "FAILED"} - ${f.label || ""}`)
+          : null;
+
+        setDetailedSub({ 
+          ...codeRes, 
+          evaluation: evalRes,
+          ast_feedback: astFeedback
+        });
         
         // Pre-fill grade if it exists
         const manualGrade = evalRes.instructor_grade;
@@ -377,9 +385,14 @@ const SplitPaneGradingWorkspace = () => {
                 </div>
 
                 <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-text-main mb-2">Execution Feedback / Logs</h3>
+                  <h3 className="text-lg font-medium text-text-main mb-2">Execution Logs</h3>
+                  <pre className="bg-bg-panel p-4 rounded text-sm text-text-muted overflow-x-auto border border-border-subtle whitespace-pre-wrap mb-4">
+                    {detailedSub?.execution_log || 'Execution logs not available for this submission.'}
+                  </pre>
+
+                  <h3 className="text-lg font-medium text-text-main mb-2">AST Analysis</h3>
                   <pre className="bg-bg-panel p-4 rounded text-sm text-text-muted overflow-x-auto border border-border-subtle whitespace-pre-wrap">
-                    {detailedSub?.execution_log || detailedSub?.feedback_text || detailedSub?.ast_feedback?.join('\n') || 'Loading execution logs or not available.'}
+                    {detailedSub?.ast_feedback ? detailedSub.ast_feedback.join('\n') : 'No structural requirements found.'}
                   </pre>
                 </div>
 

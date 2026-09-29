@@ -151,6 +151,24 @@ def create_submission_endpoint(
     from app.tasks.celery_worker import evaluate_submission_background_task
     evaluate_submission_background_task.delay(submission.sub_id)
 
+    try:
+        from app.services.execution_service import create_student_execution_request
+        from app.schemas.execution_schema import ExecutionRequestCreate
+        create_student_execution_request(
+            db,
+            student_id=current_student.user_id,
+            payload=ExecutionRequestCreate(
+                request_kind="submit",
+                task_id=payload.task_id,
+                submission_id=submission.sub_id,
+                source_code=payload.raw_code,
+                standard_input=payload.standard_input,
+                coding_session_id=payload.coding_session_id,
+            ),
+        )
+    except Exception as e:
+        print(f"Failed to dispatch execution for submission: {e}")
+
     return StudentSubmissionResponse.model_validate(submission)
 
 
