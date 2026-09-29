@@ -851,17 +851,40 @@ export default function Workspace() {
                   </h3>
 
                   <ul className="space-y-2">
-                    {activity.requirements.map((requirement) => (
-                      <li
-                        key={requirement}
-                        className="flex items-center gap-2 text-xs text-text-muted font-medium"
-                      >
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-text-blue border border-blue-500/20">
-                          ✓
-                        </span>
-                        {requirement}
-                      </li>
-                    ))}
+                    {activity.requirements.map((requirement) => {
+                        let isPassed = false;
+                        let isChecked = !!astResults;
+                        if (astResults && astResults.findings) {
+                           const finding = astResults.findings.find(f => f.rule === requirement);
+                           if (finding) {
+                             isPassed = finding.passed;
+                           }
+                        }
+                        
+                        return (
+                          <li
+                            key={requirement}
+                            className={`flex items-center gap-2 text-xs font-medium ${isChecked ? (isPassed ? "text-text-emerald" : "text-rose-400") : "text-text-muted"}`}
+                          >
+                            {isChecked ? (
+                              isPassed ? (
+                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500/15 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                                  ✓
+                                </span>
+                              ) : (
+                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-rose-500/15 text-[10px] font-bold text-rose-400 border border-rose-500/20">
+                                  ✕
+                                </span>
+                              )
+                            ) : (
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-bg-alt text-[10px] font-bold text-text-muted border border-border-strong">
+                                -
+                              </span>
+                            )}
+                            <span className={isChecked && isPassed ? "line-through opacity-80" : ""}>{requirement}</span>
+                          </li>
+                        );
+                    })}
                   </ul>
                 </section>
               )}

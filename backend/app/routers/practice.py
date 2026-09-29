@@ -166,7 +166,7 @@ def submit_practice_task(
             
             for finding in ast_res.get("findings", []):
                 if not finding.get("passed", False):
-                    ast_feedback_msgs.append(f"Missing {finding.get('label')}: {finding.get('message')}")
+                    ast_feedback_msgs.append(f"[{finding.get('rule')}] Missing {finding.get('label')}: {finding.get('message')}")
             
             if not ast_res.get("passed"):
                 is_successful = False

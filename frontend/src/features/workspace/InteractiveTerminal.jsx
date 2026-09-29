@@ -53,7 +53,7 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
   useEffect(() => {
     if (triggerRun > 0 && codeRef.current) {
       // Start run
-      termInstance.current.clear();
+      termInstance.current.reset();
       termInstance.current.writeln('\x1b[33m--- Starting Execution ---\x1b[0m');
       
       // Close existing ws if any

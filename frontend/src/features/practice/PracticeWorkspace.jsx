@@ -352,8 +352,8 @@ export default function PracticeWorkspace() {
                     <h4 className="text-xs font-semibold uppercase text-text-muted mb-1">Structural Feedback</h4>
                     <ul className="list-disc list-inside text-sm text-text-main space-y-1">
                       {feedback.ast_feedback.map((msg, idx) => (
-                        <li key={idx} className={msg.startsWith("Missing") ? "text-rose-400" : "text-amber-400"}>
-                          {msg}
+                        <li key={idx} className={msg.includes("Missing") ? "text-rose-400" : "text-amber-400"}>
+                          {msg.replace(/\[.*?\]\s*/, '')}
                         </li>
                       ))}
                     </ul>
