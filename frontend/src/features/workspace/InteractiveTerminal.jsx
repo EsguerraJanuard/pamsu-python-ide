@@ -27,6 +27,7 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
       fontFamily: 'monospace',
       cursorBlink: true,
       disableStdin: false,
+      convertEol: true,
     });
     
     const fit = new FitAddon();
