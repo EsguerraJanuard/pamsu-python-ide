@@ -216,11 +216,11 @@ export default function Assignments() {
 
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {
-      navigate(`/student/submissions/task/${activity.task_id}`);
+      navigate(`/student/submissions/task/${activity.id}`);
       return;
     }
 
-    navigate(`/student/workspace?activity=${activity.task_id}`);
+    navigate(`/student/workspace?activity=${activity.id}`);
   };
 
   const filteredActivities = activities.filter((activity) => {
@@ -341,7 +341,7 @@ export default function Assignments() {
 
                 return (
                   <article
-                    key={activity.task_id}
+                    key={activity.id}
                     className={`assignment-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group ${status.accentClass}`}
                     style={{
                       animation: `assignmentsFadeUp 400ms ease ${
