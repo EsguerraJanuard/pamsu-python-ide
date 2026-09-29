@@ -25,38 +25,38 @@ const STATUS_CONFIG = {
   due_today: {
     label: "Due today",
     badgeClass:
-      "border-amber-500/30 bg-amber-500/10 text-amber-400",
+      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
     accentClass: "border-l-amber-500",
     progressClass: "bg-amber-500",
     buttonClass:
-      "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
+      "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500 dark:text-gray-900 dark:hover:bg-amber-400",
   },
   in_progress: {
     label: "In progress",
     badgeClass:
-      "border-blue-500/30 bg-blue-500/10 text-blue-400",
+      "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
     accentClass: "border-l-blue-500",
     progressClass: "bg-blue-500",
     buttonClass:
-      "bg-blue-600 text-text-main hover:bg-blue-500",
+      "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-500",
   },
   submitted: {
     label: "Submitted",
     badgeClass:
-      "border-green-500/30 bg-green-500/10 text-green-400",
+      "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400",
     accentClass: "border-l-green-500",
     progressClass: "bg-green-500",
     buttonClass:
-      "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
+      "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10",
   },
   graded: {
     label: "Graded",
     badgeClass:
-      "border-violet-500/30 bg-violet-500/10 text-violet-400",
+      "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-400",
     accentClass: "border-l-violet-500",
     progressClass: "bg-violet-500",
     buttonClass:
-      "border border-violet-500/40 bg-transparent text-violet-400 hover:bg-violet-500/10",
+      "border border-violet-500/40 bg-transparent text-violet-700 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10",
   },
 };
 
