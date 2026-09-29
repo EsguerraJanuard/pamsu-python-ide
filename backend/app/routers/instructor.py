@@ -1227,10 +1227,12 @@ def get_submission_endpoint(
     
     exec_log = None
     if exec_request:
-        if exec_request.stderr:
+        if exec_request.status in ["queued", "running"]:
+            exec_log = "[Execution in progress or queued in background worker...]"
+        elif exec_request.stderr:
             exec_log = f"ERROR:\n{exec_request.stderr}\n\nOUTPUT:\n{exec_request.stdout}"
         else:
-            exec_log = exec_request.stdout
+            exec_log = exec_request.stdout if exec_request.stdout else "[No output produced]" 
 
     response = InstructorSubmissionResponse.model_validate(submission)
     response.execution_log = exec_log
