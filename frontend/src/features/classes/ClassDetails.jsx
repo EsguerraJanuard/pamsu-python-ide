@@ -278,7 +278,7 @@ export default function ClassDetails() {
                               </div>
                               <button
                                 onClick={() => handleOpenActivity(activity)}
-                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-blue-500/40 text-text-blue hover:bg-blue-500/10" : "bg-blue-600 text-text-main hover:bg-blue-500"}`}
+                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-blue-500/40 text-text-blue hover:bg-blue-500/10" : "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"}`}
                               >
                                 {activity.actionLabel}
                               </button>

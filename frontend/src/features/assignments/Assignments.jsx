@@ -29,7 +29,7 @@ const STATUS_CONFIG = {
     accentClass: "border-l-amber-500",
     progressClass: "bg-amber-500",
     buttonClass:
-      "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500 dark:text-gray-900 dark:hover:bg-amber-400",
+      "border border-amber-500/40 bg-transparent text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10",
   },
   in_progress: {
     label: "In progress",
@@ -38,7 +38,7 @@ const STATUS_CONFIG = {
     accentClass: "border-l-blue-500",
     progressClass: "bg-blue-500",
     buttonClass:
-      "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-500",
+      "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10",
   },
   submitted: {
     label: "Submitted",

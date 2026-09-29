@@ -13,21 +13,21 @@ const STATUS_CONFIG = {
     badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-400",
     accentClass: "border-l-amber-500",
     progressClass: "bg-amber-500",
-    buttonClass: "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
+    buttonClass: "border border-amber-500/40 bg-transparent text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10",
   },
   in_progress: {
     label: "In progress",
     badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-400",
     accentClass: "border-l-blue-500",
     progressClass: "bg-blue-500",
-    buttonClass: "bg-blue-600 text-text-main hover:bg-blue-500",
+    buttonClass: "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10",
   },
   submitted: {
     label: "Submitted",
     badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
     accentClass: "border-l-green-500",
     progressClass: "bg-green-500",
-    buttonClass: "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
+    buttonClass: "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10",
   },
 };
 
