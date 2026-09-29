@@ -166,6 +166,7 @@ def seed_database():
             student_id=students[1].user_id,
             attempt_number=1,
             status="graded",
+            accepted_at=datetime.now(timezone.utc),
             raw_code="print('Success')",
         )
         
@@ -182,6 +183,7 @@ def seed_database():
             student_id=qa_student.user_id,
             attempt_number=1,
             status="submitted",
+            accepted_at=datetime.now(timezone.utc),
             raw_code="def my_func():\n    for i in range(5):\n        pass",
         )
         
