@@ -663,7 +663,7 @@ const ActivityEditor = () => {
               <div className="lg:col-span-5 flex flex-col gap-5">
 
                   <div className="bg-bg-glass p-6 rounded-2xl border border-psu-maroon/20 shadow-md shadow-psu-maroon/5 flex flex-col">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-psu-gold pb-2 border-b border-border-subtle mb-4 flex items-center gap-2">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-text-brand pb-2 border-b border-border-subtle mb-4 flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                       </svg>
@@ -680,7 +680,7 @@ const ActivityEditor = () => {
                         rows={8}
                         placeholder="# def my_solution():
 #     print('Hello World')"
-                        className="w-full h-full bg-[#0f1117] border border-border-subtle rounded-xl p-4 text-text-main font-mono text-xs focus:outline-none focus:border-psu-gold transition-colors resize-none"
+                        className="w-full h-full bg-[#0f1117] border border-border-subtle rounded-xl p-4 text-text-main font-mono text-xs focus:outline-none focus:border-psu-maroon dark:focus:border-psu-gold transition-colors resize-none"
                       />
                     </div>
                     
@@ -693,11 +693,11 @@ const ActivityEditor = () => {
                         type="button"
                         onClick={handleAnalyzeCode}
                         disabled={isAnalyzing || !formData.reference_code.trim()}
-                        className="rounded-lg bg-psu-gold px-4 py-2 text-xs font-semibold text-black shadow-md shadow-psu-gold/20 transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="rounded-lg bg-psu-maroon dark:bg-psu-gold px-4 py-2 text-xs font-semibold text-white dark:text-black shadow-md shadow-psu-maroon/20 dark:shadow-psu-gold/20 transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
                         {isAnalyzing ? (
                           <>
-                            <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin h-4 w-4 text-white dark:text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
