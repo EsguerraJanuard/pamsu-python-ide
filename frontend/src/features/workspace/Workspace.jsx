@@ -670,7 +670,7 @@ export default function Workspace() {
                 aria-pressed={showProblemPanel}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                   showProblemPanel
-                    ? "bg-[var(--color-psu-red, #ce0000)] text-white shadow-sm"
+                    ? "bg-psu-red text-white shadow-sm"
                     : "text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 }`}
               >

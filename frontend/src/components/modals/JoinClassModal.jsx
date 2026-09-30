@@ -52,7 +52,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="e.g. CCS101-XYZ"
-              className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-[var(--color-psu-red, #ce0000)] focus:outline-none"
+              className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-psu-red focus:outline-none"
               autoFocus
             />
           </div>
@@ -75,7 +75,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
             <button
               type="submit"
               disabled={isLoading || !code}
-              className="rounded-lg bg-[var(--color-psu-red, #ce0000)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2563eb] disabled:opacity-50"
+              className="rounded-lg bg-psu-red px-4 py-2 text-xs font-semibold text-white transition hover:bg-psu-maroon disabled:opacity-50"
             >
               {isLoading ? "Joining..." : "Join Class"}
             </button>

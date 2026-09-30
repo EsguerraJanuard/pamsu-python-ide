@@ -246,7 +246,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
                           "flex w-full items-center gap-2.5 rounded-lg text-xs transition-colors duration-150",
                           isCollapsed ? "justify-center px-0 py-2" : "justify-between px-2.5 py-2",
                           isActive
-                            ? "bg-[var(--color-psu-red, #ce0000)]/[0.14] text-text-brand font-semibold"
+                            ? "bg-psu-red/[0.14] text-text-brand font-semibold"
                             : "text-text-muted hover:bg-bg-glass hover:text-text-main font-medium",
                         ].join(" ")
                       }
@@ -258,7 +258,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
 
                       {link.path === "/student/assignments" && assignmentCount > 0 && (
                         <span
-                          className={`rounded-full bg-[var(--color-psu-red, #ce0000)] font-semibold text-white ${
+                          className={`rounded-full bg-psu-maroon font-semibold text-white ${
                             isCollapsed
                               ? "h-1.5 w-1.5 p-0"
                               : "px-1.5 py-0.5 text-[10px]"
@@ -282,7 +282,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
             className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-1"}`}
             title={isCollapsed ? `${name} (${role})` : undefined}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-psu-red, #ce0000)] text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-psu-maroon text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
               {initials}
             </div>
             {!isCollapsed && (

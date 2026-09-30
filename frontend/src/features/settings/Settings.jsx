@@ -90,7 +90,7 @@ export default function Settings() {
 
   const inputWrap =
 
-    "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-[var(--color-psu-red, #ce0000)]/60";
+    "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-red/60";
 
 
 

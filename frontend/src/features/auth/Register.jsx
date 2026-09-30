@@ -80,7 +80,7 @@ function OtpInput({ value, onChange, disabled }) {
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           disabled={disabled}
-          className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-[var(--color-psu-red, #ce0000)]/60 disabled:opacity-50"
+          className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-psu-red/60 disabled:opacity-50"
           style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
           aria-label={`OTP digit ${i + 1}`}
         />
