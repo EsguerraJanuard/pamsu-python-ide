@@ -206,6 +206,7 @@ const ActivityEditor = () => {
     expected_output: '',
     requirements: {},
     starter_code: '',
+    reference_code: '',
     activity_type: 'laboratory',
     difficulty: '',
     is_published: false,
@@ -213,6 +214,8 @@ const ActivityEditor = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -302,6 +305,35 @@ const ActivityEditor = () => {
     };
     fetchClassrooms();
   }, []);
+
+  
+  const handleAnalyzeCode = async () => {
+    if (!formData.reference_code.trim()) {
+      setAnalyzeError('Please provide a reference solution to analyze.');
+      return;
+    }
+    setAnalyzeError('');
+    setIsAnalyzing(true);
+    try {
+      const response = await api.post('/instructors/tasks/analyze-solution', {
+        reference_code: formData.reference_code
+      });
+      if (response.data && response.data.success) {
+        setFormData(prev => ({
+          ...prev,
+          difficulty: response.data.difficulty_level,
+          requirements: {
+            ...prev.requirements,
+            ...response.data.suggested_ast_rules
+          }
+        }));
+      }
+    } catch (err) {
+      setAnalyzeError(err.response?.data?.detail || 'Failed to analyze code.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();

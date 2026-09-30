@@ -1,8 +1,10 @@
+from app.services.ast_analyzer import analyze_reference_solution
 from app.schemas.practice_schema import GrowthAnalyticsResponse
 from app.routers.practice import calculate_growth_for_student
 from typing import NoReturn
 from uuid import UUID
 
+from pydantic import BaseModel
 from fastapi import (
     APIRouter,
     Depends,
@@ -1593,3 +1595,29 @@ def export_instructor_review_queue_csv(
         media_type="text/csv", 
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+class SolutionAnalysisRequest(BaseModel):
+    reference_code: str
+
+@router.post("/tasks/analyze-solution", status_code=status.HTTP_200_OK)
+def analyze_solution(
+    request: SolutionAnalysisRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Analyzes the instructor's reference solution using AST 
+    to auto-detect the difficulty and required Python constructs.
+    """
+    if current_user.role != UserRole.INSTRUCTOR:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    analysis_result = analyze_reference_solution(request.reference_code)
+    
+    if not analysis_result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=analysis_result.get("error", "Failed to parse code.")
+        )
+        
+    return analysis_result
