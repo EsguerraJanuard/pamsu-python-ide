@@ -565,77 +565,57 @@ const ActivityEditor = () => {
                     name="instructions"
                     value={formData.instructions}
                     onChange={handleChange}
-                    rows={8}
+                    rows={6}
                     placeholder="Step-by-step instructions for completing the task..."
                     className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-psu-maroon transition-colors"
                   />
                 </div>
 
-                <div className="bg-bg-glass p-6 rounded-2xl border border-psu-maroon/20 shadow-md shadow-psu-maroon/5 flex flex-col">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-text-brand pb-2 border-b border-border-subtle mb-4 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <div>
+                  <label htmlFor="expected_output" className="block text-xs font-semibold text-text-muted mb-1.5">Expected Output</label>
+                  <textarea
+                    id="expected_output"
+                    name="expected_output"
+                    value={formData.expected_output}
+                    onChange={handleChange}
+                    rows={4}
+                    placeholder="Target output string..."
+                    className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-text-brand focus:outline-none focus:border-psu-maroon transition-colors"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
+                  <div className="flex flex-col h-full relative">
+                    <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-text-brand" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                       </svg>
-                      Smart Solution Analyzer
-                    </h2>
-                    <p className="text-xs text-text-muted mb-4">Paste your complete working solution below. The system will automatically detect the difficulty and required Python constructs for you.</p>
+                      Reference Code Analyzer
+                    </label>
                     
-                    <div className="flex-1 min-h-[180px]">
+                    <div className="flex-1 min-h-[160px] relative">
                       <textarea
                         id="reference_code"
                         name="reference_code"
                         value={formData.reference_code}
                         onChange={handleChange}
-                        rows={8}
-                        placeholder="# def my_solution():
-#     print('Hello World')"
-                        className="w-full h-full bg-[#0f1117] border border-border-subtle rounded-xl p-4 text-text-main font-mono text-xs focus:outline-none focus:border-psu-maroon dark:focus:border-psu-gold transition-colors resize-none"
+                        placeholder="# Paste working implementation here..."
+                        className="w-full h-full bg-bg-base border border-border-subtle rounded-xl p-3 pb-12 text-text-main font-mono text-xs focus:outline-none focus:border-psu-maroon transition-colors resize-none"
                       />
+                      {analyzeError && (
+                        <div className="absolute -bottom-6 left-0 text-xs text-text-rose">{analyzeError}</div>
+                      )}
+                      <div className="absolute bottom-3 right-3">
+                        <button
+                          type="button"
+                          onClick={handleAnalyzeCode}
+                          disabled={isAnalyzing || !formData.reference_code.trim()}
+                          className="rounded-lg bg-bg-glass border border-border-strong px-3 py-1.5 text-xs font-semibold text-text-main hover:bg-psu-maroon hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+                        >
+                          {isAnalyzing ? "Analyzing..." : "Analyze"}
+                        </button>
+                      </div>
                     </div>
-                    
-                    {analyzeError && (
-                      <div className="text-xs text-text-rose mt-2">{analyzeError}</div>
-                    )}
-
-                    <div className="flex justify-end pt-3">
-                      <button
-                        type="button"
-                        onClick={handleAnalyzeCode}
-                        disabled={isAnalyzing || !formData.reference_code.trim()}
-                        className="rounded-lg bg-psu-maroon dark:bg-psu-gold px-4 py-2 text-xs font-semibold text-white dark:text-black shadow-md shadow-psu-maroon/20 dark:shadow-psu-gold/20 transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {isAnalyzing ? (
-                          <>
-                            <svg className="animate-spin h-4 w-4 text-white dark:text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Analyzing...
-                          </>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                            </svg>
-                            Analyze Solution
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
-                  <div>
-                    <label htmlFor="expected_output" className="block text-xs font-semibold text-text-muted mb-1.5">Expected Output</label>
-                    <textarea
-                      id="expected_output"
-                      name="expected_output"
-                      value={formData.expected_output}
-                      onChange={handleChange}
-                      rows={3}
-                      placeholder="Target output string..."
-                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-text-brand focus:outline-none focus:border-psu-maroon transition-colors h-full"
-                    />
                   </div>
 
                   <div className="relative h-full flex flex-col gap-4">
@@ -643,15 +623,15 @@ const ActivityEditor = () => {
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
                         Difficulty Level <span className="text-text-brand">*</span>
                       </label>
-                      <div className="flex bg-bg-base border border-border-subtle rounded-xl p-1">
-                        {['beginner', 'intermediate', 'expert'].map(level => (
+                      <div className="flex bg-bg-base border border-border-subtle rounded-xl p-1 mb-3">
+                        {['beginner', 'intermediate', 'expert'].map((level) => (
                           <button
                             key={level}
                             type="button"
                             onClick={() => handleDifficultyChange(level)}
                             className={`flex-1 py-2 text-xs font-semibold capitalize rounded-lg transition-colors ${
                               formData.difficulty === level 
-                                ? 'bg-bg-glass text-text-brand dark:text-text-brand shadow-sm border border-border-subtle' 
+                                ? 'bg-bg-glass text-text-brand shadow-sm border border-border-subtle' 
                                 : 'text-text-muted hover:text-text-main hover:bg-bg-glass/50'
                             }`}
                           >
@@ -659,63 +639,20 @@ const ActivityEditor = () => {
                           </button>
                         ))}
                       </div>
-                    </div>
-
-                    <div className="flex-1 relative min-h-[200px]">
-                      <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
-                        <span>AST Checklist Requirements</span>
-                        <div className="flex items-center gap-4">
-                          {formData.difficulty && (
-                            <label className="flex items-center gap-2 cursor-pointer group">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-text-brand group-hover:text-text-brand transition-colors">
-                                Toggle All
-                              </span>
-                              <div className="relative inline-flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={allVisibleSelected}
-                                  onChange={(e) => handleSelectAllVisible(e.target.checked)}
-                                  className="sr-only peer"
-                                />
-                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
-                              </div>
-                            </label>
-                          )}
-                          <span className="text-text-muted font-normal text-[10px]">{Object.keys(formData.requirements).length} active</span>
-                        </div>
-                      </label>
-                      <div className={`flex flex-col h-full transition-opacity duration-300 ${!formData.difficulty ? 'opacity-30 pointer-events-none blur-[2px]' : ''}`}>
-                        {AST_GROUPS.filter(group => group.levels.includes(formData.difficulty || 'expert')).map((group) => (
-                          <ASTCategoryAccordion 
-                            key={group.title}
-                            category={group}
-                            requirements={formData.requirements}
-                            onToggleRule={handleToggleRule}
-                            onToggleCategory={handleToggleCategory}
-                          />
-                        ))}
+                      
+                      <div className="bg-bg-glass rounded-xl border border-border-subtle p-4 flex-1 flex flex-col items-center justify-center text-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-text-muted mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                         </svg>
+                         <p className="text-[10px] text-text-muted max-w-[200px]">
+                           The Reference Code Analyzer automatically selects the difficulty and checks required AST rules for you.
+                         </p>
                       </div>
-                      {!formData.difficulty && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4 text-center mt-6">
-                          <div className="bg-bg-panel/90 backdrop-blur-sm border border-border-strong rounded-xl p-4 shadow-lg shadow-black/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-text-brand">
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                            <p className="text-xs font-bold text-text-main mb-1">Requirements Locked</p>
-                            <p className="text-[10px] text-text-muted">Select a Difficulty Level first to configure AST requirements.</p>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Column: Code Template & Settings (5 cols) */}
-              <div className="lg:col-span-5 flex flex-col gap-5">
-
-                  <div className="flex-1 bg-bg-glass p-6 rounded-2xl border border-border-subtle flex flex-col">
+                <div className="flex-1 bg-bg-glass p-6 rounded-2xl border border-border-subtle flex flex-col">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-text-brand pb-2 border-b border-border-subtle mb-4">
                     Starter Code Template
                   </h2>
