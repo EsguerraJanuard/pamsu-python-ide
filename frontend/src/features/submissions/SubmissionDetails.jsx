@@ -43,7 +43,7 @@ export default function SubmissionDetails() {
       <div className="flex h-screen w-screen bg-bg-base text-text-main">
         <Sidebar />
         <div className="flex flex-1 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-psu-maroon"></div>
         </div>
       </div>
     );
@@ -58,7 +58,7 @@ export default function SubmissionDetails() {
           <p className="text-text-muted mb-4">{error || "Submission not found"}</p>
           <button
             onClick={() => navigate("/student/submissions")}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+            className="rounded bg-psu-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-psu-maroon"
           >
             Back to Submissions
           </button>
@@ -113,10 +113,10 @@ export default function SubmissionDetails() {
                 </p>
                 <div className="mt-4 flex gap-4 text-sm font-mono text-text-muted">
                   <div className="bg-bg-glass px-3 py-1.5 rounded border border-border-subtle">
-                    Attempt Number: <span className="text-text-blue font-bold">{submission.attempt_number}</span>
+                    Attempt Number: <span className="text-psu-maroon font-bold">{submission.attempt_number}</span>
                   </div>
                   <div className="bg-bg-glass px-3 py-1.5 rounded border border-border-subtle">
-                    Is Official: <span className="text-text-emerald font-bold">{submission.is_official ? "Yes" : "No"}</span>
+                    Is Official: <span className="text-psu-maroon font-bold">{submission.is_official ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </div>
@@ -128,7 +128,7 @@ export default function SubmissionDetails() {
                     {submission.ast_pass_fail === null ? (
                       <span className="text-text-muted font-medium inline-block mt-1">Pending</span>
                     ) : submission.ast_pass_fail ? (
-                      <span className="text-text-emerald font-bold px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded inline-block mt-1">PASSED</span>
+                      <span className="text-psu-maroon font-bold px-3 py-1 bg-psu-maroon/10 border border-psu-maroon/20 rounded inline-block mt-1">PASSED</span>
                     ) : (
                       <span className="text-text-rose font-bold px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded inline-block mt-1">FAILED</span>
                     )}
@@ -142,7 +142,7 @@ export default function SubmissionDetails() {
              <h2 className="text-sm font-bold text-text-main tracking-wide border-b border-border-subtle pb-3">
                Submitted Code
              </h2>
-             <pre className="font-mono text-[11px] p-4 bg-bg-glass rounded-lg border border-border-subtle overflow-x-auto text-text-blue">
+             <pre className="font-mono text-[11px] p-4 bg-bg-glass rounded-lg border border-border-subtle overflow-x-auto text-psu-maroon">
                 {submission.raw_code}
              </pre>
           </div>

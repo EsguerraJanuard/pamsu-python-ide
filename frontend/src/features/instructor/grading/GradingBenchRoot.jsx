@@ -79,9 +79,9 @@ const GradingBenchRoot = () => {
         <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
       <div className="max-w-6xl mx-auto w-full">
         <header className="mb-8 border-b border-border-subtle pb-6">
-          <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING &amp; GRADING</p>
+          <p className="mb-1 font-mono text-xs text-psu-maroon">MONITORING &amp; GRADING</p>
           <h1 className="text-2xl font-bold text-text-main flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
             Grading Bench
           </h1>
           <p className="mt-1 text-sm text-text-muted">Select a class to view and grade assignments.</p>
@@ -97,15 +97,15 @@ const GradingBenchRoot = () => {
               <div
                 key={cls.class_id || idx}
                 onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner hover:border-emerald-500/30 hover:bg-bg-glass-hover hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner hover:border-psu-maroon/30 hover:bg-bg-glass-hover hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
                 style={{ animation: `pageFadeUp 400ms ease ${idx * 70}ms both` }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-psu-maroon/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 
                 <div className="p-6 flex-1 flex flex-col relative z-10">
                   <div className="flex justify-between items-start mb-4">
                     {cls.subject_code ? (
-                      <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-text-emerald shadow-sm">
+                      <span className="inline-flex items-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-psu-maroon shadow-sm">
                         {cls.subject_code}
                       </span>
                     ) : (
@@ -113,7 +113,7 @@ const GradingBenchRoot = () => {
                         Classroom
                       </span>
                     )}
-                    <div className="h-8 w-8 rounded-full bg-bg-panel border border-border-subtle flex items-center justify-center group-hover:bg-emerald-500 group-hover:border-emerald-500 transition-colors shadow-sm">
+                    <div className="h-8 w-8 rounded-full bg-bg-panel border border-border-subtle flex items-center justify-center group-hover:bg-psu-maroon group-hover:border-psu-maroon transition-colors shadow-sm">
                       <svg
                         className="w-4 h-4 text-text-muted group-hover:text-white transition-transform transform group-hover:translate-x-0.5"
                         fill="none"

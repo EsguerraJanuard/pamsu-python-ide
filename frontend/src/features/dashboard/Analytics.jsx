@@ -47,9 +47,9 @@ export default function Analytics() {
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
           <header className="mb-8 border-b border-border-subtle pb-6">
-            <p className="mb-1 font-mono text-xs text-text-blue">PROGRESS</p>
+            <p className="mb-1 font-mono text-xs text-psu-maroon">PROGRESS</p>
             <h1 className="text-2xl font-bold flex items-center gap-3">
-              <LineChartIcon className="h-6 w-6 text-blue-500" />
+              <LineChartIcon className="h-6 w-6 text-psu-maroon" />
               My Analytics & Growth
             </h1>
             <p className="mt-1 text-sm text-text-muted">
@@ -69,7 +69,7 @@ export default function Analytics() {
                 
                 {/* Gamified Growth Ring */}
                 <article className="lg:col-span-1 rounded-xl border border-border-subtle bg-bg-glass p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-sm">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-psu-maroon/5 to-purple-500/5 pointer-events-none" />
                   <h2 className="text-sm font-semibold text-text-muted mb-4 uppercase tracking-wider">Overall Growth Score</h2>
                   
                   <div className="relative w-40 h-40 flex items-center justify-center">
@@ -111,7 +111,7 @@ export default function Analytics() {
                   {/* Task Completion */}
                   <article className="rounded-xl border border-border-subtle bg-bg-glass p-6 flex flex-col justify-center">
                     <div className="mb-2 flex items-center gap-2">
-                      <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                      <div className="p-2 bg-psu-maroon/10 rounded-lg text-blue-400">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </div>
                       <h2 className="text-sm font-medium text-text-muted">Tasks Mastered</h2>
@@ -121,7 +121,7 @@ export default function Analytics() {
                       <span className="text-lg text-text-muted">/ {metrics?.total_tasks || 0}</span>
                     </div>
                     <div className="mt-4 h-1.5 w-full bg-border-subtle rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(metrics?.completed_tasks / Math.max(metrics?.total_tasks || 1, 1)) * 100}%` }} />
+                      <div className="h-full bg-psu-maroon rounded-full" style={{ width: `${(metrics?.completed_tasks / Math.max(metrics?.total_tasks || 1, 1)) * 100}%` }} />
                     </div>
                   </article>
 

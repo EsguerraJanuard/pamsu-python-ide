@@ -150,7 +150,7 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
           </>
         ) : (
           <div className="flex flex-col items-center text-center p-6 bg-bg-base rounded-xl border border-border-subtle">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4 text-emerald-400">
+            <div className="w-12 h-12 rounded-full bg-psu-maroon/20 flex items-center justify-center mb-4 text-emerald-400">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>

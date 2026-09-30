@@ -283,10 +283,10 @@ export default function Settings() {
 
               <div>
 
-                <p className="mb-1 font-mono text-xs text-text-blue">ACCOUNT &amp; SYSTEM</p>
+                <p className="mb-1 font-mono text-xs text-psu-maroon">ACCOUNT &amp; SYSTEM</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
 
-                  <SettingsIcon className="h-6 w-6 text-blue-500" />
+                  <SettingsIcon className="h-6 w-6 text-psu-maroon" />
 
                   Settings
                 </h1>
@@ -332,7 +332,7 @@ export default function Settings() {
 
                     aria-live="polite"
 
-                    className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-text-blue"
+                    className="mb-4 rounded-lg border border-psu-maroon/20 bg-psu-maroon/10 px-4 py-3 text-sm text-psu-maroon"
 
                   >
 
@@ -648,7 +648,7 @@ export default function Settings() {
 
                         ? "border-red-500/20 bg-red-500/10 text-text-rose"
 
-                        : "border-blue-500/20 bg-blue-500/10 text-text-blue"
+                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon"
 
                     }`}
 
@@ -863,7 +863,7 @@ export default function Settings() {
                           onChange={() => setShowPasswords(!showPasswords)}
                           className="sr-only peer"
                         />
-                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
                       </div>
                       Show passwords
                     </label>

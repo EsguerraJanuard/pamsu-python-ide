@@ -45,7 +45,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border-subtle p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 ring-4 ring-blue-500/5 text-text-blue">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 ring-4 ring-psu-maroon/5 text-psu-maroon">
               <UserIcon className="h-6 w-6" />
             </div>
             <div>
@@ -64,7 +64,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           <h3 className="mb-4 text-lg font-semibold text-text-main flex items-center gap-2">
-            <ActivityIcon className="h-5 w-5 text-blue-500" />
+            <ActivityIcon className="h-5 w-5 text-psu-maroon" />
             Activity Records & Grades
           </h3>
 
@@ -100,11 +100,11 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                       </td>
                       <td className="px-6 py-4">
                         {grade.submission?.status === 'graded' ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400">
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-emerald-400">
                             <CheckCircleIcon className="h-3.5 w-3.5" /> Graded
                           </span>
                         ) : grade.submission?.status === 'submitted' ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400">
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-blue-400">
                             <ClockIcon className="h-3.5 w-3.5" /> Needs Review
                           </span>
                         ) : (
@@ -136,7 +136,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                                 }
                               }
                             }}
-                            className="w-16 rounded border border-border-subtle bg-bg-base px-2 py-1 text-center font-mono text-sm text-text-main focus:border-blue-500 focus:outline-none"
+                            className="w-16 rounded border border-border-subtle bg-bg-base px-2 py-1 text-center font-mono text-sm text-text-main focus:border-psu-maroon focus:outline-none"
                             placeholder="---"
                           />
                           <span className="text-xs text-text-muted">/ 100</span>
@@ -183,7 +183,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
           </button>
           <button
             onClick={onClose}
-            className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
+            className="rounded-lg bg-psu-maroon px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-psu-maroon"
           >
             Done
           </button>

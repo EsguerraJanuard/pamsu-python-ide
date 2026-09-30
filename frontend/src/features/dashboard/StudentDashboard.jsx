@@ -17,17 +17,17 @@ const STATUS_CONFIG = {
   },
   in_progress: {
     label: "In progress",
-    badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-blue-400",
     accentClass: "border-l-blue-500",
-    progressClass: "bg-blue-500",
-    buttonClass: "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10",
+    progressClass: "bg-psu-maroon",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
   submitted: {
     label: "Submitted",
     badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
     accentClass: "border-l-green-500",
     progressClass: "bg-green-500",
-    buttonClass: "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
 };
 
@@ -232,9 +232,9 @@ export default function StudentDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-text-blue">MAIN</p>
+                  <p className="mb-1 font-mono text-xs text-psu-maroon">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <LayoutDashboardIcon className="h-6 w-6 text-blue-500" />
+                    <LayoutDashboardIcon className="h-6 w-6 text-psu-maroon" />
                     {getGreeting()}, {getFirstName(user.name)}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -266,8 +266,8 @@ export default function StudentDashboard() {
                 </div>
               </header>
 
-              <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-text-blue">
+              <section className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-maroon/[0.07] px-4 py-3">
+                <p className="text-xs leading-relaxed text-psu-maroon">
                   Dashboard indicators support learning reflection.
                   AST checks, test results, and activity progress are
                   not automatic grades. Official grades are assigned
@@ -299,7 +299,7 @@ export default function StudentDashboard() {
                   <article
                     onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-psu-maroon/10 blur-2xl transition-all group-hover:bg-psu-maroon/20"></div>
                     <p
                       className="mb-1 text-4xl font-bold text-text-main tracking-tight"
                     >
@@ -316,7 +316,7 @@ export default function StudentDashboard() {
 
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                       <div
-                        className="h-full rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out"
+                        className="h-full rounded-full bg-psu-maroon shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out"
                         style={{
                           width: `${activities.length > 0 ? (activeActivities.length / activities.length) * 100 : 0}%`,
                         }}
@@ -327,7 +327,7 @@ export default function StudentDashboard() {
                   <article
                     onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-psu-maroon/10 blur-2xl transition-all group-hover:bg-psu-maroon/20"></div>
                     <p
                       className="mb-1 text-4xl font-bold text-text-main tracking-tight flex items-baseline gap-1"
                     >
@@ -344,7 +344,7 @@ export default function StudentDashboard() {
 
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                       <div
-                        className="h-full rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
+                        className="h-full rounded-full bg-psu-maroon shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
                         style={{
                           width: `${totalActivitiesCount > 0 ? (completedCount / totalActivitiesCount) * 100 : 0}%`,
                         }}
@@ -391,7 +391,7 @@ export default function StudentDashboard() {
                   )}
                   {activities.length === 0 && !isLoading && (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-text-blue">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-psu-maroon">
                         <LayoutDashboardIcon className="h-6 w-6" />
                       </div>
                       <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
@@ -432,7 +432,7 @@ export default function StudentDashboard() {
 
                               <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                                 <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                                  <BookOpenIcon className="h-3 w-3 text-text-blue" />
+                                  <BookOpenIcon className="h-3 w-3 text-psu-maroon" />
                                   {activity.courseCode}
                                 </span>
 

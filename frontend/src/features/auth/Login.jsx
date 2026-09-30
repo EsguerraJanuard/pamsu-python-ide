@@ -190,14 +190,15 @@ export default function Login() {
         aria-label="Platform introduction"
       >
         <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-            &gt;_
+          <img src="/school_logo.png" alt="PSU Logo" className="h-12 w-12 object-contain drop-shadow-md" />
+          <div className="flex flex-col">
+            <span className="text-[11px] font-bold tracking-widest text-text-muted uppercase">Pampanga State University</span>
+            <span className="text-lg font-extrabold tracking-wide text-text-main leading-tight">Python IDE</span>
           </div>
-          <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
         </div>
 
         <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-emerald">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-psu-maroon">
             Python Learning Platform
           </p>
           <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
@@ -232,11 +233,11 @@ export default function Login() {
       {/* Right panel — login form */}
       <section className="relative flex flex-1 items-center justify-center px-6 py-12 z-10">
         {/* Glow effects */}
-        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-psu-maroon/10 blur-[120px]" />
         <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
 
         <div
-          className="login-animated w-full max-w-[420px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+          className="login-animated w-full max-w-[420px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-psu-maroon/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
           style={{ animation: "loginFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
         >
           <div className="mb-8 text-center select-none cursor-default">
@@ -269,7 +270,7 @@ export default function Login() {
                 School email
               </label>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass"
+                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
@@ -310,7 +311,7 @@ export default function Login() {
                 )}
               </div>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass"
+                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
@@ -354,7 +355,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => navigate("/forgot-password")}
-                  className="text-[10px] font-medium text-text-emerald transition-colors hover:underline"
+                  className="text-[10px] font-medium text-psu-maroon transition-colors hover:underline"
                   disabled={isLoading}
                 >
                   Forgot your password?
@@ -366,7 +367,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-psu-maroon hover:bg-psu-maroon py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
               
@@ -389,7 +390,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline"
+                className="font-medium text-psu-maroon transition-colors hover:text-psu-maroon hover:underline"
                 disabled={isLoading}
               >
                 Sign up using university account

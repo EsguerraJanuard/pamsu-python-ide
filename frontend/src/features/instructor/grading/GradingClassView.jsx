@@ -97,7 +97,7 @@ const GradingClassView = () => {
       <div className="max-w-6xl mx-auto w-full">
         <button 
           onClick={() => navigate('/instructor/bench')}
-          className="mb-6 flex items-center text-text-muted hover:text-emerald-500 transition-colors"
+          className="mb-6 flex items-center text-text-muted hover:text-psu-maroon transition-colors"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -121,9 +121,9 @@ const GradingClassView = () => {
               <div 
                 key={activity.task_id} 
                 onClick={() => navigate(`/instructor/bench/${classId}/${activity.task_id}`)}
-                className="p-6 bg-bg-glass border border-border-subtle rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-emerald-500/50 hover:shadow-lg cursor-pointer transition-all group relative overflow-hidden"
+                className="p-6 bg-bg-glass border border-border-subtle rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-psu-maroon/50 hover:shadow-lg cursor-pointer transition-all group relative overflow-hidden"
               >
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-emerald-500 transition-colors"></div>
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-psu-maroon transition-colors"></div>
                 <div>
                   <h3 className="text-lg font-bold text-text-main group-hover:text-emerald-400 transition-colors">{activity.title}</h3>
                   <p className="text-sm text-text-muted mt-1">{activity.description || 'No description provided'}</p>
@@ -135,7 +135,7 @@ const GradingClassView = () => {
                 </div>
                 <div className="w-full sm:w-auto z-10">
                   <button 
-                    className="w-full sm:w-auto rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-2 text-sm font-semibold transition group-hover:bg-emerald-600 group-hover:text-white group-hover:border-transparent group-hover:shadow-lg group-hover:shadow-emerald-500/20 flex items-center"
+                    className="w-full sm:w-auto rounded-lg bg-psu-maroon/10 border border-psu-maroon/20 text-emerald-400 px-4 py-2 text-sm font-semibold transition group-hover:bg-psu-maroon group-hover:text-white group-hover:border-transparent group-hover:shadow-lg group-hover:shadow-psu-maroon/20 flex items-center"
                   >
                     View details
                     <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

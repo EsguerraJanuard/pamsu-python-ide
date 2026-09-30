@@ -213,15 +213,15 @@ export default function ClassDetails() {
                 </div>
               ) : (
                 <>
-                  <header className="mb-8 relative overflow-hidden rounded-xl border border-blue-500/20 bg-bg-glass shadow-inner p-8">
+                  <header className="mb-8 relative overflow-hidden rounded-xl border border-psu-maroon/20 bg-bg-glass shadow-inner p-8">
                     <div className="absolute top-0 right-0 p-16 opacity-5 pointer-events-none">
-                      <MegaphoneIcon className="w-64 h-64 text-blue-500 transform rotate-[-15deg] translate-x-12 -translate-y-12" />
+                      <MegaphoneIcon className="w-64 h-64 text-psu-maroon transform rotate-[-15deg] translate-x-12 -translate-y-12" />
                     </div>
-                    <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
+                    <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-psu-maroon/10 blur-3xl pointer-events-none"></div>
                     <div className="relative z-10 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div>
                         <div className="mb-4 flex flex-wrap items-center gap-3">
-                          <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold tracking-wide text-text-blue shadow-sm">
+                          <span className="inline-flex items-center rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-3 py-1 text-xs font-bold tracking-wide text-psu-maroon shadow-sm">
                             {classroom.subject_code}
                           </span>
                           <span className="rounded-full border border-border-strong bg-bg-glass px-3 py-1 text-xs font-semibold text-text-muted shadow-sm">
@@ -265,9 +265,9 @@ export default function ClassDetails() {
                                 <div className="flex items-center gap-3 mb-1.5">
                                   <h3 className="text-base font-semibold truncate text-text-main group-hover:text-text-main transition-colors">{activity.title}</h3>
                                   {isSubmitted ? (
-                                    <span className="shrink-0 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-emerald">Submitted</span>
+                                    <span className="shrink-0 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-psu-maroon">Submitted</span>
                                   ) : (
-                                    <span className="shrink-0 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-blue">Active</span>
+                                    <span className="shrink-0 rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-psu-maroon">Active</span>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-3 text-xs font-medium text-text-muted">
@@ -278,7 +278,7 @@ export default function ClassDetails() {
                               </div>
                               <button
                                 onClick={() => handleOpenActivity(activity)}
-                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-blue-500/40 text-text-blue hover:bg-blue-500/10" : "border border-blue-500/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"}`}
+                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-psu-maroon/40 text-psu-maroon hover:bg-psu-maroon/10" : "border border-psu-maroon/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-psu-maroon/10"}`}
                               >
                                 {activity.actionLabel}
                               </button>

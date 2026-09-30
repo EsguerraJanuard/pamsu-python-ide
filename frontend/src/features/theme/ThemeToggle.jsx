@@ -25,7 +25,7 @@ export function ThemeToggle({ className = "", value, onChange }) {
         onClick={handleSetLight}
         className={`flex items-center justify-center rounded-full p-1.5 transition-all ${
           !isDark 
-            ? "bg-white text-emerald-600 shadow-sm" 
+            ? "bg-white text-psu-maroon shadow-sm" 
             : "text-text-muted hover:text-text-main"
         }`}
         title="Light Mode"

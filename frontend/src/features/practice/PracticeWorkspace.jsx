@@ -211,7 +211,7 @@ export default function PracticeWorkspace() {
         </p>
         <button 
           onClick={() => navigate('/student/practice')}
-          className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-blue-500/25"
+          className="flex items-center gap-2 rounded-xl bg-psu-maroon px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/25"
         >
           <ArrowLeftIcon className="h-5 w-5" />
           Return to Modules
@@ -236,7 +236,7 @@ export default function PracticeWorkspace() {
 
         <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
           <div className="max-w-3xl w-full">
-            <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+            <div className="mb-4 inline-flex items-center rounded-full bg-psu-maroon/10 px-3 py-1 text-xs font-medium text-psu-maroon dark:text-emerald-400 ring-1 ring-inset ring-psu-maroon/20">
               Lesson
             </div>
             <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
@@ -248,7 +248,7 @@ export default function PracticeWorkspace() {
             <div className="border-t border-border-subtle pt-8 flex justify-end pb-24">
               <button 
                 onClick={() => setViewMode("coding")} 
-                className="flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 hover:scale-[1.02]"
+                className="flex items-center gap-2 rounded-xl bg-psu-maroon px-8 py-4 text-base font-semibold text-white shadow-lg shadow-psu-maroon/20 transition-all hover:bg-psu-maroon hover:scale-[1.02]"
               >
                 Start Coding Challenge
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -287,7 +287,7 @@ export default function PracticeWorkspace() {
                 setCode("");
                 navigate(`/student/practice/workspace?task=${nextTaskId}`);
               }}
-              className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-500"
+              className="flex items-center gap-2 rounded-md bg-psu-maroon px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-psu-maroon"
             >
               Next Task ?
             </button>
@@ -295,7 +295,7 @@ export default function PracticeWorkspace() {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || isRunCooldown}
-            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-md bg-psu-maroon px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-psu-maroon disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
@@ -319,10 +319,10 @@ export default function PracticeWorkspace() {
 
             {feedback && (
               <div className={`mt-8 animate-fade-in rounded-xl border p-5 
-                ${feedback.is_successful ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10"}`}
+                ${feedback.is_successful ? "border-psu-maroon/30 bg-psu-maroon/10" : "border-rose-500/30 bg-rose-500/10"}`}
               >
                 <h3 className={`text-base font-bold flex items-center gap-2 mb-3
-                  ${feedback.is_successful ? "text-emerald-500" : "text-rose-500"}`}
+                  ${feedback.is_successful ? "text-psu-maroon" : "text-rose-500"}`}
                 >
                   {feedback.is_successful ? "Evaluation Passed!" : "Evaluation Failed"}
                 </h3>

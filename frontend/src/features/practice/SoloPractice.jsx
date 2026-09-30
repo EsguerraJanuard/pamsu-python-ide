@@ -84,9 +84,9 @@ export default function SoloPractice() {
           <div className="mx-auto w-full max-w-5xl">
             <header className="mb-8 flex flex-col gap-4 border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs text-text-blue">MAIN</p>
+                <p className="mb-1 font-mono text-xs text-psu-maroon">MAIN</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
-                  <CodeIcon className="h-6 w-6 text-blue-500" />
+                  <CodeIcon className="h-6 w-6 text-psu-maroon" />
                   Solo Practice Modules
                 </h1>
                 <p className="mt-2 text-sm text-text-muted">
@@ -111,7 +111,7 @@ export default function SoloPractice() {
                     <div className="relative z-10 flex flex-col sm:flex-row gap-6">
                       {/* Module Icon Indicator */}
                       <div className={`shrink-0 flex h-12 w-12 items-center justify-center rounded-full border-4 border-bg-base shadow-sm
-                        ${mod.is_completed ? "bg-emerald-500 text-white" : mod.is_locked ? "bg-bg-alt text-text-muted border-border-subtle" : "bg-blue-500 text-white"}`}
+                        ${mod.is_completed ? "bg-psu-maroon text-white" : mod.is_locked ? "bg-bg-alt text-text-muted border-border-subtle" : "bg-psu-maroon text-white"}`}
                       >
                         {mod.is_completed ? <CheckIcon className="h-6 w-6" /> : mod.is_locked ? <LockIcon className="h-5 w-5" /> : <UnlockIcon className="h-5 w-5" />}
                       </div>
@@ -122,7 +122,7 @@ export default function SoloPractice() {
                       >
                         <h2 className="text-xl font-bold mb-2 flex items-center justify-between">
                           <span>Module {index + 1}: {mod.title}</span>
-                          {mod.is_completed && <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full">Completed</span>}
+                          {mod.is_completed && <span className="text-xs font-semibold uppercase tracking-wider text-psu-maroon bg-psu-maroon/10 px-3 py-1 rounded-full">Completed</span>}
                         </h2>
                         <p className="text-sm text-text-muted mb-6">{mod.description}</p>
                         
@@ -134,10 +134,10 @@ export default function SoloPractice() {
                               onClick={() => navigate(`/student/practice/workspace?task=${task.task_id}`)}
                               className={`flex flex-col text-left items-start gap-2 rounded-xl border p-4 transition-all
                                 ${task.is_completed 
-                                  ? "border-emerald-500/30 bg-emerald-500/[0.03] hover:bg-emerald-500/[0.06]" 
+                                  ? "border-psu-maroon/30 bg-psu-maroon/[0.03] hover:bg-psu-maroon/[0.06]" 
                                   : task.is_locked 
                                     ? "border-border-subtle bg-bg-base cursor-not-allowed opacity-60" 
-                                    : "border-border-subtle bg-bg-base hover:border-blue-500/40 hover:bg-blue-500/[0.04]"
+                                    : "border-border-subtle bg-bg-base hover:border-psu-maroon/40 hover:bg-psu-maroon/[0.04]"
                                 }`}
                             >
                               <div className="flex w-full items-center justify-between">
@@ -145,11 +145,11 @@ export default function SoloPractice() {
                                   Task {tIndex + 1}
                                 </span>
                                 {task.is_completed ? (
-                                  <CheckIcon className="h-4 w-4 text-emerald-500" />
+                                  <CheckIcon className="h-4 w-4 text-psu-maroon" />
                                 ) : task.is_locked ? (
                                   <LockIcon className="h-4 w-4 text-text-muted" />
                                 ) : (
-                                  <CodeIcon className="h-4 w-4 text-blue-500" />
+                                  <CodeIcon className="h-4 w-4 text-psu-maroon" />
                                 )}
                               </div>
                               <span className={`font-medium line-clamp-1 ${task.is_locked ? 'text-text-muted' : 'text-text-main'}`}>

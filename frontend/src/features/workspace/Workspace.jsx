@@ -37,7 +37,7 @@ const EXECUTION_STATUS = {
   },
   running: {
     label: "Running...",
-    dotClass: "bg-blue-500 animate-pulse",
+    dotClass: "bg-psu-maroon animate-pulse",
     textClass: "text-blue-400",
   },
   completed: {
@@ -643,7 +643,7 @@ export default function Workspace() {
           </p>
           <button 
             onClick={() => navigate('/student/dashboard')}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-blue-500/25"
+            className="flex items-center gap-2 rounded-xl bg-psu-maroon px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/25"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             Return to Dashboard
@@ -697,7 +697,7 @@ export default function Workspace() {
               </button>
             </div>
             <div className="hidden min-w-0 sm:block border-l border-border-subtle pl-3">
-              <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-text-blue mr-2">
+              <span className="rounded bg-psu-maroon/10 border border-psu-maroon/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-psu-maroon mr-2">
                 {activity.courseCode}
               </span>
               <span className="truncate text-xs font-bold text-text-main tracking-wide">
@@ -736,7 +736,7 @@ export default function Workspace() {
               type="button"
               onClick={handleRun}
               disabled={executionStatus === "running" || isRunCooldown}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-psu-maroon px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-psu-maroon/20 transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/30 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M4 2.5v11l9-5.5-9-5.5z" />
@@ -749,7 +749,7 @@ export default function Workspace() {
               type="button"
               onClick={handleSubmit}
               disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-psu-maroon to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-psu-maroon/25 transition-all hover:from-psu-maroon hover:to-indigo-500 hover:shadow-psu-maroon/40 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               Submit
             </button>
@@ -782,7 +782,7 @@ export default function Workspace() {
 
         {visibleNotice && (
           <div
-            className={`flex shrink-0 items-center justify-between gap-3 border-b border-blue-500/20 bg-blue-500/[0.06] px-4 py-1.5 text-xs text-text-blue select-none transition-all duration-500 ease-out ${
+            className={`flex shrink-0 items-center justify-between gap-3 border-b border-psu-maroon/20 bg-psu-maroon/[0.06] px-4 py-1.5 text-xs text-psu-maroon select-none transition-all duration-500 ease-out ${
               isFadingOut ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
             }`}
             role="status"
@@ -869,11 +869,11 @@ export default function Workspace() {
                         return (
                           <li
                             key={requirement}
-                            className={`flex items-center gap-2 text-xs font-medium ${isChecked ? (isPassed ? "text-text-emerald" : "text-rose-400") : "text-text-muted"}`}
+                            className={`flex items-center gap-2 text-xs font-medium ${isChecked ? (isPassed ? "text-psu-maroon" : "text-rose-400") : "text-text-muted"}`}
                           >
                             {isChecked ? (
                               isPassed ? (
-                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500/15 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-psu-maroon/15 text-[10px] font-bold text-emerald-400 border border-psu-maroon/20">
                                   ✓
                                 </span>
                               ) : (
@@ -899,13 +899,13 @@ export default function Workspace() {
                   Expected Output
                 </h3>
 
-                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-bg-glass shadow-inner p-3 font-mono text-[11px] text-text-emerald">
+                <pre className="overflow-x-auto rounded-md border border-psu-maroon/20 bg-bg-glass shadow-inner p-3 font-mono text-[11px] text-psu-maroon">
                   {activity.expectedOutput}
                 </pre>
               </section>
 
-              <section className="rounded-lg border border-blue-500/15 bg-blue-500/[0.02] shadow-inner p-4">
-                <h3 className="text-xs font-bold text-text-blue">
+              <section className="rounded-lg border border-psu-maroon/15 bg-psu-maroon/[0.02] shadow-inner p-4">
+                <h3 className="text-xs font-bold text-psu-maroon">
                   Clipboard Policy
                 </h3>
 
@@ -921,8 +921,8 @@ export default function Workspace() {
             <div
               onMouseDown={startResizing}
               title="Drag to resize Problem Panel"
-              className={`group relative z-30 hidden w-1.5 shrink-0 cursor-col-resize select-none bg-transparent hover:bg-blue-500/40 active:bg-blue-500 transition-colors xl:flex items-center justify-center ${
-                isResizing ? "bg-blue-500" : ""
+              className={`group relative z-30 hidden w-1.5 shrink-0 cursor-col-resize select-none bg-transparent hover:bg-psu-maroon/40 active:bg-psu-maroon transition-colors xl:flex items-center justify-center ${
+                isResizing ? "bg-psu-maroon" : ""
               }`}
             >
               <div className="h-8 w-1 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -932,7 +932,7 @@ export default function Workspace() {
           <main className="flex min-w-0 flex-1 flex-col bg-bg-base transition-colors duration-300">
             <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass shadow-inner px-3 py-1 backdrop-blur-md">
               <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
-                <span className="text-text-blue">
+                <span className="text-psu-maroon">
                   {activity.fileName}
                 </span>
 
@@ -1097,13 +1097,13 @@ export default function Workspace() {
                     {astResults ? (
                       <div className={`rounded-lg border p-3 ${
                         !activity.requirements || activity.requirements.length === 0 
-                          ? "border-blue-500/15 bg-blue-500/[0.05]" 
-                          : astResults.passed ? "border-emerald-500/15 bg-emerald-500/[0.05]" : "border-amber-500/15 bg-amber-500/[0.05]"
+                          ? "border-psu-maroon/15 bg-psu-maroon/[0.05]" 
+                          : astResults.passed ? "border-psu-maroon/15 bg-psu-maroon/[0.05]" : "border-amber-500/15 bg-amber-500/[0.05]"
                       }`}>
                         <h3 className={`text-xs font-semibold ${
                           !activity.requirements || activity.requirements.length === 0 
-                            ? "text-text-blue" 
-                            : astResults.passed ? "text-text-emerald" : "text-text-amber"
+                            ? "text-psu-maroon" 
+                            : astResults.passed ? "text-psu-maroon" : "text-text-amber"
                         }`}>
                           {!activity.requirements || activity.requirements.length === 0 
                             ? "No AST Requirements"
@@ -1136,7 +1136,7 @@ export default function Workspace() {
                            const finding = astResults.findings.find(f => f.rule === requirement);
                            if (finding) {
                              status = finding.passed ? "Passed" : "Missing";
-                             statusClass = finding.passed ? "text-text-emerald" : "text-red-400";
+                             statusClass = finding.passed ? "text-psu-maroon" : "text-red-400";
                            } else {
                              status = "Not required";
                            }
@@ -1181,7 +1181,7 @@ export default function Workspace() {
                       }
                       spellCheck="false"
                       placeholder="Example: 10"
-                      className="h-[120px] w-full resize-none rounded-lg border border-border-subtle bg-bg-glass p-3 font-mono text-[11px] text-text-muted outline-none placeholder:text-text-muted focus:border-blue-500/40"
+                      className="h-[120px] w-full resize-none rounded-lg border border-border-subtle bg-bg-glass p-3 font-mono text-[11px] text-text-muted outline-none placeholder:text-text-muted focus:border-psu-maroon/40"
                     />
                   </div>
                 )}
@@ -1281,7 +1281,7 @@ export default function Workspace() {
               </section>
 
               <section className="rounded-lg border border-green-500/15 bg-green-500/[0.02] shadow-inner p-4">
-                <h3 className="text-[11px] font-semibold text-text-emerald">
+                <h3 className="text-[11px] font-semibold text-psu-maroon">
                   Privacy boundary
                 </h3>
 

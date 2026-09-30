@@ -172,7 +172,7 @@ export default function InstructorSidebar() {
                 type="button"
                 onClick={isCollapsed ? toggleCollapse : undefined}
                 title={isCollapsed ? "Expand sidebar" : undefined}
-                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#10b981] font-mono text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition-transform ${
+                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#10b981] font-mono text-xs font-bold text-white shadow-sm shadow-psu-maroon/20 transition-transform ${
                   isCollapsed ? "hover:scale-105 active:scale-95 cursor-pointer" : ""
                 }`}
               >
@@ -237,7 +237,7 @@ export default function InstructorSidebar() {
                           "flex w-full items-center gap-2.5 rounded-lg text-xs transition-colors duration-150",
                           isCollapsed ? "justify-center px-0 py-2" : "justify-between px-2.5 py-2",
                           isActive
-                            ? "bg-[#10b981]/[0.12] text-text-emerald font-semibold"
+                            ? "bg-[#10b981]/[0.12] text-psu-maroon font-semibold"
                             : "text-text-muted hover:bg-bg-glass hover:text-text-main font-medium",
                         ].join(" ")
                       }

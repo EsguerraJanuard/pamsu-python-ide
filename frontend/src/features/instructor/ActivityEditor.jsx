@@ -97,13 +97,13 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
         className="flex items-center p-4 cursor-pointer hover:bg-bg-glass transition-colors group gap-4"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm font-bold text-text-main group-hover:text-emerald-500 transition-colors flex-1">
+        <span className="text-sm font-bold text-text-main group-hover:text-psu-maroon transition-colors flex-1">
           {category.title}
         </span>
         
         <div className="flex items-center gap-3">
           {checkedCount > 0 && (
-            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
               {checkedCount} selected
             </span>
           )}
@@ -117,7 +117,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
             strokeWidth="2.5" 
             strokeLinecap="round" 
             strokeLinejoin="round"
-            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-emerald-500' : ''}`}
+            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-psu-maroon' : ''}`}
           >
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -137,7 +137,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 onChange={(e) => onToggleCategory(category, e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
             </div>
           </label>
           {category.rules.map(rule => {
@@ -148,11 +148,11 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 key={rule.id} 
                 className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border ${
                   isChecked 
-                    ? 'bg-emerald-500/5 border-emerald-500/20' 
+                    ? 'bg-psu-maroon/5 border-psu-maroon/20' 
                     : 'bg-transparent border-transparent hover:bg-bg-glass hover:border-border-subtle'
                 }`}
               >
-                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-main'}`}>
+                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-psu-maroon dark:text-emerald-400' : 'text-text-main'}`}>
                   {rule.label}
                 </span>
                 
@@ -163,7 +163,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     onChange={(e) => onToggleRule(rule.id, e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
                 </div>
               </label>
             );
@@ -391,9 +391,9 @@ const ActivityEditor = () => {
           <div className="w-full">
             <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-text-emerald">MANAGEMENT</p>
+                <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-psu-maroon">MANAGEMENT</p>
                 <h1 className="text-2xl font-bold tracking-tight text-text-main flex items-center gap-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
                   Create New Activity
                 </h1>
                 <p className="mt-1 text-sm text-text-muted">
@@ -411,13 +411,13 @@ const ActivityEditor = () => {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Column: Details & Instructions (7 cols) */}
               <div className="lg:col-span-7 space-y-5 bg-bg-glass p-6 rounded-2xl border border-border-subtle">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-text-emerald pb-2 border-b border-border-subtle">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-psu-maroon pb-2 border-b border-border-subtle">
                   Activity Details
                 </h2>
 
                 <div>
                   <label htmlFor="title" className="block text-xs font-semibold text-text-muted mb-1.5">
-                    Activity Title <span className="text-text-emerald">*</span>
+                    Activity Title <span className="text-psu-maroon">*</span>
                   </label>
                   <input
                     type="text"
@@ -427,13 +427,13 @@ const ActivityEditor = () => {
                     onChange={handleChange}
                     required
                     placeholder="e.g. Lab Activity 3 — Fibonacci Sequence"
-                    className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-psu-maroon transition-colors"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
-                    <span>Target Classroom(s) <span className="text-text-emerald">*</span></span>
+                    <span>Target Classroom(s) <span className="text-psu-maroon">*</span></span>
                     {classrooms.length > 0 && (
                       <div className="relative w-48">
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
@@ -446,7 +446,7 @@ const ActivityEditor = () => {
                           placeholder="Search class..."
                           value={classroomSearch}
                           onChange={(e) => setClassroomSearch(e.target.value)}
-                          className="w-full pl-8 pr-3 py-1.5 bg-bg-base border border-border-subtle rounded-lg text-xs text-text-main focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-text-muted"
+                          className="w-full pl-8 pr-3 py-1.5 bg-bg-base border border-border-subtle rounded-lg text-xs text-text-main focus:outline-none focus:border-psu-maroon transition-colors placeholder:text-text-muted"
                         />
                       </div>
                     )}
@@ -473,18 +473,18 @@ const ActivityEditor = () => {
                             key={cls.class_id} 
                             className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                               isSelected
-                                ? 'bg-emerald-500/10 border-emerald-500/30 shadow-sm'
+                                ? 'bg-psu-maroon/10 border-psu-maroon/30 shadow-sm'
                                 : 'bg-bg-base border-border-subtle hover:border-border-strong'
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <span className={`text-sm font-medium select-none ${isSelected ? 'text-text-emerald' : 'text-text-main'}`}>
+                              <span className={`text-sm font-medium select-none ${isSelected ? 'text-psu-maroon' : 'text-text-main'}`}>
                                 {cls.subject_code} - {cls.section}
                               </span>
                             </div>
                             <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
                               isSelected
-                                ? 'bg-emerald-500 border-emerald-500 text-bg-panel'
+                                ? 'bg-psu-maroon border-psu-maroon text-bg-panel'
                                 : 'border border-border-strong bg-transparent'
                             }`}>
                               {isSelected && (
@@ -523,7 +523,7 @@ const ActivityEditor = () => {
                     onChange={handleChange}
                     rows={4}
                     placeholder="Brief overview of the activity goals..."
-                    className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-psu-maroon transition-colors"
                   />
                 </div>
 
@@ -536,7 +536,7 @@ const ActivityEditor = () => {
                     onChange={handleChange}
                     rows={8}
                     placeholder="Step-by-step instructions for completing the task..."
-                    className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-psu-maroon transition-colors"
                   />
                 </div>
 
@@ -550,14 +550,14 @@ const ActivityEditor = () => {
                       onChange={handleChange}
                       rows={3}
                       placeholder="Target output string..."
-                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-text-emerald focus:outline-none focus:border-emerald-500 transition-colors h-full"
+                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-psu-maroon focus:outline-none focus:border-psu-maroon transition-colors h-full"
                     />
                   </div>
 
                   <div className="relative h-full flex flex-col gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                        Difficulty Level <span className="text-text-emerald">*</span>
+                        Difficulty Level <span className="text-psu-maroon">*</span>
                       </label>
                       <div className="flex bg-bg-base border border-border-subtle rounded-xl p-1">
                         {['beginner', 'intermediate', 'expert'].map(level => (
@@ -567,7 +567,7 @@ const ActivityEditor = () => {
                             onClick={() => handleDifficultyChange(level)}
                             className={`flex-1 py-2 text-xs font-semibold capitalize rounded-lg transition-colors ${
                               formData.difficulty === level 
-                                ? 'bg-bg-glass text-emerald-600 dark:text-emerald-400 shadow-sm border border-border-subtle' 
+                                ? 'bg-bg-glass text-psu-maroon dark:text-emerald-400 shadow-sm border border-border-subtle' 
                                 : 'text-text-muted hover:text-text-main hover:bg-bg-glass/50'
                             }`}
                           >
@@ -583,7 +583,7 @@ const ActivityEditor = () => {
                         <div className="flex items-center gap-4">
                           {formData.difficulty && (
                             <label className="flex items-center gap-2 cursor-pointer group">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-text-emerald group-hover:text-emerald-400 transition-colors">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-psu-maroon group-hover:text-emerald-400 transition-colors">
                                 Toggle All
                               </span>
                               <div className="relative inline-flex items-center">
@@ -593,7 +593,7 @@ const ActivityEditor = () => {
                                   onChange={(e) => handleSelectAllVisible(e.target.checked)}
                                   className="sr-only peer"
                                 />
-                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
                               </div>
                             </label>
                           )}
@@ -614,7 +614,7 @@ const ActivityEditor = () => {
                       {!formData.difficulty && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4 text-center mt-6">
                           <div className="bg-bg-panel/90 backdrop-blur-sm border border-border-strong rounded-xl p-4 shadow-lg shadow-black/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-text-emerald">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-psu-maroon">
                               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
@@ -631,7 +631,7 @@ const ActivityEditor = () => {
               {/* Right Column: Code Template & Settings (5 cols) */}
               <div className="lg:col-span-5 flex flex-col gap-5">
                 <div className="flex-1 bg-bg-glass p-6 rounded-2xl border border-border-subtle flex flex-col">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-text-emerald pb-2 border-b border-border-subtle mb-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-psu-maroon pb-2 border-b border-border-subtle mb-4">
                     Starter Code Template
                   </h2>
 
@@ -643,7 +643,7 @@ const ActivityEditor = () => {
                       onChange={handleChange}
                       rows={12}
                       placeholder="# Write initial starter code template for students..."
-                      className="w-full h-full bg-bg-base border border-border-subtle rounded-xl p-4 text-text-main font-mono text-xs focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                      className="w-full h-full bg-bg-base border border-border-subtle rounded-xl p-4 text-text-main font-mono text-xs focus:outline-none focus:border-psu-maroon transition-colors resize-none"
                     />
                   </div>
                 </div>
@@ -662,7 +662,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
                         </div>
                         <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Publish immediately</span>
                       </label>
@@ -676,7 +676,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
                         </div>
                         <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
                       </label>
@@ -694,7 +694,7 @@ const ActivityEditor = () => {
                               value={formData.scheduled_publish_at}
                               onChange={([date]) => setFormData(prev => ({ ...prev, scheduled_publish_at: date }))}
                               disabled={formData.is_published || formData.class_ids.length > 1}
-                              className={`w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner ${formData.class_ids.length > 1 ? 'text-text-muted cursor-not-allowed' : 'text-text-main cursor-pointer'}`}
+                              className={`w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-psu-maroon/50 focus:ring-1 focus:ring-psu-maroon/20 transition-all group-hover:border-border-strong shadow-inner ${formData.class_ids.length > 1 ? 'text-text-muted cursor-not-allowed' : 'text-text-main cursor-pointer'}`}
                               placeholder="Select date and time"
                               options={{
                                 dateFormat: "Y-m-d H:i",
@@ -725,7 +725,7 @@ const ActivityEditor = () => {
                             data-enable-time
                             value={formData.due_at}
                             onChange={([date]) => setFormData(prev => ({ ...prev, due_at: date }))}
-                            className="w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm text-text-main focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer"
+                            className="w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm text-text-main focus:outline-none focus:border-psu-maroon/50 focus:ring-1 focus:ring-psu-maroon/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer"
                             placeholder="Select deadline"
                             options={{
                               dateFormat: "Y-m-d H:i",
@@ -734,7 +734,7 @@ const ActivityEditor = () => {
                               altFormat: "M j, Y h:i K"
                             }}
                           />
-                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-text-emerald transition-colors">
+                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-psu-maroon transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -756,7 +756,7 @@ const ActivityEditor = () => {
                       <button
                       type="submit"
                       disabled={loading}
-                      className="rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-emerald-600/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] disabled:opacity-50"
+                      className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-psu-maroon/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] disabled:opacity-50"
                     >
                       {loading ? "Creating..." : "Create Activity"}
                     </button>

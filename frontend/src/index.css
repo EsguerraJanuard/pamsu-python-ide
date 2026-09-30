@@ -2,6 +2,9 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
+  --color-psu-maroon: #701d0b;
+  --color-psu-red: #ce0000;
+  --color-psu-gold: #eeb319;
   --color-bg-base: var(--bg-base);
   --color-bg-panel: var(--bg-panel);
   --color-bg-glass: var(--bg-glass);
@@ -27,8 +30,8 @@
   --border-strong: rgba(0, 0, 0, 0.15);
   --text-main: #0f1117;
   --text-muted: rgba(15, 17, 23, 0.6);
-  --text-blue: #2563eb;
-  --text-emerald: #059669;
+  --text-blue: #701d0b;
+  --text-emerald: #701d0b;
   --text-amber: #d97706;
   --text-rose: #e11d48;
   --text-violet: #7c3aed;
@@ -58,8 +61,8 @@
   --border-strong: rgba(255, 255, 255, 0.15);
   --text-main: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.5);
-  --text-blue: #60a5fa;
-  --text-emerald: #34d399;
+  --text-blue: #701d0b;
+  --text-emerald: #701d0b;
   --text-amber: #fbbf24;
   --text-rose: #fb7185;
   --text-violet: #a78bfa;

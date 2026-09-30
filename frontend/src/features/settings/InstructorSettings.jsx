@@ -62,7 +62,7 @@ export default function InstructorSettings() {
   const [isConfirmSaveOpen, setIsConfirmSaveOpen] = useState(false);
 
   const inputWrap =
-    "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/60";
+    "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon/60";
 
   const inputClass =
     "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
@@ -216,9 +216,9 @@ export default function InstructorSettings() {
             {/* ── Page header ───────────────────────────── */}
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs text-text-emerald">ACCOUNT &amp; SYSTEM</p>
+                <p className="mb-1 font-mono text-xs text-psu-maroon">ACCOUNT &amp; SYSTEM</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
-                  <SettingsIcon className="h-6 w-6 text-emerald-500" />
+                  <SettingsIcon className="h-6 w-6 text-psu-maroon" />
                   Settings
                 </h1>
                 <p className="mt-1 text-sm text-text-muted">
@@ -235,7 +235,7 @@ export default function InstructorSettings() {
             )}
 
             {saved && (
-              <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-text-emerald" role="status">
+              <div className="mb-6 rounded-xl border border-psu-maroon/30 bg-psu-maroon/10 px-4 py-3 text-xs text-psu-maroon" role="status">
                 Settings updated successfully. Changes have been saved.
               </div>
             )}
@@ -247,7 +247,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <UserIcon className="h-4 w-4 text-emerald-500" />
+                    <UserIcon className="h-4 w-4 text-psu-maroon" />
                     Profile Information
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -306,7 +306,7 @@ export default function InstructorSettings() {
                           disabled
                           className={readonlyInputClass}
                         />
-                        <span className="shrink-0 text-[10px] text-emerald-500/80">
+                        <span className="shrink-0 text-[10px] text-psu-maroon/80">
                           Admin
                         </span>
                       </div>
@@ -324,7 +324,7 @@ export default function InstructorSettings() {
                           disabled
                           className={readonlyInputClass}
                         />
-                        <span className="shrink-0 text-[10px] text-emerald-500/80">
+                        <span className="shrink-0 text-[10px] text-psu-maroon/80">
                           Admin
                         </span>
                       </div>
@@ -344,7 +344,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <CodeIcon className="h-4 w-4 text-emerald-500" />
+                    <CodeIcon className="h-4 w-4 text-psu-maroon" />
                     AST &amp; Automated Grading Policy
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -372,7 +372,7 @@ export default function InstructorSettings() {
                   <div className="flex justify-end pt-4">
                     <button
                       type="submit"
-                      className="rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
                     >
                       Save Changes
                     </button>
@@ -389,7 +389,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <LockIcon className="h-4 w-4 text-emerald-500" />
+                    <LockIcon className="h-4 w-4 text-psu-maroon" />
                     Change Password
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -404,7 +404,7 @@ export default function InstructorSettings() {
                     className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
                       passwordMessageType === "error"
                         ? "border-red-500/20 bg-red-500/10 text-text-rose"
-                        : "border-emerald-500/20 bg-emerald-500/10 text-text-emerald"
+                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon"
                     }`}
                   >
                     {passwordMessage}
@@ -500,7 +500,7 @@ export default function InstructorSettings() {
                           onChange={() => setShowPasswords(!showPasswords)}
                           className="sr-only peer"
                         />
-                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
                       </div>
                       Show passwords
                     </label>
@@ -509,7 +509,7 @@ export default function InstructorSettings() {
                   <div className="flex justify-end pt-1">
                     <button
                       type="submit"
-                      className="rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
                     >
                       Update password
                     </button>
@@ -522,7 +522,7 @@ export default function InstructorSettings() {
               {/* ── Section 4: Privacy ──────────────────── */}
               <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
                 <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <ShieldIcon className="h-4 w-4 text-emerald-500" />
+                  <ShieldIcon className="h-4 w-4 text-psu-maroon" />
                   Privacy and Session Security
                 </h2>
 
