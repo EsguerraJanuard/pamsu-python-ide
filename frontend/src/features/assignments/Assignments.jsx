@@ -5,6 +5,30 @@ import api from "../../services/api";
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
 
+// Mock icons
+function ClipboardListIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+  );
+}
+
+function ClockIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+  );
+}
+
+function TagIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+  );
+}
+
+function SubmissionIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+  );
+}
 
 const FILTERS = [
   {
@@ -52,9 +76,29 @@ const STATUS_CONFIG = {
   },
 };
 
+export default function Assignments() {
+  const navigate = useNavigate();
+  const [activities, setActivities] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const fetchActivities = async () => {
+    try {
+      // Add your API call here if needed: const response = await api.get('/activities');
+      // setActivities(response.data);
+      setActivities([]); // placeholder
+    } catch (error) {
+      console.error("Failed to fetch activities", error);
+    }
+  };
+
   useEffect(() => {
     fetchActivities();
   }, []);
+
+  const isSubmittedActivity = (activity) => {
+    return activity.status === "graded" || activity.status === "submitted";
+  };
 
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {

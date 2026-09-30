@@ -31,7 +31,17 @@ const STATUS_CONFIG = {
   },
 };
 
-  return colors[type] ?? "#64748b";
+// Helper functions for greeting and first name
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function getFirstName(fullName) {
+  if (!fullName) return "";
+  return fullName.split(" ")[0];
 }
 
 function ClockIcon() {
@@ -123,7 +133,6 @@ export default function StudentDashboard() {
       });
 
       const mappedActivities = activityRes.map(task => {
-        // Map backend task to the dashboard format
         const due = task.due_at ? new Date(task.due_at) : null;
         let status = "in_progress";
         let dueLabel = "No due date";
@@ -132,7 +141,6 @@ export default function StudentDashboard() {
           dueLabel = `Due: ${due.toLocaleDateString()}`;
         }
         
-        // Find if this task has a submission
         const submission = subRes.find(s => s.task_id === task.task_id);
         
         if (submission) {
@@ -202,9 +210,9 @@ export default function StudentDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-text-brand">MAIN</p>
+                  <p className="mb-1 font-mono text-xs text-blue-500">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <LayoutDashboardIcon className="h-6 w-6 text-text-brand" />
+                    <LayoutDashboardIcon className="h-6 w-6 text-blue-500" />
                     {getGreeting()}, {getFirstName(user.name)}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
