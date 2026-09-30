@@ -8,7 +8,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
   const isInstructor = user?.role === 'instructor';
 
   const themeColor = isInstructor ? 'emerald-500' : 'blue-500';
-  const themeTextColor = isInstructor ? 'text-psu-maroon dark:text-psu-gold' : 'text-psu-maroon dark:text-psu-gold';
+  const themeTextColor = isInstructor ? 'text-text-brand' : 'text-text-brand';
 
   useEffect(() => {
     function handleClickOutside(event) {

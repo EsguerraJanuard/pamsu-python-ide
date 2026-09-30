@@ -84,9 +84,9 @@ export default function SoloPractice() {
           <div className="mx-auto w-full max-w-5xl">
             <header className="mb-8 flex flex-col gap-4 border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MAIN</p>
+                <p className="mb-1 font-mono text-xs text-text-brand">MAIN</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
-                  <CodeIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
+                  <CodeIcon className="h-6 w-6 text-text-brand" />
                   Solo Practice Modules
                 </h1>
                 <p className="mt-2 text-sm text-text-muted">
@@ -122,7 +122,7 @@ export default function SoloPractice() {
                       >
                         <h2 className="text-xl font-bold mb-2 flex items-center justify-between">
                           <span>Module {index + 1}: {mod.title}</span>
-                          {mod.is_completed && <span className="text-xs font-semibold uppercase tracking-wider text-psu-maroon dark:text-psu-gold bg-psu-maroon/10 px-3 py-1 rounded-full">Completed</span>}
+                          {mod.is_completed && <span className="text-xs font-semibold uppercase tracking-wider text-text-brand bg-psu-maroon/10 px-3 py-1 rounded-full">Completed</span>}
                         </h2>
                         <p className="text-sm text-text-muted mb-6">{mod.description}</p>
                         
@@ -145,11 +145,11 @@ export default function SoloPractice() {
                                   Task {tIndex + 1}
                                 </span>
                                 {task.is_completed ? (
-                                  <CheckIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
+                                  <CheckIcon className="h-4 w-4 text-text-brand" />
                                 ) : task.is_locked ? (
                                   <LockIcon className="h-4 w-4 text-text-muted" />
                                 ) : (
-                                  <CodeIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
+                                  <CodeIcon className="h-4 w-4 text-text-brand" />
                                 )}
                               </div>
                               <span className={`font-medium line-clamp-1 ${task.is_locked ? 'text-text-muted' : 'text-text-main'}`}>

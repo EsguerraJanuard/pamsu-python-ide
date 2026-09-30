@@ -158,7 +158,7 @@ const ActivityDetails = () => {
               <h1 className="text-2xl font-bold mb-2">{activity.title}</h1>
               <p className="text-text-muted">{activity.description}</p>
             </div>
-            <button onClick={() => navigate(-1)} className="text-psu-maroon dark:text-psu-gold hover:text-psu-maroon dark:text-psu-gold">
+            <button onClick={() => navigate(-1)} className="text-text-brand hover:text-text-brand">
               Back
             </button>
           </div>
@@ -199,20 +199,20 @@ const ActivityDetails = () => {
           <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Details</h2>
           
           <div>
-            <h3 className="text-sm font-medium text-psu-maroon dark:text-psu-gold">Instructions</h3>
+            <h3 className="text-sm font-medium text-text-brand">Instructions</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.instructions || 'No instructions provided.'}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-psu-maroon dark:text-psu-gold">Requirements</h3>
+            <h3 className="text-sm font-medium text-text-brand">Requirements</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.required_ast_rules && Object.keys(activity.required_ast_rules).length > 0 ? Object.keys(activity.required_ast_rules).join(", ") : 'No requirements provided.'}
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-psu-maroon dark:text-psu-gold">Due Date</h3>
+            <h3 className="text-sm font-medium text-text-brand">Due Date</h3>
             <div className="mt-1 flex items-center gap-3">
               <Flatpickr
                 data-enable-time

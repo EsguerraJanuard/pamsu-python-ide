@@ -106,7 +106,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
           </>
         ) : (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/20 text-psu-maroon dark:text-psu-gold">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/20 text-text-brand">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -116,7 +116,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
               Share this code with your students so they can join the class.
             </p>
             <div className="mb-6 rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 p-4">
-              <span className="font-mono text-2xl font-bold tracking-wider text-psu-maroon dark:text-psu-gold">
+              <span className="font-mono text-2xl font-bold tracking-wider text-text-brand">
                 {generatedCode}
               </span>
             </div>

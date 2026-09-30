@@ -17,17 +17,17 @@ const STATUS_CONFIG = {
   },
   in_progress: {
     label: "In progress",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand",
     accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
     progressClass: "bg-psu-maroon",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
   submitted: {
     label: "Submitted",
     badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
     accentClass: "border-l-green-500",
     progressClass: "bg-green-500",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
 };
 
@@ -232,9 +232,9 @@ export default function StudentDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MAIN</p>
+                  <p className="mb-1 font-mono text-xs text-text-brand">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <LayoutDashboardIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
+                    <LayoutDashboardIcon className="h-6 w-6 text-text-brand" />
                     {getGreeting()}, {getFirstName(user.name)}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -267,7 +267,7 @@ export default function StudentDashboard() {
               </header>
 
               <section className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-maroon/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-psu-maroon dark:text-psu-gold">
+                <p className="text-xs leading-relaxed text-text-brand">
                   Dashboard indicators support learning reflection.
                   AST checks, test results, and activity progress are
                   not automatic grades. Official grades are assigned
@@ -391,7 +391,7 @@ export default function StudentDashboard() {
                   )}
                   {activities.length === 0 && !isLoading && (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-psu-maroon dark:text-psu-gold">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-text-brand">
                         <LayoutDashboardIcon className="h-6 w-6" />
                       </div>
                       <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
@@ -432,7 +432,7 @@ export default function StudentDashboard() {
 
                               <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                                 <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                                  <BookOpenIcon className="h-3 w-3 text-psu-maroon dark:text-psu-gold" />
+                                  <BookOpenIcon className="h-3 w-3 text-text-brand" />
                                   {activity.courseCode}
                                 </span>
 

@@ -18,6 +18,7 @@
   --color-text-amber: var(--text-amber);
   --color-text-rose: var(--text-rose);
   --color-text-violet: var(--text-violet);
+  --color-text-brand: var(--text-brand-accent);
 }
 
 :root, .light {
@@ -35,6 +36,7 @@
   --text-amber: #d97706;
   --text-rose: #e11d48;
   --text-violet: #7c3aed;
+  --text-brand-accent: #701d0b;
 
   --color-bg-base: var(--bg-base);
   --color-bg-panel: var(--bg-panel);
@@ -49,6 +51,7 @@
   --color-text-amber: var(--text-amber);
   --color-text-rose: var(--text-rose);
   --color-text-violet: var(--text-violet);
+  --color-text-brand: var(--text-brand-accent);
 }
 
 .dark {
@@ -66,6 +69,7 @@
   --text-amber: #fbbf24;
   --text-rose: #fb7185;
   --text-violet: #a78bfa;
+  --text-brand-accent: #eeb319;
 
   --color-bg-base: var(--bg-base);
   --color-bg-panel: var(--bg-panel);
@@ -80,6 +84,7 @@
   --color-text-amber: var(--text-amber);
   --color-text-rose: var(--text-rose);
   --color-text-violet: var(--text-violet);
+  --color-text-brand: var(--text-brand-accent);
 }
 
 *, *::before, *::after { box-sizing: border-box; }

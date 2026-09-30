@@ -190,7 +190,7 @@ export default function ForgotPassword() {
 
             <div className="mt-6 text-center text-[13px]">
               <span className="text-text-muted">Remember your password?</span>{" "}
-              <Link to="/login" className="font-semibold text-psu-maroon dark:text-psu-gold hover:underline">
+              <Link to="/login" className="font-semibold text-text-brand hover:underline">
                 Log in instead
               </Link>
             </div>
@@ -232,7 +232,7 @@ export default function ForgotPassword() {
                     type="button"
                     onClick={handleResendOTP}
                     disabled={resendTimer > 0 || loading}
-                    className="text-psu-maroon dark:text-psu-gold hover:underline disabled:text-text-muted disabled:no-underline"
+                    className="text-text-brand hover:underline disabled:text-text-muted disabled:no-underline"
                   >
                     {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend code"}
                   </button>
@@ -300,7 +300,7 @@ export default function ForgotPassword() {
                     type="checkbox" 
                     checked={showPasswords} 
                     onChange={() => setShowPasswords(!showPasswords)} 
-                    className="rounded border-border-subtle text-psu-maroon dark:text-psu-gold focus:ring-psu-maroon"
+                    className="rounded border-border-subtle text-text-brand focus:ring-psu-maroon"
                   />
                   Show passwords
                 </label>
@@ -323,7 +323,7 @@ export default function ForgotPassword() {
 
         {step === 3 && (
           <div className="text-center animate-[registerFadeUp_400ms_ease-out_both]">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-psu-maroon/10 text-text-brand">
               <svg className="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>

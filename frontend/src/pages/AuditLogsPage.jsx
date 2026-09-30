@@ -72,11 +72,11 @@ export default function AuditLogsPage({ role: propRole }) {
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   {/* Category Label Added Here */}
-                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-psu-maroon dark:text-psu-gold" : "text-psu-maroon dark:text-psu-gold"}`}>
+                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-text-brand" : "text-text-brand"}`}>
                     ACCOUNT &amp; SYSTEM
                   </p>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
-                    <ShieldIcon className={`h-6 w-6 ${isInstructor ? "text-psu-maroon dark:text-psu-gold" : "text-psu-maroon dark:text-psu-gold"}`} />
+                    <ShieldIcon className={`h-6 w-6 ${isInstructor ? "text-text-brand" : "text-text-brand"}`} />
                     {isInstructor ? "System Audit Logs" : "Audit History"}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -173,14 +173,14 @@ export default function AuditLogsPage({ role: propRole }) {
                               <td className="py-3.5 px-4 text-text-muted">
                                 {log.resource || log.resource_type || log.resource_id || "N/A"}
                               </td>
-                              <td className="py-3.5 px-4 text-psu-maroon dark:text-psu-gold">
+                              <td className="py-3.5 px-4 text-text-brand">
                                 {log.ip_address || log.audit_data?.ip_address || "127.0.0.1"}
                               </td>
                               <td className="py-3.5 px-4 text-right font-sans">
                                 <span
                                   className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
                                     (log.status === "SUCCESS" || log.outcome === "succeeded")
-                                      ? "border-psu-maroon/30 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold"
+                                      ? "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand"
                                       : "border-rose-500/30 bg-rose-500/10 text-text-rose"
                                   }`}
                                 >
@@ -203,14 +203,14 @@ export default function AuditLogsPage({ role: propRole }) {
                       <button
                         disabled={page <= 1}
                         onClick={() => setPage((p) => p - 1)}
-                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-psu-maroon/30 text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/10" : "border-psu-maroon/30 text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10" : "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
                       >
                         Previous
                       </button>
                       <button
                         disabled={page >= totalPages}
                         onClick={() => setPage((p) => p + 1)}
-                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-psu-maroon/30 text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/10" : "border-psu-maroon/30 text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10" : "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
                       >
                         Next
                       </button>

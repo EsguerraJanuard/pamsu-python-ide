@@ -16,17 +16,17 @@ const STATUS_CONFIG = {
   },
   in_progress: {
     label: "Published",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand",
     accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
     progressClass: "bg-psu-maroon",
     buttonClass: "bg-psu-maroon text-white hover:bg-psu-maroon",
   },
   submitted: {
     label: "Completed",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand",
     accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
     progressClass: "bg-psu-maroon",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/10",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10",
   },
 };
 
@@ -224,11 +224,11 @@ export default function InstructorDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">
+                  <p className="mb-1 font-mono text-xs text-text-brand">
                     MANAGEMENT
                   </p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon dark:text-psu-gold"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-brand"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
                     Prof. {instructorName.includes(",") ? instructorName.split(",")[0].trim() : getFirstName(instructorName)} — Faculty
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -247,7 +247,7 @@ export default function InstructorDashboard() {
               </header>
 
               <section className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-maroon/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-psu-maroon dark:text-psu-gold">
+                <p className="text-xs leading-relaxed text-text-brand">
                   Faculty Control Center: Real-time AST compliance flags, execution metrics, and monitoring controls are active. Official student records sync automatically.
                 </p>
               </section>
@@ -281,7 +281,7 @@ export default function InstructorDashboard() {
                   <div className="mt-6">
                     <button
                       onClick={() => navigate("/instructor/activities/create")}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-bg-panel border border-border-subtle py-2.5 px-4 text-sm font-semibold text-text-main shadow-sm hover:bg-bg-glass-hover hover:border-psu-maroon/50 hover:text-psu-maroon dark:text-psu-gold transition-all"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-bg-panel border border-border-subtle py-2.5 px-4 text-sm font-semibold text-text-main shadow-sm hover:bg-bg-glass-hover hover:border-psu-maroon/50 hover:text-text-brand transition-all"
                     >
                       Author new activity
                     </button>
@@ -305,7 +305,7 @@ export default function InstructorDashboard() {
                     </div>
                   ) : mappedActivities.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass/50 py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-psu-maroon dark:text-psu-gold">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-text-brand">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -384,7 +384,7 @@ export default function InstructorDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/instructor/monitoring")}
-                  className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-xs font-medium text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/10 hover:border-psu-maroon/30 transition"
+                  className="rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-xs font-medium text-text-brand hover:bg-psu-maroon/10 hover:border-psu-maroon/30 transition"
                 >
                   Live View
                 </button>

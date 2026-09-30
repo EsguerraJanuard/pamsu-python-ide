@@ -216,9 +216,9 @@ export default function InstructorSettings() {
             {/* ── Page header ───────────────────────────── */}
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">ACCOUNT &amp; SYSTEM</p>
+                <p className="mb-1 font-mono text-xs text-text-brand">ACCOUNT &amp; SYSTEM</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
-                  <SettingsIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
+                  <SettingsIcon className="h-6 w-6 text-text-brand" />
                   Settings
                 </h1>
                 <p className="mt-1 text-sm text-text-muted">
@@ -235,7 +235,7 @@ export default function InstructorSettings() {
             )}
 
             {saved && (
-              <div className="mb-6 rounded-xl border border-psu-maroon/30 bg-psu-maroon/10 px-4 py-3 text-xs text-psu-maroon dark:text-psu-gold" role="status">
+              <div className="mb-6 rounded-xl border border-psu-maroon/30 bg-psu-maroon/10 px-4 py-3 text-xs text-text-brand" role="status">
                 Settings updated successfully. Changes have been saved.
               </div>
             )}
@@ -247,7 +247,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <UserIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
+                    <UserIcon className="h-4 w-4 text-text-brand" />
                     Profile Information
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -306,7 +306,7 @@ export default function InstructorSettings() {
                           disabled
                           className={readonlyInputClass}
                         />
-                        <span className="shrink-0 text-[10px] text-psu-maroon dark:text-psu-gold/80">
+                        <span className="shrink-0 text-[10px] text-text-brand/80">
                           Admin
                         </span>
                       </div>
@@ -324,7 +324,7 @@ export default function InstructorSettings() {
                           disabled
                           className={readonlyInputClass}
                         />
-                        <span className="shrink-0 text-[10px] text-psu-maroon dark:text-psu-gold/80">
+                        <span className="shrink-0 text-[10px] text-text-brand/80">
                           Admin
                         </span>
                       </div>
@@ -344,7 +344,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <CodeIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
+                    <CodeIcon className="h-4 w-4 text-text-brand" />
                     AST &amp; Automated Grading Policy
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -389,7 +389,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <LockIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
+                    <LockIcon className="h-4 w-4 text-text-brand" />
                     Change Password
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -404,7 +404,7 @@ export default function InstructorSettings() {
                     className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
                       passwordMessageType === "error"
                         ? "border-red-500/20 bg-red-500/10 text-text-rose"
-                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold"
+                        : "border-psu-maroon/20 bg-psu-maroon/10 text-text-brand"
                     }`}
                   >
                     {passwordMessage}
@@ -519,7 +519,7 @@ export default function InstructorSettings() {
               {/* ── Section 4: Privacy ──────────────────── */}
               <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
                 <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <ShieldIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
+                  <ShieldIcon className="h-4 w-4 text-text-brand" />
                   Privacy and Session Security
                 </h2>
 

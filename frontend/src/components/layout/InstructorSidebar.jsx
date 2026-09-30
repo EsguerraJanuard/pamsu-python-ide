@@ -239,7 +239,7 @@ export default function InstructorSidebar() {
                           "flex w-full items-center gap-2.5 rounded-lg text-xs transition-colors duration-150",
                           isCollapsed ? "justify-center px-0 py-2" : "justify-between px-2.5 py-2",
                           isActive
-                            ? "bg-[var(--color-psu-gold, #eeb319)]/[0.12] text-psu-maroon dark:text-psu-gold font-semibold"
+                            ? "bg-[var(--color-psu-gold, #eeb319)]/[0.12] text-text-brand font-semibold"
                             : "text-text-muted hover:bg-bg-glass hover:text-text-main font-medium",
                         ].join(" ")
                       }

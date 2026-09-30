@@ -29,7 +29,7 @@ function InfoTooltip({ title, children, align = 'left', position = 'bottom' }) {
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
         onClick={(e) => { e.preventDefault(); setIsOpen(!isOpen); }}
-        className="text-text-muted hover:text-psu-maroon dark:text-psu-gold focus:outline-none transition-colors"
+        className="text-text-muted hover:text-text-brand focus:outline-none transition-colors"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -41,7 +41,7 @@ function InfoTooltip({ title, children, align = 'left', position = 'bottom' }) {
           className={`absolute w-64 md:w-80 p-4 bg-bg-panel border border-border-subtle rounded-lg shadow-2xl z-50 text-xs font-normal normal-case text-text-main leading-relaxed ${alignmentClass}`} 
           style={positionStyle}
         >
-          <div className="font-bold text-psu-maroon dark:text-psu-gold mb-2 border-b border-border-subtle pb-1">{title}</div>
+          <div className="font-bold text-text-brand mb-2 border-b border-border-subtle pb-1">{title}</div>
           {children}
         </div>
       )}
@@ -127,13 +127,13 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
         className="flex items-center p-4 cursor-pointer hover:bg-bg-glass transition-colors group gap-4"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm font-bold text-text-main group-hover:text-psu-maroon dark:text-psu-gold transition-colors flex-1">
+        <span className="text-sm font-bold text-text-main group-hover:text-text-brand transition-colors flex-1">
           {category.title}
         </span>
         
         <div className="flex items-center gap-3">
           {checkedCount > 0 && (
-            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-text-brand dark:text-text-brand text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
               {checkedCount} selected
             </span>
           )}
@@ -147,7 +147,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
             strokeWidth="2.5" 
             strokeLinecap="round" 
             strokeLinejoin="round"
-            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-psu-maroon dark:text-psu-gold' : ''}`}
+            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-text-brand' : ''}`}
           >
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -183,7 +183,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 }`}
               >
                 <div className="flex flex-col gap-0.5">
-                  <span className={`text-sm font-semibold transition-colors ${isChecked ? 'text-psu-maroon dark:text-psu-gold' : 'text-text-main'}`}>
+                  <span className={`text-sm font-semibold transition-colors ${isChecked ? 'text-text-brand' : 'text-text-main'}`}>
                     {rule.label}
                   </span>
                 </div>
@@ -400,9 +400,9 @@ export default function PracticeModuleManager() {
         <div className="mx-auto max-w-6xl w-full space-y-6">
           <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
             <div>
-              <p className="mb-1 font-mono text-xs font-semibold tracking-wider text-psu-maroon dark:text-psu-gold uppercase">MANAGEMENT</p>
+              <p className="mb-1 font-mono text-xs font-semibold tracking-wider text-text-brand uppercase">MANAGEMENT</p>
               <h1 className="text-2xl font-bold flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon dark:text-psu-gold"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9.5 8h5"/><path d="M9.5 12H16"/><path d="M9.5 16H14"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-brand"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9.5 8h5"/><path d="M9.5 12H16"/><path d="M9.5 16H14"/></svg>
                 Practice Modules
               </h1>
               <p className="mt-1 text-sm text-text-muted">
@@ -433,14 +433,14 @@ export default function PracticeModuleManager() {
             </div>
           ) : modules.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border-subtle p-12 text-center">
-              <div className="mb-4 rounded-full bg-bg-glass p-4 text-psu-maroon dark:text-psu-gold">
+              <div className="mb-4 rounded-full bg-bg-glass p-4 text-text-brand">
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
               <h3 className="mb-1 text-lg font-bold text-text-main">No Modules Found</h3>
               <p className="mb-4 text-sm text-text-muted">Get started by creating your first practice module.</p>
-              <button onClick={() => openModuleModal()} className="text-sm font-semibold text-psu-maroon dark:text-psu-gold hover:text-psu-maroon dark:text-psu-gold">
+              <button onClick={() => openModuleModal()} className="text-sm font-semibold text-text-brand hover:text-text-brand">
                 + Create Module
               </button>
             </div>
@@ -458,7 +458,7 @@ export default function PracticeModuleManager() {
                           {mod.title}
                         </h2>
                         {mod.instructor_id === null && (
-                          <span className="rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-psu-maroon dark:text-psu-gold shadow-sm">
+                          <span className="rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-brand shadow-sm">
                             Protected Base
                           </span>
                         )}
@@ -535,7 +535,7 @@ export default function PracticeModuleManager() {
                     
                     <button
                       onClick={() => openTaskModal(mod.module_id)}
-                      className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border-subtle p-2.5 text-xs font-semibold text-text-muted hover:border-psu-maroon/50 hover:bg-psu-maroon/5 hover:text-psu-maroon dark:text-psu-gold transition"
+                      className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border-subtle p-2.5 text-xs font-semibold text-text-muted hover:border-psu-maroon/50 hover:bg-psu-maroon/5 hover:text-text-brand transition"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -665,9 +665,9 @@ export default function PracticeModuleManager() {
                   <InfoTooltip title="Markdown Support">
                     <p>You can use standard Markdown to format the instructions.</p>
                     <ul className="mt-1 ml-4 list-disc text-text-muted">
-                      <li><code className="text-psu-maroon dark:text-psu-gold">**bold**</code></li>
-                      <li><code className="text-psu-maroon dark:text-psu-gold">`code blocks`</code></li>
-                      <li><code className="text-psu-maroon dark:text-psu-gold"># Headers</code></li>
+                      <li><code className="text-text-brand">**bold**</code></li>
+                      <li><code className="text-text-brand">`code blocks`</code></li>
+                      <li><code className="text-text-brand"># Headers</code></li>
                     </ul>
                   </InfoTooltip>
                 </label>
@@ -677,7 +677,7 @@ export default function PracticeModuleManager() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-semibold text-text-main mb-1.5">Starter Code (Optional)</label>
-                    <textarea value={taskForm.starter_code} onChange={e => setTaskForm({...taskForm, starter_code: e.target.value})} placeholder="# Write your code below" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-psu-maroon dark:text-psu-gold placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition font-mono whitespace-pre" rows="5" />
+                    <textarea value={taskForm.starter_code} onChange={e => setTaskForm({...taskForm, starter_code: e.target.value})} placeholder="# Write your code below" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-brand placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition font-mono whitespace-pre" rows="5" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
@@ -701,7 +701,7 @@ export default function PracticeModuleManager() {
                     </div>
                     <div className="flex items-center gap-4">
                       <label className="flex items-center gap-2 cursor-pointer group">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-psu-maroon dark:text-psu-gold group-hover:text-psu-maroon dark:text-psu-gold transition-colors">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-brand group-hover:text-text-brand transition-colors">
                           Toggle All
                         </span>
                         <div className="relative inline-flex items-center">

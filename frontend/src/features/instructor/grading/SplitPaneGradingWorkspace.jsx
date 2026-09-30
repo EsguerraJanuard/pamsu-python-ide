@@ -274,7 +274,7 @@ const SplitPaneGradingWorkspace = () => {
       <div className="w-1/3 border-r border-border-subtle flex flex-col bg-bg-panel/30">
         <div className="px-5 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-glass shadow-sm z-0">
           <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase">Student Submissions</h2>
-          <span className="text-xs font-mono text-psu-maroon dark:text-psu-gold bg-psu-maroon/10 px-2 py-0.5 rounded-full border border-psu-maroon/20">{students.length}</span>
+          <span className="text-xs font-mono text-text-brand bg-psu-maroon/10 px-2 py-0.5 rounded-full border border-psu-maroon/20">{students.length}</span>
         </div>
         <div className="flex-1 overflow-y-auto">
           {students.map(student => {
@@ -291,7 +291,7 @@ const SplitPaneGradingWorkspace = () => {
                 badgeColor = 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20';
               } else {
                 badgeText = 'Submitted';
-                badgeColor = 'bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold border border-psu-maroon/20';
+                badgeColor = 'bg-psu-maroon/10 text-text-brand dark:text-text-brand border border-psu-maroon/20';
               }
             }
 
@@ -322,7 +322,7 @@ const SplitPaneGradingWorkspace = () => {
         {selectedStudent ? (
           <div className="flex-1 p-8 flex flex-col gap-8 max-w-5xl mx-auto w-full">
             <div className="flex items-center gap-4 pb-4 border-b border-border-subtle">
-              <div className="w-12 h-12 rounded-full bg-psu-maroon/10 border border-psu-maroon/20 flex items-center justify-center text-psu-maroon dark:text-psu-gold font-bold text-lg uppercase shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-psu-maroon/10 border border-psu-maroon/20 flex items-center justify-center text-text-brand font-bold text-lg uppercase shadow-sm">
                 {(selectedStudent.name || selectedStudent.email || '?').charAt(0)}
               </div>
               <div>
@@ -445,7 +445,7 @@ const SplitPaneGradingWorkspace = () => {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-text-muted bg-bg-base bg-blend-overlay">
             <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4 border border-border-subtle shadow-lg">
-              <svg className="w-8 h-8 text-psu-maroon dark:text-psu-gold/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+              <svg className="w-8 h-8 text-text-brand/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
             </div>
             <h3 className="text-lg font-medium text-text-main mb-1">No Submission Selected</h3>
             <p className="text-sm max-w-sm text-center">Select a student from the left panel to review their code and provide a grade.</p>

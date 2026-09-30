@@ -283,10 +283,10 @@ export default function Settings() {
 
               <div>
 
-                <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">ACCOUNT &amp; SYSTEM</p>
+                <p className="mb-1 font-mono text-xs text-text-brand">ACCOUNT &amp; SYSTEM</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
 
-                  <SettingsIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
+                  <SettingsIcon className="h-6 w-6 text-text-brand" />
 
                   Settings
                 </h1>
@@ -332,7 +332,7 @@ export default function Settings() {
 
                     aria-live="polite"
 
-                    className="mb-4 rounded-lg border border-psu-maroon/20 bg-psu-maroon/10 px-4 py-3 text-sm text-psu-maroon dark:text-psu-gold"
+                    className="mb-4 rounded-lg border border-psu-maroon/20 bg-psu-maroon/10 px-4 py-3 text-sm text-text-brand"
 
                   >
 
@@ -648,7 +648,7 @@ export default function Settings() {
 
                         ? "border-red-500/20 bg-red-500/10 text-text-rose"
 
-                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold"
+                        : "border-psu-maroon/20 bg-psu-maroon/10 text-text-brand"
 
                     }`}
 

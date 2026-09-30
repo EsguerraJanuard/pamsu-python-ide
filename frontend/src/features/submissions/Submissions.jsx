@@ -10,7 +10,7 @@ const STATUS_CONFIG = {
   awaiting_review: {
     label: "Awaiting review",
     badgeClass:
-      "border-psu-maroon/30 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold",
+      "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand",
     accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
   },
   graded: {
@@ -110,19 +110,19 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
               <button
                 type="button"
                 onClick={() => onOpen(submission.id)}
-                className="shrink-0 rounded-lg border border-psu-maroon/40 px-3 py-1.5 text-xs font-semibold text-psu-maroon dark:text-psu-gold transition duration-150 hover:-translate-y-px hover:bg-psu-maroon/10 active:translate-y-0 active:scale-[0.98]"
+                className="shrink-0 rounded-lg border border-psu-maroon/40 px-3 py-1.5 text-xs font-semibold text-text-brand transition duration-150 hover:-translate-y-px hover:bg-psu-maroon/10 active:translate-y-0 active:scale-[0.98]"
               >
                 View details
               </button>
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-1 text-[10px] font-medium text-psu-maroon dark:text-psu-gold">
+              <span className="rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-1 text-[10px] font-medium text-text-brand">
                 Attempt {submission.latestAttempt}
               </span>
 
               {submission.isOfficial && (
-                <span className="rounded-full border border-psu-maroon/20 bg-psu-maroon/[0.06] px-2.5 py-1 text-[10px] text-psu-maroon dark:text-psu-gold">
+                <span className="rounded-full border border-psu-maroon/20 bg-psu-maroon/[0.06] px-2.5 py-1 text-[10px] text-text-brand">
                   Latest official submission
                 </span>
               )}
@@ -153,7 +153,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-psu-maroon dark:text-psu-gold">
+                    <p className="text-sm font-semibold text-text-brand">
                       Pending
                     </p>
 
@@ -178,7 +178,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
 
       {submissions.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle py-20 px-6 text-center transition-all hover:bg-bg-glass">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold ring-4 ring-psu-maroon/5">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-psu-maroon/10 text-text-brand ring-4 ring-psu-maroon/5">
             <ArchiveIcon className="h-8 w-8" />
           </div>
           <h3 className="mb-2 text-xl font-semibold text-text-main">No Submissions Yet</h3>
@@ -203,7 +203,7 @@ function SubmissionDetails({ submission, onBack }) {
       <button
         type="button"
         onClick={onBack}
-        className="text-xs text-psu-maroon dark:text-psu-gold transition-colors hover:text-psu-maroon dark:text-psu-gold"
+        className="text-xs text-text-brand transition-colors hover:text-text-brand"
       >
         ← Back to submissions
       </button>
@@ -271,7 +271,7 @@ function SubmissionDetails({ submission, onBack }) {
                 </div>
 
                 {attempt.isOfficial ? (
-                  <span className="w-fit rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-1 text-[10px] font-medium text-psu-maroon dark:text-psu-gold">
+                  <span className="w-fit rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-1 text-[10px] font-medium text-text-brand">
                     Latest official submission
                   </span>
                 ) : (
@@ -463,9 +463,9 @@ export default function Submissions() {
               <>
                 <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                   <div>
-                    <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">PROGRESS</p>
+                    <p className="mb-1 font-mono text-xs text-text-brand">PROGRESS</p>
                     <h1 className="text-2xl font-bold flex items-center gap-3">
-                      <ArchiveIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
+                      <ArchiveIcon className="h-6 w-6 text-text-brand" />
                       Submissions
                     </h1>
                     <p className="mt-1 text-sm text-text-muted">

@@ -99,9 +99,9 @@ export default function ClassManagement() {
             <div className="mx-auto max-w-6xl ">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MANAGEMENT</p>
+                  <p className="mb-1 font-mono text-xs text-text-brand">MANAGEMENT</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon dark:text-psu-gold"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2.69-6.12-6-6.44"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-brand"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2.69-6.12-6-6.44"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     My Classrooms
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -140,7 +140,7 @@ export default function ClassManagement() {
                 </div>
               ) : classes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass/50 py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-psu-maroon dark:text-psu-gold">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-text-brand">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
@@ -167,10 +167,10 @@ export default function ClassManagement() {
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <span className="inline-block px-2 py-1 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold border border-psu-maroon/20 rounded-md text-[10px] font-mono mb-2">
+                          <span className="inline-block px-2 py-1 bg-psu-maroon/10 text-text-brand border border-psu-maroon/20 rounded-md text-[10px] font-mono mb-2">
                             {cls.subject_code} - {cls.section}
                           </span>
-                          <h3 className={`font-semibold text-lg leading-tight group-hover:text-psu-maroon dark:text-psu-gold transition-colors ${!cls.is_active ? 'text-text-muted' : ''}`}>
+                          <h3 className={`font-semibold text-lg leading-tight group-hover:text-text-brand transition-colors ${!cls.is_active ? 'text-text-muted' : ''}`}>
                             {cls.name}
                           </h3>
                         </div>
@@ -184,11 +184,11 @@ export default function ClassManagement() {
                             <p className="font-mono text-sm text-text-main">{cls.class_code}</p>
                             <button
                               onClick={(e) => copyToClipboard(e, cls.class_code, cls.class_id)}
-                              className="text-text-muted hover:text-psu-maroon dark:text-psu-gold transition-colors"
+                              className="text-text-muted hover:text-text-brand transition-colors"
                               title="Copy to clipboard"
                             >
                               {copiedId === cls.class_id ? (
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-psu-maroon dark:text-psu-gold">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-text-brand">
                                   <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               ) : (
@@ -205,7 +205,7 @@ export default function ClassManagement() {
                             className={`px-3 py-1.5 text-xs rounded transition-colors ${
                               cls.is_active 
                                 ? 'bg-white/5 text-text-muted hover:bg-red-500/10 hover:text-text-rose' 
-                                : 'bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/20'
+                                : 'bg-psu-maroon/10 text-text-brand hover:bg-psu-maroon/20'
                             }`}
                           >
                             {cls.is_active ? 'Archive' : 'Activate'}
