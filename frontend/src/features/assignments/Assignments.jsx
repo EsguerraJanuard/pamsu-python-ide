@@ -34,11 +34,11 @@ const STATUS_CONFIG = {
   in_progress: {
     label: "In progress",
     badgeClass:
-      "border-psu-maroon/30 bg-psu-maroon/10 text-blue-700 dark:text-blue-400",
-    accentClass: "border-l-blue-500",
+      "border-psu-maroon/30 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold",
+    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
     progressClass: "bg-psu-maroon",
     buttonClass:
-      "border border-psu-maroon/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+      "border border-psu-maroon/40 bg-transparent text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
   submitted: {
     label: "Submitted",
@@ -47,7 +47,7 @@ const STATUS_CONFIG = {
     accentClass: "border-l-green-500",
     progressClass: "bg-green-500",
     buttonClass:
-      "border border-psu-maroon/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+      "border border-psu-maroon/40 bg-transparent text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
   graded: {
     label: "Graded",
@@ -310,9 +310,9 @@ export default function Assignments() {
           <div className="w-full">
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs text-psu-maroon">MAIN</p>
+                <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MAIN</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
-                  <ClipboardListIcon className="h-6 w-6 text-psu-maroon" />
+                  <ClipboardListIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
                   Assignments
                 </h1>
                 <p className="mt-1 text-sm text-text-muted">
@@ -322,7 +322,7 @@ export default function Assignments() {
             </header>
 
             <section className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-maroon/[0.07] px-4 py-3">
-              <p className="text-xs leading-relaxed text-psu-maroon">
+              <p className="text-xs leading-relaxed text-psu-maroon dark:text-psu-gold">
                 You may submit an activity more than once while
                 submissions remain open. The latest accepted submission
                 becomes the official version for instructor review.
@@ -398,7 +398,7 @@ export default function Assignments() {
 
                         <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                           <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                            <ClipboardListIcon className="h-3 w-3 text-psu-maroon" />
+                            <ClipboardListIcon className="h-3 w-3 text-psu-maroon dark:text-psu-gold" />
                             {activity.courseCode}
                           </span>
 
@@ -428,7 +428,7 @@ export default function Assignments() {
                     </div>
 
                     {activity.latestSubmission && (
-                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-psu-maroon shadow-inner">
+                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-psu-maroon dark:text-psu-gold shadow-inner">
                         <span className="flex items-center gap-1.5 font-medium">
                           <SubmissionIcon className="h-3 w-3" />
                           Attempt{" "}
@@ -443,7 +443,7 @@ export default function Assignments() {
                         </span>
 
                         {activity.latestSubmission.isOfficial && (
-                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-psu-maroon">
+                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-psu-maroon dark:text-psu-gold">
                             Latest official submission
                           </span>
                         )}

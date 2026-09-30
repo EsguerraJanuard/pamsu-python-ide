@@ -13,7 +13,7 @@ export const Unauthorized = () => {
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-text-main">Access Denied</h1>
         <p className="text-sm leading-relaxed text-text-muted">
-          You do not have the required security permissions to view this workspace. This area is restricted to authorized role personnel only.
+          You do not have the security permissions to view this workspace. This area is restricted to authorized role personnel only.
         </p>
         <button
           type="button"

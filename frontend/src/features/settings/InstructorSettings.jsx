@@ -49,7 +49,7 @@ function getPasswordStrength(password) {
   if (/[^A-Za-z0-9]/.test(password)) score++;
   if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#ef4444", width: "25%" };
   if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
+  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "var(--color-psu-red, #ce0000)", width: "75%" };
   return { label: "Strong password", color: "#22c55e", width: "100%" };
 }
 
@@ -216,9 +216,9 @@ export default function InstructorSettings() {
             {/* ── Page header ───────────────────────────── */}
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs text-psu-maroon">ACCOUNT &amp; SYSTEM</p>
+                <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">ACCOUNT &amp; SYSTEM</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
-                  <SettingsIcon className="h-6 w-6 text-psu-maroon" />
+                  <SettingsIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
                   Settings
                 </h1>
                 <p className="mt-1 text-sm text-text-muted">
@@ -235,7 +235,7 @@ export default function InstructorSettings() {
             )}
 
             {saved && (
-              <div className="mb-6 rounded-xl border border-psu-maroon/30 bg-psu-maroon/10 px-4 py-3 text-xs text-psu-maroon" role="status">
+              <div className="mb-6 rounded-xl border border-psu-maroon/30 bg-psu-maroon/10 px-4 py-3 text-xs text-psu-maroon dark:text-psu-gold" role="status">
                 Settings updated successfully. Changes have been saved.
               </div>
             )}
@@ -247,7 +247,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <UserIcon className="h-4 w-4 text-psu-maroon" />
+                    <UserIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
                     Profile Information
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -306,7 +306,7 @@ export default function InstructorSettings() {
                           disabled
                           className={readonlyInputClass}
                         />
-                        <span className="shrink-0 text-[10px] text-psu-maroon/80">
+                        <span className="shrink-0 text-[10px] text-psu-maroon dark:text-psu-gold/80">
                           Admin
                         </span>
                       </div>
@@ -324,7 +324,7 @@ export default function InstructorSettings() {
                           disabled
                           className={readonlyInputClass}
                         />
-                        <span className="shrink-0 text-[10px] text-psu-maroon/80">
+                        <span className="shrink-0 text-[10px] text-psu-maroon dark:text-psu-gold/80">
                           Admin
                         </span>
                       </div>
@@ -344,7 +344,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <CodeIcon className="h-4 w-4 text-psu-maroon" />
+                    <CodeIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
                     AST &amp; Automated Grading Policy
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -389,7 +389,7 @@ export default function InstructorSettings() {
 
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <LockIcon className="h-4 w-4 text-psu-maroon" />
+                    <LockIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
                     Change Password
                   </h2>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -404,7 +404,7 @@ export default function InstructorSettings() {
                     className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
                       passwordMessageType === "error"
                         ? "border-red-500/20 bg-red-500/10 text-text-rose"
-                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon"
+                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold"
                     }`}
                   >
                     {passwordMessage}
@@ -425,9 +425,8 @@ export default function InstructorSettings() {
                         onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
                         placeholder="Enter your current password"
                         autoComplete="current-password"
-                        required
                         className={inputClass}
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                       />
                     </div>
                   </div>
@@ -445,9 +444,8 @@ export default function InstructorSettings() {
                         placeholder="At least 8 characters"
                         autoComplete="new-password"
                         minLength={8}
-                        required
                         className={inputClass}
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                       />
                     </div>
                     {passwords.newPassword && getPasswordStrength(passwords.newPassword) && (() => {
@@ -484,9 +482,8 @@ export default function InstructorSettings() {
                         placeholder="Enter the new password again"
                         autoComplete="new-password"
                         minLength={8}
-                        required
                         className={inputClass}
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                       />
                     </div>
                   </div>
@@ -522,7 +519,7 @@ export default function InstructorSettings() {
               {/* ── Section 4: Privacy ──────────────────── */}
               <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
                 <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <ShieldIcon className="h-4 w-4 text-psu-maroon" />
+                  <ShieldIcon className="h-4 w-4 text-psu-maroon dark:text-psu-gold" />
                   Privacy and Session Security
                 </h2>
 

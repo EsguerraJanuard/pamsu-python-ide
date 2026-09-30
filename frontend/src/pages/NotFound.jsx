@@ -4,7 +4,7 @@ export const NotFound = () => {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-bg-glass p-6 text-center text-text-main">
       <div className="max-w-md space-y-6 rounded-2xl border border-border-subtle bg-bg-glass/80 p-8 shadow-2xl">
-        <p className="text-sm font-semibold uppercase tracking-widest text-psu-maroon">Error 404</p>
+        <p className="text-sm font-semibold uppercase tracking-widest text-psu-maroon dark:text-psu-gold">Error 404</p>
         <h1 className="text-3xl font-extrabold tracking-tight text-text-main">Page Not Found</h1>
         <p className="text-sm leading-relaxed text-text-muted">
           We couldn&apos;t find the workspace or classroom page you are looking for. It may have been moved, archived, or deleted.

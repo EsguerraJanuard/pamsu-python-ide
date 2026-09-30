@@ -79,9 +79,9 @@ const GradingBenchRoot = () => {
         <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
       <div className="max-w-6xl mx-auto w-full">
         <header className="mb-8 border-b border-border-subtle pb-6">
-          <p className="mb-1 font-mono text-xs text-psu-maroon">MONITORING &amp; GRADING</p>
+          <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MONITORING &amp; GRADING</p>
           <h1 className="text-2xl font-bold text-text-main flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon dark:text-psu-gold"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
             Grading Bench
           </h1>
           <p className="mt-1 text-sm text-text-muted">Select a class to view and grade assignments.</p>
@@ -105,7 +105,7 @@ const GradingBenchRoot = () => {
                 <div className="p-6 flex-1 flex flex-col relative z-10">
                   <div className="flex justify-between items-start mb-4">
                     {cls.subject_code ? (
-                      <span className="inline-flex items-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-psu-maroon shadow-sm">
+                      <span className="inline-flex items-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-psu-maroon dark:text-psu-gold shadow-sm">
                         {cls.subject_code}
                       </span>
                     ) : (

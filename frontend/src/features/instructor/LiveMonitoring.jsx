@@ -94,9 +94,9 @@ const LiveMonitoring = () => {
         <div className="w-full">
           <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
             <div>
-              <p className="mb-1 font-mono text-xs text-psu-maroon">MONITORING & GRADING</p>
+              <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MONITORING & GRADING</p>
               <h1 className="text-2xl font-bold flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon dark:text-psu-gold"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
                 Live Monitoring
               </h1>
               <p className="mt-1 text-sm text-text-muted">
@@ -108,13 +108,13 @@ const LiveMonitoring = () => {
               <div className="flex bg-bg-glass rounded-lg p-1 border border-border-subtle">
                 <button
                   onClick={() => setMode('global')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-psu-maroon/20 text-psu-maroon' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-psu-maroon/20 text-psu-maroon dark:text-psu-gold' : 'text-text-muted hover:text-text-main'}`}
                 >
                   All Active Students
                 </button>
                 <button
                   onClick={() => setMode('task')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-psu-maroon/20 text-psu-maroon' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-psu-maroon/20 text-psu-maroon dark:text-psu-gold' : 'text-text-muted hover:text-text-main'}`}
                 >
                   Specific Task
                 </button>
@@ -137,7 +137,7 @@ const LiveMonitoring = () => {
                 )}
 
                 {(mode === 'global' || activeTaskId) && (
-                  <div className="flex items-center gap-2 text-sm text-psu-maroon bg-psu-maroon/10 px-3 py-1.5 rounded-full border border-psu-maroon/20">
+                  <div className="flex items-center gap-2 text-sm text-psu-maroon dark:text-psu-gold bg-psu-maroon/10 px-3 py-1.5 rounded-full border border-psu-maroon/20">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-psu-maroon"></span>
@@ -259,7 +259,7 @@ const LiveMonitoring = () => {
                     {mode === 'global' && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {session.classroom_name && (
-                          <span className="inline-flex items-center rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-psu-maroon ring-1 ring-inset ring-psu-maroon/20">
+                          <span className="inline-flex items-center rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-psu-maroon dark:text-psu-gold ring-1 ring-inset ring-psu-maroon/20">
                             {session.classroom_name}
                           </span>
                         )}

@@ -38,7 +38,7 @@ function getPasswordStrength(password) {
   if (/[^A-Za-z0-9]/.test(password)) score++;
   if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#ef4444", width: "25%" };
   if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
+  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "var(--color-psu-red, #ce0000)", width: "75%" };
   return { label: "Strong password", color: "#22c55e", width: "100%" };
 }
 
@@ -90,7 +90,7 @@ export default function Settings() {
 
   const inputWrap =
 
-    "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-[#3b82f6]/60";
+    "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-[var(--color-psu-red, #ce0000)]/60";
 
 
 
@@ -283,10 +283,10 @@ export default function Settings() {
 
               <div>
 
-                <p className="mb-1 font-mono text-xs text-psu-maroon">ACCOUNT &amp; SYSTEM</p>
+                <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">ACCOUNT &amp; SYSTEM</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
 
-                  <SettingsIcon className="h-6 w-6 text-psu-maroon" />
+                  <SettingsIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
 
                   Settings
                 </h1>
@@ -332,7 +332,7 @@ export default function Settings() {
 
                     aria-live="polite"
 
-                    className="mb-4 rounded-lg border border-psu-maroon/20 bg-psu-maroon/10 px-4 py-3 text-sm text-psu-maroon"
+                    className="mb-4 rounded-lg border border-psu-maroon/20 bg-psu-maroon/10 px-4 py-3 text-sm text-psu-maroon dark:text-psu-gold"
 
                   >
 
@@ -582,7 +582,7 @@ export default function Settings() {
 
                         type="submit"
 
-                        className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                        className="rounded-lg bg-gradient-to-br from-[var(--color-psu-red, #ce0000)] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
 
                       >
 
@@ -648,7 +648,7 @@ export default function Settings() {
 
                         ? "border-red-500/20 bg-red-500/10 text-text-rose"
 
-                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon"
+                        : "border-psu-maroon/20 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold"
 
                     }`}
 
@@ -718,11 +718,9 @@ export default function Settings() {
 
                         autoComplete="current-password"
 
-                        required
-
                         className={inputClass}
 
-                        style={{ caretColor: "#3b82f6" }}
+                        style={{ caretColor: "var(--color-psu-red, #ce0000)" }}
 
                       />
 
@@ -764,9 +762,8 @@ export default function Settings() {
                         placeholder="At least 8 characters"
                         autoComplete="new-password"
                         minLength={8}
-                        required
                         className={inputClass}
-                        style={{ caretColor: "#3b82f6" }}
+                        style={{ caretColor: "var(--color-psu-red, #ce0000)" }}
                       />
                     </div>
                     {passwords.newPassword && getPasswordStrength(passwords.newPassword) && (() => {
@@ -840,11 +837,9 @@ export default function Settings() {
 
                         minLength={8}
 
-                        required
-
                         className={inputClass}
 
-                        style={{ caretColor: "#3b82f6" }}
+                        style={{ caretColor: "var(--color-psu-red, #ce0000)" }}
 
                       />
 
@@ -877,7 +872,7 @@ export default function Settings() {
 
                       type="submit"
 
-                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      className="rounded-lg bg-gradient-to-br from-[var(--color-psu-red, #ce0000)] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
 
                     >
 

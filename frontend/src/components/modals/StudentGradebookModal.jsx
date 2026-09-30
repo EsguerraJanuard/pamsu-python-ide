@@ -45,7 +45,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border-subtle p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 ring-4 ring-psu-maroon/5 text-psu-maroon">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 ring-4 ring-psu-maroon/5 text-psu-maroon dark:text-psu-gold">
               <UserIcon className="h-6 w-6" />
             </div>
             <div>
@@ -64,7 +64,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           <h3 className="mb-4 text-lg font-semibold text-text-main flex items-center gap-2">
-            <ActivityIcon className="h-5 w-5 text-psu-maroon" />
+            <ActivityIcon className="h-5 w-5 text-psu-maroon dark:text-psu-gold" />
             Activity Records & Grades
           </h3>
 
@@ -100,11 +100,11 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                       </td>
                       <td className="px-6 py-4">
                         {grade.submission?.status === 'graded' ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-emerald-400">
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-psu-maroon dark:text-psu-gold">
                             <CheckCircleIcon className="h-3.5 w-3.5" /> Graded
                           </span>
                         ) : grade.submission?.status === 'submitted' ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-blue-400">
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-psu-maroon dark:text-psu-gold">
                             <ClockIcon className="h-3.5 w-3.5" /> Needs Review
                           </span>
                         ) : (
@@ -146,7 +146,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                         {grade.submission?.sub_id && (
                           <button
                             onClick={() => navigate(`/instructor/submissions/${grade.submission.sub_id}`)}
-                            className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                            className="text-xs font-semibold text-psu-maroon dark:text-psu-gold hover:text-psu-maroon dark:text-psu-gold transition-colors"
                           >
                             View Work
                           </button>

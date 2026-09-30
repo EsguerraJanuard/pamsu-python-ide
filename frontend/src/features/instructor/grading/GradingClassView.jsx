@@ -97,7 +97,7 @@ const GradingClassView = () => {
       <div className="max-w-6xl mx-auto w-full">
         <button 
           onClick={() => navigate('/instructor/bench')}
-          className="mb-6 flex items-center text-text-muted hover:text-psu-maroon transition-colors"
+          className="mb-6 flex items-center text-text-muted hover:text-psu-maroon dark:text-psu-gold transition-colors"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -125,7 +125,7 @@ const GradingClassView = () => {
               >
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-psu-maroon transition-colors"></div>
                 <div>
-                  <h3 className="text-lg font-bold text-text-main group-hover:text-emerald-400 transition-colors">{activity.title}</h3>
+                  <h3 className="text-lg font-bold text-text-main group-hover:text-psu-maroon dark:text-psu-gold transition-colors">{activity.title}</h3>
                   <p className="text-sm text-text-muted mt-1">{activity.description || 'No description provided'}</p>
                   {activity.due_date && (
                     <p className="text-xs text-text-muted mt-2 font-mono">
@@ -135,7 +135,7 @@ const GradingClassView = () => {
                 </div>
                 <div className="w-full sm:w-auto z-10">
                   <button 
-                    className="w-full sm:w-auto rounded-lg bg-psu-maroon/10 border border-psu-maroon/20 text-emerald-400 px-4 py-2 text-sm font-semibold transition group-hover:bg-psu-maroon group-hover:text-white group-hover:border-transparent group-hover:shadow-lg group-hover:shadow-psu-maroon/20 flex items-center"
+                    className="w-full sm:w-auto rounded-lg bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-psu-gold px-4 py-2 text-sm font-semibold transition group-hover:bg-psu-maroon group-hover:text-white group-hover:border-transparent group-hover:shadow-lg group-hover:shadow-psu-maroon/20 flex items-center"
                   >
                     View details
                     <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -47,9 +47,9 @@ export default function Analytics() {
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
           <header className="mb-8 border-b border-border-subtle pb-6">
-            <p className="mb-1 font-mono text-xs text-psu-maroon">PROGRESS</p>
+            <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">PROGRESS</p>
             <h1 className="text-2xl font-bold flex items-center gap-3">
-              <LineChartIcon className="h-6 w-6 text-psu-maroon" />
+              <LineChartIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
               My Analytics & Growth
             </h1>
             <p className="mt-1 text-sm text-text-muted">
@@ -111,7 +111,7 @@ export default function Analytics() {
                   {/* Task Completion */}
                   <article className="rounded-xl border border-border-subtle bg-bg-glass p-6 flex flex-col justify-center">
                     <div className="mb-2 flex items-center gap-2">
-                      <div className="p-2 bg-psu-maroon/10 rounded-lg text-blue-400">
+                      <div className="p-2 bg-psu-maroon/10 rounded-lg text-psu-maroon dark:text-psu-gold">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </div>
                       <h2 className="text-sm font-medium text-text-muted">Tasks Mastered</h2>

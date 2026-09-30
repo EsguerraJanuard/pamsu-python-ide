@@ -198,7 +198,7 @@ export default function Login() {
         </div>
 
         <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-psu-maroon">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-psu-maroon dark:text-psu-gold">
             Python Learning Platform
           </p>
           <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
@@ -286,7 +286,7 @@ export default function Login() {
                   required
                   disabled={isLoading}
                   className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                  style={{ caretColor: "#10b981" }}
+                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
               </div>
             </div>
@@ -328,7 +328,7 @@ export default function Login() {
                   required
                   disabled={isLoading}
                   className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                  style={{ caretColor: "#10b981" }}
+                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
                 <button
                   type="button"
@@ -355,7 +355,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => navigate("/forgot-password")}
-                  className="text-[10px] font-medium text-psu-maroon transition-colors hover:underline"
+                  className="text-[10px] font-medium text-psu-maroon dark:text-psu-gold transition-colors hover:underline"
                   disabled={isLoading}
                 >
                   Forgot your password?
@@ -390,7 +390,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="font-medium text-psu-maroon transition-colors hover:text-psu-maroon hover:underline"
+                className="font-medium text-psu-maroon dark:text-psu-gold transition-colors hover:text-psu-maroon dark:text-psu-gold hover:underline"
                 disabled={isLoading}
               >
                 Sign up using university account

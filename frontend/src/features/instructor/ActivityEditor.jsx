@@ -97,13 +97,13 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
         className="flex items-center p-4 cursor-pointer hover:bg-bg-glass transition-colors group gap-4"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm font-bold text-text-main group-hover:text-psu-maroon transition-colors flex-1">
+        <span className="text-sm font-bold text-text-main group-hover:text-psu-maroon dark:text-psu-gold transition-colors flex-1">
           {category.title}
         </span>
         
         <div className="flex items-center gap-3">
           {checkedCount > 0 && (
-            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
               {checkedCount} selected
             </span>
           )}
@@ -117,7 +117,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
             strokeWidth="2.5" 
             strokeLinecap="round" 
             strokeLinejoin="round"
-            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-psu-maroon' : ''}`}
+            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-psu-maroon dark:text-psu-gold' : ''}`}
           >
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -152,7 +152,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     : 'bg-transparent border-transparent hover:bg-bg-glass hover:border-border-subtle'
                 }`}
               >
-                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-psu-maroon dark:text-emerald-400' : 'text-text-main'}`}>
+                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold' : 'text-text-main'}`}>
                   {rule.label}
                 </span>
                 
@@ -391,9 +391,9 @@ const ActivityEditor = () => {
           <div className="w-full">
             <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-psu-maroon">MANAGEMENT</p>
+                <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-psu-maroon dark:text-psu-gold">MANAGEMENT</p>
                 <h1 className="text-2xl font-bold tracking-tight text-text-main flex items-center gap-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-psu-maroon dark:text-psu-gold"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
                   Create New Activity
                 </h1>
                 <p className="mt-1 text-sm text-text-muted">
@@ -411,13 +411,13 @@ const ActivityEditor = () => {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Column: Details & Instructions (7 cols) */}
               <div className="lg:col-span-7 space-y-5 bg-bg-glass p-6 rounded-2xl border border-border-subtle">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-psu-maroon pb-2 border-b border-border-subtle">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-psu-maroon dark:text-psu-gold pb-2 border-b border-border-subtle">
                   Activity Details
                 </h2>
 
                 <div>
                   <label htmlFor="title" className="block text-xs font-semibold text-text-muted mb-1.5">
-                    Activity Title <span className="text-psu-maroon">*</span>
+                    Activity Title <span className="text-psu-maroon dark:text-psu-gold">*</span>
                   </label>
                   <input
                     type="text"
@@ -425,7 +425,6 @@ const ActivityEditor = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    required
                     placeholder="e.g. Lab Activity 3 — Fibonacci Sequence"
                     className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-psu-maroon transition-colors"
                   />
@@ -433,7 +432,7 @@ const ActivityEditor = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
-                    <span>Target Classroom(s) <span className="text-psu-maroon">*</span></span>
+                    <span>Target Classroom(s) <span className="text-psu-maroon dark:text-psu-gold">*</span></span>
                     {classrooms.length > 0 && (
                       <div className="relative w-48">
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
@@ -478,7 +477,7 @@ const ActivityEditor = () => {
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <span className={`text-sm font-medium select-none ${isSelected ? 'text-psu-maroon' : 'text-text-main'}`}>
+                              <span className={`text-sm font-medium select-none ${isSelected ? 'text-psu-maroon dark:text-psu-gold' : 'text-text-main'}`}>
                                 {cls.subject_code} - {cls.section}
                               </span>
                             </div>
@@ -550,14 +549,14 @@ const ActivityEditor = () => {
                       onChange={handleChange}
                       rows={3}
                       placeholder="Target output string..."
-                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-psu-maroon focus:outline-none focus:border-psu-maroon transition-colors h-full"
+                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-psu-maroon dark:text-psu-gold focus:outline-none focus:border-psu-maroon transition-colors h-full"
                     />
                   </div>
 
                   <div className="relative h-full flex flex-col gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                        Difficulty Level <span className="text-psu-maroon">*</span>
+                        Difficulty Level <span className="text-psu-maroon dark:text-psu-gold">*</span>
                       </label>
                       <div className="flex bg-bg-base border border-border-subtle rounded-xl p-1">
                         {['beginner', 'intermediate', 'expert'].map(level => (
@@ -567,7 +566,7 @@ const ActivityEditor = () => {
                             onClick={() => handleDifficultyChange(level)}
                             className={`flex-1 py-2 text-xs font-semibold capitalize rounded-lg transition-colors ${
                               formData.difficulty === level 
-                                ? 'bg-bg-glass text-psu-maroon dark:text-emerald-400 shadow-sm border border-border-subtle' 
+                                ? 'bg-bg-glass text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold shadow-sm border border-border-subtle' 
                                 : 'text-text-muted hover:text-text-main hover:bg-bg-glass/50'
                             }`}
                           >
@@ -583,7 +582,7 @@ const ActivityEditor = () => {
                         <div className="flex items-center gap-4">
                           {formData.difficulty && (
                             <label className="flex items-center gap-2 cursor-pointer group">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-psu-maroon group-hover:text-emerald-400 transition-colors">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-psu-maroon dark:text-psu-gold group-hover:text-psu-maroon dark:text-psu-gold transition-colors">
                                 Toggle All
                               </span>
                               <div className="relative inline-flex items-center">
@@ -614,7 +613,7 @@ const ActivityEditor = () => {
                       {!formData.difficulty && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4 text-center mt-6">
                           <div className="bg-bg-panel/90 backdrop-blur-sm border border-border-strong rounded-xl p-4 shadow-lg shadow-black/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-psu-maroon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-psu-maroon dark:text-psu-gold">
                               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
@@ -631,7 +630,7 @@ const ActivityEditor = () => {
               {/* Right Column: Code Template & Settings (5 cols) */}
               <div className="lg:col-span-5 flex flex-col gap-5">
                 <div className="flex-1 bg-bg-glass p-6 rounded-2xl border border-border-subtle flex flex-col">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-psu-maroon pb-2 border-b border-border-subtle mb-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-psu-maroon dark:text-psu-gold pb-2 border-b border-border-subtle mb-4">
                     Starter Code Template
                   </h2>
 
@@ -734,7 +733,7 @@ const ActivityEditor = () => {
                               altFormat: "M j, Y h:i K"
                             }}
                           />
-                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-psu-maroon transition-colors">
+                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted group-hover:text-psu-maroon dark:text-psu-gold transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -755,7 +754,7 @@ const ActivityEditor = () => {
 
                       <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || !formData.title.trim() || !formData.description.trim()}
                       className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-psu-maroon/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] disabled:opacity-50"
                     >
                       {loading ? "Creating..." : "Create Activity"}

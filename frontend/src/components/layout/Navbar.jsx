@@ -172,7 +172,7 @@ export default function InstructorSidebar() {
                 type="button"
                 onClick={isCollapsed ? toggleCollapse : undefined}
                 title={isCollapsed ? "Expand sidebar" : undefined}
-                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#10b981] font-mono text-xs font-bold text-white shadow-sm shadow-psu-maroon/20 transition-transform ${
+                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-psu-gold, #eeb319)] font-mono text-xs font-bold text-white shadow-sm shadow-psu-maroon/20 transition-transform ${
                   isCollapsed ? "hover:scale-105 active:scale-95 cursor-pointer" : ""
                 }`}
               >
@@ -237,7 +237,7 @@ export default function InstructorSidebar() {
                           "flex w-full items-center gap-2.5 rounded-lg text-xs transition-colors duration-150",
                           isCollapsed ? "justify-center px-0 py-2" : "justify-between px-2.5 py-2",
                           isActive
-                            ? "bg-[#10b981]/[0.12] text-psu-maroon font-semibold"
+                            ? "bg-[var(--color-psu-gold, #eeb319)]/[0.12] text-psu-maroon dark:text-psu-gold font-semibold"
                             : "text-text-muted hover:bg-bg-glass hover:text-text-main font-medium",
                         ].join(" ")
                       }
@@ -260,7 +260,7 @@ export default function InstructorSidebar() {
             className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-1"}`}
             title={isCollapsed ? `${name} (${role})` : undefined}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#10b981] text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-psu-gold, #eeb319)] text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
               {initials}
             </div>
             {!isCollapsed && (

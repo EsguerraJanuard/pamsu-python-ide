@@ -103,7 +103,7 @@ export default function EditClassModal({
         )}
 
         {successMsg && (
-          <div className="rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 p-3 text-xs text-psu-maroon">
+          <div className="rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 p-3 text-xs text-psu-maroon dark:text-psu-gold">
             {successMsg}
           </div>
         )}
@@ -119,7 +119,6 @@ export default function EditClassModal({
               onChange={(e) => setClassName(e.target.value)}
               placeholder="e.g. CS101 — Intro to Programming"
               className="w-full rounded-lg border border-border-subtle bg-bg-base px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-psu-maroon focus:outline-none transition"
-              required
             />
           </div>
 
@@ -144,7 +143,7 @@ export default function EditClassModal({
                 <div className="text-[11px] text-text-muted">Share with students to enroll.</div>
               </div>
               <div className="flex items-center gap-0">
-                  <div className="font-mono text-base font-extrabold text-blue-700 dark:text-blue-400 bg-psu-maroon/10 border border-psu-maroon/20 px-3 py-1 rounded-l-md">
+                  <div className="font-mono text-base font-extrabold text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold bg-psu-maroon/10 border border-psu-maroon/20 px-3 py-1 rounded-l-md">
                 {classCode || "------"}
               </div>
                   <button
@@ -157,7 +156,7 @@ export default function EditClassModal({
                       }
                     }}
                     title="Copy code"
-                    className="flex items-center justify-center bg-psu-maroon/10 border border-psu-maroon/20 border-l-0 px-2.5 py-1 rounded-r-md text-blue-700 dark:text-blue-400 hover:bg-psu-maroon/20 transition-colors h-[34px]"
+                    className="flex items-center justify-center bg-psu-maroon/10 border border-psu-maroon/20 border-l-0 px-2.5 py-1 rounded-r-md text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold hover:bg-psu-maroon/20 transition-colors h-[34px]"
                   >
                     {copied ? (
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>

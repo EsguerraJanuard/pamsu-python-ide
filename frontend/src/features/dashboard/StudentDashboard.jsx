@@ -17,17 +17,17 @@ const STATUS_CONFIG = {
   },
   in_progress: {
     label: "In progress",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-blue-400",
-    accentClass: "border-l-blue-500",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold",
+    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
     progressClass: "bg-psu-maroon",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
   submitted: {
     label: "Submitted",
     badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
     accentClass: "border-l-green-500",
     progressClass: "bg-green-500",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
   },
 };
 
@@ -57,7 +57,7 @@ function getActivityColor(type) {
   const colors = {
     run: "#22c55e",
     analysis: "#f59e0b",
-    submission: "#3b82f6",
+    submission: "var(--color-psu-red, #ce0000)",
     grade: "#a78bfa",
   };
 
@@ -232,9 +232,9 @@ export default function StudentDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-psu-maroon">MAIN</p>
+                  <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <LayoutDashboardIcon className="h-6 w-6 text-psu-maroon" />
+                    <LayoutDashboardIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
                     {getGreeting()}, {getFirstName(user.name)}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -249,7 +249,7 @@ export default function StudentDashboard() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
+                    className="flex items-center gap-2 rounded-lg bg-[var(--color-psu-red, #ce0000)] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Join a Class
@@ -267,7 +267,7 @@ export default function StudentDashboard() {
               </header>
 
               <section className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-maroon/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-psu-maroon">
+                <p className="text-xs leading-relaxed text-psu-maroon dark:text-psu-gold">
                   Dashboard indicators support learning reflection.
                   AST checks, test results, and activity progress are
                   not automatic grades. Official grades are assigned
@@ -371,7 +371,7 @@ export default function StudentDashboard() {
                   <button
                     type="button"
                     onClick={() => navigate("/student/assignments")}
-                    className="text-xs text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
+                    className="text-xs text-[var(--color-psu-red, #ce0000)] transition-colors hover:text-[#60a5fa]"
                   >
                     View all
                   </button>
@@ -391,7 +391,7 @@ export default function StudentDashboard() {
                   )}
                   {activities.length === 0 && !isLoading && (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-psu-maroon">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-psu-maroon dark:text-psu-gold">
                         <LayoutDashboardIcon className="h-6 w-6" />
                       </div>
                       <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
@@ -432,7 +432,7 @@ export default function StudentDashboard() {
 
                               <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                                 <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                                  <BookOpenIcon className="h-3 w-3 text-psu-maroon" />
+                                  <BookOpenIcon className="h-3 w-3 text-psu-maroon dark:text-psu-gold" />
                                   {activity.courseCode}
                                 </span>
 
@@ -501,7 +501,7 @@ export default function StudentDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/student/analytics")}
-                  className="text-[10px] text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
+                  className="text-[10px] text-[var(--color-psu-red, #ce0000)] transition-colors hover:text-[#60a5fa]"
                 >
                   Details
                 </button>
@@ -528,7 +528,7 @@ export default function StudentDashboard() {
                       cy="60"
                       r="48"
                       fill="none"
-                      stroke="#3b82f6"
+                      stroke="var(--color-psu-red, #ce0000)"
                       strokeWidth="10"
                       strokeLinecap="round"
                       strokeDasharray={`${totalActivitiesCount > 0 ? ((completedCount / totalActivitiesCount) * 301.59).toFixed(2) : 0} 301.59`}

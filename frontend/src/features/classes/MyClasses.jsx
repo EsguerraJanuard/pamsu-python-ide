@@ -104,9 +104,9 @@ export default function MyClasses() {
               
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-psu-maroon">MAIN</p>
+                  <p className="mb-1 font-mono text-xs text-psu-maroon dark:text-psu-gold">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <UsersIcon className="h-6 w-6 text-psu-maroon" />
+                    <UsersIcon className="h-6 w-6 text-psu-maroon dark:text-psu-gold" />
                     My Classes
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -117,7 +117,7 @@ export default function MyClasses() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
+                    className="flex items-center gap-2 rounded-lg bg-[var(--color-psu-red, #ce0000)] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
                   >
                     <PlusIcon className="h-4 w-4" />
                     Join a Class
@@ -148,7 +148,7 @@ export default function MyClasses() {
                   </div>
                 ) : classrooms.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-strong bg-bg-glass shadow-inner py-24 px-6 text-center transition-all hover:bg-bg-glass hover:border-border-strong">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-psu-maroon/10 mb-4 ring-4 ring-psu-maroon/5 text-psu-maroon">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-psu-maroon/10 mb-4 ring-4 ring-psu-maroon/5 text-psu-maroon dark:text-psu-gold">
                       <BookOpenIcon className="h-8 w-8" />
                     </div>
                     <h3 className="text-xl font-semibold text-text-main">No Active Classes</h3>
@@ -177,7 +177,7 @@ export default function MyClasses() {
                         
                         <div className="p-6 flex-1 flex flex-col">
                           <div className="flex justify-between items-start mb-4 relative z-10">
-                            <span className="inline-flex items-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-psu-maroon shadow-sm">
+                            <span className="inline-flex items-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-psu-maroon dark:text-psu-gold shadow-sm">
                               {cls.classroom.subject_code}
                             </span>
                           </div>
@@ -214,7 +214,7 @@ export default function MyClasses() {
                                     Removed
                                   </span>
                                 ) : (
-                                  <span className="text-xs font-medium text-psu-maroon flex items-center gap-1.5">
+                                  <span className="text-xs font-medium text-psu-maroon dark:text-psu-gold flex items-center gap-1.5">
                                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
                                     Enrolled
                                   </span>

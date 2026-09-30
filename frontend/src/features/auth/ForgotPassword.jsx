@@ -12,7 +12,7 @@ function getPasswordStrength(password) {
   if (/[^A-Za-z0-9]/.test(password)) score++;
   if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#ef4444", width: "25%" };
   if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
+  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "var(--color-psu-red, #ce0000)", width: "75%" };
   return { label: "Strong password", color: "#22c55e", width: "100%" };
 }
 
@@ -171,7 +171,6 @@ export default function ForgotPassword() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="student@pampangastateu.edu.ph"
-                  required
                   className={inputClass}
                 />
               </div>
@@ -191,7 +190,7 @@ export default function ForgotPassword() {
 
             <div className="mt-6 text-center text-[13px]">
               <span className="text-text-muted">Remember your password?</span>{" "}
-              <Link to="/login" className="font-semibold text-psu-maroon hover:underline">
+              <Link to="/login" className="font-semibold text-psu-maroon dark:text-psu-gold hover:underline">
                 Log in instead
               </Link>
             </div>
@@ -233,7 +232,7 @@ export default function ForgotPassword() {
                     type="button"
                     onClick={handleResendOTP}
                     disabled={resendTimer > 0 || loading}
-                    className="text-psu-maroon hover:underline disabled:text-text-muted disabled:no-underline"
+                    className="text-psu-maroon dark:text-psu-gold hover:underline disabled:text-text-muted disabled:no-underline"
                   >
                     {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend code"}
                   </button>
@@ -244,7 +243,6 @@ export default function ForgotPassword() {
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
                     placeholder="Enter 6-digit code"
-                    required
                     className={`${inputClass} tracking-[0.2em] font-mono text-center`}
                   />
                 </div>
@@ -260,7 +258,6 @@ export default function ForgotPassword() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 8 characters"
-                    required
                     className={inputClass}
                   />
                 </div>
@@ -292,7 +289,6 @@ export default function ForgotPassword() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Enter the new password again"
-                    required
                     className={inputClass}
                   />
                 </div>
@@ -304,7 +300,7 @@ export default function ForgotPassword() {
                     type="checkbox" 
                     checked={showPasswords} 
                     onChange={() => setShowPasswords(!showPasswords)} 
-                    className="rounded border-border-subtle text-psu-maroon focus:ring-psu-maroon"
+                    className="rounded border-border-subtle text-psu-maroon dark:text-psu-gold focus:ring-psu-maroon"
                   />
                   Show passwords
                 </label>
@@ -327,7 +323,7 @@ export default function ForgotPassword() {
 
         {step === 3 && (
           <div className="text-center animate-[registerFadeUp_400ms_ease-out_both]">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-psu-maroon/10 text-psu-maroon">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold">
               <svg className="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>

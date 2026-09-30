@@ -236,7 +236,7 @@ export default function PracticeWorkspace() {
 
         <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
           <div className="max-w-3xl w-full">
-            <div className="mb-4 inline-flex items-center rounded-full bg-psu-maroon/10 px-3 py-1 text-xs font-medium text-psu-maroon dark:text-emerald-400 ring-1 ring-inset ring-psu-maroon/20">
+            <div className="mb-4 inline-flex items-center rounded-full bg-psu-maroon/10 px-3 py-1 text-xs font-medium text-psu-maroon dark:text-psu-gold dark:text-psu-maroon dark:text-psu-gold ring-1 ring-inset ring-psu-maroon/20">
               Lesson
             </div>
             <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
@@ -312,7 +312,7 @@ export default function PracticeWorkspace() {
         <div className="flex w-1/3 flex-col border-r border-border-subtle bg-bg-base overflow-y-auto">
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between border-b border-border-subtle pb-2"><h2 className="text-lg font-bold text-text-main">Instructions</h2>
-              <button onClick={() => setViewMode("lesson")} className="text-xs text-blue-400 hover:text-blue-300 font-medium">Read Full Lesson</button></div>
+              <button onClick={() => setViewMode("lesson")} className="text-xs text-psu-maroon dark:text-psu-gold hover:text-psu-maroon dark:text-psu-gold font-medium">Read Full Lesson</button></div>
             <div className="prose dark:prose-invert prose-sm max-w-none text-text-main">
               <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || ''}</ReactMarkdown>
             </div>
@@ -322,7 +322,7 @@ export default function PracticeWorkspace() {
                 ${feedback.is_successful ? "border-psu-maroon/30 bg-psu-maroon/10" : "border-rose-500/30 bg-rose-500/10"}`}
               >
                 <h3 className={`text-base font-bold flex items-center gap-2 mb-3
-                  ${feedback.is_successful ? "text-psu-maroon" : "text-rose-500"}`}
+                  ${feedback.is_successful ? "text-psu-maroon dark:text-psu-gold" : "text-rose-500"}`}
                 >
                   {feedback.is_successful ? "Evaluation Passed!" : "Evaluation Failed"}
                 </h3>

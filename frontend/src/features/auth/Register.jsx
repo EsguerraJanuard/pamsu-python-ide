@@ -36,7 +36,7 @@ function getPasswordStrength(password) {
   if (/[^A-Za-z0-9]/.test(password)) score++;
   if (score <= 1) return { label: "Weak — use at least 8 characters", color: "#ef4444", width: "25%" };
   if (score === 2) return { label: "Fair — add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good — one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
+  if (score === 3) return { label: "Good — one more requirement can strengthen it", color: "var(--color-psu-red, #ce0000)", width: "75%" };
   return { label: "Strong password", color: "#22c55e", width: "100%" };
 }
 
@@ -80,8 +80,8 @@ function OtpInput({ value, onChange, disabled }) {
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           disabled={disabled}
-          className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-[#3b82f6]/60 disabled:opacity-50"
-          style={{ caretColor: "#10b981" }}
+          className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-[var(--color-psu-red, #ce0000)]/60 disabled:opacity-50"
+          style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
           aria-label={`OTP digit ${i + 1}`}
         />
       ))}
@@ -340,7 +340,7 @@ export default function Register() {
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <h1 className="text-3xl font-bold text-text-main">Create account</h1>
-                  <span className="shrink-0 items-center justify-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-psu-maroon select-none">
+                  <span className="shrink-0 items-center justify-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-psu-maroon dark:text-psu-gold select-none">
                     Step 1 of 2
                   </span>
                 </div>
@@ -374,7 +374,7 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                       />
                     </div>
                   </div>
@@ -403,7 +403,7 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                       />
                     </div>
                   </div>
@@ -428,7 +428,7 @@ export default function Register() {
                       required
                       disabled={isLoading}
                       className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                      style={{ caretColor: "#10b981" }}
+                      style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                     />
                   </div>
                 </div>
@@ -461,12 +461,12 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
-                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-psu-maroon"
+                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-psu-maroon dark:text-psu-gold"
                         disabled={isLoading}
                       >
                         {showPassword ? (
@@ -513,12 +513,12 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword((v) => !v)}
-                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-psu-maroon"
+                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-psu-maroon dark:text-psu-gold"
                         disabled={isLoading}
                       >
                         {showConfirmPassword ? (
@@ -554,7 +554,7 @@ export default function Register() {
                   </button>
                   <p className="mt-5 text-center text-[13px] text-text-muted">
                     Already have an account?{" "}
-                    <button type="button" onClick={() => navigate("/login")} className="font-semibold text-psu-maroon transition-colors hover:text-emerald-400 hover:underline">
+                    <button type="button" onClick={() => navigate("/login")} className="font-semibold text-psu-maroon dark:text-psu-gold transition-colors hover:text-psu-maroon dark:text-psu-gold hover:underline">
                       Sign in here
                     </button>
                   </p>
@@ -568,7 +568,7 @@ export default function Register() {
               
               <div>
                 <div className="flex items-center gap-3 mb-4 select-none">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-psu-maroon/20 text-emerald-400">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-psu-maroon/20 text-psu-maroon dark:text-psu-gold">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </div>
                   <h3 className="font-bold text-text-main tracking-wide">Data Collection Notice</h3>
@@ -586,7 +586,7 @@ export default function Register() {
                     "Relevant records are available only to authorized instructors and system personnel."
                   ].map((text, i) => (
                     <li key={i} className="flex items-start gap-3 text-[12px] xl:text-[13px] text-text-muted">
-                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-psu-maroon" viewBox="0 0 20 20" fill="currentColor">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-psu-maroon dark:text-psu-gold" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                       </svg>
                       <span className="leading-snug">{text}</span>
@@ -627,7 +627,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                className="mb-3 group inline-flex items-center gap-2 rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 px-3.5 py-1.5 text-xs font-semibold text-psu-maroon transition-all hover:bg-psu-maroon/20"
+                className="mb-3 group inline-flex items-center gap-2 rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 px-3.5 py-1.5 text-xs font-semibold text-psu-maroon dark:text-psu-gold transition-all hover:bg-psu-maroon/20"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                   <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -637,7 +637,7 @@ export default function Register() {
               
               <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight text-text-main select-none">Verify email</h1>
-                <span className="shrink-0 items-center justify-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-psu-maroon select-none">
+                <span className="shrink-0 items-center justify-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-psu-maroon dark:text-psu-gold select-none">
                   Step 2 of 2
                 </span>
               </div>
@@ -648,7 +648,7 @@ export default function Register() {
             </div>
 
             {successMessage && !error && (
-              <div role="status" className="mb-6 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm font-medium text-psu-maroon animate-in fade-in">
+              <div role="status" className="mb-6 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm font-medium text-psu-maroon dark:text-psu-gold animate-in fade-in">
                 {successMessage}
               </div>
             )}
@@ -700,7 +700,7 @@ export default function Register() {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0 || isLoading}
-                  className="text-[13px] font-semibold text-psu-maroon transition-colors hover:text-emerald-400 hover:underline disabled:cursor-not-allowed disabled:text-text-muted disabled:no-underline"
+                  className="text-[13px] font-semibold text-psu-maroon dark:text-psu-gold transition-colors hover:text-psu-maroon dark:text-psu-gold hover:underline disabled:cursor-not-allowed disabled:text-text-muted disabled:no-underline"
                 >
                   {resendCooldown > 0
                     ? `Resend available in ${resendCooldown}s`
