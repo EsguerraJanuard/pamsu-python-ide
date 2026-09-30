@@ -265,7 +265,7 @@ export default function ClassDetails() {
                                 <div className="flex items-center gap-3 mb-1.5">
                                   <h3 className="text-base font-semibold truncate text-text-main group-hover:text-text-main transition-colors">{activity.title}</h3>
                                   {isSubmitted ? (
-                                    <span className="shrink-0 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">Submitted</span>
+                                    <span className="shrink-0 rounded-full border border-psu-maroon/30 bg-psu-maroon/10 dark:border-psu-gold/30 dark:bg-psu-gold/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">Submitted</span>
                                   ) : (
                                     <span className="shrink-0 rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">Active</span>
                                   )}
@@ -278,7 +278,7 @@ export default function ClassDetails() {
                               </div>
                               <button
                                 onClick={() => handleOpenActivity(activity)}
-                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-psu-maroon/40 text-text-brand hover:bg-psu-maroon/10" : "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-blue-50 dark:hover:bg-psu-maroon/10"}`}
+                                className={`shrink-0 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${isSubmitted ? "border border-psu-maroon/40 text-text-brand hover:bg-psu-maroon/10" : "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-psu-maroon/10 dark:hover:bg-psu-maroon/10"}`}
                               >
                                 {activity.actionLabel}
                               </button>

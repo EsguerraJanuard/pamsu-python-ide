@@ -285,7 +285,7 @@ const SplitPaneGradingWorkspace = () => {
             if (sub) {
               if (sub.has_manual_grade || sub.status === 'graded') {
                 badgeText = 'Graded';
-                badgeColor = 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20';
+                badgeColor = 'bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold border border-psu-maroon/20 dark:border-psu-gold/20';
               } else if (sub.status === 'late') {
                 badgeText = 'Late';
                 badgeColor = 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20';

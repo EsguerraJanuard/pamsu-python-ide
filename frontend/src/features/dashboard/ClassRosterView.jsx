@@ -111,7 +111,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("roster")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "roster"
-                  ? "border-emerald-400 text-text-brand"
+                  ? "border-psu-maroon dark:border-psu-gold text-text-brand"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >
@@ -121,7 +121,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("activities")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "activities"
-                  ? "border-emerald-400 text-text-brand"
+                  ? "border-psu-maroon dark:border-psu-gold text-text-brand"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >
@@ -191,7 +191,7 @@ export default function ClassRosterView() {
                             {student.is_online ? (
                                <span className="text-text-brand flex items-center gap-2">
                                  <span className="relative flex h-2 w-2">
-                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-psu-maroon dark:bg-psu-gold opacity-75"></span>
                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-psu-maroon"></span>
                                  </span>
                                  Online

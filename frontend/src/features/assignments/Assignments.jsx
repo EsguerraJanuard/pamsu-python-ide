@@ -24,220 +24,33 @@ const FILTERS = [
 const STATUS_CONFIG = {
   due_today: {
     label: "Due today",
-    badgeClass:
-      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    accentClass: "border-l-amber-500",
-    progressClass: "bg-amber-500",
-    buttonClass:
-      "border border-amber-500/40 bg-transparent text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10",
+    badgeClass: "border-psu-red/30 bg-psu-red/10 text-psu-red",
+    accentClass: "border-l-psu-red",
+    progressClass: "bg-psu-red",
+    buttonClass: "border border-psu-red/40 bg-transparent text-psu-red hover:bg-psu-red/10",
   },
   in_progress: {
     label: "In progress",
-    badgeClass:
-      "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:text-text-brand",
-    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
-    progressClass: "bg-psu-maroon",
-    buttonClass:
-      "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    badgeClass: "border-border-strong bg-bg-glass text-text-muted",
+    accentClass: "border-l-border-strong",
+    progressClass: "bg-border-strong",
+    buttonClass: "border border-border-strong bg-transparent text-text-muted hover:bg-bg-glass hover:text-text-main",
   },
   submitted: {
     label: "Submitted",
-    badgeClass:
-      "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400",
-    accentClass: "border-l-green-500",
-    progressClass: "bg-green-500",
-    buttonClass:
-      "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 dark:bg-psu-gold/10",
+    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
+    progressClass: "bg-psu-maroon dark:bg-psu-gold",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold/40 dark:hover:bg-psu-gold/10",
   },
   graded: {
     label: "Graded",
-    badgeClass:
-      "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-400",
-    accentClass: "border-l-violet-500",
-    progressClass: "bg-violet-500",
-    buttonClass:
-      "border border-violet-500/40 bg-transparent text-violet-700 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10",
+    badgeClass: "border-psu-maroon bg-psu-maroon text-white dark:border-psu-gold dark:bg-psu-gold dark:text-black",
+    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
+    progressClass: "bg-psu-maroon dark:bg-psu-gold",
+    buttonClass: "border border-psu-maroon bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold dark:hover:bg-psu-gold/10",
   },
 };
-
-function ClockIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle
-        cx="8"
-        cy="8"
-        r="6.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
-      <path
-        d="M8 5v3.5l2 1.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function TagIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M2 2h5.5l6.5 6.5-5.5 5.5L2 7.5V2z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-      <circle cx="5" cy="5" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function SubmissionIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 8l4 4 6-7"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function isSubmittedActivity(activity) {
-  return (
-    activity.status === "submitted" ||
-    activity.status === "graded"
-  );
-}
-
-function ClipboardListIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
-  );
-}
-
-export default function Assignments() {
-  const navigate = useNavigate();
-  const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activities, setActivities] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchActivities = async () => {
-    setIsLoading(true);
-    try {
-      const [classRes, activityRes, subRes] = await Promise.all([
-        api.get("/classrooms/mine"),
-        api.get("/activities/"),
-        api.get("/submissions/")
-      ]);
-
-      let allGrades = [];
-      let currentPage = 1;
-      let totalPages = 1;
-
-      while (currentPage <= totalPages) {
-        try {
-          const gradesPage = await api.get(`/activities/released-grades?page=${currentPage}&page_size=100`);
-          if (gradesPage && gradesPage.items) {
-            allGrades = [...allGrades, ...gradesPage.items];
-            totalPages = gradesPage.total_pages || gradesPage.pages || 1;
-          } else {
-            break;
-          }
-        } catch (e) {
-          console.error("Failed to fetch grades page", e);
-          break;
-        }
-        currentPage++;
-      }
-      const gradesRes = { items: allGrades };
-      
-      const classMap = {};
-      classRes.forEach(c => {
-        classMap[c.classroom.class_id] = c.classroom.subject_code;
-      });
-
-      // Build a map of task_id to submission status
-      const submissionMap = {};
-      subRes.forEach(s => {
-        let st = s.status;
-        if (st === 'awaiting_review') st = 'submitted';
-        if (!submissionMap[s.task_id] || st === 'graded' || st === 'submitted') {
-            submissionMap[s.task_id] = st;
-        }
-      });
-
-
-      const gradeMap = {};
-      if (gradesRes && gradesRes.items) {
-        gradesRes.items.forEach(g => {
-          gradeMap[g.activity.task_id] = { score: g.score, maximum: g.max_score };
-        });
-      }
-
-      const mappedActivities = activityRes.map(task => {
-        const due = task.due_at ? new Date(task.due_at) : null;
-        let status = "in_progress";
-        let dueLabel = "No due date";
-        
-        if (due) {
-          dueLabel = `Due: ${due.toLocaleDateString()}`;
-        }
-        
-        if (submissionMap[task.task_id]) {
-          status = submissionMap[task.task_id];
-        } else if (due && due < new Date()) {
-          status = "past_due";
-          dueLabel = "Submission closed";
-        }
-        
-        return {
-          id: task.task_id,
-          title: task.title,
-          activityType: task.activity_type === "laboratory" ? "Laboratory" : "Homework",
-          courseCode: classMap[task.class_id] || "Unknown",
-          dueLabel: dueLabel,
-          tags: [], 
-          status: status,
-          progress: 0,
-          note: "No official submission has been recorded.",
-          actionLabel: status === "submitted" ? "View submission" : "Open",
-          latestSubmission: null,
-          instructorGrade: gradeMap[task.task_id] || null,
-        };
-      });
-      setActivities(mappedActivities);
-    } catch (err) {
-      console.error("Failed to load activities", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchActivities();

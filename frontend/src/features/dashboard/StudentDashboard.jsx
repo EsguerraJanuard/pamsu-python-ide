@@ -10,56 +10,26 @@ import { useAuth } from "../../features/auth/AuthContext";
 const STATUS_CONFIG = {
   due_today: {
     label: "Due today",
-    badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-    accentClass: "border-l-amber-500",
-    progressClass: "bg-amber-500",
-    buttonClass: "border border-amber-500/40 bg-transparent text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10",
+    badgeClass: "border-psu-red/30 bg-psu-red/10 text-psu-red",
+    accentClass: "border-l-psu-red",
+    progressClass: "bg-psu-red",
+    buttonClass: "border border-psu-red/40 bg-transparent text-psu-red hover:bg-psu-red/10",
   },
   in_progress: {
     label: "In progress",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand",
-    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
-    progressClass: "bg-psu-maroon",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    badgeClass: "border-border-strong bg-bg-glass text-text-muted",
+    accentClass: "border-l-border-strong",
+    progressClass: "bg-border-strong",
+    buttonClass: "border border-border-strong bg-transparent text-text-muted hover:bg-bg-glass hover:text-text-main",
   },
   submitted: {
     label: "Submitted",
-    badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
-    accentClass: "border-l-green-500",
-    progressClass: "bg-green-500",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand dark:text-text-brand hover:bg-blue-50 dark:hover:bg-psu-maroon/10",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 dark:bg-psu-gold/10",
+    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
+    progressClass: "bg-psu-maroon dark:bg-psu-gold",
+    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold/40 dark:hover:bg-psu-gold/10",
   },
 };
-
-function getGreeting() {
-  const hour = new Date().getHours();
-
-  if (hour < 12) {
-    return "Good morning";
-  }
-
-  if (hour < 18) {
-    return "Good afternoon";
-  }
-
-  return "Good evening";
-}
-
-function getFirstName(name) {
-  const firstPart = name.includes(",")
-    ? name.split(",")[1]?.trim()
-    : name.trim();
-
-  return firstPart?.split(/\s+/)[0] || "Student";
-}
-
-function getActivityColor(type) {
-  const colors = {
-    run: "#22c55e",
-    analysis: "#f59e0b",
-    submission: "var(--color-psu-red, #ce0000)",
-    grade: "#a78bfa",
-  };
 
   return colors[type] ?? "#64748b";
 }
