@@ -128,14 +128,14 @@ export default function AuditLogsPage({ role: propRole }) {
                 {/* Audit Data Table */}
                 <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-xl overflow-hidden">
                   {loading ? (
-                    <div className="divide-y divide-white/[0.06] w-full text-left text-xs font-mono">
+                    <div className="divide-y divide-border-subtle w-full text-left text-xs font-mono">
                       {[1, 2, 3, 4, 5].map(i => (
                         <div key={i} className="flex px-4 py-3.5 animate-pulse items-center">
-                          <div className="w-1/4 h-3 rounded bg-white/[0.06] mr-4"></div>
-                          <div className="w-1/5 h-3 rounded bg-white/[0.06] mr-4"></div>
-                          <div className="w-1/5 h-3 rounded bg-white/[0.06] mr-4"></div>
-                          <div className="w-1/6 h-3 rounded bg-white/[0.06] mr-4"></div>
-                          <div className="w-1/12 h-4 rounded bg-white/[0.06] ml-auto"></div>
+                          <div className="w-1/4 h-3 rounded bg-border-subtle mr-4"></div>
+                          <div className="w-1/5 h-3 rounded bg-border-subtle mr-4"></div>
+                          <div className="w-1/5 h-3 rounded bg-border-subtle mr-4"></div>
+                          <div className="w-1/6 h-3 rounded bg-border-subtle mr-4"></div>
+                          <div className="w-1/12 h-4 rounded bg-border-subtle ml-auto"></div>
                         </div>
                       ))}
                     </div>
@@ -203,14 +203,14 @@ export default function AuditLogsPage({ role: propRole }) {
                       <button
                         disabled={page <= 1}
                         onClick={() => setPage((p) => p - 1)}
-                        className="rounded border border-border-subtle px-3 py-1 bg-bg-glass disabled:opacity-40"
+                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-emerald-500/30 text-text-emerald hover:bg-emerald-500/10" : "border-blue-500/30 text-blue-500 hover:bg-blue-500/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
                       >
                         Previous
                       </button>
                       <button
                         disabled={page >= totalPages}
                         onClick={() => setPage((p) => p + 1)}
-                        className="rounded border border-border-subtle px-3 py-1 bg-bg-glass disabled:opacity-40"
+                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-emerald-500/30 text-text-emerald hover:bg-emerald-500/10" : "border-blue-500/30 text-blue-500 hover:bg-blue-500/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
                       >
                         Next
                       </button>

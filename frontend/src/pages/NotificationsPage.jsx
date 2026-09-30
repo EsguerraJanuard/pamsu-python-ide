@@ -131,20 +131,20 @@ export default function NotificationsPage({ role: propRole }) {
                   
                   <div className="flex-1 overflow-y-auto flex flex-col">
                     {loading ? (
-                      <div className="divide-y divide-white/[0.06]">
+                      <div className="divide-y divide-border-subtle">
                         {[1, 2, 3, 4, 5].map((i) => (
                           <div key={i} className="p-4 flex items-start gap-3 animate-pulse">
-                            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-white/[0.06]"></div>
+                            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-border-subtle"></div>
                             <div className="flex-1 space-y-2">
-                              <div className="h-4 w-3/4 rounded-md bg-white/[0.06]"></div>
-                              <div className="h-3 w-full rounded-md bg-white/[0.06]"></div>
-                              <div className="h-3 w-5/6 rounded-md bg-white/[0.06]"></div>
+                              <div className="h-4 w-3/4 rounded-md bg-border-subtle"></div>
+                              <div className="h-3 w-full rounded-md bg-border-subtle"></div>
+                              <div className="h-3 w-5/6 rounded-md bg-border-subtle"></div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : error ? (
-                      <div className="p-6 text-center text-red-500 text-sm">
+                      <div className="p-6 text-center text-text-rose text-sm">
                         {error}
                       </div>
                     ) : notifications.length === 0 ? (
@@ -157,7 +157,7 @@ export default function NotificationsPage({ role: propRole }) {
                       </div>
                     ) : (
                       <>
-                        <div className="divide-y divide-white/[0.06]">
+                        <div className="divide-y divide-border-subtle">
                           {notifications.map((notif) => {
                             const isSelected = selectedNotification?.id === notif.id;
                             return (
@@ -174,7 +174,7 @@ export default function NotificationsPage({ role: propRole }) {
                               >
                                 <div className="flex items-start gap-3">
                                   {!notif.is_read && (
-                                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                                    <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${isInstructor ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"}`} />
                                   )}
                                   <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
                                     <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-text-main" : "font-medium text-text-muted"}`}>
@@ -250,7 +250,7 @@ export default function NotificationsPage({ role: propRole }) {
                             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Suggested Actions</h3>
                             <div className="flex flex-wrap gap-3">
                               {selectedNotification.event_type === "submission_created" && (
-                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
+                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition duration-150 shadow-md hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] ${isInstructor ? "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-600/20" : "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-600/20"}`}>
                                   Open Grading Bench
                                 </button>
                               )}
@@ -260,7 +260,7 @@ export default function NotificationsPage({ role: propRole }) {
                                 </button>
                               )}
                               {(selectedNotification.event_type === "grade_released" || selectedNotification.event_type === "activity_published" || selectedNotification.event_type === "activity_updated") && !isInstructor && (
-                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
+                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition duration-150 shadow-md hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] ${isInstructor ? "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-600/20" : "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-600/20"}`}>
                                   View Details
                                 </button>
                               )}

@@ -92,7 +92,7 @@ const LiveMonitoring = () => {
             <div className="mx-auto max-w-6xl ">
 
         <div className="w-full">
-          <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
             <div>
               <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
               <h1 className="text-2xl font-bold flex items-center gap-3">
@@ -137,10 +137,10 @@ const LiveMonitoring = () => {
                 )}
 
                 {(mode === 'global' || activeTaskId) && (
-                  <div className="flex items-center gap-2 text-sm text-text-emerald bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
+                  <div className="flex items-center gap-2 text-sm text-text-emerald bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
                     <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
                     Live Updates Active
                   </div>
@@ -174,8 +174,8 @@ const LiveMonitoring = () => {
         )}
 
         {error && (
-          <div className="bg-red-900/20 border border-red-500/50 text-text-rose p-4 rounded-lg mb-8 flex items-center gap-3">
-            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="border-rose-500/20 bg-rose-500/10 text-text-rose p-4 rounded-lg mb-8 flex items-center gap-3 border">
+            <svg className="w-5 h-5 text-text-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {error}
@@ -188,23 +188,23 @@ const LiveMonitoring = () => {
               <div key={i} className="bg-bg-glass rounded-xl border border-border-subtle overflow-hidden flex flex-col h-[280px] animate-pulse">
                 <div className="bg-bg-glass p-4 flex justify-between items-start border-b border-border-subtle">
                   <div>
-                    <div className="h-5 w-24 bg-white/[0.06] rounded-md mb-2"></div>
-                    <div className="h-3 w-16 bg-white/[0.06] rounded-md"></div>
+                    <div className="h-5 w-24 bg-border-subtle rounded-md mb-2"></div>
+                    <div className="h-3 w-16 bg-border-subtle rounded-md"></div>
                   </div>
-                  <div className="h-6 w-16 bg-white/[0.06] rounded-full"></div>
+                  <div className="h-6 w-16 bg-border-subtle rounded-full"></div>
                 </div>
                 <div className="p-4 flex-1 flex flex-col gap-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="h-3 w-16 bg-white/[0.06] rounded-md mb-1"></div>
-                      <div className="h-5 w-12 bg-white/[0.06] rounded-md"></div>
+                      <div className="h-3 w-16 bg-border-subtle rounded-md mb-1"></div>
+                      <div className="h-5 w-12 bg-border-subtle rounded-md"></div>
                     </div>
                     <div>
-                      <div className="h-3 w-16 bg-white/[0.06] rounded-md mb-1"></div>
-                      <div className="h-5 w-12 bg-white/[0.06] rounded-md"></div>
+                      <div className="h-3 w-16 bg-border-subtle rounded-md mb-1"></div>
+                      <div className="h-5 w-12 bg-border-subtle rounded-md"></div>
                     </div>
                   </div>
-                  <div className="h-3 w-3/4 bg-white/[0.06] rounded-md mt-auto"></div>
+                  <div className="h-3 w-3/4 bg-border-subtle rounded-md mt-auto"></div>
                 </div>
               </div>
             ))}
@@ -243,7 +243,7 @@ const LiveMonitoring = () => {
                 key={session.id || session.student_id || Math.random()} 
                 className={`bg-bg-glass p-5 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
                   hasWarning 
-                    ? 'border-amber-500/50 bg-amber-900/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
+                    ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
                     : 'border-border-subtle hover:border-border-subtle'
                 }`}
               >

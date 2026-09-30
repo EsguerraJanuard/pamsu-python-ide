@@ -97,7 +97,7 @@ export default function ClassManagement() {
             
             
             <div className="mx-auto max-w-6xl ">
-              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   <p className="mb-1 font-mono text-xs text-text-emerald">MANAGEMENT</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
@@ -111,7 +111,7 @@ export default function ClassManagement() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                    className="rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-emerald-600/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98]"
                   >
                     + Create New Class
                   </button>
@@ -128,18 +128,18 @@ export default function ClassManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col animate-pulse">
-                      <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.06]"></div>
-                      <div className="mb-4 h-4 w-1/2 rounded-md bg-white/[0.06]"></div>
-                      <div className="mb-6 h-10 w-full rounded-md bg-white/[0.06]"></div>
+                      <div className="mb-2 h-6 w-3/4 rounded-md bg-border-subtle"></div>
+                      <div className="mb-4 h-4 w-1/2 rounded-md bg-border-subtle"></div>
+                      <div className="mb-6 h-10 w-full rounded-md bg-border-subtle"></div>
                       <div className="mt-auto flex justify-between">
-                        <div className="h-4 w-1/3 rounded-md bg-white/[0.06]"></div>
-                        <div className="h-4 w-1/4 rounded-md bg-white/[0.06]"></div>
+                        <div className="h-4 w-1/3 rounded-md bg-border-subtle"></div>
+                        <div className="h-4 w-1/4 rounded-md bg-border-subtle"></div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : classes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass/50 py-16 px-6 text-center transition-all hover:bg-bg-glass">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-text-emerald">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -151,7 +151,7 @@ export default function ClassManagement() {
                   </p>
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
+                    className="rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98]"
                   >
                     + Create New Class
                   </button>
@@ -219,7 +219,7 @@ export default function ClassManagement() {
 
               {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                  <div className="w-full max-w-md bg-bg-glass rounded-xl border border-white/[0.1] shadow-2xl p-6 relative" style={{ animation: 'dashboardFadeUp 300ms ease both' }}>
+                  <div className="w-full max-w-md bg-bg-glass rounded-xl border border-border-subtle shadow-2xl p-6 relative" style={{ animation: 'dashboardFadeUp 300ms ease both' }}>
                     <button 
                       onClick={() => setIsModalOpen(false)}
                       className="absolute top-4 right-4 text-text-muted hover:text-text-main"
@@ -268,7 +268,7 @@ export default function ClassManagement() {
                         <button 
                           type="submit" 
                           disabled={isSubmitting}
-                          className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSubmitting ? 'Creating...' : 'Generate Class & Code'}
                         </button>

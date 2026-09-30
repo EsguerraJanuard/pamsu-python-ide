@@ -222,7 +222,7 @@ export default function InstructorDashboard() {
             
 
             <div className="mx-auto max-w-6xl">
-              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   <p className="mb-1 font-mono text-xs text-text-emerald">
                     MANAGEMENT
@@ -239,7 +239,7 @@ export default function InstructorDashboard() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                    className="whitespace-nowrap rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-emerald-600/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98]"
                   >
                     + Create Class
                   </button>
@@ -265,7 +265,7 @@ export default function InstructorDashboard() {
                     </p>
                     <h2 className="text-xs font-medium text-text-muted">{stat.label}</h2>
                     <p className="mb-3 text-[10px] text-text-muted">{stat.description}</p>
-                    <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div className="h-1 overflow-hidden rounded-full bg-border-subtle">
                       <div className="h-full rounded-full" style={{ width: `${stat.progress}%`, backgroundColor: stat.color }} />
                     </div>
                   </article>
@@ -293,10 +293,10 @@ export default function InstructorDashboard() {
                     [1, 2, 3].map(i => (
                       <article key={i} className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-4 animate-pulse flex items-center justify-between">
                         <div className="space-y-2">
-                          <div className="h-5 w-48 bg-white/[0.06] rounded-md"></div>
-                          <div className="h-4 w-32 bg-white/[0.06] rounded-md"></div>
+                          <div className="h-5 w-48 bg-border-subtle rounded-md"></div>
+                          <div className="h-4 w-32 bg-border-subtle rounded-md"></div>
                         </div>
-                        <div className="h-8 w-20 bg-white/[0.06] rounded-md"></div>
+                        <div className="h-8 w-20 bg-border-subtle rounded-md"></div>
                       </article>
                     ))
                   ) : error ? (
@@ -304,7 +304,7 @@ export default function InstructorDashboard() {
                       <p className="text-sm text-text-rose">{error}</p>
                     </div>
                   ) : mappedActivities.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass/50 py-16 px-6 text-center transition-all hover:bg-bg-glass">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-text-emerald">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -316,7 +316,7 @@ export default function InstructorDashboard() {
                       </p>
                       <button 
                         onClick={() => navigate("/instructor/activities/create")}
-                        className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
+                        className="rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98]"
                       >
                         + Create Activity
                       </button>
@@ -360,7 +360,7 @@ export default function InstructorDashboard() {
 
                         <div className="mt-3 flex items-center gap-3">
                           <span className="shrink-0 text-[10px] text-text-muted">Completion Rate</span>
-                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-border-subtle">
                             <div className={`h-full rounded-full ${status.progressClass}`} style={{ width: `${activity.progress}%` }} />
                           </div>
                           <span className="shrink-0 text-[10px] text-text-muted">{activity.progress}%</span>
@@ -393,7 +393,7 @@ export default function InstructorDashboard() {
               <div className="flex flex-col items-center rounded-xl border border-border-subtle bg-bg-glass px-4 py-6">
                 <div className="relative h-32 w-32">
                   <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90" aria-label="Class online 88 percent">
-                    <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="var(--border-subtle)" strokeWidth="10" />
                     <circle cx="60" cy="60" r="48" fill="none" stroke="#10b981" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${Math.min(reviewQueue.length * 10, 301.59)} 301.59`} />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -408,7 +408,7 @@ export default function InstructorDashboard() {
               </div>
             </section>
 
-            <div className="mb-5 h-px bg-white/[0.06]" />
+            <div className="mb-5 h-px bg-border-subtle" />
 
             <section>
               <h2 className="mb-4 text-xs font-semibold">System Audit Trail</h2>
