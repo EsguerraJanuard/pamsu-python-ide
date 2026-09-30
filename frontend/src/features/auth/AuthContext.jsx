@@ -43,6 +43,18 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     clearSessionTokens();
     localStorage.removeItem('pamsu_user_data');
+
+    // Purge all saved code drafts to prevent state bleeding between accounts
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('pamsu_saved_code_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+    localStorage.removeItem('pamsu_problem_panel_width');
+
     setAuthState({
       token: null,
       role: null,

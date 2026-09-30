@@ -4,6 +4,7 @@ import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
 import api from "../../services/api";
+import { useAuth } from "../auth/AuthContext";
 import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 
 import Sidebar from "../../components/layout/Sidebar";
@@ -80,11 +81,16 @@ function formatEventTime() {
 export default function Workspace() {
   const { settings } = useEditorSettings();
   const { resolvedTheme } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity");
   const [sessionId, setSessionId] = useState(null);
-  const draftStorageKey = `pamsu_saved_code_${activityId}`;
+  const userId = user?.user_id || user?.id || "anon";
+  const draftStorageKey = `pamsu_saved_code_${userId}_${activityId}`;
+
+  // Derive Monaco theme from the global resolved theme (syncs with sidebar toggle)
+  const editorTheme = resolvedTheme === "dark" ? "vs-dark" : "light";
 
   const editorRef = useRef(null);
   const pollIntervalRef = useRef(null);
@@ -162,7 +168,6 @@ export default function Workspace() {
   const [code, setCode] = useState(() =>
     loadDraft(draftStorageKey),
   );
-  const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [standardInput, setStandardInput] = useState("");
   const [output, setOutput] = useState(
     "The editor is ready. Code execution will appear here after the sandbox API is connected.",
@@ -710,7 +715,7 @@ export default function Workspace() {
             </div>
 
             <div className="mx-1 h-5 w-px bg-border-subtle" />
-            <ThemeToggle value={editorTheme} onChange={setEditorTheme} />
+            <ThemeToggle />
             <div className="mx-1 h-5 w-px bg-border-subtle" />
 
             {/* Check Code Button */}
@@ -924,7 +929,7 @@ export default function Workspace() {
             </div>
           )}
 
-          <main className={`flex min-w-0 flex-1 flex-col bg-bg-base transition-colors duration-300 ${editorTheme === 'vs-dark' ? 'dark' : 'light'}`}>
+          <main className="flex min-w-0 flex-1 flex-col bg-bg-base transition-colors duration-300">
             <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass shadow-inner px-3 py-1 backdrop-blur-md">
               <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
                 <span className="text-text-blue">

@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import api from "../../services/api";
+import { useAuth } from "../auth/AuthContext";
 
 
 import Statusbar from "../../components/layout/Statusbar";
@@ -31,6 +32,8 @@ export default function PracticeWorkspace() {
   
   const { settings } = useEditorSettings();
   const { resolvedTheme } = useTheme();
+  const { user } = useAuth();
+  const userId = user?.user_id || user?.id || "anon";
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("lesson");
   const [taskDetails, setTaskDetails] = useState(null);
@@ -89,7 +92,7 @@ export default function PracticeWorkspace() {
             setTaskDetails(foundTask);
             setModuleDetails(foundModule);
             setNextTaskId(nTaskId);
-            const draftStorageKey = `pamsu_saved_code_${taskId}`;
+            const draftStorageKey = `pamsu_saved_code_${userId}_${taskId}`;
             try {
               const savedCode = localStorage.getItem(draftStorageKey);
               if (savedCode) {
@@ -114,7 +117,7 @@ export default function PracticeWorkspace() {
   }, [taskId, navigate]);
   useEffect(() => {
     if (!taskId) return;
-    const draftStorageKey = `pamsu_saved_code_${taskId}`;
+    const draftStorageKey = `pamsu_saved_code_${userId}_${taskId}`;
     const autosaveTimer = window.setTimeout(() => {
       try {
         localStorage.setItem(draftStorageKey, code);
