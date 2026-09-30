@@ -408,26 +408,7 @@ export default function InstructorDashboard() {
               </div>
             </section>
 
-            <div className="mb-5 h-px bg-border-subtle" />
-
-            <section>
-              <h2 className="mb-4 text-xs font-semibold">System Audit Trail</h2>
-              <ul className="space-y-4">
-                {auditLogs.map((item) => (
-                  <li key={item.id} className="flex items-start gap-2.5">
-                    <span
-                      className="mt-1 h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: getActivityColor(item.type) }}
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <p className="text-[11px] leading-snug text-text-muted">{item.message}</p>
-                      <p className="mt-0.5 text-[10px] text-text-muted">{item.time}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            
           </aside>
         </div>
       </div>

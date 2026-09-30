@@ -546,7 +546,7 @@ const ActivityEditor = () => {
 
 
                 <div>
-                  <label htmlFor="description" className="block text-xs font-semibold text-text-muted mb-1.5">Overview / Description</label>
+                  <label htmlFor="description" className="block text-xs font-semibold text-text-muted mb-1.5">Problem Context / Real-world Scenario</label>
                   <textarea
                     id="description"
                     name="description"
