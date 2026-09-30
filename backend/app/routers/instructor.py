@@ -1603,7 +1603,7 @@ class SolutionAnalysisRequest(BaseModel):
 @router.post("/tasks/analyze-solution", status_code=status.HTTP_200_OK)
 def analyze_solution(
     request: SolutionAnalysisRequest,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_instructor)
 ):
     """
     Analyzes the instructor's reference solution using AST 
