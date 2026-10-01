@@ -20,6 +20,7 @@ from app.integrations.partner_auth import (
     PARTNER_EXECUTION_TOKEN_HEADER,
 )
 from app.routers import (
+    admin,
     ws_execution,
     practice,
     activities,
