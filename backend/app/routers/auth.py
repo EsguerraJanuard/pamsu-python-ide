@@ -223,7 +223,7 @@ def login_guest(db: Session = Depends(get_db)):
             email="guest@pampangastateu.edu.ph",
             full_name="Aspiring Student (Guest)",
             role="student",
-            hashed_password=get_password_hash("guest")
+            password_hash=get_password_hash("guest")
         )
         db.add(guest)
         db.commit()

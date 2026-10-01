@@ -36,7 +36,7 @@ def create_instructor(
         email=request.email,
         full_name=request.full_name,
         role="instructor",
-        hashed_password=get_password_hash(request.password)
+        password_hash=get_password_hash(request.password)
     )
     db.add(new_instructor)
     db.commit()
