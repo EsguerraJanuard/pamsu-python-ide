@@ -236,7 +236,7 @@ export default function StudentDashboard() {
                   <button
                     onClick={() => navigate("/student/settings")}
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-glass border border-border-subtle text-xs font-bold shadow-sm cursor-pointer hover:border-text-muted hover:bg-bg-glass-hover transition-colors"
-                    aria-label={`Signed in as ${user.name} - Go to settings`}
+                    aria-label={`Signed in as ${user?.first_name} {user?.last_name} - Go to settings`}
                     title="Account Settings"
                   >
                     {user.initials}
@@ -554,7 +554,7 @@ export default function StudentDashboard() {
         <Statusbar
           courseCode={user.courseCode}
           courseName={user.courseName}
-          studentName={user.name}
+          studentName={user?.first_name} {user?.last_name}
         />
       </div>
 

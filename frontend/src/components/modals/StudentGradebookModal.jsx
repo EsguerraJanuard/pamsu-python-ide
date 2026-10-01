@@ -49,7 +49,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
               <UserIcon className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-text-main">{student?.name}</h2>
+              <h2 className="text-xl font-bold text-text-main">{student?.first_name} {student?.last_name}</h2>
               <p className="text-sm text-text-muted">{student?.school_id || 'ID Unknown'} • {student?.email}</p>
             </div>
           </div>

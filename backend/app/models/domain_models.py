@@ -25,7 +25,7 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('student', 'instructor')",
+            "role IN ('student', 'instructor', 'admin')",
             name="ck_users_role",
         ),
         CheckConstraint(
@@ -35,7 +35,9 @@ class User(Base):
     )
 
     user_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(150), nullable=False)
+    first_name = Column(String(100), nullable=False)
+    middle_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=False)
     school_id = Column(
         String(10),
         unique=True,

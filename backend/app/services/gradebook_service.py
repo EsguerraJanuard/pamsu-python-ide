@@ -300,7 +300,7 @@ def _build_instructor_item_query(
             Submission.is_official.label("is_official"),
             Submission.submitted_at.label("submitted_at"),
             Submission.accepted_at.label("accepted_at"),
-            User.name.label("student_name"),
+            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
             User.school_id.label("student_school_id"),
             Task.task_id.label("task_id"),
             Task.title.label("task_title"),
@@ -475,7 +475,7 @@ def _apply_instructor_ordering(
 
     if sort_by == "student_name":
         return query.order_by(
-            apply_direction(func.lower(User.name)),
+            apply_direction(func.lower(User.last_name)),
             apply_direction(User.school_id),
             Submission.sub_id.desc(),
         )
@@ -483,7 +483,7 @@ def _apply_instructor_ordering(
     if sort_by == "school_id":
         return query.order_by(
             apply_direction(User.school_id),
-            apply_direction(func.lower(User.name)),
+            apply_direction(func.lower(User.last_name)),
             Submission.sub_id.desc(),
         )
 

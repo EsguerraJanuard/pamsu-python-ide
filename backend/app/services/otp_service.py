@@ -356,7 +356,7 @@ def start_registration(
 
     pending_registration = PendingRegistration(
         challenge_id=challenge_id,
-        name=registration_data.name,
+        name=registration_data.first_name,
         school_id=registration_data.school_id,
         email=normalized_email,
         password_hash=password_hash,
@@ -547,7 +547,7 @@ def verify_registration_otp(
     )
 
     new_user = User(
-        name=pending_registration.name,
+        name=pending_registration.first_name,
         school_id=pending_registration.school_id,
         email=pending_registration.email,
         role=assigned_role,

@@ -41,6 +41,7 @@ import AuditLogsPage from './pages/AuditLogsPage';
 import Login from './features/auth/Login';
 import ForgotPassword from './features/auth/ForgotPassword';
 import StudentDashboard from './features/dashboard/StudentDashboard';
+import AdminDashboard from './features/admin/AdminDashboard';
 import InstructorDashboard from './features/dashboard/InstructorDashboard';
 import InstructorSettings from "./features/settings/InstructorSettings";
 import Assignments from './features/assignments/Assignments';

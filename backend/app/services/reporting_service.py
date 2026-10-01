@@ -350,9 +350,7 @@ def _active_student_rows(
             User.user_id.label(
                 "student_id"
             ),
-            User.name.label(
-                "student_name"
-            ),
+            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
             User.school_id.label(
                 "school_id"
             ),
@@ -371,8 +369,7 @@ def _active_student_rows(
         )
         .order_by(
             func.lower(
-                User.name
-            ).asc(),
+                User.last_name).asc(),
             User.school_id.asc(),
             User.user_id.asc(),
         )
@@ -933,8 +930,7 @@ def _apply_missing_submission_ordering(
         return query.order_by(
             apply_direction(
                 func.lower(
-                    User.name
-                )
+                    User.last_name)
             ),
             apply_direction(
                 User.school_id
@@ -950,8 +946,7 @@ def _apply_missing_submission_ordering(
             ),
             apply_direction(
                 func.lower(
-                    User.name
-                )
+                    User.last_name)
             ),
             Task.task_id.asc(),
             User.user_id.asc(),
@@ -966,8 +961,7 @@ def _apply_missing_submission_ordering(
             ),
             apply_direction(
                 func.lower(
-                    User.name
-                )
+                    User.last_name)
             ),
             User.school_id.asc(),
             Task.task_id.asc(),
@@ -988,8 +982,7 @@ def _apply_missing_submission_ordering(
             Task.due_at
         ),
         func.lower(
-            User.name
-        ).asc(),
+            User.last_name).asc(),
         User.school_id.asc(),
         Task.task_id.asc(),
         User.user_id.asc(),
@@ -1042,9 +1035,7 @@ def list_missing_submissions(
             User.user_id.label(
                 "student_id"
             ),
-            User.name.label(
-                "student_name"
-            ),
+            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
             User.school_id.label(
                 "school_id"
             ),
@@ -1572,7 +1563,7 @@ def build_gradebook_excel_export(
 
     query = (
         db.query(
-            User.name.label("student_name"),
+            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
             User.school_id.label("school_id"),
             Classroom.name.label("class_name"),
             Classroom.subject_code.label("subject_code"),
@@ -1606,7 +1597,7 @@ def build_gradebook_excel_export(
 
     rows = (
         query.order_by(
-            func.lower(User.name).asc(),
+            func.lower(User.last_name).asc(),
             User.school_id.asc(),
             func.lower(Task.title).asc(),
             Submission.sub_id.asc(),
@@ -1758,7 +1749,7 @@ def build_gradebook_excel_export(
 
     query = (
         db.query(
-            User.name.label("student_name"),
+            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
             User.school_id.label("school_id"),
             Classroom.name.label("class_name"),
             Classroom.subject_code.label("subject_code"),
@@ -1792,7 +1783,7 @@ def build_gradebook_excel_export(
 
     rows = (
         query.order_by(
-            func.lower(User.name).asc(),
+            func.lower(User.last_name).asc(),
             User.school_id.asc(),
             func.lower(Task.title).asc(),
             Submission.sub_id.asc(),
@@ -1944,7 +1935,7 @@ def build_gradebook_excel_export(
 
     query = (
         db.query(
-            User.name.label("student_name"),
+            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
             User.school_id.label("school_id"),
             Classroom.name.label("class_name"),
             Classroom.subject_code.label("subject_code"),
@@ -1978,7 +1969,7 @@ def build_gradebook_excel_export(
 
     rows = (
         query.order_by(
-            func.lower(User.name).asc(),
+            func.lower(User.last_name).asc(),
             User.school_id.asc(),
             func.lower(Task.title).asc(),
             Submission.sub_id.asc(),
@@ -2136,9 +2127,7 @@ def build_gradebook_csv_export(
 
     query = (
         db.query(
-            User.name.label(
-                "student_name"
-            ),
+            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
             User.school_id.label(
                 "school_id"
             ),
@@ -2224,8 +2213,7 @@ def build_gradebook_csv_export(
     rows = (
         query.order_by(
             func.lower(
-                User.name
-            ).asc(),
+                User.last_name).asc(),
             User.school_id.asc(),
             func.lower(
                 Task.title
