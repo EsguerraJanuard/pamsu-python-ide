@@ -316,24 +316,20 @@ def get_my_submission_endpoint(
 # surveillance data, and automated misconduct conclusions.
 
 @router.post("/{submission_id}/retake-request")
-async def request_retake(submission_id: str, db: AsyncSession = Depends(get_db)):
-    query = select(Submission).where(Submission.id == submission_id)
-    result = await db.execute(query)
-    submission = result.scalar_one_or_none()
+def request_retake(submission_id: str, db: Session = Depends(get_db)):
+    submission = db.query(Submission).filter(Submission.id == submission_id).first()
     
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
         
     # Set status or add a flag
     submission.status = "retake_requested"
-    await db.commit()
+    db.commit()
     return {"message": "Retake requested successfully"}
 
 @router.post("/{submission_id}/approve-retake")
-async def approve_retake(submission_id: str, db: AsyncSession = Depends(get_db)):
-    query = select(Submission).where(Submission.id == submission_id)
-    result = await db.execute(query)
-    submission = result.scalar_one_or_none()
+def approve_retake(submission_id: str, db: Session = Depends(get_db)):
+    submission = db.query(Submission).filter(Submission.id == submission_id).first()
     
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -343,5 +339,5 @@ async def approve_retake(submission_id: str, db: AsyncSession = Depends(get_db))
     # We will reset status to in_progress
     submission.grade_score = None
     submission.has_manual_grade = False
-    await db.commit()
+    db.commit()
     return {"message": "Retake approved"}

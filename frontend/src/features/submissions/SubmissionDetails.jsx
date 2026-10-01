@@ -10,6 +10,26 @@ export default function SubmissionDetails() {
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState(null);
   const [error, setError] = useState(null);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [retakeRequested, setRetakeRequested] = useState(false);
+
+  useEffect(() => {
+    if (submission?.status === 'retake_requested') {
+      setRetakeRequested(true);
+    }
+  }, [submission]);
+
+  const handleRequestRetake = async () => {
+    setIsRequesting(true);
+    try {
+      await api.post(`/submissions/${submission.id}/retake-request`);
+      setRetakeRequested(true);
+    } catch (err) {
+      console.error("Failed to request retake", err);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -108,6 +128,20 @@ export default function SubmissionDetails() {
                     {statusLabel}
                   </span>
                 </div>
+                { (submission.status === 'graded' || submission.status === 'rejected') && !retakeRequested && (
+                  <button
+                    onClick={handleRequestRetake}
+                    disabled={isRequesting}
+                    className="mt-2 text-xs font-semibold px-3 py-1.5 bg-psu-maroon text-white dark:bg-psu-gold dark:text-black rounded hover:opacity-90 disabled:opacity-50"
+                  >
+                    {isRequesting ? 'Requesting...' : 'Request Retake'}
+                  </button>
+                )}
+                { retakeRequested && (
+                  <span className="mt-2 inline-block text-xs font-semibold px-3 py-1.5 bg-amber-500/10 text-amber-500 rounded border border-amber-500/20">
+                    Retake Requested - Awaiting Instructor
+                  </span>
+                )}
                 <p className="mt-1 text-xs text-text-muted">
                   Submitted at: {new Date(submission.accepted_at).toLocaleString()}
                 </p>
