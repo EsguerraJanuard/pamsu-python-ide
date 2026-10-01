@@ -284,10 +284,10 @@ export default function Login() {
         <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
           <div className="mb-8 text-center sm:text-left">
             <h2 className="text-2xl font-black text-text-main">
-              Sign in
+              Sign in to your workspace
             </h2>
             <p className="mt-2 text-sm text-text-muted">
-              Sign in to your university workspace
+              Use your verified university account
             </p>
           </div>
 
