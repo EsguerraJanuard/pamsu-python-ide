@@ -221,13 +221,27 @@ def login_guest(db: Session = Depends(get_db)):
     if not guest:
         guest = User(
             email="guest@pampangastateu.edu.ph",
-            full_name="Panelist Guest",
-            role="instructor", # We make them instructor role so they can see the instructor dashboard but maybe restrict it? Or just let them see it.
+            full_name="Aspiring Student (Guest)",
+            role="student",
             hashed_password=get_password_hash("guest")
         )
         db.add(guest)
         db.commit()
         db.refresh(guest)
+        
+        # Auto-enroll guest in the first available class so they can see the system
+        from app.models.domain_models import Classroom, Enrollment
+        from app.core.utils import get_utc_now
+        first_class = db.query(Classroom).first()
+        if first_class:
+            enroll = Enrollment(
+                class_id=first_class.class_id,
+                student_id=guest.user_id,
+                status="active",
+                joined_at=get_utc_now()
+            )
+            db.add(enroll)
+            db.commit()
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

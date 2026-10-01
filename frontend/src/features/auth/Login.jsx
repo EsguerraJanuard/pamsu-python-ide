@@ -393,7 +393,7 @@ export default function Login() {
                 disabled={isLoading}
                 className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-bg-glass px-4 py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-bg-glass-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
-                Continue as Guest Panelist
+                Continue as Guest Student
               </button>
             </div>
           </form>
