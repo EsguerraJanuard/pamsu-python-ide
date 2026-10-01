@@ -241,7 +241,7 @@ export default function MyClasses() {
         <Statusbar
           courseCode={user.courseCode}
           courseName={user.courseName}
-          studentName={user?.first_name} {user?.last_name}
+          studentName={`${user?.first_name} ${user?.last_name}`}
         />
       </div>
 
