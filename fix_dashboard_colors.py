@@ -1,37 +1,23 @@
 import os
-import re
 
-filepath = "frontend/src/features/dashboard/StudentDashboard.jsx"
+filepath = "frontend/src/features/dashboard/InstructorDashboard.jsx"
 with open(filepath, "r", encoding="utf-8") as f:
     content = f.read()
 
-new_config = """const STATUS_CONFIG = {
-  due_today: {
-    label: "Due today",
-    badgeClass: "border-psu-red/30 bg-psu-red/10 text-psu-red",
-    accentClass: "border-l-psu-red",
-    progressClass: "bg-psu-red",
-    buttonClass: "border border-psu-red/40 bg-transparent text-psu-red hover:bg-psu-red/10",
-  },
-  in_progress: {
-    label: "In progress",
-    badgeClass: "border-border-strong bg-bg-glass text-text-muted",
-    accentClass: "border-l-border-strong",
-    progressClass: "bg-border-strong",
-    buttonClass: "border border-border-strong bg-transparent text-text-muted hover:bg-bg-glass hover:text-text-main",
-  },
-  submitted: {
-    label: "Submitted",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 dark:bg-psu-gold/10",
-    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
-    progressClass: "bg-psu-maroon dark:bg-psu-gold",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold/40 dark:hover:bg-psu-gold/10",
-  },
-};"""
+old_badge = """                            <span className="shrink-0 rounded bg-psu-maroon/10 dark:bg-psu-gold/10 px-1.5 py-0.5 text-[9px] font-bold text-psu-maroon dark:text-psu-gold uppercase">"""
+new_badge = """                            <span className="shrink-0 rounded bg-psu-maroon/10 px-1.5 py-0.5 text-[9px] font-bold text-text-brand uppercase">"""
+content = content.replace(old_badge, new_badge)
 
-config_pattern = re.compile(r'const STATUS_CONFIG = \{.*?\n  \};\n', re.DOTALL)
-content = re.sub(config_pattern, new_config + "\n", content)
+old_button = """                            <button
+                              onClick={() => navigate(`/instructor/submissions/${sub.id}`)}
+                              className="text-[10px] bg-psu-maroon/10 hover:bg-psu-maroon/20 text-psu-maroon dark:bg-psu-gold/10 dark:hover:bg-psu-gold/20 dark:text-psu-gold px-2 py-1 rounded transition-colors font-semibold"
+                            >"""
+new_button = """                            <button
+                              onClick={() => navigate(`/instructor/submissions/${sub.id}`)}
+                              className="text-[10px] bg-psu-maroon/10 hover:bg-psu-maroon/20 text-text-brand px-2 py-1 rounded transition-colors font-semibold"
+                            >"""
+content = content.replace(old_button, new_button)
 
 with open(filepath, "w", encoding="utf-8") as f:
     f.write(content)
-print("Fixed StudentDashboard STATUS_CONFIG")
+print("Updated InstructorDashboard.jsx badge and button classes")

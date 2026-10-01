@@ -24,7 +24,7 @@ const STATUS_CONFIG = {
   },
   submitted: {
     label: "Submitted",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 dark:bg-psu-gold/10",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 ",
     accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
     progressClass: "bg-psu-maroon dark:bg-psu-gold",
     buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold/40 dark:hover:bg-psu-gold/10",

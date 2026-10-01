@@ -62,7 +62,7 @@ const STATUS_CONFIG = {
   },
   submitted: {
     label: "Submitted",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 dark:bg-psu-gold/10",
+    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 ",
     accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
     progressClass: "bg-psu-maroon dark:bg-psu-gold",
     buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold/40 dark:hover:bg-psu-gold/10",
@@ -285,7 +285,7 @@ export default function Assignments() {
                     </div>
 
                     {activity.latestSubmission && (
-                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-text-brand shadow-inner">
+                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-psu-maroon/20 bg-psu-maroon/5 px-3 py-2 text-[11px] text-text-brand shadow-inner">
                         <span className="flex items-center gap-1.5 font-medium">
                           <SubmissionIcon className="h-3 w-3" />
                           Attempt{" "}
@@ -300,7 +300,7 @@ export default function Assignments() {
                         </span>
 
                         {activity.latestSubmission.isOfficial && (
-                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">
+                          <span className="rounded-full bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">
                             Latest official submission
                           </span>
                         )}

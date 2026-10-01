@@ -89,9 +89,9 @@ export default function SubmissionDetails() {
 
   const statusColors = {
     awaiting_review: "text-text-brand border-border-strong bg-bg-glass",
-    graded: "text-white dark:text-black border-psu-maroon dark:border-psu-gold bg-psu-maroon dark:bg-psu-gold",
+    graded: "text-white dark:text-black border-psu-maroon/50 bg-psu-maroon dark:bg-psu-gold",
     rejected: "text-rose-400 border-rose-400/30 bg-rose-400/10",
-    submitted: "text-text-brand border-psu-maroon/30 dark:border-psu-gold/30 bg-psu-maroon/10 dark:bg-psu-gold/10"
+    submitted: "text-text-brand border-border-subtle bg-psu-maroon/10"
   };
 
   const statusLabel = submission.status.replace("_", " ").toUpperCase();

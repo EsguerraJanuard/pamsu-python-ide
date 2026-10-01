@@ -42,8 +42,8 @@ const EXECUTION_STATUS = {
   },
   completed: {
     label: "Execution complete",
-    dotClass: "bg-green-500",
-    textClass: "text-green-400",
+    dotClass: "bg-psu-maroon",
+    textClass: "text-text-brand",
   },
   failed: {
     label: "Execution failed",
@@ -1312,7 +1312,7 @@ export default function Workspace() {
                 </p>
               </section>
 
-              <section className="rounded-lg border border-green-500/15 bg-green-500/[0.02] shadow-inner p-4">
+              <section className="rounded-lg border border-psu-maroon/20 bg-psu-maroon/5 shadow-inner p-4">
                 <h3 className="text-[11px] font-semibold text-text-brand">
                   Privacy boundary
                 </h3>

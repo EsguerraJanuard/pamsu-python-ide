@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@custom-variant dark (&:is(.dark *));
+
+
 @theme {
   --color-psu-maroon: #701d0b;
   --color-psu-red: #ce0000;

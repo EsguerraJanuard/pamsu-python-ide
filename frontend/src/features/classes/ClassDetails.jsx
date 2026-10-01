@@ -265,7 +265,7 @@ export default function ClassDetails() {
                                 <div className="flex items-center gap-3 mb-1.5">
                                   <h3 className="text-base font-semibold truncate text-text-main group-hover:text-text-main transition-colors">{activity.title}</h3>
                                   {isSubmitted ? (
-                                    <span className="shrink-0 rounded-full border border-psu-maroon/30 bg-psu-maroon/10 dark:border-psu-gold/30 dark:bg-psu-gold/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">Submitted</span>
+                                    <span className="shrink-0 rounded-full border border-psu-maroon/30 bg-psu-maroon/10 dark:border-psu-gold/30  px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">Submitted</span>
                                   ) : (
                                     <span className="shrink-0 rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">Active</span>
                                   )}

@@ -648,7 +648,7 @@ export default function Register() {
             </div>
 
             {successMessage && !error && (
-              <div role="status" className="mb-6 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm font-medium text-text-brand animate-in fade-in">
+              <div role="status" className="mb-6 rounded-lg border border-psu-maroon/20 bg-psu-maroon/10 px-4 py-3 text-sm font-medium text-text-brand animate-in fade-in">
                 {successMessage}
               </div>
             )}

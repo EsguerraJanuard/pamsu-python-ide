@@ -285,7 +285,7 @@ const SplitPaneGradingWorkspace = () => {
             if (sub) {
               if (sub.has_manual_grade || sub.status === 'graded') {
                 badgeText = 'Graded';
-                badgeColor = 'bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold border border-psu-maroon/20 dark:border-psu-gold/20';
+                badgeColor = 'bg-psu-maroon/10 text-text-brand border border-border-subtle';
               } else if (sub.status === 'retake_requested') {
                   badgeText = 'Retake Req';
                   badgeColor = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
@@ -394,7 +394,7 @@ const SplitPaneGradingWorkspace = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                        {/* Suggested Grade */}
                        <div className="bg-psu-maroon/5 border border-psu-maroon/20 dark:bg-psu-gold/5 dark:border-psu-gold/20 rounded-lg p-5 flex flex-col justify-center">
-                          <label className="block text-xs font-bold text-psu-maroon dark:text-psu-gold mb-2 uppercase tracking-wider">Suggested Grade</label>
+                          <label className="block text-xs font-bold text-text-brand mb-2 uppercase tracking-wider">Suggested Grade</label>
                           <div className="text-5xl font-black text-text-main tracking-tight">
                             {(() => {
                                 if (!detailedSub) return '0';

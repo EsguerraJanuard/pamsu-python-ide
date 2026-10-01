@@ -111,7 +111,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("roster")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "roster"
-                  ? "border-psu-maroon dark:border-psu-gold text-text-brand"
+                  ? "border-psu-maroon/50 text-text-brand"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >
@@ -121,7 +121,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("activities")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "activities"
-                  ? "border-psu-maroon dark:border-psu-gold text-text-brand"
+                  ? "border-psu-maroon/50 text-text-brand"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >

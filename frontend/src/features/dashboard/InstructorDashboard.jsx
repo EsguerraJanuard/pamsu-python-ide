@@ -428,7 +428,7 @@ export default function InstructorDashboard() {
                             <p className="text-xs font-semibold text-text-main line-clamp-1">{sub.task?.title || 'Unknown Task'}</p>
                             <p className="text-[10px] text-text-muted mt-0.5">{sub.user?.full_name || sub.user?.name || 'Student'}</p>
                           </div>
-                          <span className="shrink-0 rounded bg-psu-maroon/10 dark:bg-psu-gold/10 px-1.5 py-0.5 text-[9px] font-bold text-psu-maroon dark:text-psu-gold uppercase">
+                          <span className="shrink-0 rounded bg-psu-maroon/10 px-1.5 py-0.5 text-[9px] font-bold text-text-brand uppercase">
                             New
                           </span>
                         </div>
@@ -453,7 +453,7 @@ export default function InstructorDashboard() {
                           </div>
                           <button
                             onClick={() => navigate(`/instructor/submissions/${sub.id}`)}
-                            className="text-[10px] bg-psu-maroon/10 hover:bg-psu-maroon/20 text-psu-maroon dark:bg-psu-gold/10 dark:hover:bg-psu-gold/20 dark:text-psu-gold px-2 py-1 rounded transition-colors font-semibold"
+                            className="text-[10px] bg-psu-maroon/10 hover:bg-psu-maroon/20 text-text-brand px-2 py-1 rounded transition-colors font-semibold"
                           >
                             Grade Now
                           </button>
