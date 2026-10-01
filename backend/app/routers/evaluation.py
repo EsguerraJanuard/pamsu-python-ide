@@ -590,7 +590,7 @@ def patch_eval_grade(
 
 @router.patch(
     "/submissions/{sub_id}/allow-retake",
-    response_model=InstructorSubmissionResponse,
+    response_model=InstructorSubmissionEvaluationResponse,
     status_code=status.HTTP_200_OK,
     summary="Approve a student's retake request.",
 )
@@ -598,7 +598,7 @@ def allow_retake_endpoint(
     sub_id: int,
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
-) -> InstructorSubmissionResponse:
+) -> InstructorSubmissionEvaluationResponse:
     if sub_id < 1:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

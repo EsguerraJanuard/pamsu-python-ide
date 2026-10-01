@@ -304,7 +304,7 @@ const LiveMonitoring = () => {
                       </div>
                     )}
                   </div>
-                  <div className={`flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full border ${session.is_active ? 'bg-psu-maroon/10 border-psu-maroon/20 dark:bg-psu-gold/10 dark:border-psu-gold/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+                  <div className={`shrink-0 flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full border ${session.is_active ? 'bg-psu-maroon/10 border-psu-maroon/20 dark:bg-psu-gold/10 dark:border-psu-gold/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${session.is_active ? 'text-psu-maroon dark:text-psu-gold' : 'text-amber-600 dark:text-amber-500'}`}>
                       {session.is_active ? 'Active' : 'Idle'}
                     </span>
