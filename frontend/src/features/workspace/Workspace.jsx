@@ -93,6 +93,7 @@ export default function Workspace() {
   const editorTheme = resolvedTheme === "dark" ? "vs-dark" : "light";
 
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const [triggerRun, setTriggerRun] = useState(0);
   
@@ -313,6 +314,36 @@ export default function Workspace() {
       );
     };
   }, []);
+
+
+  // Intelligent Syntax Linting using LSP simulation via Backend
+  useEffect(() => {
+    const lintCode = async () => {
+      if (!editorRef.current || !monacoRef.current || !code.trim()) return;
+      try {
+        const response = await api.post('/execution/lint', { code });
+        if (response.data && response.data.markers) {
+          const monacoMarkers = response.data.markers.map(marker => ({
+            startLineNumber: marker.line,
+            startColumn: marker.column,
+            endLineNumber: marker.line,
+            endColumn: marker.column + 1,
+            message: marker.message,
+            severity: marker.severity === 'error' ? monacoRef.current.MarkerSeverity.Error : monacoRef.current.MarkerSeverity.Warning
+          }));
+          monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'python', monacoMarkers);
+        }
+      } catch (err) {
+        console.error('Linting failed', err);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      lintCode();
+    }, 1000);
+
+    return () => clearTimeout(debounceTimer);
+  }, [code]);
 
   const updateCodeAndSelection = (replacement, selectionRange) => {
     const editor = editorRef.current;
@@ -1009,6 +1040,7 @@ export default function Workspace() {
                   onChange={(value) => setCode(value || "")}
                   onMount={(editor, monaco) => {
                     editorRef.current = editor;
+                    monacoRef.current = monaco;
 
                     // Intercept Ctrl+V / Cmd+V at the Monaco level
                     editor.addCommand(
