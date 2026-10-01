@@ -284,7 +284,7 @@ export default function Login() {
         <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
           <div className="mb-8 text-center sm:text-left">
             <h2 className="text-2xl font-black text-text-main">
-              Secure Portal
+              Sign in
             </h2>
             <p className="mt-2 text-sm text-text-muted">
               Sign in to your university workspace
