@@ -28,6 +28,8 @@ function ArrowLeftIcon(props) {
 export default function PracticeWorkspace() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
   const taskId = searchParams.get("task");
   
   const { settings } = useEditorSettings();
@@ -130,6 +132,36 @@ export default function PracticeWorkspace() {
   }, [code, taskId]);
 
   const [isRunCooldown, setIsRunCooldown] = useState(false);
+
+  
+  // Intelligent Syntax Linting using LSP simulation via Backend
+  useEffect(() => {
+    const lintCode = async () => {
+      if (!editorRef.current || !monacoRef.current || !code.trim()) return;
+      try {
+        const response = await api.post('/execution/lint', { code });
+        if (response.data && response.data.markers) {
+          const monacoMarkers = response.data.markers.map(marker => ({
+            startLineNumber: marker.line,
+            startColumn: marker.column,
+            endLineNumber: marker.line,
+            endColumn: marker.column + 1,
+            message: marker.message,
+            severity: marker.severity === 'error' ? monacoRef.current.MarkerSeverity.Error : monacoRef.current.MarkerSeverity.Warning
+          }));
+          monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'python', monacoMarkers);
+        }
+      } catch (err) {
+        console.error('Linting failed', err);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      lintCode();
+    }, 1000);
+
+    return () => clearTimeout(debounceTimer);
+  }, [code]);
 
   const handleSubmit = async () => {
     if (isRunCooldown) return;
@@ -377,7 +409,8 @@ export default function PracticeWorkspace() {
               value={code}
               onChange={(value) => setCode(value || "")}
               options={monacoOptions}
-            />
+            onMount={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+                />
           </div>
           {/* Output Terminal */}
           <div className="h-56 border-t border-border-subtle bg-bg-base flex flex-col">
