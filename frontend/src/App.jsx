@@ -20,6 +20,7 @@ const RoleRoute = ({ allowedRole }) => {
 const RootRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
 };
 
@@ -27,6 +28,7 @@ const RootRoute = () => {
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Outlet />;
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
 };
 

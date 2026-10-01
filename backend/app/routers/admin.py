@@ -4,7 +4,7 @@ from sqlalchemy import func
 from typing import List, Dict, Any
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
-from app.models.domain_models import User, Classroom, AuditLog
+from app.models.domain_models import User, Classroom, AuditRecord
 from pydantic import BaseModel
 import re
 import random
@@ -135,18 +135,18 @@ def get_global_audit_logs(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    logs = db.query(AuditLog, User.first_name, User.last_name, User.role).join(
-        User, AuditLog.actor_user_id == User.user_id, isouter=True
-    ).order_by(AuditLog.occurred_at.desc()).limit(100).all()
+    logs = db.query(AuditRecord, User.first_name, User.last_name, User.role).join(
+        User, AuditRecord.actor_user_id == User.user_id, isouter=True
+    ).order_by(AuditRecord.occurred_at.desc()).limit(100).all()
     
     result = []
     for log, fname, lname, role in logs:
         result.append({
-            "log_id": log.log_id,
+            "log_id": log.audit_id,
             "action_type": log.action_type,
             "resource_type": log.resource_type,
             "occurred_at": log.occurred_at,
-            "status": log.status,
+            "status": log.outcome,
             "actor_name": f"{fname} {lname}" if fname else "System",
             "actor_role": role if role else "system"
         })

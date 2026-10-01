@@ -34,10 +34,11 @@ router = APIRouter(
 
 class AuthenticatedUserResponse(BaseModel):
     user_id: int
-    name: str
+    first_name: str
+    last_name: str
     school_id: str
     email: str
-    role: Literal["student", "instructor"]
+    role: str
     email_verified: bool
 
     model_config = ConfigDict(from_attributes=True)
@@ -219,11 +220,15 @@ def logout(
 def login_guest(db: Session = Depends(get_db)):
     guest = db.query(User).filter(User.email == "guest@pampangastateu.edu.ph").first()
     if not guest:
+        import random
         guest = User(
             email="guest@pampangastateu.edu.ph",
-            full_name="Aspiring Student (Guest)",
+            first_name="Aspiring Student",
+            last_name="Guest",
+            middle_name="",
             role="student",
-            password_hash=get_password_hash("guest")
+            password_hash=get_password_hash("guest"),
+            school_id=str(random.randint(1000000000, 9999999999))
         )
         db.add(guest)
         db.commit()
