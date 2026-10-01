@@ -255,7 +255,8 @@ def _seed_execution_context(
 ) -> dict[str, Any]:
     with session_factory() as db:
         instructor = User(
-            name=("Pillar 15 Execution Idempotency Instructor"),
+            first_name=(("Pillar 15 Execution Idempotency Instructor")).split()[0] if isinstance(("Pillar 15 Execution Idempotency Instructor"), str) else "Test",
+        last_name=" ".join((("Pillar 15 Execution Idempotency Instructor")).split()[1:]) if isinstance(("Pillar 15 Execution Idempotency Instructor"), str) and " " in ("Pillar 15 Execution Idempotency Instructor") else "User",
             school_id="9700000001",
             email=("p15.execution.idempotency.instructor@pampangastateu.edu.ph"),
             role="instructor",
@@ -265,7 +266,8 @@ def _seed_execution_context(
         )
 
         student = User(
-            name=("Pillar 15 Execution Idempotency Student"),
+            first_name=(("Pillar 15 Execution Idempotency Student")).split()[0] if isinstance(("Pillar 15 Execution Idempotency Student"), str) else "Test",
+        last_name=" ".join((("Pillar 15 Execution Idempotency Student")).split()[1:]) if isinstance(("Pillar 15 Execution Idempotency Student"), str) and " " in ("Pillar 15 Execution Idempotency Student") else "User",
             school_id="9700000002",
             email=("p15.execution.idempotency.student@pampangastateu.edu.ph"),
             role="student",

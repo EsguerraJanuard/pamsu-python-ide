@@ -142,7 +142,8 @@ def create_existing_user(
     school_id: str,
 ) -> User:
     user = User(
-        name="Existing User",
+        first_name=("Existing User").split()[0] if isinstance("Existing User", str) else "Test",
+        last_name=" ".join(("Existing User").split()[1:]) if isinstance("Existing User", str) and " " in "Existing User" else "User",
         school_id=school_id,
         email=email.lower(),
         role="student",

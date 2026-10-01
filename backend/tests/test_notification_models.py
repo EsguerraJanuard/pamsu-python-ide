@@ -19,7 +19,8 @@ def create_test_user(
     role: str = "student",
 ) -> User:
     user = User(
-        name=name,
+        first_name=(name).split()[0] if isinstance(name, str) else "Test",
+        last_name=" ".join((name).split()[1:]) if isinstance(name, str) and " " in name else "User",
         school_id=school_id,
         email=email,
         role=role,

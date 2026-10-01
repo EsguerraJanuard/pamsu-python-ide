@@ -249,7 +249,8 @@ def _seed_grade_context(
 ) -> dict[str, int]:
     with session_factory() as db:
         instructor = User(
-            name="Pillar 15 Grade Instructor",
+            first_name=("Pillar 15 Grade Instructor").split()[0] if isinstance("Pillar 15 Grade Instructor", str) else "Test",
+        last_name=" ".join(("Pillar 15 Grade Instructor").split()[1:]) if isinstance("Pillar 15 Grade Instructor", str) and " " in "Pillar 15 Grade Instructor" else "User",
             school_id="9600000001",
             email=("p15.grade.instructor@pampangastateu.edu.ph"),
             role="instructor",
@@ -259,7 +260,8 @@ def _seed_grade_context(
         )
 
         student = User(
-            name="Pillar 15 Grade Student",
+            first_name=("Pillar 15 Grade Student").split()[0] if isinstance("Pillar 15 Grade Student", str) else "Test",
+        last_name=" ".join(("Pillar 15 Grade Student").split()[1:]) if isinstance("Pillar 15 Grade Student", str) and " " in "Pillar 15 Grade Student" else "User",
             school_id="9600000002",
             email=("p15.grade.student@pampangastateu.edu.ph"),
             role="student",

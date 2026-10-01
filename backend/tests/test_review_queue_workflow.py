@@ -21,7 +21,8 @@ def review_instructor(
     db_session: Session,
 ) -> User:
     instructor = User(
-        name="Review Queue Instructor",
+        first_name=("Review Queue Instructor").split()[0] if isinstance("Review Queue Instructor", str) else "Test",
+        last_name=" ".join(("Review Queue Instructor").split()[1:]) if isinstance("Review Queue Instructor", str) and " " in "Review Queue Instructor" else "User",
         school_id="5100000001",
         email=("review.queue.instructor@pampangastateu.edu.ph"),
         role="instructor",
@@ -42,7 +43,8 @@ def other_review_instructor(
     db_session: Session,
 ) -> User:
     instructor = User(
-        name="Other Review Instructor",
+        first_name=("Other Review Instructor").split()[0] if isinstance("Other Review Instructor", str) else "Test",
+        last_name=" ".join(("Other Review Instructor").split()[1:]) if isinstance("Other Review Instructor", str) and " " in "Other Review Instructor" else "User",
         school_id="5100000002",
         email=("other.review.instructor@pampangastateu.edu.ph"),
         role="instructor",
@@ -63,7 +65,8 @@ def review_student_one(
     db_session: Session,
 ) -> User:
     student = User(
-        name="Alice Student",
+        first_name=("Alice Student").split()[0] if isinstance("Alice Student", str) else "Test",
+        last_name=" ".join(("Alice Student").split()[1:]) if isinstance("Alice Student", str) and " " in "Alice Student" else "User",
         school_id="5200000001",
         email=("alice.review.student@pampangastateu.edu.ph"),
         role="student",
@@ -84,7 +87,8 @@ def review_student_two(
     db_session: Session,
 ) -> User:
     student = User(
-        name="Bob Student",
+        first_name=("Bob Student").split()[0] if isinstance("Bob Student", str) else "Test",
+        last_name=" ".join(("Bob Student").split()[1:]) if isinstance("Bob Student", str) and " " in "Bob Student" else "User",
         school_id="5200000002",
         email=("bob.review.student@pampangastateu.edu.ph"),
         role="student",
@@ -504,7 +508,7 @@ def test_review_queue_sorts_by_student_name(
 
     assert response.status_code == status.HTTP_200_OK
 
-    names = [item["student"]["name"] for item in response.json()["items"]]
+    names = [f'{item["student"]["first_name"]} {item["student"]["last_name"]}' for item in response.json()["items"]]
 
     assert names == sorted(
         names,

@@ -163,7 +163,7 @@ def login(
         data={
             "sub": str(user.user_id),
             "role": user.role,
-            "name": user.name,
+            "name": f"{user.first_name} {user.last_name}",
             "email": user.email,
             "pwd_ver": user.password_version,
         },

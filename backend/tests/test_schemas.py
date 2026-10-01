@@ -100,7 +100,7 @@ def _valid_result_update_data(
 def test_valid_user_registration_input():
     user = UserCreate(**VALID_USER_DATA)
 
-    assert user.name == "Test Student"
+    assert user.first_name == "Test Student".split()[0] and user.last_name == " ".join("Test Student".split()[1:])
     assert user.school_id == "0000000001"
     assert user.email == "student@pampangastateu.edu.ph"
     assert user.data_collection_acknowledged is True

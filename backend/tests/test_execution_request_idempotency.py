@@ -28,7 +28,8 @@ def create_execution_context(
     suffix: str,
 ) -> dict:
     instructor = User(
-        name=f"Execution Instructor {suffix}",
+        first_name=(f"Execution Instructor {suffix}").split()[0] if isinstance(f"Execution Instructor {suffix}", str) else "Test",
+        last_name=" ".join((f"Execution Instructor {suffix}").split()[1:]) if isinstance(f"Execution Instructor {suffix}", str) and " " in f"Execution Instructor {suffix}" else "User",
         school_id=f"91{int(suffix):08d}",
         email=(f"execution.instructor.{suffix}@pampangastateu.edu.ph"),
         role="instructor",
@@ -38,7 +39,8 @@ def create_execution_context(
     )
 
     student = User(
-        name=f"Execution Student {suffix}",
+        first_name=(f"Execution Student {suffix}").split()[0] if isinstance(f"Execution Student {suffix}", str) else "Test",
+        last_name=" ".join((f"Execution Student {suffix}").split()[1:]) if isinstance(f"Execution Student {suffix}", str) and " " in f"Execution Student {suffix}" else "User",
         school_id=f"92{int(suffix):08d}",
         email=(f"execution.student.{suffix}@pampangastateu.edu.ph"),
         role="student",
