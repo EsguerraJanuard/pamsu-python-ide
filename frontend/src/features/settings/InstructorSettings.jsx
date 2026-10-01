@@ -352,32 +352,71 @@ export default function InstructorSettings() {
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit}>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-text-muted">
-                      Default AST Strictness Level
-                    </label>
-                    <CustomSelect
-                      value={formData.astStrictness}
-                      onChange={(val) => setFormData(prev => ({ ...prev, astStrictness: val }))}
-                      className="w-full px-3 py-2 text-xs"
-                      options={[
-                        { value: "lax", label: "Lenient (Focus on execution output only)" },
-                        { value: "moderate", label: "Moderate (Standard AST pattern checks)" },
-                        { value: "strict", label: "Strict (Enforce rigid structural loop/function rules)" }
-                      ]}
-                    />
-                  </div>
-
-                  <div className="flex justify-end pt-4">
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                </form>
+                                  <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {[
+                        { 
+                          value: "lax", 
+                          title: "Lenient", 
+                          desc: "Requires at least one instance of a requirement to pass, even if more are requested. Focuses on execution output and basic presence of concepts.", 
+                          icon: (
+                            <svg className="w-5 h-5 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          value: "moderate", 
+                          title: "Moderate", 
+                          desc: "Standard evaluation. Enforces the exact or minimum required counts of AST rules, ensuring students correctly structure their solutions.", 
+                          icon: (
+                            <svg className="w-5 h-5 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          value: "strict", 
+                          title: "Strict", 
+                          desc: "Rigid evaluation. Code must match the exact number of required structures perfectly. Prevents bypassing or over-engineering the algorithm.", 
+                          icon: (
+                            <svg className="w-5 h-5 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          )
+                        },
+                      ].map((lvl) => (
+                        <div 
+                          key={lvl.value}
+                          onClick={() => setFormData(prev => ({ ...prev, astStrictness: lvl.value }))}
+                          className={`cursor-pointer rounded-xl border p-4 transition-all duration-200 ${
+                            formData.astStrictness === lvl.value 
+                              ? 'border-psu-maroon bg-psu-maroon/10 shadow-md shadow-psu-maroon/20 ring-1 ring-psu-maroon' 
+                              : 'border-border-strong bg-bg-panel hover:border-psu-maroon/50 hover:bg-bg-glass-hover'
+                          }`}
+                        >
+                          <div className={`flex flex-col h-full ${formData.astStrictness === lvl.value ? 'text-text-brand' : 'text-text-muted'}`}>
+                            {lvl.icon}
+                            <h3 className={`text-sm font-bold mb-1 ${formData.astStrictness === lvl.value ? 'text-text-brand' : 'text-text-main'}`}>
+                              {lvl.title}
+                            </h3>
+                            <p className="text-[10px] leading-relaxed flex-1 opacity-90">
+                              {lvl.desc}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+  
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-6 py-2 text-sm font-semibold text-white shadow-md shadow-psu-maroon/20 transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      >
+                        Save Strictness
+                      </button>
+                    </div>
+                  </form>
 
               </section>
 
