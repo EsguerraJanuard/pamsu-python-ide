@@ -413,7 +413,7 @@ class Classroom(Base):
 
     @property
     def instructor_name(self) -> str | None:
-        return self.instructor.name if self.instructor else None
+        return f"{self.instructor.first_name} {self.instructor.last_name}" if self.instructor else None
 
 
 class Enrollment(Base):

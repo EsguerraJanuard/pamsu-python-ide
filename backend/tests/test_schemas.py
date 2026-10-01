@@ -24,7 +24,7 @@ from app.schemas.user_schema import UserCreate
 
 
 VALID_USER_DATA = {
-    "name": "Test Student",
+    "first_name": "Test", "last_name": "Student",
     "school_id": "0000000001",
     "email": "student@pampangastateu.edu.ph",
     "password": "SecurePass123!",

@@ -23,7 +23,7 @@ def test_access_token_contains_user_claims():
         {
             "sub": "1",
             "role": "instructor",
-            "name": "Test Instructor",
+            "first_name": "Test", "last_name": "Instructor",
         }
     )
 

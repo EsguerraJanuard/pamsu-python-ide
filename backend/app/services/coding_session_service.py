@@ -484,7 +484,7 @@ def get_all_active_instructor_sessions(
     rows = (
         db.query(
             CodingSession,
-            User.name.label("student_name"),
+            (User.first_name + " " + User.last_name).label("student_name"),
             Task.title.label("task_title"),
             Classroom.name.label("classroom_name"),
         )

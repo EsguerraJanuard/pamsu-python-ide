@@ -691,7 +691,7 @@ def list_class_members(
             User.user_id == Enrollment.student_id,
         )
         .filter(Enrollment.class_id == class_id)
-        .order_by(User.name.asc())
+        .order_by(User.last_name.asc(), User.first_name.asc())
         .all()
     )
 
@@ -708,7 +708,7 @@ def list_class_members(
             "enrollment_id": enrollment.enrollment_id,
             "student_id": user.user_id,
             "school_id": user.school_id,
-            "name": user.name,
+            "name": f"{user.first_name} {user.last_name}",
             "email": user.email,
             "status": enrollment.status,
             "is_online": user.user_id in online_users,
