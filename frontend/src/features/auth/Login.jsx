@@ -208,7 +208,7 @@ export default function Login() {
 
         <div className="relative z-10 animate-login-fade opacity-0">
           <div className="flex items-center gap-3">
-            <img src="/pamsu-logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
+            <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-psu-gold/90">Pampanga State University</p>
               <p className="text-lg font-black tracking-tight text-white">Python IDE</p>
@@ -240,7 +240,7 @@ export default function Login() {
         
         {/* Mobile Logo Header */}
         <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
-          <img src="/pamsu-logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
+          <img src="/school_logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
             <p className="text-base font-black tracking-tight text-text-main">Python IDE</p>
@@ -270,7 +270,7 @@ export default function Login() {
         <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
           <div className="mb-8 text-center sm:text-left">
             <h2 className="text-2xl font-black text-text-main">
-              Welcome back
+              Secure Portal
             </h2>
             <p className="mt-2 text-sm text-text-muted">
               Sign in to your university workspace
