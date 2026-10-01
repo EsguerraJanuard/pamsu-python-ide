@@ -167,7 +167,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 onChange={(e) => onToggleCategory(category, e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:opacity-80 shadow-inner"></div>
             </div>
           </label>
           {category.rules.map(rule => {
@@ -194,7 +194,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     onChange={(e) => onToggleRule(rule.id, e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:opacity-80 shadow-inner"></div>
                 </div>
               </label>
             );
@@ -711,7 +711,7 @@ export default function PracticeModuleManager() {
                             onChange={(e) => handleSelectAllVisible(e.target.checked)}
                             className="sr-only peer"
                           />
-                          <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                          <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:opacity-80 shadow-inner"></div>
                         </div>
                       </label>
                       <span className="text-text-muted font-normal text-[10px]">{Object.keys(taskForm.expected_ast_patterns).length} active</span>

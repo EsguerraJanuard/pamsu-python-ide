@@ -619,7 +619,7 @@ export default function Workspace() {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base text-text-muted">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-text-brand"></div>
           <p className="text-sm font-semibold tracking-wide">Loading workspace...</p>
         </div>
       </div>
@@ -931,13 +931,13 @@ export default function Workspace() {
 
           <main className="flex min-w-0 flex-1 flex-col bg-bg-base transition-colors duration-300">
             <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass shadow-inner px-3 py-1 backdrop-blur-md">
-              <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
+              <div className="flex items-center gap-2 border-t-2 border-t-text-brand bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
                 <span className="text-text-brand">
                   {activity.fileName}
                 </span>
 
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-blue-400"
+                  className="h-1.5 w-1.5 rounded-full bg-text-brand"
                   title="Local draft"
                 />
               </div>

@@ -70,7 +70,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
 
           {isLoading ? (
             <div className="flex py-12 justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-text-brand"></div>
             </div>
           ) : error ? (
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-text-rose text-center">

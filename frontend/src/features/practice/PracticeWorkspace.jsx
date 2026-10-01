@@ -190,7 +190,7 @@ export default function PracticeWorkspace() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-text-brand"></div>
       </div>
     );
   }
@@ -241,7 +241,7 @@ export default function PracticeWorkspace() {
             </div>
             <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
             
-            <div className="prose dark:prose-invert prose-emerald max-w-none mb-12">
+            <div className="prose dark:prose-invert max-w-none mb-12">
               <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || 'No instructions provided.'}</ReactMarkdown>
             </div>
             

@@ -7,7 +7,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
   const { user } = useAuth();
   const isInstructor = user?.role === 'instructor';
 
-  const themeColor = isInstructor ? 'emerald-500' : 'blue-500';
+  const themeColor = isInstructor ? 'text-brand' : 'text-brand';
   const themeTextColor = isInstructor ? 'text-text-brand' : 'text-text-brand';
 
   useEffect(() => {

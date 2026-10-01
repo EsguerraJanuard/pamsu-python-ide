@@ -97,7 +97,7 @@ export default function SoloPractice() {
 
             {isLoading ? (
               <div className="flex justify-center py-20">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-text-brand"></div>
               </div>
             ) : modules.length > 0 ? (
               <div className="space-y-12 pb-20">

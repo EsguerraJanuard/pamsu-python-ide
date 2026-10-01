@@ -215,7 +215,7 @@ export default function MyClasses() {
                                   </span>
                                 ) : (
                                   <span className="text-xs font-medium text-text-brand flex items-center gap-1.5">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
+                                    <span className="h-1.5 w-1.5 rounded-full bg-text-brand shadow-sm"></span>
                                     Enrolled
                                   </span>
                                 )}

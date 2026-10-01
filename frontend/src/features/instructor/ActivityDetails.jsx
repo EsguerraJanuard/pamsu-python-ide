@@ -171,7 +171,7 @@ const ActivityDetails = () => {
                   onChange={togglePublication}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:opacity-80"></div>
               </div>
               <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">
                 {activity.is_published ? "Published" : "Draft"}
@@ -187,7 +187,7 @@ const ActivityDetails = () => {
                   disabled={activity.is_published}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-psu-maroon"></div>
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:opacity-80 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-psu-maroon"></div>
               </div>
               <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
             </label>
@@ -315,13 +315,13 @@ const ActivityDetails = () => {
                     onChange={e => setNewTestCase({...newTestCase, is_hidden: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:opacity-80"></div>
                 </div>
                 <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Hidden Test Case</span>
               </label>
               <button 
                 type="submit"
-                className="px-4 py-2 bg-psu-maroon hover:bg-emerald-700 text-white rounded transition-colors"
+                className="px-4 py-2 bg-psu-maroon hover:opacity-80 text-white rounded transition-colors"
               >
                 Add Test Case
                 </button>

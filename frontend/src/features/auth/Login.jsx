@@ -204,7 +204,7 @@ export default function Login() {
           <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
             Code with integrity.
           </h1>
-          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
+          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-psu-maroon to-psu-gold">
             Learn to think.
           </h2>
           <p className="mb-8 text-sm leading-relaxed text-text-muted">
