@@ -225,9 +225,23 @@ export default function Login() {
             Code with integrity.<br />
             <span className="text-psu-gold">Learn to think.</span>
           </h1>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-white/80">
-            A secure, browser-based Python environment built specifically for Pampanga State University. Features automated structural feedback, telemetry monitoring, and zero-setup isolated execution.
+          <p className="mt-6 max-w-md text-sm leading-relaxed text-white/80">
+            A browser-based Python environment that supports structural feedback, safe code execution, personal practice, and instructor-guided review.
           </p>
+          
+          <ul className="mt-8 space-y-4">
+            {features.map((feature, idx) => (
+              <li key={idx} className="flex items-center gap-3 text-sm font-medium text-white/90">
+                <div 
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10" 
+                  style={{ color: feature.color }}
+                >
+                  {feature.icon}
+                </div>
+                {feature.label}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0">
