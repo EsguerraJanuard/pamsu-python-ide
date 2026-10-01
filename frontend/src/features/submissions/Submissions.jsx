@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Pagination from "../../components/ui/Pagination";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 
@@ -67,7 +68,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
       className="space-y-4"
       aria-label="Submitted activities"
     >
-      {submissions.map((submission, index) => {
+      {submissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((submission, index) => {
         const status =
           STATUS_CONFIG[submission.status] ??
           STATUS_CONFIG.awaiting_review;
@@ -318,6 +319,8 @@ export default function Submissions() {
   const { id } = useParams();
 
   const [submissions, setSubmissions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 

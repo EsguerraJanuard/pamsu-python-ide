@@ -286,7 +286,10 @@ const SplitPaneGradingWorkspace = () => {
               if (sub.has_manual_grade || sub.status === 'graded') {
                 badgeText = 'Graded';
                 badgeColor = 'bg-psu-maroon/10 text-psu-maroon dark:text-psu-gold border border-psu-maroon/20 dark:border-psu-gold/20';
-              } else if (sub.status === 'late') {
+              } else if (sub.status === 'retake_requested') {
+                  badgeText = 'Retake Req';
+                  badgeColor = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+                } else if (sub.status === 'late') {
                 badgeText = 'Late';
                 badgeColor = 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20';
               } else {
