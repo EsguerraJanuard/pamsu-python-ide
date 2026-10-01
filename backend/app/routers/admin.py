@@ -7,6 +7,7 @@ from app.core.security import get_current_admin, get_password_hash
 from app.models.domain_models import User, Classroom, AuditLog
 from pydantic import BaseModel
 import re
+import random
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -57,7 +58,8 @@ def create_instructor(
         first_name=request.first_name,
         last_name=request.last_name,
         role="instructor",
-        password_hash=get_password_hash(request.password)
+        password_hash=get_password_hash(request.password),
+        school_id=str(random.randint(1000000000, 9999999999))
     )
     db.add(new_instructor)
     db.commit()
@@ -132,7 +134,8 @@ async def bulk_register_students_file(
                 first_name=email.split("@")[0].replace(".", " ").title(),
                 last_name="Student",
                 role="student",
-                password_hash=get_password_hash("PamsU@2026")
+                password_hash=get_password_hash("PamsU@2026"),
+                school_id=str(random.randint(1000000000, 9999999999))
             )
             db.add(new_user)
             registered_count += 1
