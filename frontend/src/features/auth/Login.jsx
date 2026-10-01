@@ -14,6 +14,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useTheme } from "../theme/ThemeContext";
 import { api, ApiError } from "../../services/api";
 import { ThemeToggle } from "../theme/ThemeToggle";
 
@@ -261,25 +262,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Theme Toggle */}
-        <div className="absolute top-6 right-6 lg:top-8 lg:right-8 animate-login-fade opacity-0">
-          <button
-            onClick={toggleTheme}
-            className="rounded-full bg-bg-glass p-2.5 text-text-muted shadow-sm ring-1 ring-border-subtle transition-all hover:bg-bg-glass-hover hover:text-text-main active:scale-95"
-            aria-label="Toggle theme"
-          >
-            {isDarkMode ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
-                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
-        </div>
+        
 
         <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
           <div className="mb-8 text-center sm:text-left">
