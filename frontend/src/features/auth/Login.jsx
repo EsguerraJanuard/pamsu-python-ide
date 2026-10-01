@@ -167,99 +167,96 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-screen overflow-hidden bg-bg-base text-text-main">
+    <main className="flex min-h-screen bg-bg-base text-text-main">
       <style>{`
-        @keyframes loginFadeLeft {
-          from { opacity: 0; transform: translateX(-16px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes loginFadeUp {
-          from { opacity: 0; transform: translateY(18px); }
+        @keyframes loginFade {
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes featureFadeIn {
-          from { opacity: 0; transform: translateX(-8px); }
-          to { opacity: 1; transform: translateX(0); }
+        .animate-login-fade {
+          animation: loginFade 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .login-animated { animation: none !important; }
-        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
       `}</style>
 
-      {/* Premium Background Grid */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      {/* Left Side: Brand Panel (Hidden on Mobile) */}
+      <div className="relative hidden lg:flex lg:w-[45%] flex-col justify-between bg-psu-maroon overflow-hidden px-14 py-16 text-white shadow-2xl z-10">
+        {/* Subtle Background Pattern / Gradient */}
+        <div className="absolute inset-0 z-0 opacity-20">
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-psu-gold blur-[100px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-psu-red blur-[120px]"></div>
+        </div>
 
-      {/* Theme Toggle */}
-      <div className="absolute top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
-
-      {/* Left panel — platform info */}
-      <section
-        className="login-animated hidden w-[52%] flex-col justify-between border-r border-border-subtle px-16 py-10 lg:flex relative z-10"
-        style={{ animation: "loginFadeLeft 700ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
-        aria-label="Platform introduction"
-      >
-        <div className="flex items-center gap-2 select-none cursor-default">
-          <img src="/school_logo.png" alt="PSU Logo" className="h-12 w-12 object-contain drop-shadow-md" />
-          <div className="flex flex-col">
-            <span className="text-[11px] font-bold tracking-widest text-text-muted uppercase">Pampanga State University</span>
-            <span className="text-lg font-extrabold tracking-wide text-text-main leading-tight">Python IDE</span>
+        <div className="relative z-10 animate-login-fade opacity-0">
+          <div className="flex items-center gap-3">
+            <img src="/pamsu-logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-psu-gold/90">Pampanga State University</p>
+              <p className="text-lg font-black tracking-tight text-white">Python IDE</p>
+            </div>
           </div>
         </div>
 
-        <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-brand">
-            Python Learning Platform
-          </p>
-          <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
-            Code with integrity.
+        <div className="relative z-10 my-auto animate-login-fade delay-100 opacity-0">
+          <span className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-psu-gold border border-white/20 backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-psu-gold animate-pulse"></span>
+            Enterprise Platform
+          </span>
+          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl xl:text-6xl leading-[1.1]">
+            Code with integrity.<br />
+            <span className="text-psu-gold">Learn to think.</span>
           </h1>
-          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-psu-maroon to-psu-gold">
-            Learn to think.
-          </h2>
-          <p className="mb-8 text-sm leading-relaxed text-text-muted">
-            A browser-based Python environment that supports structural feedback,
-            safe code execution, personal practice, and instructor-guided review.
+          <p className="mt-6 max-w-md text-base leading-relaxed text-white/80">
+            A secure, browser-based Python environment built specifically for Pampanga State University. Features automated structural feedback, telemetry monitoring, and zero-setup isolated execution.
           </p>
-          <ul className="space-y-3">
-            {features.map((feature, index) => (
-              <li
-                key={feature.label}
-                className="login-animated flex items-center gap-3 text-sm text-text-muted transition-all duration-300 hover:translate-x-2 hover:text-text-main group"
-                style={{ animation: `featureFadeIn 450ms ease ${250 + index * 100}ms both` }}
-              >
-                <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{feature.icon}</span>
-                <span>{feature.label}</span>
-              </li>
-            ))}
-          </ul>
         </div>
 
-        <p className="font-mono text-xs text-text-muted select-none cursor-default">
-          Python 3 · FastAPI · Isolated execution
-        </p>
-      </section>
+        <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0">
+          <p>&copy; 2026 Pampanga State University</p>
+        </div>
+      </div>
 
-      {/* Right panel — login form */}
-      <section className="relative flex flex-1 items-center justify-center px-6 py-12 z-10">
-        {/* Glow effects */}
-        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-psu-maroon/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
+      {/* Right Side: Login Form */}
+      <div className="flex flex-1 items-center justify-center bg-bg-base px-6 py-12 lg:px-8 relative z-0">
+        
+        {/* Mobile Logo Header */}
+        <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
+          <img src="/pamsu-logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
+            <p className="text-base font-black tracking-tight text-text-main">Python IDE</p>
+          </div>
+        </div>
 
-        <div
-          className="login-animated w-full max-w-[420px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-psu-maroon/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
-          style={{ animation: "loginFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
-        >
-          <div className="mb-8 text-center select-none cursor-default">
-            <h2 className="text-xl font-bold text-text-main">
-              Sign in to your workspace
+        {/* Theme Toggle */}
+        <div className="absolute top-6 right-6 lg:top-8 lg:right-8 animate-login-fade opacity-0">
+          <button
+            onClick={toggleTheme}
+            className="rounded-full bg-bg-glass p-2.5 text-text-muted shadow-sm ring-1 ring-border-subtle transition-all hover:bg-bg-glass-hover hover:text-text-main active:scale-95"
+            aria-label="Toggle theme"
+          >
+            {isDarkMode ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
+          <div className="mb-8 text-center sm:text-left">
+            <h2 className="text-2xl font-black text-text-main">
+              Welcome back
             </h2>
             <p className="mt-2 text-sm text-text-muted">
-              Use your verified university account
+              Sign in to your university workspace
             </p>
           </div>
 
@@ -268,38 +265,38 @@ export default function Login() {
             <div
               role="alert"
               aria-live="polite"
-              className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose"
+              className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-text-rose shadow-sm"
             >
-              {error}
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p>{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email */}
             <div>
-              <label
-                htmlFor="school-email"
-                className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default"
-              >
+              <label htmlFor="school-email" className="mb-1.5 block text-xs font-bold text-text-muted uppercase tracking-wider">
                 School email
               </label>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass"
+                className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-glass px-4 py-3 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-border-strong cursor-text"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
-                  <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                  <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                 </svg>
                 <input
                   id="school-email"
                   type="email"
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}
-                  placeholder="Email"
+                  placeholder="name@pampangastateu.edu.ph"
                   autoComplete="email"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm font-medium text-text-main outline-none placeholder:text-text-muted/50 disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
               </div>
@@ -308,110 +305,100 @@ export default function Login() {
             {/* Password */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="text-xs font-medium text-text-muted select-none cursor-default"
-                >
+                <label htmlFor="password" className="text-xs font-bold text-text-muted uppercase tracking-wider">
                   Password
                 </label>
-                {capsLock && (
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
-                    <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
-                      <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
-                      <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
-                    </svg>
-                    Caps Lock is on
-                  </span>
-                )}
               </div>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass"
+                className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-glass px-4 py-3 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-border-strong cursor-text"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
-                  <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                  <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                  <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => updateField("password", e.target.value)}
-                  placeholder="Password"
+                  placeholder="••••••••"
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm font-medium tracking-widest text-text-main outline-none placeholder:text-text-muted/50 placeholder:tracking-normal disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-text-muted"
+                  className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-text-main"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
                   {showPassword ? (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.2" />
-                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.2" />
-                      <path d="M3 3l10 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M3 3l10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.2" />
-                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   )}
                 </button>
               </div>
-              <div className="flex justify-end mt-1">
-                <button
-                  type="button"
-                  onClick={() => navigate("/forgot-password")}
-                  className="text-[10px] font-medium text-text-brand transition-colors hover:underline"
-                  disabled={isLoading}
-                >
-                  Forgot your password?
-                </button>
-              </div>
+              {capsLock && (
+                <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-500">
+                  <svg width="10" height="10" viewBox="0 0 10 12" fill="none" aria-hidden="true">
+                    <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
+                    <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
+                  </svg>
+                  Caps Lock is ON
+                </p>
+              )}
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-psu-maroon hover:bg-psu-maroon py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(128,0,0,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(128,0,0,0.3)] select-none"
-            >
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
-              
-              <span className="relative flex items-center justify-center gap-2">
+            {/* Buttons */}
+            <div className="pt-2 animate-login-fade delay-200 opacity-0">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg shadow-psu-maroon/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-psu-maroon/50 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+              >
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                 {isLoading ? (
                   <>
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
                     Signing in...
                   </>
                 ) : (
-                  "Sign in"
+                  "Sign In to Workspace"
                 )}
-              </span>
-            </button>
-            
-            <button
-              type="button"
-              onClick={handleGuestLogin}
-              disabled={isLoading}
-              className="group relative overflow-hidden mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-bg-glass border border-border-strong py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(128,128,128,0.2)] hover:bg-bg-glass-hover active:translate-y-0 active:scale-[0.98] disabled:opacity-50 select-none"
-            >
-              Continue as Guest (Panel)
-            </button>
+              </button>
+              
+              <div className="relative mt-6 mb-6">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle"></div></div>
+                <div className="relative flex justify-center"><span className="bg-bg-base px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Or</span></div>
+              </div>
 
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                disabled={isLoading}
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-bg-glass px-4 py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-bg-glass-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+              >
+                Continue as Guest Panelist
+              </button>
+            </div>
           </form>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
