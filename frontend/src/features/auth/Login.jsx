@@ -252,6 +252,22 @@ export default function Login() {
 
       {/* Right Side: Login Form */}
       <div className="flex flex-1 items-center justify-center bg-bg-base px-6 py-12 lg:px-8 relative z-0">
+          {/* TEMP SEED BUTTON FOR DEMO */}
+          <button 
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await api.get("/admin/seed-production");
+                alert(res.data?.message || "Success!");
+              } catch (err) {
+                alert("Backend still deploying. Please try again in 1 minute. " + (err.message || ""));
+              }
+            }}
+            className="absolute bottom-4 right-4 text-[10px] text-text-muted hover:text-psu-maroon underline"
+          >
+            Initialize Admin Account (Demo)
+          </button>
+
         
         {/* Mobile Logo Header */}
         <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
