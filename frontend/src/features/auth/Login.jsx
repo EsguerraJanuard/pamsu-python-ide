@@ -200,7 +200,7 @@ export default function Login() {
       `}</style>
 
       {/* Left Side: Brand Panel (Hidden on Mobile) */}
-      <div className="relative hidden lg:flex lg:w-[40%] flex-col justify-between bg-psu-maroon overflow-hidden px-14 py-16 text-white shadow-2xl z-10">
+      <div className="relative hidden lg:flex lg:w-[45%] flex-col justify-between bg-psu-maroon overflow-hidden px-14 py-16 text-white shadow-2xl z-10">
         {/* Subtle Background Pattern / Gradient */}
         <div className="absolute inset-0 z-0 opacity-20">
           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-psu-gold blur-[100px]"></div>
