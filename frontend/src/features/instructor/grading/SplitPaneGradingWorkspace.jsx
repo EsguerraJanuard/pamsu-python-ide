@@ -507,6 +507,7 @@ const SplitPaneGradingWorkspace = () => {
                         <button
                           type="button"
                           onClick={async () => {
+                            if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
                             try {
                               await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
                               setNotice("Retake approved! Student can now resubmit.");
@@ -526,6 +527,7 @@ const SplitPaneGradingWorkspace = () => {
                         <button
                           type="button"
                           onClick={async () => {
+                            if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
                             try {
                               await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
                               setNotice("Retake allowed! Student can now resubmit.");
