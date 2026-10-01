@@ -94,50 +94,38 @@ const GradingBenchRoot = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {classes.map((cls, idx) => (
-              <div
-                key={cls.class_id || idx}
-                onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-glass shadow-inner hover:border-psu-maroon/30 hover:bg-bg-glass-hover hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
-                style={{ animation: `pageFadeUp 400ms ease ${idx * 70}ms both` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-psu-maroon/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                
-                <div className="p-6 flex-1 flex flex-col relative z-10">
+                <div 
+                  key={cls.class_id || idx} 
+                  onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
+                  className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col transition hover:border-psu-maroon/30 cursor-pointer relative group"
+                  style={{ animation: `dashboardFadeUp 400ms ease ${idx * 70}ms both` }}
+                >
                   <div className="flex justify-between items-start mb-4">
-                    {cls.subject_code ? (
-                      <span className="inline-flex items-center rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-text-brand shadow-sm">
-                        {cls.subject_code}
+                    <div>
+                      <span className="inline-block px-2 py-1 bg-psu-maroon/10 text-text-brand border border-psu-maroon/20 rounded-md text-[10px] font-mono mb-2">
+                        {cls.subject_code || 'Classroom'} - {cls.section || 'Section'}
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full border border-border-strong bg-bg-panel px-2.5 py-0.5 text-xs font-semibold tracking-wide text-text-muted shadow-sm">
-                        Classroom
-                      </span>
-                    )}
-                    <div className="h-8 w-8 rounded-full bg-bg-panel border border-border-subtle flex items-center justify-center group-hover:bg-psu-maroon group-hover:border-psu-maroon transition-colors shadow-sm">
-                      <svg
-                        className="w-4 h-4 text-text-muted group-hover:text-white transition-transform transform group-hover:translate-x-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <h3 className={`font-semibold text-lg leading-tight group-hover:text-text-brand transition-colors ${cls.is_active === false ? 'text-text-muted' : ''}`}>
+                        {cls.name}
+                      </h3>
                     </div>
+                    <div title={cls.is_active !== false ? 'Active' : 'Inactive'} className={`w-2 h-2 rounded-full ${cls.is_active !== false ? 'bg-psu-maroon animate-pulse' : 'bg-red-500/50'} mt-1 flex-shrink-0`}></div>
                   </div>
                   
-                  <h3 className="text-xl font-bold text-text-main mb-2 line-clamp-2 group-hover:text-text-main transition-colors">
-                    {cls.name}
-                  </h3>
-                  
-                  <div className="flex items-center gap-2 mb-6 mt-auto pt-4">
-                    <span className="text-sm font-medium text-text-muted group-hover:text-text-main transition-colors">
-                      Section {cls.section || 'Unknown'}
-                    </span>
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-border-subtle">
+                    <div>
+                      <p className="text-[10px] text-text-muted mb-0.5">Section</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono text-sm text-text-main">{cls.section || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <button className="rounded bg-bg-panel px-3 py-1.5 text-[10px] font-bold tracking-wider text-text-muted transition group-hover:bg-psu-maroon/10 group-hover:text-text-brand uppercase flex items-center gap-1">
+                      Grade
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>
