@@ -274,7 +274,7 @@ const LiveMonitoring = () => {
             return (
               <div 
                 key={session.id || session.student_id || Math.random()} 
-                className={`bg-bg-glass p-5 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
+                className={`bg-bg-glass p-6 rounded-2xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
                   hasWarning 
                     ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
                     : 'border-border-subtle hover:border-border-subtle'
@@ -284,8 +284,8 @@ const LiveMonitoring = () => {
                   <div className="absolute top-0 left-0 w-full h-1 bg-amber-500/70"></div>
                 )}
                 
-                <div className="flex justify-between items-start mb-5">
-                  <div className="flex-1 pr-3">
+                <div className="flex justify-between items-start mb-6 gap-3 w-full">
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-text-main truncate">
                       {session.student_name || 'Unknown Student'}
                     </h3>
@@ -312,7 +312,7 @@ const LiveMonitoring = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4 flex-1">
+                <div className="space-y-5 flex-1">
                   <div className="flex justify-between items-center group">
                     <span className="text-sm text-text-muted flex items-center gap-2 group-hover:text-text-muted transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
