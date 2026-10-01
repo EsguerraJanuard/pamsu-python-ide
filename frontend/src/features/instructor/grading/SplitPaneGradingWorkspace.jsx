@@ -418,14 +418,31 @@ const SplitPaneGradingWorkspace = () => {
                        {/* Manual Grade */}
                        <div className="flex flex-col justify-center">
                           <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Manual Score</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={gradeScore}
-                            onChange={(e) => setGradeScore(e.target.value)}
-                            className="w-full bg-bg-panel border border-border-strong rounded-lg px-4 py-3 text-2xl font-bold text-text-main focus:outline-none focus:border-psu-maroon focus:ring-2 focus:ring-psu-maroon/30 transition-all shadow-sm"
-                            placeholder="e.g. 95"
-                          />
+                                                      <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={gradeScore}
+                              onChange={(e) => {
+                                let val = e.target.value;
+                                if (val === '') {
+                                  setGradeScore('');
+                                  return;
+                                }
+                                let num = parseFloat(val);
+                                if (num < 0) val = '0';
+                                if (num > 100) val = '100';
+                                setGradeScore(val);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              className="w-full bg-bg-panel border border-border-strong rounded-lg px-4 py-3 text-2xl font-bold text-text-main focus:outline-none focus:border-psu-maroon focus:ring-2 focus:ring-psu-maroon/30 transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none m-0"
+                              placeholder="e.g. 95"
+                            />
                           <p className="text-xs text-text-muted mt-3">Override the suggested grade manually here.</p>
                        </div>
                     </div>

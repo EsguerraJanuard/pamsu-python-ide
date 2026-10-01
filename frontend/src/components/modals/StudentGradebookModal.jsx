@@ -123,6 +123,16 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                             min="0"
                             max="100"
                             defaultValue={grade.score ?? ''}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                e.preventDefault();
+                              }
+                            }}
+                            onInput={(e) => {
+                              let num = parseFloat(e.target.value);
+                              if (num < 0) e.target.value = '0';
+                              if (num > 100) e.target.value = '100';
+                            }}
                             onBlur={async (e) => {
                               const newScore = e.target.value;
                               if (newScore && grade.sub_id && newScore !== (grade.score ?? '').toString()) {
@@ -136,7 +146,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                                 }
                               }
                             }}
-                            className="w-16 rounded border border-border-subtle bg-bg-base px-2 py-1 text-center font-mono text-sm text-text-main focus:border-psu-maroon focus:outline-none"
+                            className="w-16 rounded border border-border-subtle bg-bg-base px-2 py-1 text-center font-mono text-sm text-text-main focus:border-psu-maroon focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none m-0"
                             placeholder="---"
                           />
                           <span className="text-xs text-text-muted">/ {grade.max_score || 100}</span>
