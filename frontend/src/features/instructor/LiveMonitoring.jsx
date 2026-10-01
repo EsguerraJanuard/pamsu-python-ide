@@ -304,11 +304,11 @@ const LiveMonitoring = () => {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1 bg-bg-base px-2 py-1 rounded-xl border border-border-subtle">
-                    <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
+                  <div className={`flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full border ${session.is_active ? 'bg-psu-maroon/10 border-psu-maroon/20 dark:bg-psu-gold/10 dark:border-psu-gold/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${session.is_active ? 'text-psu-maroon dark:text-psu-gold' : 'text-amber-600 dark:text-amber-500'}`}>
                       {session.is_active ? 'Active' : 'Idle'}
                     </span>
-                    <div className={`w-2 h-2 rounded-full ${session.is_active ? 'bg-psu-maroon shadow-[0_0_5px_rgba(112,29,11,0.5)] animate-pulse' : 'bg-border-strong'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${session.is_active ? 'bg-psu-maroon dark:bg-psu-gold shadow-[0_0_5px_rgba(112,29,11,0.5)] dark:shadow-[0_0_5px_rgba(238,179,25,0.5)] animate-pulse' : 'bg-amber-500'}`}></div>
                   </div>
                 </div>
 
