@@ -92,11 +92,11 @@ const LiveMonitoring = () => {
             <div className="mx-auto max-w-6xl ">
 
         <div className="w-full">
-          <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
+          <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="mb-1 font-mono text-xs text-text-brand">MONITORING & GRADING</p>
+              <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
               <h1 className="text-2xl font-bold flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-brand"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
                 Live Monitoring
               </h1>
               <p className="mt-1 text-sm text-text-muted">
@@ -108,13 +108,13 @@ const LiveMonitoring = () => {
               <div className="flex bg-bg-glass rounded-lg p-1 border border-border-subtle">
                 <button
                   onClick={() => setMode('global')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-psu-maroon/20 text-text-brand' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-emerald-500/20 text-text-emerald' : 'text-text-muted hover:text-text-main'}`}
                 >
                   All Active Students
                 </button>
                 <button
                   onClick={() => setMode('task')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-psu-maroon/20 text-text-brand' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-emerald-500/20 text-text-emerald' : 'text-text-muted hover:text-text-main'}`}
                 >
                   Specific Task
                 </button>
@@ -137,10 +137,10 @@ const LiveMonitoring = () => {
                 )}
 
                 {(mode === 'global' || activeTaskId) && (
-                  <div className="flex items-center gap-2 text-sm text-text-brand bg-psu-maroon/10 px-3 py-1.5 rounded-full border border-psu-maroon/20">
+                  <div className="flex items-center gap-2 text-sm text-text-emerald bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
                     <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-text-brand opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-psu-maroon"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                     </span>
                     Live Updates Active
                   </div>
@@ -149,66 +149,33 @@ const LiveMonitoring = () => {
             </div>
           </header>
         
-                  {mode === 'task' && !activeTaskId && (
-            <div className="mb-8">
-              <h2 className="text-sm font-bold text-text-muted uppercase tracking-wider mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
+        {mode === 'task' && (
+          <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle mb-8 shadow-sm">
+            <div className="flex flex-col gap-2 max-w-md">
+              <label htmlFor="taskId" className="block text-sm font-medium text-text-muted mb-1">
                 Select Task to Monitor
-              </h2>
-              {tasks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {tasks.map(t => (
-                    <div 
-                      key={t.task_id}
-                      onClick={() => setActiveTaskId(t.task_id.toString())}
-                      className="cursor-pointer group relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 transition-all duration-300 hover:-translate-y-1 hover:border-psu-maroon/50 hover:shadow-lg hover:shadow-psu-maroon/5"
-                    >
-                      <div className="absolute top-0 right-0 h-24 w-24 -translate-y-10 translate-x-10 rounded-full bg-psu-maroon/10 blur-2xl transition-all group-hover:bg-psu-maroon/20"></div>
-                      <div className="flex flex-col h-full min-h-[80px]">
-                         <h3 className="text-sm font-bold text-text-main group-hover:text-text-brand transition-colors line-clamp-2 mb-4 pr-4">{t.title}</h3>
-                         <div className="mt-auto flex items-center justify-between">
-                           <span className="text-[10px] text-text-muted bg-bg-base px-2 py-1 rounded-md border border-border-subtle font-mono">ID: {t.task_id}</span>
-                           <span className="text-xs font-bold text-text-brand opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">Monitor &rarr;</span>
-                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-12 rounded-xl border border-dashed border-border-strong bg-bg-glass/50 text-text-muted text-sm">
-                   No active tasks available to monitor.
-                </div>
-              )}
+              </label>
+              <CustomSelect
+                value={activeTaskId || ''}
+                onChange={(val) => {
+                  setActiveTaskId(val);
+                }}
+                className="w-full text-sm py-2"
+                options={[
+                  { value: "", label: "Select a task..." },
+                  ...tasks.map(t => ({
+                    value: t.task_id,
+                    label: t.title
+                  }))
+                ]}
+              />
             </div>
-          )}
-
-          {mode === 'task' && activeTaskId && (
-             <div className="flex items-center justify-between bg-bg-glass p-4 rounded-xl border border-border-subtle mb-6 shadow-sm">
-                <div className="flex items-center gap-4">
-                   <div className="p-2.5 rounded-lg bg-psu-maroon/10 text-text-brand ring-1 ring-psu-maroon/20">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                      </svg>
-                   </div>
-                   <div>
-                     <p className="text-[10px] text-text-muted font-bold tracking-wider uppercase mb-0.5">Currently Monitoring</p>
-                     <h3 className="text-sm font-bold text-text-main">{tasks.find(t => t.task_id.toString() === activeTaskId.toString())?.title || `Task ${activeTaskId}`}</h3>
-                   </div>
-                </div>
-                <button 
-                  onClick={() => setActiveTaskId(null)}
-                  className="px-4 py-2 rounded-lg border border-border-strong text-xs font-semibold text-text-main hover:bg-bg-base hover:text-text-brand transition-colors"
-                >
-                  Change Task
-                </button>
-             </div>
-          )}
+          </div>
+        )}
 
         {error && (
-          <div className="border-rose-500/20 bg-rose-500/10 text-text-rose p-4 rounded-lg mb-8 flex items-center gap-3 border">
-            <svg className="w-5 h-5 text-text-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-red-900/20 border border-red-500/50 text-text-rose p-4 rounded-lg mb-8 flex items-center gap-3">
+            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {error}
@@ -221,23 +188,23 @@ const LiveMonitoring = () => {
               <div key={i} className="bg-bg-glass rounded-xl border border-border-subtle overflow-hidden flex flex-col h-[280px] animate-pulse">
                 <div className="bg-bg-glass p-4 flex justify-between items-start border-b border-border-subtle">
                   <div>
-                    <div className="h-5 w-24 bg-border-subtle rounded-md mb-2"></div>
-                    <div className="h-3 w-16 bg-border-subtle rounded-md"></div>
+                    <div className="h-5 w-24 bg-white/[0.06] rounded-md mb-2"></div>
+                    <div className="h-3 w-16 bg-white/[0.06] rounded-md"></div>
                   </div>
-                  <div className="h-6 w-16 bg-border-subtle rounded-full"></div>
+                  <div className="h-6 w-16 bg-white/[0.06] rounded-full"></div>
                 </div>
                 <div className="p-4 flex-1 flex flex-col gap-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="h-3 w-16 bg-border-subtle rounded-md mb-1"></div>
-                      <div className="h-5 w-12 bg-border-subtle rounded-md"></div>
+                      <div className="h-3 w-16 bg-white/[0.06] rounded-md mb-1"></div>
+                      <div className="h-5 w-12 bg-white/[0.06] rounded-md"></div>
                     </div>
                     <div>
-                      <div className="h-3 w-16 bg-border-subtle rounded-md mb-1"></div>
-                      <div className="h-5 w-12 bg-border-subtle rounded-md"></div>
+                      <div className="h-3 w-16 bg-white/[0.06] rounded-md mb-1"></div>
+                      <div className="h-5 w-12 bg-white/[0.06] rounded-md"></div>
                     </div>
                   </div>
-                  <div className="h-3 w-3/4 bg-border-subtle rounded-md mt-auto"></div>
+                  <div className="h-3 w-3/4 bg-white/[0.06] rounded-md mt-auto"></div>
                 </div>
               </div>
             ))}
@@ -274,9 +241,9 @@ const LiveMonitoring = () => {
             return (
               <div 
                 key={session.id || session.student_id || Math.random()} 
-                className={`bg-bg-glass p-6 rounded-2xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
+                className={`bg-bg-glass p-5 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
                   hasWarning 
-                    ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
+                    ? 'border-amber-500/50 bg-amber-900/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
                     : 'border-border-subtle hover:border-border-subtle'
                 }`}
               >
@@ -284,15 +251,15 @@ const LiveMonitoring = () => {
                   <div className="absolute top-0 left-0 w-full h-1 bg-amber-500/70"></div>
                 )}
                 
-                <div className="flex justify-between items-start mb-6 gap-3 w-full">
-                  <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start mb-5">
+                  <div className="flex-1 pr-3">
                     <h3 className="text-lg font-semibold text-text-main truncate">
                       {session.student_name || 'Unknown Student'}
                     </h3>
                     {mode === 'global' && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {session.classroom_name && (
-                          <span className="inline-flex items-center rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-text-brand ring-1 ring-inset ring-psu-maroon/20">
+                          <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-text-blue ring-1 ring-inset ring-blue-500/20">
                             {session.classroom_name}
                           </span>
                         )}
@@ -304,15 +271,15 @@ const LiveMonitoring = () => {
                       </div>
                     )}
                   </div>
-                  <div className={`shrink-0 flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full border ${session.is_active ? 'bg-psu-maroon/10 border-psu-maroon/20 dark:bg-psu-gold/10 dark:border-psu-gold/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${session.is_active ? 'text-psu-maroon dark:text-psu-gold' : 'text-amber-600 dark:text-amber-500'}`}>
+                  <div className="flex items-center gap-1.5 mt-1 bg-bg-base px-2 py-1 rounded-xl border border-border-subtle">
+                    <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
                       {session.is_active ? 'Active' : 'Idle'}
                     </span>
-                    <div className={`w-2 h-2 rounded-full ${session.is_active ? 'bg-psu-maroon dark:bg-psu-gold shadow-[0_0_5px_rgba(112,29,11,0.5)] dark:shadow-[0_0_5px_rgba(238,179,25,0.5)] animate-pulse' : 'bg-amber-500'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${session.is_active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-border-strong'}`}></div>
                   </div>
                 </div>
 
-                <div className="space-y-5 flex-1">
+                <div className="space-y-4 flex-1">
                   <div className="flex justify-between items-center group">
                     <span className="text-sm text-text-muted flex items-center gap-2 group-hover:text-text-muted transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -587,37 +587,3 @@ def patch_eval_grade(
 # AST findings and Jaccard similarity values support instructor review
 # only. They never independently determine plagiarism, misconduct,
 # cheating, copying, or the official academic grade.
-
-@router.patch(
-    "/submissions/{sub_id}/allow-retake",
-    response_model=InstructorSubmissionEvaluationResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Approve a student's retake request.",
-)
-def allow_retake_endpoint(
-    sub_id: int,
-    db: Session = Depends(get_db),
-    current_instructor: User = Depends(get_current_instructor),
-) -> InstructorSubmissionEvaluationResponse:
-    if sub_id < 1:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Submission ID must be greater than zero.",
-        )
-        
-    submission = get_submission_evaluation(
-        sub_id,
-        db=db,
-        current_instructor=current_instructor,
-    )
-    
-    submission.retake_allowed = True
-    submission.retake_requested = False
-    
-    # We may also want to set status to rejected if it's graded, 
-    # but the frontend can just rely on retake_allowed = True.
-    
-    db.commit()
-    db.refresh(submission)
-    
-    return InstructorSubmissionResponse.model_validate(submission)

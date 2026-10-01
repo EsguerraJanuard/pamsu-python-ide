@@ -72,11 +72,11 @@ export default function AuditLogsPage({ role: propRole }) {
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
                   {/* Category Label Added Here */}
-                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-text-brand" : "text-text-brand"}`}>
+                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-text-emerald" : "text-text-blue"}`}>
                     ACCOUNT &amp; SYSTEM
                   </p>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
-                    <ShieldIcon className={`h-6 w-6 ${isInstructor ? "text-text-brand" : "text-text-brand"}`} />
+                    <ShieldIcon className={`h-6 w-6 ${isInstructor ? "text-text-emerald" : "text-blue-500"}`} />
                     {isInstructor ? "System Audit Logs" : "Audit History"}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -102,7 +102,7 @@ export default function AuditLogsPage({ role: propRole }) {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by action, resource, or IP address..."
-                      className={`w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:outline-none transition ${isInstructor ? "focus:border-psu-maroon/50" : "focus:border-psu-maroon/50"}`}
+                      className={`w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:outline-none transition ${isInstructor ? "focus:border-emerald-500/50" : "focus:border-blue-500/50"}`}
                     />
                   </div>
 
@@ -128,14 +128,14 @@ export default function AuditLogsPage({ role: propRole }) {
                 {/* Audit Data Table */}
                 <div className="rounded-xl border border-border-subtle bg-bg-glass shadow-xl overflow-hidden">
                   {loading ? (
-                    <div className="divide-y divide-border-subtle w-full text-left text-xs font-mono">
+                    <div className="divide-y divide-white/[0.06] w-full text-left text-xs font-mono">
                       {[1, 2, 3, 4, 5].map(i => (
                         <div key={i} className="flex px-4 py-3.5 animate-pulse items-center">
-                          <div className="w-1/4 h-3 rounded bg-border-subtle mr-4"></div>
-                          <div className="w-1/5 h-3 rounded bg-border-subtle mr-4"></div>
-                          <div className="w-1/5 h-3 rounded bg-border-subtle mr-4"></div>
-                          <div className="w-1/6 h-3 rounded bg-border-subtle mr-4"></div>
-                          <div className="w-1/12 h-4 rounded bg-border-subtle ml-auto"></div>
+                          <div className="w-1/4 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/5 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/5 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/6 h-3 rounded bg-white/[0.06] mr-4"></div>
+                          <div className="w-1/12 h-4 rounded bg-white/[0.06] ml-auto"></div>
                         </div>
                       ))}
                     </div>
@@ -173,14 +173,14 @@ export default function AuditLogsPage({ role: propRole }) {
                               <td className="py-3.5 px-4 text-text-muted">
                                 {log.resource || log.resource_type || log.resource_id || "N/A"}
                               </td>
-                              <td className="py-3.5 px-4 text-text-brand">
+                              <td className="py-3.5 px-4 text-text-blue">
                                 {log.ip_address || log.audit_data?.ip_address || "127.0.0.1"}
                               </td>
                               <td className="py-3.5 px-4 text-right font-sans">
                                 <span
                                   className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
                                     (log.status === "SUCCESS" || log.outcome === "succeeded")
-                                      ? "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand"
+                                      ? "border-emerald-500/30 bg-emerald-500/10 text-text-emerald"
                                       : "border-rose-500/30 bg-rose-500/10 text-text-rose"
                                   }`}
                                 >
@@ -203,14 +203,14 @@ export default function AuditLogsPage({ role: propRole }) {
                       <button
                         disabled={page <= 1}
                         onClick={() => setPage((p) => p - 1)}
-                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10" : "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className="rounded border border-border-subtle px-3 py-1 bg-bg-glass disabled:opacity-40"
                       >
                         Previous
                       </button>
                       <button
                         disabled={page >= totalPages}
                         onClick={() => setPage((p) => p + 1)}
-                        className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${isInstructor ? "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10" : "border-psu-maroon/30 text-text-brand hover:bg-psu-maroon/10"} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className="rounded border border-border-subtle px-3 py-1 bg-bg-glass disabled:opacity-40"
                       >
                         Next
                       </button>

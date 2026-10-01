@@ -39,7 +39,7 @@ export default function ConfirmationModal({
             className={`rounded-lg px-4 py-2 text-sm font-semibold text-text-main transition-colors ${
               isDanger 
                 ? "bg-red-500/20 text-text-rose hover:bg-red-500 hover:text-text-main"
-                : "bg-psu-maroon hover:bg-text-brand"
+                : "bg-emerald-500 hover:bg-emerald-400"
             }`}
           >
             {confirmText}

@@ -1,7 +1,7 @@
 import os
 import base64
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -166,7 +166,7 @@ def submit_practice_task(
             
             for finding in ast_res.get("findings", []):
                 if not finding.get("passed", False):
-                    ast_feedback_msgs.append(f"[{finding.get('rule')}] Missing {finding.get('label')}: {finding.get('message')}")
+                    ast_feedback_msgs.append(f"Missing {finding.get('label')}: {finding.get('message')}")
             
             if not ast_res.get("passed"):
                 is_successful = False
@@ -474,41 +474,9 @@ def delete_practice_task(
 
 
 
-def _generate_hint_bg(attempt_id: int):
-    from app.core.database import SessionLocal
-    db = SessionLocal()
-    try:
-        from app.models.domain_models import PracticeAttempt
-        attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id).first()
-        if not attempt or attempt.ai_hint:
-            return
-            
-        task = attempt.task
-        error_output = attempt.execution_feedback or "Unknown Error"
-        
-        hint = generate_pedagogical_hint(
-            task_instructions=task.instructions,
-            student_code=attempt.submitted_code,
-            error_output=error_output
-        )
-        
-        attempt.ai_hint = hint
-        db.commit()
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"AI Hint Background Task failed: {e}")
-        try:
-            attempt.ai_hint = f"AI Tutor encountered an error: {str(e)}"
-            db.commit()
-        except:
-            db.rollback()
-    finally:
-        db.close()
-
 @router.post("/attempts/{attempt_id}/ai-hint", response_model=PracticeAiHintResponse)
 def get_ai_hint(
     attempt_id: int,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -520,23 +488,18 @@ def get_ai_hint(
         raise HTTPException(status_code=400, detail="Cannot generate AI hint for successful attempts.")
 
     if attempt.ai_hint:
-        return PracticeAiHintResponse(ai_hint=attempt.ai_hint, status="completed")
+        return PracticeAiHintResponse(ai_hint=attempt.ai_hint)
         
-    # Check if a task was recently kicked off? 
-    # To keep it simple, we kick off if it's missing, but if frontend polls, it will keep kicking off.
-    # Actually, we can use a Redis key or just kick it off if it's not present.
-    # A cleaner way is: if frontend calls GET, we return status. But this is a POST endpoint.
-    # If it's called multiple times, we might spawn multiple generation tasks.
-    # Let's use Redis to prevent duplicate generation.
-    from app.core.redis_client import redis_client
-    lock_key = f"ai_hint_generating:{attempt_id}"
+    task = attempt.task
+    error_output = attempt.execution_feedback or "Unknown Error"
     
-    is_generating = redis_client.get(lock_key)
-    if is_generating:
-        return PracticeAiHintResponse(ai_hint=None, status="processing")
-        
-    # Kick off generation
-    redis_client.setex(lock_key, 30, "1")
-    background_tasks.add_task(_generate_hint_bg, attempt_id)
+    hint = generate_pedagogical_hint(
+        task_instructions=task.instructions,
+        student_code=attempt.submitted_code,
+        error_output=error_output
+    )
     
-    return PracticeAiHintResponse(ai_hint=None, status="processing")
+    attempt.ai_hint = hint
+    db.commit()
+    
+    return PracticeAiHintResponse(ai_hint=hint)

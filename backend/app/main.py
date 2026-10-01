@@ -19,6 +19,7 @@ from app.core.request_context import (
 from app.integrations.partner_auth import (
     PARTNER_EXECUTION_TOKEN_HEADER,
 )
+from app.routers import ws_monitoring
 from app.routers import (
     ws_execution,
     practice,
@@ -310,9 +311,9 @@ app.add_middleware(
 )
 
 
-app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(registration.router)
 app.include_router(classrooms.router)
 app.include_router(instructor.router)
 app.include_router(activities.router)

@@ -10,38 +10,58 @@ import { useAuth } from "../../features/auth/AuthContext";
 const STATUS_CONFIG = {
   due_today: {
     label: "Due today",
-    badgeClass: "border-psu-red/30 bg-psu-red/10 text-psu-red",
-    accentClass: "border-l-psu-red",
-    progressClass: "bg-psu-red",
-    buttonClass: "border border-psu-red/40 bg-transparent text-psu-red hover:bg-psu-red/10",
+    badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+    accentClass: "border-l-amber-500",
+    progressClass: "bg-amber-500",
+    buttonClass: "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
   },
   in_progress: {
     label: "In progress",
-    badgeClass: "border-border-strong bg-bg-glass text-text-muted",
-    accentClass: "border-l-border-strong",
-    progressClass: "bg-border-strong",
-    buttonClass: "border border-border-strong bg-transparent text-text-muted hover:bg-bg-glass hover:text-text-main",
+    badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    accentClass: "border-l-blue-500",
+    progressClass: "bg-blue-500",
+    buttonClass: "bg-blue-600 text-text-main hover:bg-blue-500",
   },
   submitted: {
     label: "Submitted",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 ",
-    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
-    progressClass: "bg-psu-maroon dark:bg-psu-gold",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold/40 dark:hover:bg-psu-gold/10",
+    badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
+    accentClass: "border-l-green-500",
+    progressClass: "bg-green-500",
+    buttonClass: "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
   },
 };
 
-// Helper functions for greeting and first name
 function getGreeting() {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
+
+  if (hour < 12) {
+    return "Good morning";
+  }
+
+  if (hour < 18) {
+    return "Good afternoon";
+  }
+
   return "Good evening";
 }
 
-function getFirstName(fullName) {
-  if (!fullName) return "";
-  return fullName.split(" ")[0];
+function getFirstName(name) {
+  const firstPart = name.includes(",")
+    ? name.split(",")[1]?.trim()
+    : name.trim();
+
+  return firstPart?.split(/\s+/)[0] || "Student";
+}
+
+function getActivityColor(type) {
+  const colors = {
+    run: "#22c55e",
+    analysis: "#f59e0b",
+    submission: "#3b82f6",
+    grade: "#a78bfa",
+  };
+
+  return colors[type] ?? "#64748b";
 }
 
 function ClockIcon() {
@@ -133,6 +153,7 @@ export default function StudentDashboard() {
       });
 
       const mappedActivities = activityRes.map(task => {
+        // Map backend task to the dashboard format
         const due = task.due_at ? new Date(task.due_at) : null;
         let status = "in_progress";
         let dueLabel = "No due date";
@@ -141,6 +162,7 @@ export default function StudentDashboard() {
           dueLabel = `Due: ${due.toLocaleDateString()}`;
         }
         
+        // Find if this task has a submission
         const submission = subRes.find(s => s.task_id === task.task_id);
         
         if (submission) {
@@ -210,7 +232,7 @@ export default function StudentDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-blue-500">MAIN</p>
+                  <p className="mb-1 font-mono text-xs text-text-blue">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
                     <LayoutDashboardIcon className="h-6 w-6 text-blue-500" />
                     {getGreeting()}, {getFirstName(user.name)}
@@ -227,7 +249,7 @@ export default function StudentDashboard() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-psu-red px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-psu-maroon"
+                    className="flex items-center gap-2 rounded-lg bg-[#3b82f6] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2563eb]"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Join a Class
@@ -236,7 +258,7 @@ export default function StudentDashboard() {
                   <button
                     onClick={() => navigate("/student/settings")}
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-glass border border-border-subtle text-xs font-bold shadow-sm cursor-pointer hover:border-text-muted hover:bg-bg-glass-hover transition-colors"
-                    aria-label={`Signed in as ${user?.first_name} {user?.last_name} - Go to settings`}
+                    aria-label={`Signed in as ${user.name} - Go to settings`}
                     title="Account Settings"
                   >
                     {user.initials}
@@ -244,8 +266,8 @@ export default function StudentDashboard() {
                 </div>
               </header>
 
-              <section className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-maroon/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-text-brand">
+              <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
+                <p className="text-xs leading-relaxed text-text-blue">
                   Dashboard indicators support learning reflection.
                   AST checks, test results, and activity progress are
                   not automatic grades. Official grades are assigned
@@ -277,7 +299,7 @@ export default function StudentDashboard() {
                   <article
                     onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-psu-maroon/10 blur-2xl transition-all group-hover:bg-psu-maroon/20"></div>
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
                     <p
                       className="mb-1 text-4xl font-bold text-text-main tracking-tight"
                     >
@@ -294,7 +316,7 @@ export default function StudentDashboard() {
 
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                       <div
-                        className="h-full rounded-full bg-psu-maroon shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out"
+                        className="h-full rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out"
                         style={{
                           width: `${activities.length > 0 ? (activeActivities.length / activities.length) * 100 : 0}%`,
                         }}
@@ -305,7 +327,7 @@ export default function StudentDashboard() {
                   <article
                     onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-psu-maroon/10 blur-2xl transition-all group-hover:bg-psu-maroon/20"></div>
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
                     <p
                       className="mb-1 text-4xl font-bold text-text-main tracking-tight flex items-baseline gap-1"
                     >
@@ -322,7 +344,7 @@ export default function StudentDashboard() {
 
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
                       <div
-                        className="h-full rounded-full bg-psu-maroon shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
+                        className="h-full rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
                         style={{
                           width: `${totalActivitiesCount > 0 ? (completedCount / totalActivitiesCount) * 100 : 0}%`,
                         }}
@@ -349,7 +371,7 @@ export default function StudentDashboard() {
                   <button
                     type="button"
                     onClick={() => navigate("/student/assignments")}
-                    className="text-xs text-psu-red transition-colors hover:text-[#60a5fa]"
+                    className="text-xs text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
                   >
                     View all
                   </button>
@@ -369,7 +391,7 @@ export default function StudentDashboard() {
                   )}
                   {activities.length === 0 && !isLoading && (
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-text-brand">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-text-blue">
                         <LayoutDashboardIcon className="h-6 w-6" />
                       </div>
                       <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
@@ -410,7 +432,7 @@ export default function StudentDashboard() {
 
                               <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                                 <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                                  <BookOpenIcon className="h-3 w-3 text-text-brand" />
+                                  <BookOpenIcon className="h-3 w-3 text-text-blue" />
                                   {activity.courseCode}
                                 </span>
 
@@ -479,7 +501,7 @@ export default function StudentDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/student/analytics")}
-                  className="text-[10px] text-psu-red transition-colors hover:text-[#60a5fa]"
+                  className="text-[10px] text-[#3b82f6] transition-colors hover:text-[#60a5fa]"
                 >
                   Details
                 </button>
@@ -506,7 +528,7 @@ export default function StudentDashboard() {
                       cy="60"
                       r="48"
                       fill="none"
-                      stroke="var(--color-psu-red, #ce0000)"
+                      stroke="#3b82f6"
                       strokeWidth="10"
                       strokeLinecap="round"
                       strokeDasharray={`${totalActivitiesCount > 0 ? ((completedCount / totalActivitiesCount) * 301.59).toFixed(2) : 0} 301.59`}
@@ -554,7 +576,7 @@ export default function StudentDashboard() {
         <Statusbar
           courseCode={user.courseCode}
           courseName={user.courseName}
-          studentName={`${user?.first_name} ${user?.last_name}`}
+          studentName={user.name}
         />
       </div>
 

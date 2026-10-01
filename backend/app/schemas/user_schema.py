@@ -13,9 +13,7 @@ UNIVERSITY_EMAIL_DOMAIN = "@pampangastateu.edu.ph"
 
 
 class UserBase(BaseModel):
-    first_name: str = Field(..., min_length=1, max_length=100)
-    middle_name: str | None = Field(default=None, max_length=100)
-    last_name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=150)
     school_id: str = Field(..., pattern=r"^(\d{10}|\d{4}-\d{5})$")
     email: str = Field(..., min_length=1, max_length=255)
 
@@ -24,13 +22,15 @@ class UserBase(BaseModel):
         str_strip_whitespace=True,
     )
 
-    @field_validator("first_name", "last_name", "middle_name")
+    @field_validator("name")
     @classmethod
-    def validate_name(cls, value: str | None) -> str | None:
-        if value is None:
-            return value
-        normalized = " ".join(value.split())
-        return normalized
+    def validate_name(cls, value: str) -> str:
+        normalized_name = " ".join(value.split())
+
+        if not normalized_name:
+            raise ValueError("Name is required.")
+
+        return normalized_name
 
     @field_validator("school_id")
     @classmethod
@@ -92,9 +92,7 @@ class UserResponse(UserBase):
     )
 
 class UserUpdate(BaseModel):
-    first_name: str = Field(..., min_length=1, max_length=100)
-    middle_name: str | None = Field(default=None, max_length=100)
-    last_name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=150)
     ast_strictness_level: str | None = Field(default=None, max_length=20)
 
     model_config = ConfigDict(
@@ -102,13 +100,15 @@ class UserUpdate(BaseModel):
         str_strip_whitespace=True,
     )
 
-    @field_validator("first_name", "last_name", "middle_name")
+    @field_validator("name")
     @classmethod
-    def validate_name(cls, value: str | None) -> str | None:
-        if value is None:
-            return value
-        normalized = " ".join(value.split())
-        return normalized
+    def validate_name(cls, value: str) -> str:
+        normalized_name = " ".join(value.split())
+
+        if not normalized_name:
+            raise ValueError("Name is required.")
+
+        return normalized_name
 
 class PasswordUpdate(BaseModel):
     current_password: str = Field(..., min_length=1)

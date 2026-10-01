@@ -11,11 +11,6 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
   const wsInstance = useRef(null);
   const fitAddon = useRef(null);
   
-  const codeRef = useRef(code);
-  useEffect(() => {
-    codeRef.current = code;
-  }, [code]);
-  
   useEffect(() => {
     // Initialize xterm
     const term = new Terminal({
@@ -27,7 +22,6 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
       fontFamily: 'monospace',
       cursorBlink: true,
       disableStdin: false,
-      convertEol: true,
     });
     
     const fit = new FitAddon();
@@ -51,9 +45,9 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
   }, []);
   
   useEffect(() => {
-    if (triggerRun > 0 && codeRef.current) {
+    if (triggerRun > 0 && code) {
       // Start run
-      termInstance.current.reset();
+      termInstance.current.clear();
       termInstance.current.writeln('\x1b[33m--- Starting Execution ---\x1b[0m');
       
       // Close existing ws if any
@@ -70,7 +64,7 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
       
       ws.onopen = () => {
         // Send code
-        ws.send(codeRef.current);
+        ws.send(code);
       };
       
       ws.onmessage = (event) => {
@@ -93,7 +87,7 @@ const InteractiveTerminal = ({ code, onRunFinished, triggerRun }) => {
         dataListener.dispose();
       };
     }
-  }, [triggerRun]);
+  }, [triggerRun, code]);
 
   useEffect(() => {
     if (termInstance.current) {

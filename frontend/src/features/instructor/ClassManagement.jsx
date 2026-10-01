@@ -97,11 +97,11 @@ export default function ClassManagement() {
             
             
             <div className="mx-auto max-w-6xl ">
-              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
+              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-text-brand">MANAGEMENT</p>
+                  <p className="mb-1 font-mono text-xs text-text-emerald">MANAGEMENT</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-brand"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2.69-6.12-6-6.44"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2.69-6.12-6-6.44"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     My Classrooms
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -111,7 +111,7 @@ export default function ClassManagement() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-4 py-2 text-xs font-semibold text-white shadow-md shadow-psu-maroon/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98]"
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
                   >
                     + Create New Class
                   </button>
@@ -128,19 +128,19 @@ export default function ClassManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col animate-pulse">
-                      <div className="mb-2 h-6 w-3/4 rounded-md bg-border-subtle"></div>
-                      <div className="mb-4 h-4 w-1/2 rounded-md bg-border-subtle"></div>
-                      <div className="mb-6 h-10 w-full rounded-md bg-border-subtle"></div>
+                      <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.06]"></div>
+                      <div className="mb-4 h-4 w-1/2 rounded-md bg-white/[0.06]"></div>
+                      <div className="mb-6 h-10 w-full rounded-md bg-white/[0.06]"></div>
                       <div className="mt-auto flex justify-between">
-                        <div className="h-4 w-1/3 rounded-md bg-border-subtle"></div>
-                        <div className="h-4 w-1/4 rounded-md bg-border-subtle"></div>
+                        <div className="h-4 w-1/3 rounded-md bg-white/[0.06]"></div>
+                        <div className="h-4 w-1/4 rounded-md bg-white/[0.06]"></div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : classes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-bg-glass/50 py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/10 mb-3 ring-4 ring-psu-maroon/5 text-text-brand">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-text-emerald">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
@@ -151,7 +151,7 @@ export default function ClassManagement() {
                   </p>
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-psu-maroon/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98]"
+                    className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
                   >
                     + Create New Class
                   </button>
@@ -162,19 +162,19 @@ export default function ClassManagement() {
                     <div 
                       key={cls.class_id} 
                       onClick={() => navigate(`/instructor/classes/${cls.class_id}`)}
-                      className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col transition hover:border-psu-maroon/30 cursor-pointer relative group"
+                      className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col transition hover:border-emerald-500/30 cursor-pointer relative group"
                       style={{ animation: `dashboardFadeUp 400ms ease ${idx * 70}ms both` }}
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <span className="inline-block px-2 py-1 bg-psu-maroon/10 text-text-brand border border-psu-maroon/20 rounded-md text-[10px] font-mono mb-2">
+                          <span className="inline-block px-2 py-1 bg-emerald-500/10 text-text-emerald border border-emerald-500/20 rounded-md text-[10px] font-mono mb-2">
                             {cls.subject_code} - {cls.section}
                           </span>
-                          <h3 className={`font-semibold text-lg leading-tight group-hover:text-text-brand transition-colors ${!cls.is_active ? 'text-text-muted' : ''}`}>
+                          <h3 className={`font-semibold text-lg leading-tight group-hover:text-text-emerald transition-colors ${!cls.is_active ? 'text-text-muted' : ''}`}>
                             {cls.name}
                           </h3>
                         </div>
-                        <div title={cls.is_active ? 'Active' : 'Inactive'} className={`w-2 h-2 rounded-full ${cls.is_active ? 'bg-psu-maroon animate-pulse' : 'bg-red-500/50'} mt-1 flex-shrink-0`}></div>
+                        <div title={cls.is_active ? 'Active' : 'Inactive'} className={`w-2 h-2 rounded-full ${cls.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-red-500/50'} mt-1 flex-shrink-0`}></div>
                       </div>
                       
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-border-subtle">
@@ -184,11 +184,11 @@ export default function ClassManagement() {
                             <p className="font-mono text-sm text-text-main">{cls.class_code}</p>
                             <button
                               onClick={(e) => copyToClipboard(e, cls.class_code, cls.class_id)}
-                              className="text-text-muted hover:text-text-brand transition-colors"
+                              className="text-text-muted hover:text-text-emerald transition-colors"
                               title="Copy to clipboard"
                             >
                               {copiedId === cls.class_id ? (
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-text-brand">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-text-emerald">
                                   <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               ) : (
@@ -205,7 +205,7 @@ export default function ClassManagement() {
                             className={`px-3 py-1.5 text-xs rounded transition-colors ${
                               cls.is_active 
                                 ? 'bg-white/5 text-text-muted hover:bg-red-500/10 hover:text-text-rose' 
-                                : 'bg-psu-maroon/10 text-text-brand hover:bg-psu-maroon/20'
+                                : 'bg-emerald-500/10 text-text-emerald hover:bg-emerald-500/20'
                             }`}
                           >
                             {cls.is_active ? 'Archive' : 'Activate'}
@@ -219,7 +219,7 @@ export default function ClassManagement() {
 
               {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                  <div className="w-full max-w-md bg-bg-glass rounded-xl border border-border-subtle shadow-2xl p-6 relative" style={{ animation: 'dashboardFadeUp 300ms ease both' }}>
+                  <div className="w-full max-w-md bg-bg-glass rounded-xl border border-white/[0.1] shadow-2xl p-6 relative" style={{ animation: 'dashboardFadeUp 300ms ease both' }}>
                     <button 
                       onClick={() => setIsModalOpen(false)}
                       className="absolute top-4 right-4 text-text-muted hover:text-text-main"
@@ -234,38 +234,41 @@ export default function ClassManagement() {
                       <div>
                         <label className="block text-xs font-medium text-text-muted mb-1">Subject Code</label>
                         <input 
-                          type="text"
+                          type="text" 
+                          required
                           value={formData.subject_code}
                           onChange={(e) => setFormData({...formData, subject_code: e.target.value})}
                           placeholder="e.g. CS301" 
-                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none transition" 
+                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none transition" 
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-text-muted mb-1">Section</label>
                         <input 
-                          type="text"
+                          type="text" 
+                          required
                           value={formData.section}
                           onChange={(e) => setFormData({...formData, section: e.target.value})}
                           placeholder="e.g. BSIT 3A" 
-                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none transition" 
+                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none transition" 
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-text-muted mb-1">Classroom Name</label>
                         <input 
-                          type="text"
+                          type="text" 
+                          required
                           value={formData.name}
                           onChange={(e) => setFormData({...formData, name: e.target.value})}
                           placeholder="e.g. Operating Systems" 
-                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none transition" 
+                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none transition" 
                         />
                       </div>
                       <div className="pt-2">
                         <button 
                           type="submit" 
                           disabled={isSubmitting}
-                          className="w-full rounded-lg bg-gradient-to-br from-psu-maroon to-psu-maroon py-2.5 text-sm font-semibold text-white shadow-md shadow-psu-maroon/20 transition duration-150 hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSubmitting ? 'Creating...' : 'Generate Class & Code'}
                         </button>

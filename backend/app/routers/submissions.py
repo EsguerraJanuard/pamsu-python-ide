@@ -148,26 +148,8 @@ def create_submission_endpoint(
     except SubmissionServiceError as error:
         _raise_submission_service_error(error)
 
-    from app.tasks.celery_worker import evaluate_submission_background_task
-    evaluate_submission_background_task.delay(submission.sub_id)
-
-    try:
-        from app.services.execution_service import create_student_execution_request
-        from app.schemas.execution_schema import ExecutionRequestCreate
-        create_student_execution_request(
-            db,
-            student_id=current_student.user_id,
-            payload=ExecutionRequestCreate(
-                request_kind="submit",
-                task_id=payload.task_id,
-                submission_id=submission.sub_id,
-                source_code=None,
-                standard_input="",
-                coding_session_id=payload.coding_session_id,
-            ),
-        )
-    except Exception as e:
-        print(f"Failed to dispatch execution for submission: {e}")
+    from app.services.evaluation_service import evaluate_submission_background
+    background_tasks.add_task(evaluate_submission_background, submission.sub_id)
 
     return StudentSubmissionResponse.model_validate(submission)
 
@@ -314,71 +296,3 @@ def get_my_submission_endpoint(
 # notes, coding-session telemetry, source code, standard input,
 # execution output, grades, feedback, clipboard or paste contents,
 # surveillance data, and automated misconduct conclusions.
-
-@router.post("/{submission_id}/retake-request")
-def request_retake(submission_id: str, db: Session = Depends(get_db)):
-    submission = db.query(Submission).filter(Submission.id == submission_id).first()
-    
-    if not submission:
-        raise HTTPException(status_code=404, detail="Submission not found")
-        
-    # Set status or add a flag
-    submission.status = "retake_requested"
-    db.commit()
-    return {"message": "Retake requested successfully"}
-
-@router.post("/{submission_id}/approve-retake")
-def approve_retake(submission_id: str, db: Session = Depends(get_db)):
-    submission = db.query(Submission).filter(Submission.id == submission_id).first()
-    
-    if not submission:
-        raise HTTPException(status_code=404, detail="Submission not found")
-        
-    submission.status = "in_progress" # Or soft delete to let them submit again
-    # Usually approving retake means deleting the submission or resetting it
-    # We will reset status to in_progress
-    submission.grade_score = None
-    submission.has_manual_grade = False
-    db.commit()
-    return {"message": "Retake approved"}
-
-@router.post(
-    "/{submission_id}/request-retake",
-    response_model=StudentSubmissionResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Request a retake for a rejected or failed submission.",
-)
-def request_retake_endpoint(
-    submission_id: int,
-    db: Session = Depends(get_db),
-    current_student: User = Depends(get_current_student),
-) -> StudentSubmissionResponse:
-    if submission_id < 1:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Submission ID must be greater than zero.",
-        )
-        
-    submission = get_student_submission_by_id(
-        db,
-        student_id=current_student.user_id,
-        submission_id=submission_id,
-    )
-    
-    if submission.status not in ["graded", "rejected"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can only request a retake for graded or rejected submissions.",
-        )
-        
-    if submission.retake_allowed:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A retake is already allowed for this submission.",
-        )
-        
-    submission.retake_requested = True
-    db.commit()
-    db.refresh(submission)
-    
-    return StudentSubmissionResponse.model_validate(submission)

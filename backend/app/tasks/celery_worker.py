@@ -111,18 +111,3 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
     finally:
         db.close()
 
-
-@celery.task(bind=True, max_retries=3)
-def evaluate_submission_background_task(self, sub_id: int) -> None:
-    from app.core.database import SessionLocal
-    import logging
-    from app.services.evaluation_service import evaluate_submission_by_id
-    logger = logging.getLogger(__name__)
-    db = SessionLocal()
-    try:
-        evaluate_submission_by_id(db=db, sub_id=sub_id, instructor_id=None)
-    except Exception as e:
-        logger.error(f"Background evaluation failed for submission {sub_id}: {e}")
-        raise self.retry(exc=e, countdown=5)
-    finally:
-        db.close()

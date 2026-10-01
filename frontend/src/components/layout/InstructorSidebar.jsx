@@ -178,12 +178,20 @@ export default function InstructorSidebar() {
         <div className="shrink-0 mb-3 border-b border-border-subtle pb-3">
           <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between px-0.5"}`}>
             <div className="flex items-center gap-2 min-w-0">
-              <img src="/school_logo.png" alt="PSU Logo" className="h-9 w-9 object-contain drop-shadow-md cursor-pointer" onClick={isCollapsed ? toggleCollapse : undefined} title={isCollapsed ? "Expand sidebar" : undefined} />
+              <button
+                type="button"
+                onClick={isCollapsed ? toggleCollapse : undefined}
+                title={isCollapsed ? "Expand sidebar" : undefined}
+                className={`flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg bg-[#10b981] font-mono text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition-transform ${
+                  isCollapsed ? "hover:scale-105 active:scale-95 cursor-pointer" : ""
+                }`}
+              >
+                &gt;_
+              </button>
               {!isCollapsed && (
-                <div className="flex flex-col justify-center">
-                  <span className="truncate text-[9px] font-bold tracking-widest text-text-muted uppercase leading-none mb-0.5">Pampanga State</span>
-                  <span className="truncate text-sm font-extrabold tracking-wide text-text-main leading-none">University</span>
-                </div>
+                <span className="truncate text-sm font-bold tracking-wide text-text-main">
+                  PAMSU IDE
+                </span>
               )}
             </div>
 
@@ -239,7 +247,7 @@ export default function InstructorSidebar() {
                           "flex w-full items-center gap-2.5 rounded-lg text-xs transition-colors duration-150",
                           isCollapsed ? "justify-center px-0 py-2" : "justify-between px-2.5 py-2",
                           isActive
-                            ? "bg-psu-gold/[0.12] text-text-brand font-semibold"
+                            ? "bg-[#10b981]/[0.12] text-text-emerald font-semibold"
                             : "text-text-muted hover:bg-bg-glass hover:text-text-main font-medium",
                         ].join(" ")
                       }
@@ -262,7 +270,7 @@ export default function InstructorSidebar() {
             className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-1"}`}
             title={isCollapsed ? `${name} (${role})` : undefined}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-psu-maroon text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#10b981] text-xs font-bold text-white shadow-sm ring-1 ring-white/10">
               {initials}
             </div>
             {!isCollapsed && (

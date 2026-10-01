@@ -1,5 +1,4 @@
 from app.routers import (
-    admin,
     activities,
     auth,
     classrooms,
@@ -13,7 +12,6 @@ from app.routers import (
 )
 
 __all__ = [
-    "admin",
     "activities",
     "auth",
     "classrooms",

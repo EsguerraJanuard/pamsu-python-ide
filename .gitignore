@@ -28,14 +28,3 @@ backend/pamsu.db
 
 # AI Agent Memory
 AGENTS.md
-
-# Backup files - huwag isama sa repository
-*.bak
-*.bak2
-*.orig
-
-# Node modules
-node_modules/
-
-# Build output
-frontend/dist/

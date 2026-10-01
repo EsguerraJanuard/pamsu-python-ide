@@ -12,7 +12,7 @@ function getPasswordStrength(password) {
   if (/[^A-Za-z0-9]/.test(password)) score++;
   if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#ef4444", width: "25%" };
   if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "var(--color-psu-red, #ce0000)", width: "75%" };
+  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
   return { label: "Strong password", color: "#22c55e", width: "100%" };
 }
 
@@ -123,7 +123,7 @@ export default function ForgotPassword() {
   };
 
   const inputClass = "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
-  const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon/60";
+  const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/60";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg-base text-text-main overflow-hidden p-6 relative">
@@ -131,7 +131,7 @@ export default function ForgotPassword() {
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
       {/* Glow effects (Matches Login!) */}
-      <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] translate-x-1/4 -translate-y-1/4 rounded-full bg-psu-maroon/10 blur-[120px]" />
+      <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
       <div className="absolute bottom-0 left-0 -z-10 h-[600px] w-[600px] -translate-x-1/4 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
 
       <div className="absolute top-6 right-6 z-50">
@@ -171,6 +171,7 @@ export default function ForgotPassword() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="student@pampangastateu.edu.ph"
+                  required
                   className={inputClass}
                 />
               </div>
@@ -179,7 +180,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-psu-maroon hover:bg-psu-maroon py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
@@ -190,7 +191,7 @@ export default function ForgotPassword() {
 
             <div className="mt-6 text-center text-[13px]">
               <span className="text-text-muted">Remember your password?</span>{" "}
-              <Link to="/login" className="font-semibold text-text-brand hover:underline">
+              <Link to="/login" className="font-semibold text-emerald-500 hover:underline">
                 Log in instead
               </Link>
             </div>
@@ -232,7 +233,7 @@ export default function ForgotPassword() {
                     type="button"
                     onClick={handleResendOTP}
                     disabled={resendTimer > 0 || loading}
-                    className="text-text-brand hover:underline disabled:text-text-muted disabled:no-underline"
+                    className="text-emerald-500 hover:underline disabled:text-text-muted disabled:no-underline"
                   >
                     {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend code"}
                   </button>
@@ -243,6 +244,7 @@ export default function ForgotPassword() {
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
                     placeholder="Enter 6-digit code"
+                    required
                     className={`${inputClass} tracking-[0.2em] font-mono text-center`}
                   />
                 </div>
@@ -258,6 +260,7 @@ export default function ForgotPassword() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 8 characters"
+                    required
                     className={inputClass}
                   />
                 </div>
@@ -289,6 +292,7 @@ export default function ForgotPassword() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Enter the new password again"
+                    required
                     className={inputClass}
                   />
                 </div>
@@ -300,7 +304,7 @@ export default function ForgotPassword() {
                     type="checkbox" 
                     checked={showPasswords} 
                     onChange={() => setShowPasswords(!showPasswords)} 
-                    className="rounded border-border-subtle text-text-brand focus:ring-psu-maroon"
+                    className="rounded border-border-subtle text-emerald-500 focus:ring-emerald-500"
                   />
                   Show passwords
                 </label>
@@ -310,7 +314,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading || otpCode.length !== 6}
-              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-psu-maroon hover:bg-psu-maroon py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
@@ -323,7 +327,7 @@ export default function ForgotPassword() {
 
         {step === 3 && (
           <div className="text-center animate-[registerFadeUp_400ms_ease-out_both]">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-psu-maroon/10 text-text-brand">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
               <svg className="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>

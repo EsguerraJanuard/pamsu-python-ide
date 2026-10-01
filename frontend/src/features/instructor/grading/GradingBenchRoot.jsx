@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+﻿/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
@@ -79,9 +79,9 @@ const GradingBenchRoot = () => {
         <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
       <div className="max-w-6xl mx-auto w-full">
         <header className="mb-8 border-b border-border-subtle pb-6">
-          <p className="mb-1 font-mono text-xs text-text-brand">MONITORING &amp; GRADING</p>
+          <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING &amp; GRADING</p>
           <h1 className="text-2xl font-bold text-text-main flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-brand"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
             Grading Bench
           </h1>
           <p className="mt-1 text-sm text-text-muted">Select a class to view and grade assignments.</p>
@@ -93,39 +93,42 @@ const GradingBenchRoot = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map((cls, idx) => (
-                <div 
-                  key={cls.class_id || idx} 
-                  onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                  className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col transition hover:border-psu-maroon/30 cursor-pointer relative group"
-                  style={{ animation: `dashboardFadeUp 400ms ease ${idx * 70}ms both` }}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <span className="inline-block px-2 py-1 bg-psu-maroon/10 text-text-brand border border-psu-maroon/20 rounded-md text-[10px] font-mono mb-2">
-                        {cls.subject_code || 'Classroom'} - {cls.section || 'Section'}
-                      </span>
-                      <h3 className={`font-semibold text-lg leading-tight group-hover:text-text-brand transition-colors ${cls.is_active === false ? 'text-text-muted' : ''}`}>
-                        {cls.name}
-                      </h3>
+            {classes.map((cls) => (
+              <div
+                key={cls.class_id}
+                onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
+                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-40"
+              >
+                <div className="p-6 flex-grow flex flex-col justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
+                      {cls.name}
+                    </h2>
+                    <div className="mt-3 flex items-center gap-2">
+                      {cls.subject_code && (
+                        <span className="bg-bg-panel border border-border-subtle px-2 py-0.5 rounded text-[10px] font-mono text-text-muted">
+                          {cls.subject_code}
+                        </span>
+                      )}
+                      <span className="text-xs font-medium text-text-muted">{cls.section}</span>
                     </div>
-                    <div title={cls.is_active !== false ? 'Active' : 'Inactive'} className={`w-2 h-2 rounded-full ${cls.is_active !== false ? 'bg-psu-maroon animate-pulse' : 'bg-red-500/50'} mt-1 flex-shrink-0`}></div>
                   </div>
-                  
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-border-subtle">
-                    <div>
-                      <p className="text-[10px] text-text-muted mb-0.5">Section</p>
-                      <div className="flex items-center gap-2">
-                        <p className="font-mono text-sm text-text-main">{cls.section || 'N/A'}</p>
-                      </div>
+                  <div className="flex justify-end mt-4">
+                    <div className="h-8 w-8 rounded-full bg-border-subtle/50 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                      <svg
+                        className="w-4 h-4 text-text-muted group-hover:text-emerald-400 transition-transform transform group-hover:translate-x-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
-                    <button className="rounded bg-bg-panel px-3 py-1.5 text-[10px] font-bold tracking-wider text-text-muted transition group-hover:bg-psu-maroon/10 group-hover:text-text-brand uppercase flex items-center gap-1">
-                      Grade
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                    </button>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         )}
       </div>

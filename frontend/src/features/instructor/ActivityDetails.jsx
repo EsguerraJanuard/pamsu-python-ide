@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
-import Flatpickr from 'react-flatpickr';
-import 'flatpickr/dist/themes/dark.css';
-import AlertModal from '../../components/modals/AlertModal';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 
 const ActivityDetails = () => {
@@ -22,7 +19,6 @@ const ActivityDetails = () => {
   });
 
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, testCaseId: null });
-  const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
     fetchActivityDetails();
@@ -57,8 +53,6 @@ const ActivityDetails = () => {
       setActivity(prev => ({ ...prev, is_published: newStatus }));
     } catch (err) {
       console.error('Failed to toggle publication status', err);
-      const msg = err.response?.data?.detail || "Failed to publish activity. Check due date and classroom.";
-      setAlertConfig({ title: "Publication Failed", message: msg, type: "error" });
     }
   };
 
@@ -75,24 +69,11 @@ const ActivityDetails = () => {
   const handleAddTestCase = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        name: `Test Case ${testCases.length + 1}`,
-        standard_input: newTestCase.input_data || "",
-        expected_output: newTestCase.expected_output || "",
-        is_hidden: newTestCase.is_hidden || false,
-        display_order: testCases.length
-      };
-      await api.post(`/instructors/tasks/${id}/test-cases`, payload);
+      await api.post(`/instructors/tasks/${id}/test-cases`, newTestCase);
       setNewTestCase({ input_data: '', expected_output: '', is_hidden: false });
       fetchTestCases();
     } catch (err) {
       console.error('Failed to add test case', err);
-      const msg = err.response?.data?.detail || "Failed to add test case. Please check your inputs.";
-      if (Array.isArray(msg)) {
-         setAlertConfig({ title: "Validation Error", message: "Invalid inputs.", type: "error" });
-      } else {
-         setAlertConfig({ title: "Error", message: msg, type: "error" });
-      }
     }
   };
 
@@ -158,7 +139,7 @@ const ActivityDetails = () => {
               <h1 className="text-2xl font-bold mb-2">{activity.title}</h1>
               <p className="text-text-muted">{activity.description}</p>
             </div>
-            <button onClick={() => navigate(-1)} className="text-text-brand hover:text-text-brand">
+            <button onClick={() => navigate(-1)} className="text-text-emerald hover:text-text-emerald">
               Back
             </button>
           </div>
@@ -171,7 +152,7 @@ const ActivityDetails = () => {
                   onChange={togglePublication}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:opacity-80"></div>
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
               </div>
               <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">
                 {activity.is_published ? "Published" : "Draft"}
@@ -187,7 +168,7 @@ const ActivityDetails = () => {
                   disabled={activity.is_published}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:opacity-80 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-psu-maroon"></div>
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-emerald-500"></div>
               </div>
               <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
             </label>
@@ -199,44 +180,16 @@ const ActivityDetails = () => {
           <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Details</h2>
           
           <div>
-            <h3 className="text-sm font-medium text-text-brand">Instructions</h3>
+            <h3 className="text-sm font-medium text-text-emerald">Instructions</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.instructions || 'No instructions provided.'}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-text-brand">Requirements</h3>
+            <h3 className="text-sm font-medium text-text-emerald">Requirements</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.required_ast_rules && Object.keys(activity.required_ast_rules).length > 0 ? Object.keys(activity.required_ast_rules).join(", ") : 'No requirements provided.'}
-            </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-text-brand">Due Date</h3>
-            <div className="mt-1 flex items-center gap-3">
-              <Flatpickr
-                data-enable-time
-                value={activity.due_at ? new Date(activity.due_at) : null}
-                onChange={async ([date]) => {
-                  try {
-                    const due_at = date ? date.toISOString() : null;
-                    await api.patch(`/instructors/tasks/${id}`, { due_at });
-                    setActivity(prev => ({ ...prev, due_at }));
-                  } catch (err) {
-                    console.error('Failed to update due date', err);
-                    const msg = err.response?.data?.detail || "Could not update due date";
-                    setAlertConfig({ title: "Update Failed", message: msg, type: "error" });
-                  }
-                }}
-                options={{
-                  minDate: "today",
-                  dateFormat: "Y-m-d H:i",
-                  time_24hr: true
-                }}
-                className="bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-psu-maroon focus:outline-none w-64 cursor-pointer"
-                placeholder="No due date set"
-              />
-              <span className="text-xs text-text-muted">Changes are saved automatically</span>
             </div>
           </div>
 
@@ -252,7 +205,7 @@ const ActivityDetails = () => {
               <p className="text-text-muted">No test cases found.</p>
             ) : (
               testCases.map((tc, idx) => (
-                <div key={tc.test_case_id || idx} className="bg-bg-glass p-4 rounded border border-border-subtle flex flex-col md:flex-row gap-4 justify-between items-start">
+                <div key={tc.id || idx} className="bg-bg-glass p-4 rounded border border-border-subtle flex flex-col md:flex-row gap-4 justify-between items-start">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center space-x-2">
                       <span className="font-semibold text-text-main">Test Case #{idx + 1}</span>
@@ -261,7 +214,7 @@ const ActivityDetails = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="text-xs text-text-muted mb-1">Input Data</div>
-                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.standard_input || '-'}</pre>
+                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.input_data || '-'}</pre>
                       </div>
                       <div>
                         <div className="text-xs text-text-muted mb-1">Expected Output</div>
@@ -271,7 +224,7 @@ const ActivityDetails = () => {
                   </div>
                     {!activity.is_published && (
                       <button 
-                        onClick={() => promptDeleteTestCase(tc.test_case_id)}
+                        onClick={() => promptDeleteTestCase(tc.id)}
                         className="text-text-rose hover:text-text-rose px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
                       >
                         Delete
@@ -292,7 +245,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.input_data}
                   onChange={e => setNewTestCase({...newTestCase, input_data: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-psu-maroon focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
                   placeholder="Enter input data..."
                 />
               </div>
@@ -301,7 +254,8 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.expected_output}
                   onChange={e => setNewTestCase({...newTestCase, expected_output: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-psu-maroon focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
+                  required
                   placeholder="Enter expected output..."
                 />
               </div>
@@ -315,13 +269,13 @@ const ActivityDetails = () => {
                     onChange={e => setNewTestCase({...newTestCase, is_hidden: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:opacity-80"></div>
+                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
                 </div>
                 <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Hidden Test Case</span>
               </label>
               <button 
                 type="submit"
-                className="px-4 py-2 bg-psu-maroon hover:opacity-80 text-white rounded transition-colors"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
               >
                 Add Test Case
                 </button>
@@ -349,13 +303,6 @@ const ActivityDetails = () => {
         isDanger={true}
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmModal({ isOpen: false, testCaseId: null })}
-      />
-      <AlertModal 
-        isOpen={!!alertConfig} 
-        title={alertConfig?.title || "Notification"}
-        message={alertConfig?.message || ""}
-        type={alertConfig?.type || "info"}
-        onClose={() => setAlertConfig(null)} 
       />
     </div>
   );

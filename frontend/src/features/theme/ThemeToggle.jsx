@@ -25,7 +25,7 @@ export function ThemeToggle({ className = "", value, onChange }) {
         onClick={handleSetLight}
         className={`flex items-center justify-center rounded-full p-1.5 transition-all ${
           !isDark 
-            ? "bg-white text-text-brand shadow-sm" 
+            ? "bg-white text-emerald-600 shadow-sm" 
             : "text-text-muted hover:text-text-main"
         }`}
         title="Light Mode"
@@ -49,7 +49,7 @@ export function ThemeToggle({ className = "", value, onChange }) {
         onClick={handleSetDark}
         className={`flex items-center justify-center rounded-full p-1.5 transition-all ${
           isDark 
-            ? "bg-slate-800 text-text-brand shadow-sm border border-white/10" 
+            ? "bg-slate-800 text-emerald-400 shadow-sm border border-white/10" 
             : "text-text-muted hover:text-text-main"
         }`}
         title="Dark Mode"

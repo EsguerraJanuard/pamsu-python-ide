@@ -1,18 +1,5 @@
-import os
-from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-import bcrypt
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def get_password_hash(password: str) -> str:
-    salt = bcrypt.gensalt(rounds=4)
-    hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
-    return hashed_bytes.decode("utf-8")
+from app.core.database import SessionLocal
+from app.core.security import get_password_hash
 from app.models.domain_models import User
 from sqlalchemy import text
 from datetime import datetime, timezone

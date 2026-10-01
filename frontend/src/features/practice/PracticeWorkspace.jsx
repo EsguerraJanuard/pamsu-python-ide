@@ -8,7 +8,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import api from "../../services/api";
-import { useAuth } from "../auth/AuthContext";
 
 
 import Statusbar from "../../components/layout/Statusbar";
@@ -28,14 +27,10 @@ function ArrowLeftIcon(props) {
 export default function PracticeWorkspace() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const editorRef = useRef(null);
-  const monacoRef = useRef(null);
   const taskId = searchParams.get("task");
   
   const { settings } = useEditorSettings();
   const { resolvedTheme } = useTheme();
-  const { user } = useAuth();
-  const userId = user?.user_id || user?.id || "anon";
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("lesson");
   const [taskDetails, setTaskDetails] = useState(null);
@@ -94,7 +89,7 @@ export default function PracticeWorkspace() {
             setTaskDetails(foundTask);
             setModuleDetails(foundModule);
             setNextTaskId(nTaskId);
-            const draftStorageKey = `pamsu_saved_code_${userId}_${taskId}`;
+            const draftStorageKey = `pamsu_saved_code_${taskId}`;
             try {
               const savedCode = localStorage.getItem(draftStorageKey);
               if (savedCode) {
@@ -119,7 +114,7 @@ export default function PracticeWorkspace() {
   }, [taskId, navigate]);
   useEffect(() => {
     if (!taskId) return;
-    const draftStorageKey = `pamsu_saved_code_${userId}_${taskId}`;
+    const draftStorageKey = `pamsu_saved_code_${taskId}`;
     const autosaveTimer = window.setTimeout(() => {
       try {
         localStorage.setItem(draftStorageKey, code);
@@ -133,36 +128,6 @@ export default function PracticeWorkspace() {
 
   const [isRunCooldown, setIsRunCooldown] = useState(false);
 
-  
-  // Intelligent Syntax Linting using LSP simulation via Backend
-  useEffect(() => {
-    const lintCode = async () => {
-      if (!editorRef.current || !monacoRef.current || !code.trim()) return;
-      try {
-        const response = await api.post('/execution/lint', { code });
-        if (response.data && response.data.markers) {
-          const monacoMarkers = response.data.markers.map(marker => ({
-            startLineNumber: marker.line,
-            startColumn: marker.column,
-            endLineNumber: marker.line,
-            endColumn: marker.column + 1,
-            message: marker.message,
-            severity: marker.severity === 'error' ? monacoRef.current.MarkerSeverity.Error : monacoRef.current.MarkerSeverity.Warning
-          }));
-          monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'python', monacoMarkers);
-        }
-      } catch (err) {
-        console.error('Linting failed', err);
-      }
-    };
-
-    const debounceTimer = setTimeout(() => {
-      lintCode();
-    }, 1000);
-
-    return () => clearTimeout(debounceTimer);
-  }, [code]);
-
   const handleSubmit = async () => {
     if (isRunCooldown) return;
     setIsRunCooldown(true);
@@ -171,6 +136,8 @@ export default function PracticeWorkspace() {
     setIsSubmitting(true);
     setFeedback(null);
     setAiHint(null);
+    setNextTaskId(null);
+
     // Also trigger InteractiveTerminal so student sees raw output
     setTriggerRun(prev => prev + 1);
 
@@ -178,22 +145,20 @@ export default function PracticeWorkspace() {
       const res = await api.post(`/practice/tasks/${taskId}/submit`, { code });
       setFeedback(res);
       
-      if (!res.is_successful) {
-        // Fetch AI hint with polling
+      if (res.is_successful) {
+        // Find next task id
+        if (moduleDetails) {
+          const tIndex = moduleDetails.tasks.findIndex(t => String(t.task_id) === String(taskId));
+          if (tIndex !== -1 && tIndex < moduleDetails.tasks.length - 1) {
+            setNextTaskId(moduleDetails.tasks[tIndex + 1].task_id);
+          }
+        }
+      } else {
+        // Fetch AI hint
         setIsAiLoading(true);
         try {
-          let aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
-          let attempts = 0;
-          while (aiRes.status === "processing" && attempts < 15) {
-             await new Promise(resolve => setTimeout(resolve, 2000));
-             aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
-             attempts++;
-          }
-          if (aiRes.ai_hint) {
-             setAiHint(aiRes.ai_hint);
-          } else {
-             setAiHint("The AI Tutor timed out. Please try submitting again.");
-          }
+          const aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
+          setAiHint(aiRes.ai_hint);
         } catch (aiErr) {
           console.error("AI hint fetch failed", aiErr);
           setAiHint("The AI Tutor is currently unavailable. Please check your syntax and try again.");
@@ -222,7 +187,7 @@ export default function PracticeWorkspace() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-text-brand"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
       </div>
     );
   }
@@ -243,7 +208,7 @@ export default function PracticeWorkspace() {
         </p>
         <button 
           onClick={() => navigate('/student/practice')}
-          className="flex items-center gap-2 rounded-xl bg-psu-maroon px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/25"
+          className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-blue-500/25"
         >
           <ArrowLeftIcon className="h-5 w-5" />
           Return to Modules
@@ -268,19 +233,19 @@ export default function PracticeWorkspace() {
 
         <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
           <div className="max-w-3xl w-full">
-            <div className="mb-4 inline-flex items-center rounded-full bg-psu-maroon/10 px-3 py-1 text-xs font-medium text-text-brand dark:text-text-brand ring-1 ring-inset ring-psu-maroon/20">
+            <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
               Lesson
             </div>
             <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
             
-            <div className="prose dark:prose-invert max-w-none mb-12">
+            <div className="prose dark:prose-invert prose-emerald max-w-none mb-12">
               <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || 'No instructions provided.'}</ReactMarkdown>
             </div>
             
             <div className="border-t border-border-subtle pt-8 flex justify-end pb-24">
               <button 
                 onClick={() => setViewMode("coding")} 
-                className="flex items-center gap-2 rounded-xl bg-psu-maroon px-8 py-4 text-base font-semibold text-white shadow-lg shadow-psu-maroon/20 transition-all hover:bg-psu-maroon hover:scale-[1.02]"
+                className="flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 hover:scale-[1.02]"
               >
                 Start Coding Challenge
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -319,7 +284,7 @@ export default function PracticeWorkspace() {
                 setCode("");
                 navigate(`/student/practice/workspace?task=${nextTaskId}`);
               }}
-              className="flex items-center gap-2 rounded-md bg-psu-maroon px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-psu-maroon"
+              className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-500"
             >
               Next Task ?
             </button>
@@ -327,7 +292,7 @@ export default function PracticeWorkspace() {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || isRunCooldown}
-            className="flex items-center gap-2 rounded-md bg-psu-maroon px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-psu-maroon disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
@@ -344,17 +309,17 @@ export default function PracticeWorkspace() {
         <div className="flex w-1/3 flex-col border-r border-border-subtle bg-bg-base overflow-y-auto">
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between border-b border-border-subtle pb-2"><h2 className="text-lg font-bold text-text-main">Instructions</h2>
-              <button onClick={() => setViewMode("lesson")} className="text-xs text-text-brand hover:text-text-brand font-medium">Read Full Lesson</button></div>
+              <button onClick={() => setViewMode("lesson")} className="text-xs text-blue-400 hover:text-blue-300 font-medium">Read Full Lesson</button></div>
             <div className="prose dark:prose-invert prose-sm max-w-none text-text-main">
               <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || ''}</ReactMarkdown>
             </div>
 
             {feedback && (
               <div className={`mt-8 animate-fade-in rounded-xl border p-5 
-                ${feedback.is_successful ? "border-psu-maroon/30 bg-psu-maroon/10" : "border-rose-500/30 bg-rose-500/10"}`}
+                ${feedback.is_successful ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10"}`}
               >
                 <h3 className={`text-base font-bold flex items-center gap-2 mb-3
-                  ${feedback.is_successful ? "text-text-brand" : "text-rose-500"}`}
+                  ${feedback.is_successful ? "text-emerald-500" : "text-rose-500"}`}
                 >
                   {feedback.is_successful ? "Evaluation Passed!" : "Evaluation Failed"}
                 </h3>
@@ -387,8 +352,8 @@ export default function PracticeWorkspace() {
                     <h4 className="text-xs font-semibold uppercase text-text-muted mb-1">Structural Feedback</h4>
                     <ul className="list-disc list-inside text-sm text-text-main space-y-1">
                       {feedback.ast_feedback.map((msg, idx) => (
-                        <li key={idx} className={msg.includes("Missing") ? "text-rose-400" : "text-amber-400"}>
-                          {msg.replace(/\[.*?\]\s*/, '')}
+                        <li key={idx} className={msg.startsWith("Missing") ? "text-rose-400" : "text-amber-400"}>
+                          {msg}
                         </li>
                       ))}
                     </ul>
@@ -409,8 +374,7 @@ export default function PracticeWorkspace() {
               value={code}
               onChange={(value) => setCode(value || "")}
               options={monacoOptions}
-            onMount={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
-                />
+            />
           </div>
           {/* Output Terminal */}
           <div className="h-56 border-t border-border-subtle bg-bg-base flex flex-col">

@@ -5,7 +5,7 @@ import CustomSelect from '../../components/ui/CustomSelect';
 export default function EditorSettings() {
   const { settings, updateSetting } = useEditorSettings();
 
-  const inputWrap = "mt-2 overflow-hidden rounded-lg border border-border-subtle bg-bg-base transition focus-within:border-psu-maroon focus-within:ring-1 focus-within:ring-psu-maroon/20";
+  const inputWrap = "mt-2 overflow-hidden rounded-lg border border-border-subtle bg-bg-base transition focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500";
   const selectClass = "w-full appearance-none bg-transparent px-3 py-2 text-sm text-text-main focus:outline-none";
 
   return (
@@ -22,13 +22,13 @@ export default function EditorSettings() {
         <div>
           <label className="mb-1.5 flex justify-between text-xs font-medium text-text-muted">
             <span>Font Size</span>
-            <span className="text-text-brand">{settings.fontSize}px</span>
+            <span className="text-primary-500">{settings.fontSize}px</span>
           </label>
           <input 
             type="range" min="10" max="24" 
             value={settings.fontSize}
             onChange={(e) => updateSetting('fontSize', parseInt(e.target.value))}
-            className="w-full accent-psu-maroon dark:accent-psu-gold"
+            className="w-full accent-primary-500"
           />
         </div>
 
@@ -63,7 +63,7 @@ export default function EditorSettings() {
               onChange={(e) => updateSetting('wordWrap', e.target.checked ? 'on' : 'off')}
               className="peer sr-only" 
             />
-            <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-psu-maroon dark:peer-checked:bg-psu-gold peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+            <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
           </label>
         </div>
 
@@ -80,7 +80,7 @@ export default function EditorSettings() {
               onChange={(e) => updateSetting('minimap', e.target.checked)}
               className="peer sr-only" 
             />
-            <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-psu-maroon dark:peer-checked:bg-psu-gold peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+            <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
           </label>
         </div>
       </div>

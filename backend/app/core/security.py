@@ -62,7 +62,7 @@ def get_password_hash(
     if not isinstance(password, str) or not password:
         raise ValueError("Password cannot be empty.")
 
-    salt = bcrypt.gensalt(rounds=4)  # Render free tier CPU fix
+    salt = bcrypt.gensalt(rounds=12)  # Render free tier CPU fix
     hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed_bytes.decode("utf-8")
 
@@ -248,13 +248,3 @@ def get_current_student(
 # persists an authorized execution request, and sends only its execution ID
 # through the trusted queue adapter.
 
-
-def get_current_admin(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required.",
-        )
-    return current_user

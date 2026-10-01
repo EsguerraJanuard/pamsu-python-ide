@@ -99,7 +99,7 @@ export default function ClassRosterView() {
                 ⚙ Classroom Settings
               </button>
 
-              <div className="text-sm font-semibold text-text-brand bg-psu-maroon/10 border border-psu-maroon/20 px-3 py-1.5 rounded-lg">
+              <div className="text-sm font-semibold text-text-emerald bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
                 Students: {students.length}
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("roster")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "roster"
-                  ? "border-psu-maroon/50 text-text-brand"
+                  ? "border-emerald-400 text-text-emerald"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >
@@ -121,7 +121,7 @@ export default function ClassRosterView() {
               onClick={() => setActiveTab("activities")}
               className={`pb-3 px-1 transition border-b-2 ${
                 activeTab === "activities"
-                  ? "border-psu-maroon/50 text-text-brand"
+                  ? "border-emerald-400 text-text-emerald"
                   : "border-transparent text-text-muted hover:text-text-main"
               }`}
             >
@@ -134,7 +134,7 @@ export default function ClassRosterView() {
           ) : activeTab === "roster" ? (
             <>
               {/* Search Bar */}
-              <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 w-full max-w-sm focus-within:border-psu-maroon/50 focus-within:ring-1 focus-within:ring-psu-maroon/50 transition">
+              <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 w-full max-w-sm focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/50 transition">
                 <svg className="h-4 w-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -182,17 +182,17 @@ export default function ClassRosterView() {
                           onClick={() => setStudentToInspect(student)}
                           className="transition-colors hover:bg-bg-glass cursor-pointer"
                         >
-                          <td className="px-6 py-4 font-medium text-text-main">{student?.first_name} {student?.last_name}</td>
+                          <td className="px-6 py-4 font-medium text-text-main">{student.name}</td>
                           <td className="px-6 py-4">
                             <div className="text-text-main">{student.school_id || "2026-N/A"}</div>
                             <div className="text-xs text-text-muted">{student.email}</div>
                           </td>
                           <td className="px-6 py-4 text-text-muted">
                             {student.is_online ? (
-                               <span className="text-text-brand flex items-center gap-2">
+                               <span className="text-text-emerald flex items-center gap-2">
                                  <span className="relative flex h-2 w-2">
-                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-psu-maroon dark:bg-psu-gold opacity-75"></span>
-                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-psu-maroon"></span>
+                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                  </span>
                                  Online
                                </span>
@@ -238,7 +238,7 @@ export default function ClassRosterView() {
                   <div className="mt-6">
                       <button 
                         onClick={() => navigate(`/instructor/activities/create?class=${classId}`)}
-                        className="flex items-center gap-2 rounded-xl bg-psu-maroon px-6 py-2.5 font-semibold text-white shadow-lg shadow-psu-maroon/20 transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/40"
+                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Create Activity
@@ -250,16 +250,16 @@ export default function ClassRosterView() {
                   <div className="flex justify-end">
                     <button 
                       onClick={() => navigate(`/instructor/activities/create?class=${classId}`)}
-                      className="flex items-center gap-2 rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white shadow-md shadow-psu-maroon/20 transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/40"
+                      className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                       Assign New Activity
                     </button>
                   </div>
                   {tasks.map(task => (
-                  <div key={task.task_id} className="flex items-center justify-between rounded-xl border border-border-subtle bg-bg-glass p-5 transition hover:border-psu-maroon/30 hover:bg-bg-glass/80">
+                  <div key={task.task_id} className="flex items-center justify-between rounded-xl border border-border-subtle bg-bg-glass p-5 transition hover:border-emerald-500/30 hover:bg-bg-glass/80">
                     <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-psu-maroon/10 text-text-brand' : 'bg-bg-glass border border-border-subtle text-text-muted'}`}>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-emerald-500/10 text-text-emerald' : 'bg-bg-glass border border-border-subtle text-text-muted'}`}>
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -269,7 +269,7 @@ export default function ClassRosterView() {
                         <div className="mt-1 flex items-center gap-3 text-xs text-text-muted">
                           <span className="capitalize">{task.activity_type.replace('_', ' ')}</span>
                           <span>•</span>
-                          <span className={task.is_published ? 'text-text-brand/80 font-medium' : 'text-text-muted font-medium'}>
+                          <span className={task.is_published ? 'text-emerald-400/80 font-medium' : 'text-text-muted font-medium'}>
                             {task.is_published ? 'Published' : 'Draft'}
                           </span>
                         </div>
@@ -288,8 +288,8 @@ export default function ClassRosterView() {
                             <span className="text-[10px] uppercase tracking-wider text-text-muted mt-1">Assigned</span>
                           </div>
                           <div className="flex flex-col items-center">
-                            <span className="text-xl font-semibold text-text-brand">{task.graded_count || 0}</span>
-                            <span className="text-[10px] uppercase tracking-wider text-text-brand/60 mt-1">Graded</span>
+                            <span className="text-xl font-semibold text-text-emerald">{task.graded_count || 0}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-text-emerald/60 mt-1">Graded</span>
                           </div>
                         </div>
                       ) : (
@@ -300,7 +300,7 @@ export default function ClassRosterView() {
                       
                       <button 
                         onClick={() => navigate(`/instructor/activities/${task.task_id}`)}
-                        className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-bg-glass-hover hover:text-text-brand"
+                        className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-bg-glass-hover hover:text-text-emerald"
                       >
                         {task.is_published ? "View Activity" : "Edit Activity"}
                       </button>

@@ -5,30 +5,6 @@ import api from "../../services/api";
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
 
-// Mock icons
-function ClipboardListIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-  );
-}
-
-function ClockIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-  );
-}
-
-function TagIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-  );
-}
-
-function SubmissionIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-  );
-}
 
 const FILTERS = [
   {
@@ -48,57 +24,195 @@ const FILTERS = [
 const STATUS_CONFIG = {
   due_today: {
     label: "Due today",
-    badgeClass: "border-psu-red/30 bg-psu-red/10 text-psu-red",
-    accentClass: "border-l-psu-red",
-    progressClass: "bg-psu-red",
-    buttonClass: "border border-psu-red/40 bg-transparent text-psu-red hover:bg-psu-red/10",
+    badgeClass:
+      "border-amber-500/30 bg-amber-500/10 text-amber-400",
+    accentClass: "border-l-amber-500",
+    progressClass: "bg-amber-500",
+    buttonClass:
+      "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
   },
   in_progress: {
     label: "In progress",
-    badgeClass: "border-border-strong bg-bg-glass text-text-muted",
-    accentClass: "border-l-border-strong",
-    progressClass: "bg-border-strong",
-    buttonClass: "border border-border-strong bg-transparent text-text-muted hover:bg-bg-glass hover:text-text-main",
+    badgeClass:
+      "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    accentClass: "border-l-blue-500",
+    progressClass: "bg-blue-500",
+    buttonClass:
+      "bg-blue-600 text-text-main hover:bg-blue-500",
   },
   submitted: {
     label: "Submitted",
-    badgeClass: "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand dark:border-psu-gold/30 ",
-    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
-    progressClass: "bg-psu-maroon dark:bg-psu-gold",
-    buttonClass: "border border-psu-maroon/40 bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold/40 dark:hover:bg-psu-gold/10",
+    badgeClass:
+      "border-green-500/30 bg-green-500/10 text-green-400",
+    accentClass: "border-l-green-500",
+    progressClass: "bg-green-500",
+    buttonClass:
+      "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
   },
   graded: {
     label: "Graded",
-    badgeClass: "border-psu-maroon bg-psu-maroon text-white dark:border-psu-gold dark:bg-psu-gold dark:text-black",
-    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
-    progressClass: "bg-psu-maroon dark:bg-psu-gold",
-    buttonClass: "border border-psu-maroon bg-transparent text-text-brand hover:bg-psu-maroon/10 dark:border-psu-gold dark:hover:bg-psu-gold/10",
+    badgeClass:
+      "border-violet-500/30 bg-violet-500/10 text-violet-400",
+    accentClass: "border-l-violet-500",
+    progressClass: "bg-violet-500",
+    buttonClass:
+      "border border-violet-500/40 bg-transparent text-violet-400 hover:bg-violet-500/10",
   },
 };
 
+function ClockIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+      <path
+        d="M8 5v3.5l2 1.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TagIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M2 2h5.5l6.5 6.5-5.5 5.5L2 7.5V2z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <circle cx="5" cy="5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SubmissionIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 8l4 4 6-7"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function isSubmittedActivity(activity) {
+  return (
+    activity.status === "submitted" ||
+    activity.status === "graded"
+  );
+}
+
+function ClipboardListIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+  );
+}
+
 export default function Assignments() {
   const navigate = useNavigate();
-  const [activities, setActivities] = useState([]);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchActivities = async () => {
+    setIsLoading(true);
     try {
-      // Add your API call here if needed: const response = await api.get('/activities');
-      // setActivities(response.data);
-      setActivities([]); // placeholder
-    } catch (error) {
-      console.error("Failed to fetch activities", error);
+      const [classRes, activityRes, subRes] = await Promise.all([
+        api.get("/classrooms/mine"),
+        api.get("/activities/"),
+        api.get("/submissions/")
+      ]);
+      
+      const classMap = {};
+      classRes.forEach(c => {
+        classMap[c.classroom.class_id] = c.classroom.subject_code;
+      });
+
+      // Build a map of task_id to submission status
+      const submissionMap = {};
+      subRes.forEach(s => {
+        let st = s.status;
+        if (st === 'awaiting_review') st = 'submitted';
+        if (!submissionMap[s.task_id] || st === 'graded' || st === 'submitted') {
+            submissionMap[s.task_id] = st;
+        }
+      });
+
+      const mappedActivities = activityRes.map(task => {
+        const due = task.due_at ? new Date(task.due_at) : null;
+        let status = "in_progress";
+        let dueLabel = "No due date";
+        
+        if (due) {
+          dueLabel = `Due: ${due.toLocaleDateString()}`;
+        }
+        
+        if (submissionMap[task.task_id]) {
+          status = submissionMap[task.task_id];
+        } else if (due && due < new Date()) {
+          status = "past_due";
+          dueLabel = "Submission closed";
+        }
+        
+        return {
+          id: task.task_id,
+          title: task.title,
+          activityType: task.activity_type === "laboratory" ? "Laboratory" : "Homework",
+          courseCode: classMap[task.class_id] || "Unknown",
+          dueLabel: dueLabel,
+          tags: [], 
+          status: status,
+          progress: 0,
+          note: "No official submission has been recorded.",
+          actionLabel: status === "submitted" ? "View submission" : "Open",
+          latestSubmission: null,
+          instructorGrade: null,
+        };
+      });
+      setActivities(mappedActivities);
+    } catch (err) {
+      console.error("Failed to load activities", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchActivities();
   }, []);
-
-  const isSubmittedActivity = (activity) => {
-    return activity.status === "graded" || activity.status === "submitted";
-  };
 
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {
@@ -167,9 +281,9 @@ export default function Assignments() {
           <div className="w-full">
             <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
-                <p className="mb-1 font-mono text-xs text-text-brand">MAIN</p>
+                <p className="mb-1 font-mono text-xs text-text-blue">MAIN</p>
                 <h1 className="text-2xl font-bold flex items-center gap-3">
-                  <ClipboardListIcon className="h-6 w-6 text-text-brand" />
+                  <ClipboardListIcon className="h-6 w-6 text-blue-500" />
                   Assignments
                 </h1>
                 <p className="mt-1 text-sm text-text-muted">
@@ -178,8 +292,8 @@ export default function Assignments() {
               </div>
             </header>
 
-            <section className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-maroon/[0.07] px-4 py-3">
-              <p className="text-xs leading-relaxed text-text-brand">
+            <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
+              <p className="text-xs leading-relaxed text-text-blue">
                 You may submit an activity more than once while
                 submissions remain open. The latest accepted submission
                 becomes the official version for instructor review.
@@ -255,7 +369,7 @@ export default function Assignments() {
 
                         <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
                           <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                            <ClipboardListIcon className="h-3 w-3 text-text-brand" />
+                            <ClipboardListIcon className="h-3 w-3 text-text-blue" />
                             {activity.courseCode}
                           </span>
 
@@ -285,7 +399,7 @@ export default function Assignments() {
                     </div>
 
                     {activity.latestSubmission && (
-                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-psu-maroon/20 bg-psu-maroon/5 px-3 py-2 text-[11px] text-text-brand shadow-inner">
+                      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-500/10 bg-green-500/[0.05] px-3 py-2 text-[11px] text-text-emerald shadow-inner">
                         <span className="flex items-center gap-1.5 font-medium">
                           <SubmissionIcon className="h-3 w-3" />
                           Attempt{" "}
@@ -300,7 +414,7 @@ export default function Assignments() {
                         </span>
 
                         {activity.latestSubmission.isOfficial && (
-                          <span className="rounded-full bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-brand">
+                          <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-text-emerald">
                             Latest official submission
                           </span>
                         )}

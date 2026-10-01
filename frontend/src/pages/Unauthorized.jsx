@@ -13,12 +13,12 @@ export const Unauthorized = () => {
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-text-main">Access Denied</h1>
         <p className="text-sm leading-relaxed text-text-muted">
-          You do not have the security permissions to view this workspace. This area is restricted to authorized role personnel only.
+          You do not have the required security permissions to view this workspace. This area is restricted to authorized role personnel only.
         </p>
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="inline-flex w-full items-center justify-center rounded-lg bg-psu-maroon px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-psu-maroon focus:outline-none focus:ring-2 focus:ring-psu-maroon focus:ring-offset-2 focus:ring-offset-slate-900"
+          className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
         >
           Return to Previous Page
         </button>

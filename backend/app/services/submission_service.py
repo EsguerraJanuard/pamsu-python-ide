@@ -317,23 +317,8 @@ def create_student_submission(
         task_id=task.task_id,
     )
 
-    
-    # Enforce retake gatekeeper
-    existing_official = (
-        db.query(Submission)
-        .filter(
-            Submission.student_id == student_id,
-            Submission.task_id == task.task_id,
-            Submission.is_official.is_(True),
-        )
-        .first()
-    )
-    if existing_official and not existing_official.retake_allowed:
-        raise SubmissionServiceError(
-            "You cannot submit again unless the instructor has approved a retake."
-        )
-
-    # Official-attempt metadata may change
+    # Official-attempt metadata may change, but the previous attempt's
+    # submitted source and attempt number remain immutable.
     (
         db.query(Submission)
         .filter(

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Pagination from "../../components/ui/Pagination";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 
@@ -11,8 +10,8 @@ const STATUS_CONFIG = {
   awaiting_review: {
     label: "Awaiting review",
     badgeClass:
-      "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand",
-    accentClass: "border-l-psu-maroon dark:border-l-psu-gold",
+      "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    accentClass: "border-l-blue-500",
   },
   graded: {
     label: "Graded",
@@ -68,7 +67,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
       className="space-y-4"
       aria-label="Submitted activities"
     >
-      {submissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((submission, index) => {
+      {submissions.map((submission, index) => {
         const status =
           STATUS_CONFIG[submission.status] ??
           STATUS_CONFIG.awaiting_review;
@@ -111,19 +110,19 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
               <button
                 type="button"
                 onClick={() => onOpen(submission.id)}
-                className="shrink-0 rounded-lg border border-psu-maroon/40 px-3 py-1.5 text-xs font-semibold text-text-brand transition duration-150 hover:-translate-y-px hover:bg-psu-maroon/10 active:translate-y-0 active:scale-[0.98]"
+                className="shrink-0 rounded-lg border border-blue-500/40 px-3 py-1.5 text-xs font-semibold text-text-blue transition duration-150 hover:-translate-y-px hover:bg-blue-500/10 active:translate-y-0 active:scale-[0.98]"
               >
                 View details
               </button>
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-1 text-[10px] font-medium text-text-brand">
+              <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-medium text-text-blue">
                 Attempt {submission.latestAttempt}
               </span>
 
               {submission.isOfficial && (
-                <span className="rounded-full border border-psu-maroon/20 bg-psu-maroon/[0.06] px-2.5 py-1 text-[10px] text-text-brand">
+                <span className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-2.5 py-1 text-[10px] text-text-blue">
                   Latest official submission
                 </span>
               )}
@@ -154,7 +153,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-text-brand">
+                    <p className="text-sm font-semibold text-text-blue">
                       Pending
                     </p>
 
@@ -179,7 +178,7 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
 
       {submissions.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle py-20 px-6 text-center transition-all hover:bg-bg-glass">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-psu-maroon/10 text-text-brand ring-4 ring-psu-maroon/5">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 text-text-blue ring-4 ring-blue-500/5">
             <ArchiveIcon className="h-8 w-8" />
           </div>
           <h3 className="mb-2 text-xl font-semibold text-text-main">No Submissions Yet</h3>
@@ -204,7 +203,7 @@ function SubmissionDetails({ submission, onBack }) {
       <button
         type="button"
         onClick={onBack}
-        className="text-xs text-text-brand transition-colors hover:text-text-brand"
+        className="text-xs text-text-blue transition-colors hover:text-text-blue"
       >
         ← Back to submissions
       </button>
@@ -272,7 +271,7 @@ function SubmissionDetails({ submission, onBack }) {
                 </div>
 
                 {attempt.isOfficial ? (
-                  <span className="w-fit rounded-full border border-psu-maroon/20 bg-psu-maroon/10 px-2.5 py-1 text-[10px] font-medium text-text-brand">
+                  <span className="w-fit rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-medium text-text-blue">
                     Latest official submission
                   </span>
                 ) : (
@@ -319,8 +318,6 @@ export default function Submissions() {
   const { id } = useParams();
 
   const [submissions, setSubmissions] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
@@ -332,27 +329,6 @@ export default function Submissions() {
           api.get("/activities/"),
           api.get("/classrooms/mine"),
         ]);
-        
-        let allGrades = [];
-        let currentPage = 1;
-        let totalPages = 1;
-
-        while (currentPage <= totalPages) {
-          try {
-            const gradesPage = await api.get(`/activities/released-grades?page=${currentPage}&page_size=100`);
-            if (gradesPage && gradesPage.items) {
-              allGrades = [...allGrades, ...gradesPage.items];
-              totalPages = gradesPage.total_pages || gradesPage.pages || 1;
-            } else {
-              break;
-            }
-          } catch (e) {
-            console.error("Failed to fetch grades page", e);
-            break;
-          }
-          currentPage++;
-        }
-        const gradesRes = { items: allGrades };
 
         const classMap = {};
         classRes.forEach(c => {
@@ -368,14 +344,6 @@ export default function Submissions() {
           };
         });
 
-
-        const gradeMap = {};
-        if (gradesRes && gradesRes.items) {
-          gradesRes.items.forEach(g => {
-            gradeMap[g.sub_id] = { score: g.score, maximum: g.max_score, feedback: g.feedback };
-          });
-        }
-
         const mappedSubs = subRes.map((sub) => {
           const act = actMap[sub.task_id] || { title: "Unknown", type: "Unknown", course: "Unknown" };
           return {
@@ -388,8 +356,8 @@ export default function Submissions() {
             totalAttempts: sub.attempt_number,
             submittedLabel: new Date(sub.submitted_at).toLocaleString(),
             isOfficial: sub.is_official,
-            instructorGrade: gradeMap[sub.sub_id] ? { score: gradeMap[sub.sub_id].score, maximum: gradeMap[sub.sub_id].maximum } : null,
-            instructorFeedback: gradeMap[sub.sub_id]?.feedback || "Awaiting instructor review.",
+            instructorGrade: null,
+            instructorFeedback: "Awaiting instructor review.",
             attempts: [
               {
                 attemptNumber: sub.attempt_number,
@@ -466,9 +434,9 @@ export default function Submissions() {
               <>
                 <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                   <div>
-                    <p className="mb-1 font-mono text-xs text-text-brand">PROGRESS</p>
+                    <p className="mb-1 font-mono text-xs text-text-blue">PROGRESS</p>
                     <h1 className="text-2xl font-bold flex items-center gap-3">
-                      <ArchiveIcon className="h-6 w-6 text-text-brand" />
+                      <ArchiveIcon className="h-6 w-6 text-blue-500" />
                       Submissions
                     </h1>
                     <p className="mt-1 text-sm text-text-muted">
@@ -487,7 +455,7 @@ export default function Submissions() {
                           onClick={() => setFilter(f.value)}
                           className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                             filter === f.value
-                              ? "bg-psu-maroon text-white shadow-sm"
+                              ? "bg-blue-600 text-white shadow-sm"
                               : "text-text-muted hover:bg-bg-glass hover:text-text-main"
                           }`}
                         >
@@ -529,7 +497,7 @@ export default function Submissions() {
                 <button
                   type="button"
                   onClick={() => navigate("/student/submissions")}
-                  className="mt-5 rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold transition-colors hover:bg-psu-maroon"
+                  className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold transition-colors hover:bg-blue-500"
                 >
                   Return to submissions
                 </button>

@@ -23,7 +23,7 @@ const RootRoute = () => {
   return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
 };
 
-// Redirects already-authenticated users away from login
+// Redirects already-authenticated users away from login/register
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Outlet />;
@@ -39,9 +39,9 @@ import AuditLogsPage from './pages/AuditLogsPage';
 
 // Feature Components
 import Login from './features/auth/Login';
+import Register from './features/auth/Register';
 import ForgotPassword from './features/auth/ForgotPassword';
 import StudentDashboard from './features/dashboard/StudentDashboard';
-import AdminDashboard from './features/admin/AdminDashboard';
 import InstructorDashboard from './features/dashboard/InstructorDashboard';
 import InstructorSettings from "./features/settings/InstructorSettings";
 import Assignments from './features/assignments/Assignments';
@@ -69,7 +69,7 @@ const PlaceholderView = ({ title, description }) => (
   <div className="rounded-xl border border-border-subtle bg-bg-glass/50 p-8 text-center">
     <h2 className="text-xl font-bold text-text-main">{title}</h2>
     <p className="mt-2 text-sm text-text-muted">{description}</p>
-    <div className="mt-6 inline-block rounded-full bg-psu-maroon/10 px-3 py-1 text-xs font-medium text-text-brand">
+    <div className="mt-6 inline-block rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-text-blue">
       Scheduled for pipeline integration
     </div>
   </div>
@@ -89,6 +89,7 @@ export const App = () => {
             {/* Public Authentication Routes — redirect to dashboard if already logged in */}
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
               </Route>
             <Route path="/unauthorized" element={<Unauthorized />} />

@@ -840,10 +840,3 @@ def apply_partner_execution_result_endpoint(
 # REVIEW BOUNDARY:
 # Execution output, errors, and resource-limit results support instructor
 # review. They do not automatically assign a grade or misconduct verdict.
-
-from app.schemas.lint_schema import LintRequest, LintResult
-from app.services.lint_service import lint_python_code
-
-@router.post("/lint", response_model=LintResult)
-async def lint_endpoint(request: LintRequest):
-    return lint_python_code(request.code)

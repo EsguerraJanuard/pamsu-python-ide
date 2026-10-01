@@ -10,26 +10,6 @@ export default function SubmissionDetails() {
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState(null);
   const [error, setError] = useState(null);
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [retakeRequested, setRetakeRequested] = useState(false);
-
-  useEffect(() => {
-    if (submission?.status === 'retake_requested') {
-      setRetakeRequested(true);
-    }
-  }, [submission]);
-
-  const handleRequestRetake = async () => {
-    setIsRequesting(true);
-    try {
-      await api.post(`/submissions/${submission.id}/retake-request`);
-      setRetakeRequested(true);
-    } catch (err) {
-      console.error("Failed to request retake", err);
-    } finally {
-      setIsRequesting(false);
-    }
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -63,7 +43,7 @@ export default function SubmissionDetails() {
       <div className="flex h-screen w-screen bg-bg-base text-text-main">
         <Sidebar />
         <div className="flex flex-1 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-psu-maroon"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500"></div>
         </div>
       </div>
     );
@@ -78,7 +58,7 @@ export default function SubmissionDetails() {
           <p className="text-text-muted mb-4">{error || "Submission not found"}</p>
           <button
             onClick={() => navigate("/student/submissions")}
-            className="rounded bg-psu-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-psu-maroon"
+            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
           >
             Back to Submissions
           </button>
@@ -88,10 +68,10 @@ export default function SubmissionDetails() {
   }
 
   const statusColors = {
-    awaiting_review: "text-text-brand border-border-strong bg-bg-glass",
-    graded: "text-white dark:text-black border-psu-maroon/50 bg-psu-maroon dark:bg-psu-gold",
+    awaiting_review: "text-blue-400 border-blue-400/30 bg-blue-400/10",
+    graded: "text-violet-400 border-violet-400/30 bg-violet-400/10",
     rejected: "text-rose-400 border-rose-400/30 bg-rose-400/10",
-    submitted: "text-text-brand border-border-subtle bg-psu-maroon/10"
+    submitted: "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
   };
 
   const statusLabel = submission.status.replace("_", " ").toUpperCase();
@@ -128,29 +108,15 @@ export default function SubmissionDetails() {
                     {statusLabel}
                   </span>
                 </div>
-                { (submission.status === 'graded' || submission.status === 'rejected') && !retakeRequested && (
-                  <button
-                    onClick={handleRequestRetake}
-                    disabled={isRequesting}
-                    className="mt-2 text-xs font-semibold px-3 py-1.5 bg-psu-maroon text-white dark:bg-psu-gold dark:text-black rounded hover:opacity-90 disabled:opacity-50"
-                  >
-                    {isRequesting ? 'Requesting...' : 'Request Retake'}
-                  </button>
-                )}
-                { retakeRequested && (
-                  <span className="mt-2 inline-block text-xs font-semibold px-3 py-1.5 bg-amber-500/10 text-amber-500 rounded border border-amber-500/20">
-                    Retake Requested - Awaiting Instructor
-                  </span>
-                )}
                 <p className="mt-1 text-xs text-text-muted">
                   Submitted at: {new Date(submission.accepted_at).toLocaleString()}
                 </p>
                 <div className="mt-4 flex gap-4 text-sm font-mono text-text-muted">
                   <div className="bg-bg-glass px-3 py-1.5 rounded border border-border-subtle">
-                    Attempt Number: <span className="text-text-brand font-bold">{submission.attempt_number}</span>
+                    Attempt Number: <span className="text-text-blue font-bold">{submission.attempt_number}</span>
                   </div>
                   <div className="bg-bg-glass px-3 py-1.5 rounded border border-border-subtle">
-                    Is Official: <span className="text-text-brand font-bold">{submission.is_official ? "Yes" : "No"}</span>
+                    Is Official: <span className="text-text-emerald font-bold">{submission.is_official ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </div>
@@ -162,7 +128,7 @@ export default function SubmissionDetails() {
                     {submission.ast_pass_fail === null ? (
                       <span className="text-text-muted font-medium inline-block mt-1">Pending</span>
                     ) : submission.ast_pass_fail ? (
-                      <span className="text-text-brand font-bold px-3 py-1 bg-psu-maroon/10 border border-psu-maroon/20 rounded inline-block mt-1">PASSED</span>
+                      <span className="text-text-emerald font-bold px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded inline-block mt-1">PASSED</span>
                     ) : (
                       <span className="text-text-rose font-bold px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded inline-block mt-1">FAILED</span>
                     )}
@@ -176,7 +142,7 @@ export default function SubmissionDetails() {
              <h2 className="text-sm font-bold text-text-main tracking-wide border-b border-border-subtle pb-3">
                Submitted Code
              </h2>
-             <pre className="font-mono text-[11px] p-4 bg-bg-glass rounded-lg border border-border-subtle overflow-x-auto text-text-brand">
+             <pre className="font-mono text-[11px] p-4 bg-bg-glass rounded-lg border border-border-subtle overflow-x-auto text-text-blue">
                 {submission.raw_code}
              </pre>
           </div>

@@ -1,10 +1,8 @@
-from app.services.ast_analyzer import analyze_reference_solution
 from app.schemas.practice_schema import GrowthAnalyticsResponse
 from app.routers.practice import calculate_growth_for_student
 from typing import NoReturn
 from uuid import UUID
 
-from pydantic import BaseModel
 from fastapi import (
     APIRouter,
     Depends,
@@ -1221,24 +1219,7 @@ def get_submission_endpoint(
     except SubmissionServiceError as exc:
         raise_submission_service_http_exception(exc)
 
-    from app.models.domain_models import ExecutionRequest
-    exec_request = db.query(ExecutionRequest).filter(
-        ExecutionRequest.submission_id == submission_id,
-        ExecutionRequest.request_kind == "submit"
-    ).order_by(ExecutionRequest.queued_at.desc()).first()
-    
-    exec_log = None
-    if exec_request:
-        if exec_request.status in ["queued", "running"]:
-            exec_log = "[Execution in progress or queued in background worker...]"
-        elif exec_request.stderr:
-            exec_log = f"ERROR:\n{exec_request.stderr}\n\nOUTPUT:\n{exec_request.stdout}"
-        else:
-            exec_log = exec_request.stdout if exec_request.stdout else "[No output produced]" 
-
-    response = InstructorSubmissionResponse.model_validate(submission)
-    response.execution_log = exec_log
-    return response
+    return InstructorSubmissionResponse.model_validate(submission)
 
 
 @router.get(
@@ -1595,29 +1576,3 @@ def export_instructor_review_queue_csv(
         media_type="text/csv", 
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
-
-
-class SolutionAnalysisRequest(BaseModel):
-    reference_code: str
-
-@router.post("/tasks/analyze-solution", status_code=status.HTTP_200_OK)
-def analyze_solution(
-    request: SolutionAnalysisRequest,
-    current_user: User = Depends(get_current_instructor)
-):
-    """
-    Analyzes the instructor's reference solution using AST 
-    to auto-detect the difficulty and required Python constructs.
-    """
-    if current_user.role != UserRole.INSTRUCTOR:
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
-    analysis_result = analyze_reference_solution(request.reference_code)
-    
-    if not analysis_result.get("success"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=analysis_result.get("error", "Failed to parse code.")
-        )
-        
-    return analysis_result

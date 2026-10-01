@@ -102,11 +102,11 @@ export default function NotificationsPage({ role: propRole }) {
             <div className="w-full h-full flex flex-col">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6 shrink-0">
                 <div>
-                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-text-brand" : "text-text-brand"}`}>
+                  <p className={`mb-1 font-mono text-xs ${isInstructor ? "text-text-emerald" : "text-text-blue"}`}>
                     ACCOUNT &amp; SYSTEM
                   </p>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
-                    <BellIcon className={`h-6 w-6 ${isInstructor ? "text-text-brand" : "text-text-brand"}`} />
+                    <BellIcon className={`h-6 w-6 ${isInstructor ? "text-text-emerald" : "text-blue-500"}`} />
                     {isInstructor ? "System Alerts" : "Notifications"}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -131,20 +131,20 @@ export default function NotificationsPage({ role: propRole }) {
                   
                   <div className="flex-1 overflow-y-auto flex flex-col">
                     {loading ? (
-                      <div className="divide-y divide-border-subtle">
+                      <div className="divide-y divide-white/[0.06]">
                         {[1, 2, 3, 4, 5].map((i) => (
                           <div key={i} className="p-4 flex items-start gap-3 animate-pulse">
-                            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-border-subtle"></div>
+                            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-white/[0.06]"></div>
                             <div className="flex-1 space-y-2">
-                              <div className="h-4 w-3/4 rounded-md bg-border-subtle"></div>
-                              <div className="h-3 w-full rounded-md bg-border-subtle"></div>
-                              <div className="h-3 w-5/6 rounded-md bg-border-subtle"></div>
+                              <div className="h-4 w-3/4 rounded-md bg-white/[0.06]"></div>
+                              <div className="h-3 w-full rounded-md bg-white/[0.06]"></div>
+                              <div className="h-3 w-5/6 rounded-md bg-white/[0.06]"></div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : error ? (
-                      <div className="p-6 text-center text-text-rose text-sm">
+                      <div className="p-6 text-center text-red-500 text-sm">
                         {error}
                       </div>
                     ) : notifications.length === 0 ? (
@@ -157,7 +157,7 @@ export default function NotificationsPage({ role: propRole }) {
                       </div>
                     ) : (
                       <>
-                        <div className="divide-y divide-border-subtle">
+                        <div className="divide-y divide-white/[0.06]">
                           {notifications.map((notif) => {
                             const isSelected = selectedNotification?.id === notif.id;
                             return (
@@ -168,13 +168,13 @@ export default function NotificationsPage({ role: propRole }) {
                                   isSelected 
                                     ? "bg-bg-glass" 
                                     : !notif.is_read 
-                                      ? "bg-psu-maroon/[0.03] hover:bg-psu-maroon/[0.06]" 
+                                      ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.06]" 
                                       : "hover:bg-bg-glass"
                                 }`}
                               >
                                 <div className="flex items-start gap-3">
                                   {!notif.is_read && (
-                                    <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${isInstructor ? "bg-psu-maroon shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-psu-maroon shadow-[0_0_8px_rgba(59,130,246,0.8)]"}`} />
+                                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
                                   )}
                                   <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
                                     <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-text-main" : "font-medium text-text-muted"}`}>
@@ -229,7 +229,7 @@ export default function NotificationsPage({ role: propRole }) {
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                         </button>
-                        <h2 className={`text-sm font-semibold ${isInstructor ? "text-text-brand" : "text-text-brand"}`}>Notification Details</h2>
+                        <h2 className={`text-sm font-semibold ${isInstructor ? "text-text-emerald" : "text-blue-500"}`}>Notification Details</h2>
                       </div>
                       
                       <div className="flex-1 overflow-y-auto p-8">
@@ -250,17 +250,17 @@ export default function NotificationsPage({ role: propRole }) {
                             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Suggested Actions</h3>
                             <div className="flex flex-wrap gap-3">
                               {selectedNotification.event_type === "submission_created" && (
-                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition duration-150 shadow-md hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] ${isInstructor ? "bg-gradient-to-br from-psu-maroon to-psu-maroon shadow-psu-maroon/20" : "bg-gradient-to-br from-psu-maroon to-psu-maroon shadow-psu-maroon/20"}`}>
+                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
                                   Open Grading Bench
                                 </button>
                               )}
                               {(selectedNotification.event_type === "student_enrolled" || selectedNotification.event_type === "enrollment_status_changed") && (
-                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg border px-4 py-2 text-xs font-semibold transition ${isInstructor ? "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand hover:bg-psu-maroon/20" : "border-psu-maroon/30 bg-psu-maroon/10 text-text-brand hover:bg-psu-maroon/20"}`}>
+                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg border px-4 py-2 text-xs font-semibold transition ${isInstructor ? "border-emerald-500/30 bg-emerald-500/10 text-text-emerald hover:bg-emerald-500/20" : "border-blue-500/30 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"}`}>
                                   Manage Classroom
                                 </button>
                               )}
                               {(selectedNotification.event_type === "grade_released" || selectedNotification.event_type === "activity_published" || selectedNotification.event_type === "activity_updated") && !isInstructor && (
-                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition duration-150 shadow-md hover:-translate-y-px hover:opacity-95 active:translate-y-0 active:scale-[0.98] ${isInstructor ? "bg-gradient-to-br from-psu-maroon to-psu-maroon shadow-psu-maroon/20" : "bg-gradient-to-br from-psu-maroon to-psu-maroon shadow-psu-maroon/20"}`}>
+                                <button onClick={() => handleAction(selectedNotification)} className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${isInstructor ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}>
                                   View Details
                                 </button>
                               )}

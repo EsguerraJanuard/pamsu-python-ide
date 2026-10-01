@@ -19,22 +19,13 @@ def _find_named_calls(
     syntax_tree: ast.AST,
     function_name: str,
 ) -> list[ast.AST]:
-    """Find calls to a named function, including attribute-based calls.
-
-    Matches direct calls like ``input()`` (``ast.Name``) and also
-    attribute calls like ``builtins.input()`` (``ast.Attribute``).
-    """
     matches: list[ast.AST] = []
 
     for node in ast.walk(syntax_tree):
         if not isinstance(node, ast.Call):
             continue
 
-        # Direct call: input(), print()
         if isinstance(node.func, ast.Name) and node.func.id == function_name:
-            matches.append(node)
-        # Attribute call: builtins.input(), builtins.print()
-        elif isinstance(node.func, ast.Attribute) and node.func.attr == function_name:
             matches.append(node)
 
     return matches

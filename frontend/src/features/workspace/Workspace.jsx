@@ -1,17 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
 import api from "../../services/api";
-import { useAuth } from "../auth/AuthContext";
-import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 
 import Sidebar from "../../components/layout/Sidebar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import Statusbar from "../../components/layout/Statusbar";
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
-import InteractiveTerminal from './InteractiveTerminal';
 
 const DEFAULT_CODE = `# Fibonacci Sequence
 # Write your solution below.
@@ -37,13 +34,13 @@ const EXECUTION_STATUS = {
   },
   running: {
     label: "Running...",
-    dotClass: "bg-psu-maroon animate-pulse",
-    textClass: "text-text-brand",
+    dotClass: "bg-blue-500 animate-pulse",
+    textClass: "text-blue-400",
   },
   completed: {
     label: "Execution complete",
-    dotClass: "bg-psu-maroon",
-    textClass: "text-text-brand",
+    dotClass: "bg-green-500",
+    textClass: "text-green-400",
   },
   failed: {
     label: "Execution failed",
@@ -81,25 +78,16 @@ function formatEventTime() {
 export default function Workspace() {
   const { settings } = useEditorSettings();
   const { resolvedTheme } = useTheme();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity");
   const [sessionId, setSessionId] = useState(null);
-  const userId = user?.user_id || user?.id || "anon";
-  const draftStorageKey = `pamsu_saved_code_${userId}_${activityId}`;
-
-  // Derive Monaco theme from the global resolved theme (syncs with sidebar toggle)
-  const editorTheme = resolvedTheme === "dark" ? "vs-dark" : "light";
+  const draftStorageKey = `pamsu_saved_code_${activityId}`;
 
   const editorRef = useRef(null);
-  const monacoRef = useRef(null);
-  const pollIntervalRef = useRef(null);
-  const [triggerRun, setTriggerRun] = useState(0);
   
   const [activity, setActivity] = useState(null);
   const [astResults, setAstResults] = useState(null);
-  const [submissionStatus, setSubmissionStatus] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -111,15 +99,10 @@ export default function Workspace() {
 
     const loadActivity = async () => {
       try {
-        const [activityRes, testCasesRes, subStatusRes] = await Promise.allSettled([
+        const [activityRes, testCasesRes] = await Promise.all([
           api.get(`/activities/${activityId}`),
-          api.get(`/activities/${activityId}/sample-test-cases`),
-          api.get(`/submissions/my/official/${activityId}`)
+          api.get(`/activities/${activityId}/sample-test-cases`)
         ]);
-        
-        if (activityRes.status === 'fulfilled') setActivity(activityRes.value);
-        if (testCasesRes.status === 'fulfilled') setTestCases(testCasesRes.value);
-        if (subStatusRes.status === 'fulfilled') setSubmissionStatus(subStatusRes.value);
 
         const due = activityRes.due_at ? new Date(activityRes.due_at) : null;
         let dueLabel = "No due date";
@@ -162,19 +145,10 @@ export default function Workspace() {
     loadActivity();
   }, [activityId]);
 
-  // Cleanup polling interval on unmount to prevent memory leak
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-    };
-  }, []);
-
   const [code, setCode] = useState(() =>
     loadDraft(draftStorageKey),
   );
+  const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [standardInput, setStandardInput] = useState("");
   const [output, setOutput] = useState(
     "The editor is ready. Code execution will appear here after the sandbox API is connected.",
@@ -185,7 +159,6 @@ export default function Workspace() {
   const [visibleNotice, setVisibleNotice] = useState("");
   const [isFadingOut, setIsFadingOut] = useState(false);
 
-  const [confirmConfig, setConfirmConfig] = useState(null);
   // Silky-smooth auto-dismiss fade animation for notice message
   useEffect(() => {
     if (!notice) return;
@@ -209,18 +182,13 @@ export default function Workspace() {
     };
   }, [notice]);
   const [internalClipboard, setInternalClipboard] = useState("");
-  const {
-    tabSwitchCount,
-    mouseLeaveCount,
-    blockedPasteCount,
-    setBlockedPasteCount,
-    showBehaviorNotice,
-    setShowBehaviorNotice,
-  } = useBehaviorTracking({ sessionId });
-
+  const [blockedPasteCount, setBlockedPasteCount] = useState(0);
+  const [mouseLeaveCount, setMouseLeaveCount] = useState(0);
   const [lastBlockedPasteAt, setLastBlockedPasteAt] = useState("");
   const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [runAttemptCount, setRunAttemptCount] = useState(0);
+  const [showBehaviorNotice, setShowBehaviorNotice] = useState(false);
 
   const [showProblemPanel, setShowProblemPanel] = useState(
     () => window.matchMedia("(min-width: 1280px)").matches,
@@ -275,6 +243,13 @@ export default function Workspace() {
     };
   }, [code, draftStorageKey]);
 
+  const ws = useRef(null);
+  
+  const stateRefs = useRef({ tabSwitchCount: 0, blockedPasteCount: 0, mouseLeaveCount: 0 });
+  useEffect(() => {
+    stateRefs.current = { tabSwitchCount, blockedPasteCount, mouseLeaveCount };
+  }, [tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
+
   // Create coding session on load
   useEffect(() => {
     if (!activityId) return;
@@ -292,6 +267,66 @@ export default function Workspace() {
     startSession();
     return () => { mounted = false; };
   }, [activityId]);
+
+  // Handle telemetry interval
+  const lastCounts = useRef({ tab: 0, paste: 0, mouse: 0, idle: 0 });
+  useEffect(() => {
+    if (!sessionId) return;
+    const interval = setInterval(async () => {
+      const currentTab = stateRefs.current.tabSwitchCount;
+      const currentPaste = stateRefs.current.blockedPasteCount;
+      const currentMouse = stateRefs.current.mouseLeaveCount;
+      
+      const tabInc = Math.max(0, currentTab - lastCounts.current.tab);
+      const pasteInc = Math.max(0, currentPaste - lastCounts.current.paste);
+      const mouseInc = Math.max(0, currentMouse - lastCounts.current.mouse);
+      
+      try {
+        await api.patch(`/activities/coding-sessions/${sessionId}/activity`, {
+          tab_switch_increment: tabInc,
+          blocked_paste_increment: pasteInc,
+          mouseleave_increment: mouseInc,
+          idle_duration_increment_seconds: 0
+        });
+        
+        lastCounts.current.tab = currentTab;
+        lastCounts.current.paste = currentPaste;
+        lastCounts.current.mouse = currentMouse;
+      } catch (err) {
+        console.error("Failed to send heartbeat", err);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  useEffect(() => {
+    const handleLossOfFocus = () => {
+      setTabSwitchCount((currentCount) => currentCount + 1);
+      setShowBehaviorNotice(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleLossOfFocus();
+      }
+    };
+
+    const handleMouseLeave = () => {
+      setMouseLeaveCount((currentCount) => currentCount + 1);
+      setShowBehaviorNotice(true);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleLossOfFocus);
+    document.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleLossOfFocus);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, []);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia(
@@ -320,36 +355,6 @@ export default function Workspace() {
       );
     };
   }, []);
-
-
-  // Intelligent Syntax Linting using LSP simulation via Backend
-  useEffect(() => {
-    const lintCode = async () => {
-      if (!editorRef.current || !monacoRef.current || !code.trim()) return;
-      try {
-        const response = await api.post('/execution/lint', { code });
-        if (response.data && response.data.markers) {
-          const monacoMarkers = response.data.markers.map(marker => ({
-            startLineNumber: marker.line,
-            startColumn: marker.column,
-            endLineNumber: marker.line,
-            endColumn: marker.column + 1,
-            message: marker.message,
-            severity: marker.severity === 'error' ? monacoRef.current.MarkerSeverity.Error : monacoRef.current.MarkerSeverity.Warning
-          }));
-          monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'python', monacoMarkers);
-        }
-      } catch (err) {
-        console.error('Linting failed', err);
-      }
-    };
-
-    const debounceTimer = setTimeout(() => {
-      lintCode();
-    }, 1000);
-
-    return () => clearTimeout(debounceTimer);
-  }, [code]);
 
   const updateCodeAndSelection = (replacement, selectionRange) => {
     const editor = editorRef.current;
@@ -456,28 +461,8 @@ export default function Workspace() {
     setRunAttemptCount((count) => count + 1);
     setExecutionStatus("running");
     setActivePanel("output");
-
-    // Trigger the InteractiveTerminal WebSocket execution
-    setTriggerRun((prev) => prev + 1);
-
-    // Also fire a REST execution request for telemetry/logging
-    try {
-      const execRes = await api.post("/execution/requests/", {
-        request_kind: "run",
-        task_id: parseInt(activityId),
-        source_code: code,
-        standard_input: standardInput || ""
-      });
-
-      pollExecution(execRes.execution_id, false);
-    } catch (err) {
-      // If REST fails, the WebSocket terminal still works for output.
-      // Only update status if the terminal hasn't already handled it.
-      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
-      if (isOffline) {
-        setExecutionStatus("failed");
-        setOutput("Backend server is not connected or python sandbox is offline.");
-      }
+    if (typeof setTriggerRun === 'function') {
+      setTriggerRun((prev) => prev + 1);
     }
   };
 
@@ -517,11 +502,6 @@ export default function Workspace() {
   };
 
   const pollExecution = async (executionId, isCheck = false) => {
-    // Clear any previous polling interval
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-    }
-
     let pollCount = 0;
     const poll = setInterval(async () => {
       try {
@@ -529,7 +509,6 @@ export default function Workspace() {
         const statusRes = await api.get(`/execution/requests/${executionId}`);
         if (["completed", "syntax_error", "runtime_error", "timed_out", "memory_limit", "output_limit", "process_limit", "failed"].includes(statusRes.status)) {
           clearInterval(poll);
-          pollIntervalRef.current = null;
           if (statusRes.status === "completed") {
             setExecutionStatus("completed");
           } else {
@@ -547,7 +526,6 @@ export default function Workspace() {
         } else if (pollCount >= 5) {
           // If the worker isn't running in dev, time it out locally
           clearInterval(poll);
-          pollIntervalRef.current = null;
           setExecutionStatus("unavailable");
           const msg = "Backend server is not connected or python sandbox is offline.";
           if (isCheck) {
@@ -559,7 +537,6 @@ export default function Workspace() {
         }
       } catch (err) {
         clearInterval(poll);
-        pollIntervalRef.current = null;
         setExecutionStatus("failed");
         const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
         const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : "Polling failed.";
@@ -570,24 +547,7 @@ export default function Workspace() {
         }
       }
     }, 1000);
-
-    pollIntervalRef.current = poll;
   };
-
-    const handleRequestRetake = async () => {
-    try {
-      const res = await api.post(`/submissions/${submissionStatus.sub_id}/request-retake`);
-      setSubmissionStatus(res);
-      setNotice("Retake requested successfully.");
-    } catch(error) {
-      console.error(error);
-      setNotice("Failed to request retake.");
-    }
-  };
-
-  const isLocked = submissionStatus && !submissionStatus.retake_allowed;
-  const canRequestRetake = isLocked && ["graded", "rejected"].includes(submissionStatus.status) && !submissionStatus.retake_requested;
-  const retakePending = isLocked && submissionStatus.retake_requested;
 
   const handleSubmit = async () => {
     if (!activityId) {
@@ -608,8 +568,8 @@ export default function Workspace() {
         await api.post("/logs/behavioral/", {
           sub_id: subId,
           tab_switches_count: tabSwitchCount,
-          blocked_paste_count: blockedPasteCount,
-          mouseleave_count: mouseLeaveCount,
+          blocked_paste_count: stateRefs.current.blockedPasteCount,
+          mouseleave_count: stateRefs.current.mouseLeaveCount,
           run_attempt_count: runAttemptCount,
           idle_duration_seconds: 0,
           ...(lastBlockedPasteIso && { last_blocked_paste_at: lastBlockedPasteIso })
@@ -671,7 +631,7 @@ export default function Workspace() {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base text-text-muted">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-text-brand"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
           <p className="text-sm font-semibold tracking-wide">Loading workspace...</p>
         </div>
       </div>
@@ -695,7 +655,7 @@ export default function Workspace() {
           </p>
           <button 
             onClick={() => navigate('/student/dashboard')}
-            className="flex items-center gap-2 rounded-xl bg-psu-maroon px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/25"
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-blue-500/25"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             Return to Dashboard
@@ -722,7 +682,7 @@ export default function Workspace() {
                 aria-pressed={showProblemPanel}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                   showProblemPanel
-                    ? "bg-psu-red text-white shadow-sm"
+                    ? "bg-[#3b82f6] text-white shadow-sm"
                     : "text-text-muted hover:bg-bg-glass-hover hover:text-text-main"
                 }`}
               >
@@ -749,7 +709,7 @@ export default function Workspace() {
               </button>
             </div>
             <div className="hidden min-w-0 sm:block border-l border-border-subtle pl-3">
-              <span className="rounded bg-psu-maroon/10 border border-psu-maroon/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-text-brand mr-2">
+              <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-mono font-bold text-text-blue mr-2">
                 {activity.courseCode}
               </span>
               <span className="truncate text-xs font-bold text-text-main tracking-wide">
@@ -767,7 +727,7 @@ export default function Workspace() {
             </div>
 
             <div className="mx-1 h-5 w-px bg-border-subtle" />
-            <ThemeToggle />
+            <ThemeToggle value={editorTheme} onChange={setEditorTheme} />
             <div className="mx-1 h-5 w-px bg-border-subtle" />
 
             {/* Check Code Button */}
@@ -788,7 +748,7 @@ export default function Workspace() {
               type="button"
               onClick={handleRun}
               disabled={executionStatus === "running" || isRunCooldown}
-              className="flex items-center gap-1.5 rounded-lg bg-psu-maroon px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-psu-maroon/20 transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/30 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M4 2.5v11l9-5.5-9-5.5z" />
@@ -796,40 +756,15 @@ export default function Workspace() {
               Run
             </button>
 
-            {/* Submit / Retake Actions */}
-            {isLocked ? (
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1.5 rounded-lg bg-border-subtle/50 text-text-muted text-xs font-semibold border border-border-strong flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  {submissionStatus.status === 'graded' ? 'Graded' : 'Submitted'}
-                </span>
-                
-                {canRequestRetake && (
-                  <button
-                    type="button"
-                    onClick={handleRequestRetake}
-                    className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-all"
-                  >
-                    Request Retake
-                  </button>
-                )}
-                
-                {retakePending && (
-                  <span className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-500 opacity-70">
-                    Retake Requested...
-                  </span>
-                )}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={executionStatus === "running"}
-                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-psu-maroon to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-psu-maroon/25 transition-all hover:from-psu-maroon hover:to-indigo-500 hover:shadow-psu-maroon/40 active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                Submit
-              </button>
-            )}
+            {/* Submit Button */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={executionStatus === "running"}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              Submit
+            </button>
           </div>
         </header>
 
@@ -859,7 +794,7 @@ export default function Workspace() {
 
         {visibleNotice && (
           <div
-            className={`flex shrink-0 items-center justify-between gap-3 border-b border-psu-maroon/20 bg-psu-maroon/[0.06] px-4 py-1.5 text-xs text-text-brand select-none transition-all duration-500 ease-out ${
+            className={`flex shrink-0 items-center justify-between gap-3 border-b border-blue-500/20 bg-blue-500/[0.06] px-4 py-1.5 text-xs text-text-blue select-none transition-all duration-500 ease-out ${
               isFadingOut ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
             }`}
             role="status"
@@ -926,63 +861,38 @@ export default function Workspace() {
                 </p>
               </section>
 
-              {activity.requirements && activity.requirements.length > 0 && (
-                <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
-                  <h3 className="mb-2 text-xs font-bold text-text-main">
-                    Requirements Checklist
-                  </h3>
+              <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
+                <h3 className="mb-2 text-xs font-bold text-text-main">
+                  Requirements Checklist
+                </h3>
 
-                  <ul className="space-y-2">
-                    {activity.requirements.map((requirement) => {
-                        let isPassed = false;
-                        let isChecked = !!astResults;
-                        if (astResults && astResults.findings) {
-                           const finding = astResults.findings.find(f => f.rule === requirement);
-                           if (finding) {
-                             isPassed = finding.passed;
-                           }
-                        }
-                        
-                        return (
-                          <li
-                            key={requirement}
-                            className={`flex items-center gap-2 text-xs font-medium ${isChecked ? (isPassed ? "text-text-brand" : "text-rose-400") : "text-text-muted"}`}
-                          >
-                            {isChecked ? (
-                              isPassed ? (
-                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-psu-maroon/15 text-[10px] font-bold text-text-brand border border-psu-maroon/20">
-                                  ✓
-                                </span>
-                              ) : (
-                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-rose-500/15 text-[10px] font-bold text-rose-400 border border-rose-500/20">
-                                  ✕
-                                </span>
-                              )
-                            ) : (
-                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-bg-alt text-[10px] font-bold text-text-muted border border-border-strong">
-                                -
-                              </span>
-                            )}
-                            <span className={isChecked && isPassed ? "line-through opacity-80" : ""}>{requirement}</span>
-                          </li>
-                        );
-                    })}
-                  </ul>
-                </section>
-              )}
+                <ul className="space-y-2">
+                  {activity.requirements.map((requirement) => (
+                    <li
+                      key={requirement}
+                      className="flex items-center gap-2 text-xs text-text-muted font-medium"
+                    >
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-500/15 text-[10px] font-bold text-text-blue border border-blue-500/20">
+                        ✓
+                      </span>
+                      {requirement}
+                    </li>
+                  ))}
+                </ul>
+              </section>
 
               <section className="rounded-lg border border-border-subtle bg-bg-glass shadow-inner p-4">
                 <h3 className="mb-1.5 text-xs font-bold text-text-main">
                   Expected Output
                 </h3>
 
-                <pre className="overflow-x-auto rounded-md border border-psu-maroon/20 bg-bg-glass shadow-inner p-3 font-mono text-[11px] text-text-brand">
+                <pre className="overflow-x-auto rounded-md border border-emerald-500/20 bg-bg-glass shadow-inner p-3 font-mono text-[11px] text-text-emerald">
                   {activity.expectedOutput}
                 </pre>
               </section>
 
-              <section className="rounded-lg border border-psu-maroon/15 bg-psu-maroon/[0.02] shadow-inner p-4">
-                <h3 className="text-xs font-bold text-text-brand">
+              <section className="rounded-lg border border-blue-500/15 bg-blue-500/[0.02] shadow-inner p-4">
+                <h3 className="text-xs font-bold text-text-blue">
                   Clipboard Policy
                 </h3>
 
@@ -998,23 +908,23 @@ export default function Workspace() {
             <div
               onMouseDown={startResizing}
               title="Drag to resize Problem Panel"
-              className={`group relative z-30 hidden w-1.5 shrink-0 cursor-col-resize select-none bg-transparent hover:bg-psu-maroon/40 active:bg-psu-maroon transition-colors xl:flex items-center justify-center ${
-                isResizing ? "bg-psu-maroon" : ""
+              className={`group relative z-30 hidden w-1.5 shrink-0 cursor-col-resize select-none bg-transparent hover:bg-blue-500/40 active:bg-blue-500 transition-colors xl:flex items-center justify-center ${
+                isResizing ? "bg-blue-500" : ""
               }`}
             >
               <div className="h-8 w-1 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           )}
 
-          <main className="flex min-w-0 flex-1 flex-col bg-bg-base transition-colors duration-300">
+          <main className={`flex min-w-0 flex-1 flex-col bg-bg-base transition-colors duration-300 ${editorTheme === 'vs-dark' ? 'dark' : 'light'}`}>
             <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass shadow-inner px-3 py-1 backdrop-blur-md">
-              <div className="flex items-center gap-2 border-t-2 border-t-text-brand bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
-                <span className="text-text-brand">
+              <div className="flex items-center gap-2 border-t-2 border-t-blue-500 bg-bg-glass shadow-[0_-2px_10px_rgba(0,0,0,0.2)] px-3 py-1.5 text-xs font-semibold rounded-t-md">
+                <span className="text-text-blue">
                   {activity.fileName}
                 </span>
 
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-text-brand"
+                  className="h-1.5 w-1.5 rounded-full bg-blue-400"
                   title="Local draft"
                 />
               </div>
@@ -1084,26 +994,7 @@ export default function Workspace() {
                   theme={editorTheme}
                   value={code}
                   onChange={(value) => setCode(value || "")}
-                  onMount={(editor, monaco) => {
-                    editorRef.current = editor;
-                    monacoRef.current = monaco;
-
-                    // Intercept Ctrl+V / Cmd+V at the Monaco level
-                    editor.addCommand(
-                      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
-                      () => recordBlockedPaste()
-                    );
-                    // Intercept Ctrl+C / Cmd+C at the Monaco level
-                    editor.addCommand(
-                      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC,
-                      () => copySelectionToInternalBuffer()
-                    );
-                    // Intercept Ctrl+X / Cmd+X at the Monaco level
-                    editor.addCommand(
-                      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX,
-                      () => cutSelectionToInternalBuffer()
-                    );
-                  }}
+                  onMount={(editor) => { editorRef.current = editor; }}
                   options={{
                     minimap: { enabled: settings.minimap },
                     fontSize: settings.fontSize,
@@ -1173,26 +1064,12 @@ export default function Workspace() {
                 {activePanel === "analysis" && (
                   <div className="space-y-2">
                     {astResults ? (
-                      <div className={`rounded-lg border p-3 ${
-                        !activity.requirements || activity.requirements.length === 0 
-                          ? "border-psu-maroon/15 bg-psu-maroon/[0.05]" 
-                          : astResults.passed ? "border-psu-maroon/15 bg-psu-maroon/[0.05]" : "border-amber-500/15 bg-amber-500/[0.05]"
-                      }`}>
-                        <h3 className={`text-xs font-semibold ${
-                          !activity.requirements || activity.requirements.length === 0 
-                            ? "text-text-brand" 
-                            : astResults.passed ? "text-text-brand" : "text-text-amber"
-                        }`}>
-                          {!activity.requirements || activity.requirements.length === 0 
-                            ? "No AST Requirements"
-                            : astResults.passed ? "AST Requirements Met" : "Missing AST Requirements"}
+                      <div className={`rounded-lg border p-3 ${astResults.passed ? "border-emerald-500/15 bg-emerald-500/[0.05]" : "border-amber-500/15 bg-amber-500/[0.05]"}`}>
+                        <h3 className={`text-xs font-semibold ${astResults.passed ? "text-text-emerald" : "text-text-amber"}`}>
+                          {astResults.passed ? "AST Requirements Met" : "Missing AST Requirements"}
                         </h3>
                         <p className="mt-1 text-[10px] leading-relaxed text-text-muted">
-                          {astResults.syntax_error 
-                            ? `Syntax Error on line ${astResults.syntax_error.line}: ${astResults.syntax_error.message}` 
-                            : (!activity.requirements || activity.requirements.length === 0) 
-                              ? "This activity does not have any specific structural requirements." 
-                              : "Verified structure results from the backend AST service."}
+                          {astResults.syntax_error ? `Syntax Error on line ${astResults.syntax_error.line}: ${astResults.syntax_error.message}` : "Verified structure results from the backend AST service."}
                         </p>
                       </div>
                     ) : (
@@ -1214,7 +1091,7 @@ export default function Workspace() {
                            const finding = astResults.findings.find(f => f.rule === requirement);
                            if (finding) {
                              status = finding.passed ? "Passed" : "Missing";
-                             statusClass = finding.passed ? "text-text-brand" : "text-red-400";
+                             statusClass = finding.passed ? "text-text-emerald" : "text-red-400";
                            } else {
                              status = "Not required";
                            }
@@ -1259,7 +1136,7 @@ export default function Workspace() {
                       }
                       spellCheck="false"
                       placeholder="Example: 10"
-                      className="h-[120px] w-full resize-none rounded-lg border border-border-subtle bg-bg-glass p-3 font-mono text-[11px] text-text-muted outline-none placeholder:text-text-muted focus:border-psu-maroon/40"
+                      className="h-[120px] w-full resize-none rounded-lg border border-border-subtle bg-bg-glass p-3 font-mono text-[11px] text-text-muted outline-none placeholder:text-text-muted focus:border-blue-500/40"
                     />
                   </div>
                 )}
@@ -1358,8 +1235,8 @@ export default function Workspace() {
                 </p>
               </section>
 
-              <section className="rounded-lg border border-psu-maroon/20 bg-psu-maroon/5 shadow-inner p-4">
-                <h3 className="text-[11px] font-semibold text-text-brand">
+              <section className="rounded-lg border border-green-500/15 bg-green-500/[0.02] shadow-inner p-4">
+                <h3 className="text-[11px] font-semibold text-text-emerald">
                   Privacy boundary
                 </h3>
 

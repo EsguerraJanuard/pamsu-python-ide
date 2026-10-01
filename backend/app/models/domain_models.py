@@ -25,7 +25,7 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('student', 'instructor', 'admin')",
+            "role IN ('student', 'instructor')",
             name="ck_users_role",
         ),
         CheckConstraint(
@@ -35,9 +35,7 @@ class User(Base):
     )
 
     user_id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String(100), nullable=False)
-    middle_name = Column(String(100), nullable=True)
-    last_name = Column(String(100), nullable=False)
+    name = Column(String(150), nullable=False)
     school_id = Column(
         String(10),
         unique=True,
@@ -796,18 +794,6 @@ class Submission(Base):
         Boolean,
         nullable=False,
         default=True,
-    )
-    retake_requested = Column(
-        Boolean,
-        nullable=False,
-        default=False,
-        server_default="0",
-    )
-    retake_allowed = Column(
-        Boolean,
-        nullable=False,
-        default=False,
-        server_default="0",
     )
     submitted_at = Column(
         DateTime(timezone=True),

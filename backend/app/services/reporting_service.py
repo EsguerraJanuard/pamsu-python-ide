@@ -1,5 +1,4 @@
 import csv
-import logging
 import openpyxl
 from io import BytesIO
 from datetime import datetime, timezone
@@ -37,8 +36,6 @@ from app.schemas.reporting_schema import (
 )
 
 
-logger = logging.getLogger(__name__)
-
 MIN_REPORT_PAGE_SIZE = GLOBAL_MIN_PAGE_SIZE
 MAX_REPORT_PAGE_SIZE = GLOBAL_MAX_PAGE_SIZE
 
@@ -55,6 +52,7 @@ APPROVED_MISSING_SUBMISSION_SORT_FIELDS = {
     "due_at",
 }
 
+EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
 
@@ -350,7 +348,9 @@ def _active_student_rows(
             User.user_id.label(
                 "student_id"
             ),
-            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
+            User.name.label(
+                "student_name"
+            ),
             User.school_id.label(
                 "school_id"
             ),
@@ -369,7 +369,8 @@ def _active_student_rows(
         )
         .order_by(
             func.lower(
-                User.last_name).asc(),
+                User.name
+            ).asc(),
             User.school_id.asc(),
             User.user_id.asc(),
         )
@@ -930,7 +931,8 @@ def _apply_missing_submission_ordering(
         return query.order_by(
             apply_direction(
                 func.lower(
-                    User.last_name)
+                    User.name
+                )
             ),
             apply_direction(
                 User.school_id
@@ -946,7 +948,8 @@ def _apply_missing_submission_ordering(
             ),
             apply_direction(
                 func.lower(
-                    User.last_name)
+                    User.name
+                )
             ),
             Task.task_id.asc(),
             User.user_id.asc(),
@@ -961,7 +964,8 @@ def _apply_missing_submission_ordering(
             ),
             apply_direction(
                 func.lower(
-                    User.last_name)
+                    User.name
+                )
             ),
             User.school_id.asc(),
             Task.task_id.asc(),
@@ -982,7 +986,8 @@ def _apply_missing_submission_ordering(
             Task.due_at
         ),
         func.lower(
-            User.last_name).asc(),
+            User.name
+        ).asc(),
         User.school_id.asc(),
         Task.task_id.asc(),
         User.user_id.asc(),
@@ -1035,7 +1040,9 @@ def list_missing_submissions(
             User.user_id.label(
                 "student_id"
             ),
-            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
+            User.name.label(
+                "student_name"
+            ),
             User.school_id.label(
                 "school_id"
             ),
@@ -1563,7 +1570,7 @@ def build_gradebook_excel_export(
 
     query = (
         db.query(
-            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
+            User.name.label("student_name"),
             User.school_id.label("school_id"),
             Classroom.name.label("class_name"),
             Classroom.subject_code.label("subject_code"),
@@ -1597,7 +1604,7 @@ def build_gradebook_excel_export(
 
     rows = (
         query.order_by(
-            func.lower(User.last_name).asc(),
+            func.lower(User.name).asc(),
             User.school_id.asc(),
             func.lower(Task.title).asc(),
             Submission.sub_id.asc(),
@@ -1625,7 +1632,7 @@ def build_gradebook_excel_export(
             cell.font = header_font
             cell.fill = header_fill
     except Exception:
-        logger.warning("Excel header styling could not be applied.", exc_info=True)
+        pass
 
     for row in rows:
         has_manual_grade = row.grade_id is not None
@@ -1661,7 +1668,7 @@ def build_gradebook_excel_export(
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
-        logger.warning("Excel header styling could not be applied.", exc_info=True)
+        pass
 
     generated_at = _utc_now()
     
@@ -1749,7 +1756,7 @@ def build_gradebook_excel_export(
 
     query = (
         db.query(
-            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
+            User.name.label("student_name"),
             User.school_id.label("school_id"),
             Classroom.name.label("class_name"),
             Classroom.subject_code.label("subject_code"),
@@ -1783,7 +1790,7 @@ def build_gradebook_excel_export(
 
     rows = (
         query.order_by(
-            func.lower(User.last_name).asc(),
+            func.lower(User.name).asc(),
             User.school_id.asc(),
             func.lower(Task.title).asc(),
             Submission.sub_id.asc(),
@@ -1811,7 +1818,7 @@ def build_gradebook_excel_export(
             cell.font = header_font
             cell.fill = header_fill
     except Exception:
-        logger.warning("Excel header styling could not be applied.", exc_info=True)
+        pass
 
     for row in rows:
         has_manual_grade = row.grade_id is not None
@@ -1847,7 +1854,7 @@ def build_gradebook_excel_export(
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
-        logger.warning("Excel header styling could not be applied.", exc_info=True)
+        pass
 
     generated_at = _utc_now()
     
@@ -1935,7 +1942,7 @@ def build_gradebook_excel_export(
 
     query = (
         db.query(
-            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
+            User.name.label("student_name"),
             User.school_id.label("school_id"),
             Classroom.name.label("class_name"),
             Classroom.subject_code.label("subject_code"),
@@ -1969,7 +1976,7 @@ def build_gradebook_excel_export(
 
     rows = (
         query.order_by(
-            func.lower(User.last_name).asc(),
+            func.lower(User.name).asc(),
             User.school_id.asc(),
             func.lower(Task.title).asc(),
             Submission.sub_id.asc(),
@@ -1997,7 +2004,7 @@ def build_gradebook_excel_export(
             cell.font = header_font
             cell.fill = header_fill
     except Exception:
-        logger.warning("Excel header styling could not be applied.", exc_info=True)
+        pass
 
     for row in rows:
         has_manual_grade = row.grade_id is not None
@@ -2033,7 +2040,7 @@ def build_gradebook_excel_export(
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
-        logger.warning("Excel header styling could not be applied.", exc_info=True)
+        pass
 
     generated_at = _utc_now()
     
@@ -2127,7 +2134,9 @@ def build_gradebook_csv_export(
 
     query = (
         db.query(
-            func.concat(User.last_name, ', ', User.first_name).label("student_name"),
+            User.name.label(
+                "student_name"
+            ),
             User.school_id.label(
                 "school_id"
             ),
@@ -2213,7 +2222,8 @@ def build_gradebook_csv_export(
     rows = (
         query.order_by(
             func.lower(
-                User.last_name).asc(),
+                User.name
+            ).asc(),
             User.school_id.asc(),
             func.lower(
                 Task.title
