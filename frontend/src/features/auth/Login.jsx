@@ -386,16 +386,7 @@ export default function Login() {
               </span>
             </button>
 
-            <p className="text-center text-xs text-text-muted select-none cursor-default">
-              <button
-                type="button"
-                onClick={() => navigate("/register")}
-                className="font-medium text-text-brand transition-colors hover:text-text-brand hover:underline"
-                disabled={isLoading}
-              >
-                Sign up using university account
-              </button>
-            </p>
+
           </form>
         </div>
       </section>

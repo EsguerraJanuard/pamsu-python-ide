@@ -7,6 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.security import get_password_hash
 from app.models.domain_models import (
     Classroom,
     Enrollment,
@@ -465,6 +466,7 @@ def regenerate_class_code(
     )
 
 
+from app.core.security import get_password_hash
 from app.models.domain_models import PendingEnrollment
 from app.schemas.enrollment_schema import BulkEnrollmentResponse
 

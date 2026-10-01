@@ -23,7 +23,7 @@ const RootRoute = () => {
   return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
 };
 
-// Redirects already-authenticated users away from login/register
+// Redirects already-authenticated users away from login
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Outlet />;
@@ -39,7 +39,6 @@ import AuditLogsPage from './pages/AuditLogsPage';
 
 // Feature Components
 import Login from './features/auth/Login';
-import Register from './features/auth/Register';
 import ForgotPassword from './features/auth/ForgotPassword';
 import StudentDashboard from './features/dashboard/StudentDashboard';
 import InstructorDashboard from './features/dashboard/InstructorDashboard';
@@ -89,7 +88,6 @@ export const App = () => {
             {/* Public Authentication Routes — redirect to dashboard if already logged in */}
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
               </Route>
             <Route path="/unauthorized" element={<Unauthorized />} />

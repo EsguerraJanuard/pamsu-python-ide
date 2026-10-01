@@ -310,9 +310,9 @@ app.add_middleware(
 )
 
 
+app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(registration.router)
 app.include_router(classrooms.router)
 app.include_router(instructor.router)
 app.include_router(activities.router)

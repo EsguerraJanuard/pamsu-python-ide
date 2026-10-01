@@ -214,3 +214,29 @@ def logout(
                 redis_client.setex(f"blacklist:{jti}", ttl, "revoked")
     except Exception:
         pass
+
+@router.post("/guest", response_model=TokenResponse)
+def login_guest(db: Session = Depends(get_db)):
+    guest = db.query(User).filter(User.email == "guest@pampangastateu.edu.ph").first()
+    if not guest:
+        guest = User(
+            email="guest@pampangastateu.edu.ph",
+            full_name="Panelist Guest",
+            role="instructor", # We make them instructor role so they can see the instructor dashboard but maybe restrict it? Or just let them see it.
+            hashed_password=get_password_hash("guest")
+        )
+        db.add(guest)
+        db.commit()
+        db.refresh(guest)
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(guest.user_id), "role": guest.role},
+        expires_delta=access_token_expires,
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.model_validate(guest)
+    )
