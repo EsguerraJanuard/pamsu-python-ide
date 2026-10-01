@@ -24,9 +24,25 @@ class UserResponse(BaseModel):
     last_name: str
     role: str
     school_id: str | None = None
+    is_active: bool
 
     class Config:
         from_attributes = True
+
+class PasswordReset(BaseModel):
+    new_password: str
+
+class SettingsUpdate(BaseModel):
+    maintenance_mode: bool
+    default_ast_strictness: str
+    registration_enabled: bool
+
+# Global mock settings for MVP
+global_system_settings = {
+    "maintenance_mode": False,
+    "default_ast_strictness": "moderate",
+    "registration_enabled": False
+}
 
 @router.get("/stats")
 def get_system_stats(
@@ -71,8 +87,48 @@ def list_users(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    users = db.query(User).all()
+    users = db.query(User).filter(User.role != "admin").all()
     return users
+
+@router.patch("/users/{user_id}/status")
+def toggle_user_status(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = not user.is_active
+    db.commit()
+    return {"message": "Status updated", "is_active": user.is_active}
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted"}
+
+@router.patch("/users/{user_id}/password")
+def reset_user_password(
+    user_id: int,
+    request: PasswordReset,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.password_hash = get_password_hash(request.new_password)
+    db.commit()
+    return {"message": "Password reset successfully"}
 
 @router.get("/audit-logs")
 def get_global_audit_logs(
@@ -105,13 +161,11 @@ async def bulk_register_students_file(
     content = await file.read()
     text = content.decode("utf-8")
     
-    # Simple CSV parser for emails
     emails = []
     for line in text.splitlines():
         line = line.strip()
         if not line or "@" not in line:
             continue
-        # Extract email using simple regex
         match = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', line)
         if match:
             emails.append(match.group(0).lower())
@@ -142,3 +196,15 @@ async def bulk_register_students_file(
             
     db.commit()
     return {"registered": registered_count, "invalid": len(emails) - len(valid_emails)}
+
+@router.get("/settings")
+def get_settings(current_admin: User = Depends(get_current_admin)):
+    return global_system_settings
+
+@router.patch("/settings")
+def update_settings(request: SettingsUpdate, current_admin: User = Depends(get_current_admin)):
+    global_system_settings["maintenance_mode"] = request.maintenance_mode
+    global_system_settings["default_ast_strictness"] = request.default_ast_strictness
+    global_system_settings["registration_enabled"] = request.registration_enabled
+    return global_system_settings
+
