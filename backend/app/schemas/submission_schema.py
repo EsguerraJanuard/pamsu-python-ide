@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
@@ -16,13 +16,6 @@ SubmissionStatus = Literal[
     "graded",
     "rejected",
 ]
-
-
-class CodingSessionTelemetry(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    tab_switch_count: int
-    blocked_paste_count: int
-    mouseleave_count: int
 
 
 MAX_SOURCE_CODE_LENGTH = 100_000
@@ -208,11 +201,8 @@ class StudentSubmissionResponse(
     # STUDENT-SAFE BOUNDARY:
     # This response represents only the authenticated student's own
     # attempt. It intentionally excludes student_id, similarity scores,
-    # instructor grades, and internal review records.
-    ast_pass_fail: bool | None = Field(
-        default=None,
-        description=("Structural-analysis indicator."),
-    )
+    # AST results, instructor grades, and internal review records.
+    pass
 
 
 class InstructorSubmissionResponse(
@@ -231,10 +221,6 @@ class InstructorSubmissionResponse(
     ast_pass_fail: bool | None = Field(
         default=None,
         description=("Structural-analysis indicator for instructor review only."),
-    )
-    coding_session: CodingSessionTelemetry | None = Field(
-        default=None,
-        description=("Telemetry data from the student's coding session."),
     )
 
     # REVIEW BOUNDARY:

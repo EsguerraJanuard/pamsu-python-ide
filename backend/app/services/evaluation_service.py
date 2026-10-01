@@ -1064,16 +1064,3 @@ def patch_grade(
 # EXECUTION BOUNDARY:
 # This service performs static AST parsing and token-based similarity
 # analysis only. It never executes submitted Python source code.
-
-
-def evaluate_submission_background(sub_id: int) -> None:
-    from app.core.database import SessionLocal
-    import logging
-    logger = logging.getLogger(__name__)
-    db = SessionLocal()
-    try:
-        evaluate_submission_by_id(db=db, sub_id=sub_id, instructor_id=None)
-    except Exception as e:
-        logger.error(f"Background evaluation failed for submission {sub_id}: {e}")
-    finally:
-        db.close()

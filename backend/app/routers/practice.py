@@ -8,8 +8,7 @@ from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.domain_models import User, PracticeModule, PracticeTask, PracticeProgress, PracticeAttempt
-from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown, PracticeAiHintResponse
-from app.services.ai_tutor_service import generate_pedagogical_hint
+from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown
 from sqlalchemy import func
 
 from app.core.security import get_current_instructor
@@ -133,31 +132,28 @@ def submit_practice_task(
             data = res.json()
             
             status_id = data.get("status", {}).get("id")
-            stdout_b64 = data.get("stdout")
-            stderr_b64 = data.get("stderr")
-            compile_output_b64 = data.get("compile_output")
-            message = data.get("message")
-            
-            stdout_decoded = base64.b64decode(stdout_b64).decode('utf-8') if stdout_b64 else ""
-            stderr_decoded = base64.b64decode(stderr_b64).decode('utf-8') if stderr_b64 else ""
-            compile_decoded = base64.b64decode(compile_output_b64).decode('utf-8') if compile_output_b64 else ""
-            
             if status_id == 3: # Accepted
                 is_successful = True
-                execution_feedback = stdout_decoded
-            elif status_id == 4: # Wrong Answer
-                is_successful = False
-                execution_feedback = f"Output did not match expected output.\nYour output:\n{stdout_decoded}"
             else:
-                is_successful = False
-                err_text = stderr_decoded or compile_decoded or str(message)
-                execution_feedback = f"Execution Error:\n{err_text}"
+                stderr = data.get("stderr")
+                compile_output = data.get("compile_output")
+                message = data.get("message")
+                
+                err_b64 = stderr or compile_output or message
+                if err_b64:
+                    # decode base64
+                    try:
+                        execution_feedback = base64.b64decode(err_b64).decode('utf-8')
+                    except:
+                        execution_feedback = str(err_b64)
+                else:
+                    execution_feedback = "Execution failed or output did not match expected output."
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Execution service unavailable: {str(e)}")
 
     ast_feedback_msgs = []
     # 2. Gate 2: AST Structural Analysis
-    if task.expected_ast_patterns:
+    if is_successful and task.expected_ast_patterns:
         try:
             ast_res = evaluate_ast_details(request.code, task.expected_ast_patterns)
             
@@ -207,7 +203,6 @@ def submit_practice_task(
     db.commit()
 
     return PracticeSubmissionResponse(
-        attempt_id=attempt.attempt_id,
         is_successful=is_successful,
         execution_feedback=execution_feedback,
         ast_feedback=ast_feedback_msgs,
@@ -471,35 +466,3 @@ def delete_practice_task(
     db.delete(task)
     db.commit()
     return {"message": "Task deleted"}
-
-
-
-@router.post("/attempts/{attempt_id}/ai-hint", response_model=PracticeAiHintResponse)
-def get_ai_hint(
-    attempt_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id, PracticeAttempt.student_id == current_user.user_id).first()
-    if not attempt:
-        raise HTTPException(status_code=404, detail="Practice attempt not found.")
-    
-    if attempt.is_successful:
-        raise HTTPException(status_code=400, detail="Cannot generate AI hint for successful attempts.")
-
-    if attempt.ai_hint:
-        return PracticeAiHintResponse(ai_hint=attempt.ai_hint)
-        
-    task = attempt.task
-    error_output = attempt.execution_feedback or "Unknown Error"
-    
-    hint = generate_pedagogical_hint(
-        task_instructions=task.instructions,
-        student_code=attempt.submitted_code,
-        error_output=error_output
-    )
-    
-    attempt.ai_hint = hint
-    db.commit()
-    
-    return PracticeAiHintResponse(ai_hint=hint)

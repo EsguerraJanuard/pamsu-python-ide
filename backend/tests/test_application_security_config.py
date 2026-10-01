@@ -207,7 +207,7 @@ with TestClient(app) as client:
     assert probe["approved_preflight_status"] == 200
     assert probe["approved_allow_origin"] == allowed_origin
     assert probe["approved_allow_credentials"] == "true"
-    assert probe["approved_max_age"] == "86400"
+    assert probe["approved_max_age"] == "600"
 
     allowed_methods = str(probe["approved_allow_methods"])
 
@@ -493,4 +493,3 @@ def test_unsafe_wildcard_configuration_blocks_application_startup(
         "sqlite://",
     ):
         assert prohibited_value not in combined_output
-

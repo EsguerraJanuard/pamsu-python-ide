@@ -516,7 +516,7 @@ def test_gradebook_csv_returns_download_headers_and_privacy_marker(
 
     monkeypatch.setattr(
         reporting_router,
-        "build_gradebook_excel_export",
+        "build_gradebook_csv_export",
         service,
     )
 

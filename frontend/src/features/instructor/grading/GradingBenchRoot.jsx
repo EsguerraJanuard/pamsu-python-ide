@@ -1,4 +1,4 @@
-﻿/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
@@ -14,7 +14,7 @@ const GradingBenchRoot = () => {
     const fetchClasses = async () => {
       try {
         const response = await api.get('/classrooms/');
-        setClasses(Array.isArray(response) ? response : (response?.data || []));
+        setClasses(response);
       } catch (err) {
         setError('Failed to load classes.');
         console.error(err);
@@ -78,13 +78,9 @@ const GradingBenchRoot = () => {
         <div className="flex min-h-0 flex-1">
         <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
       <div className="max-w-6xl mx-auto w-full">
-        <header className="mb-8 border-b border-border-subtle pb-6">
-          <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING &amp; GRADING</p>
-          <h1 className="text-2xl font-bold text-text-main flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
-            Grading Bench
-          </h1>
-          <p className="mt-1 text-sm text-text-muted">Select a class to view and grade assignments.</p>
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-text-main mb-2">Grading Bench</h1>
+          <p className="text-text-muted">Select a class to view and grade assignments.</p>
         </header>
 
         {classes.length === 0 ? (
@@ -97,35 +93,29 @@ const GradingBenchRoot = () => {
               <div
                 key={cls.class_id}
                 onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-40"
+                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-48"
               >
-                <div className="p-6 flex-grow flex flex-col justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
-                      {cls.name}
-                    </h2>
-                    <div className="mt-3 flex items-center gap-2">
-                      {cls.subject_code && (
-                        <span className="bg-bg-panel border border-border-subtle px-2 py-0.5 rounded text-[10px] font-mono text-text-muted">
-                          {cls.subject_code}
-                        </span>
-                      )}
-                      <span className="text-xs font-medium text-text-muted">{cls.section}</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-4">
-                    <div className="h-8 w-8 rounded-full bg-border-subtle/50 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                      <svg
-                        className="w-4 h-4 text-text-muted group-hover:text-emerald-400 transition-transform transform group-hover:translate-x-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
+                <div className="p-6 flex-grow">
+                  <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">
+                    {cls.name}
+                  </h2>
+                  <p className="text-sm text-text-muted line-clamp-2">
+                    {cls.description || 'No description provided.'}
+                  </p>
+                </div>
+                <div className="px-6 py-4 border-t border-border-subtle bg-bg-panel flex justify-between items-center text-sm">
+                  <span className="text-emerald-400/80 font-medium group-hover:text-emerald-400 transition-colors">
+                    Open Grading Bench
+                  </span>
+                  <svg
+                    className="w-5 h-5 text-text-muted group-hover:text-emerald-400 transition-colors transform group-hover:translate-x-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
               </div>
             ))}

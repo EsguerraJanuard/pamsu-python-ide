@@ -21,7 +21,6 @@ from app.integrations.partner_auth import (
 )
 from app.routers import ws_monitoring
 from app.routers import (
-    ws_execution,
     practice,
     activities,
     audit_records,
@@ -230,7 +229,6 @@ redoc_url = "/redoc" if settings.enable_api_docs else None
 openapi_url = "/openapi.json" if settings.enable_api_docs else None
 
 
-from app.integrations.llm_adapters import get_local_llm_adapter
 app = FastAPI(
     title=APP_TITLE,
     description=(
@@ -277,9 +275,7 @@ if settings.cors_allowed_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
-        allow_origin_regex=r"https://pamsu-python-ide.*\.vercel\.app",
         allow_credentials=(settings.cors_allow_credentials),
-        max_age=86400,
         allow_methods=[
             "GET",
             "POST",
@@ -298,7 +294,7 @@ if settings.cors_allowed_origins:
         expose_headers=[
             settings.correlation_id_header,
         ],
-        
+        max_age=600,
     )
 
 
@@ -325,7 +321,6 @@ app.include_router(notifications.router)
 app.include_router(audit_records.router)
 app.include_router(reporting.router)
 app.include_router(practice.router)
-app.include_router(ws_execution.router)
 
 
 @app.on_event("startup")
@@ -544,5 +539,3 @@ def readiness_check(
 # OPTIONAL-INTEGRATION BOUNDARY:
 # OTP email and local LLM integrations remain contract-only. Their absence
 # does not make the core API unready until concrete adapters become required.
-
-

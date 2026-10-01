@@ -1,4 +1,3 @@
-import csv
 import openpyxl
 from io import BytesIO
 from datetime import datetime, timezone
@@ -2441,4 +2440,3 @@ def ensure_reporting_query_available(
 # PERFORMANCE BOUNDARY:
 # Report functions use bounded aggregate or bulk queries. They do not
 # execute one database query per student, activity, submission, or grade.
-

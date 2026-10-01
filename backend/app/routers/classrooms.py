@@ -55,8 +55,6 @@ from app.services.classroom_service import (
     regenerate_class_code,
     update_classroom,
     update_enrollment_status,
-    unenroll_student,
-    EnrollmentNotFoundError,
 )
 
 
@@ -585,31 +583,3 @@ def update_classroom_endpoint(
 # similarity records, hidden tests, execution output, coding-session
 # telemetry, clipboard contents, pasted text, surveillance data, and
 # automated misconduct conclusions.
-
-@router.delete(
-    "/{class_id}/enrollment",
-    status_code=status.HTTP_204_NO_CONTENT,
-    operation_id="unenroll_student_from_class",
-    summary="Unenroll from a classroom",
-)
-def unenroll_student_endpoint(
-    class_id: int = Path(...),
-    db: Session = Depends(get_db),
-    current_student: User = Depends(get_current_student),
-) -> None:
-    try:
-        unenroll_student(
-            db=db,
-            student_id=current_student.user_id,
-            class_id=class_id
-        )
-    except EnrollmentNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    except ClassroomNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc

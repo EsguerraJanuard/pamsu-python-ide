@@ -81,8 +81,7 @@ export default function Workspace() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activityId = searchParams.get("activity");
-  const [sessionId, setSessionId] = useState(null);
-  const draftStorageKey = `pamsu_saved_code_${activityId}`;
+  const draftStorageKey = `pamsu-workspace-draft-${activityId}`;
 
   const editorRef = useRef(null);
   
@@ -126,8 +125,6 @@ export default function Workspace() {
         const savedDraft = loadDraft(draftStorageKey);
         if (savedDraft === DEFAULT_CODE && activityRes.starter_code) {
           setCode(activityRes.starter_code);
-        } else if (savedDraft !== DEFAULT_CODE) {
-          setNotice("Draft restored");
         }
 
         if (testCasesRes.length > 0 && testCasesRes[0].standard_input) {
@@ -236,7 +233,7 @@ export default function Workspace() {
       } catch {
         // Keep the editor usable when browser storage is unavailable.
       }
-    }, 2000);
+    }, 500);
 
     return () => {
       window.clearTimeout(autosaveTimer);
@@ -244,61 +241,35 @@ export default function Workspace() {
   }, [code, draftStorageKey]);
 
   const ws = useRef(null);
-  
-  const stateRefs = useRef({ tabSwitchCount: 0, blockedPasteCount: 0, mouseLeaveCount: 0 });
-  useEffect(() => {
-    stateRefs.current = { tabSwitchCount, blockedPasteCount, mouseLeaveCount };
-  }, [tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
 
-  // Create coding session on load
   useEffect(() => {
-    if (!activityId) return;
-    let mounted = true;
-    const startSession = async () => {
-      try {
-        const res = await api.post("/activities/coding-sessions/", { task_id: parseInt(activityId) });
-        if (mounted && res && res.session_id) {
-          setSessionId(res.session_id);
-        }
-      } catch (err) {
-        console.error("Failed to start coding session", err);
-      }
-    };
-    startSession();
-    return () => { mounted = false; };
-  }, [activityId]);
-
-  // Handle telemetry interval
-  const lastCounts = useRef({ tab: 0, paste: 0, mouse: 0, idle: 0 });
-  useEffect(() => {
-    if (!sessionId) return;
-    const interval = setInterval(async () => {
-      const currentTab = stateRefs.current.tabSwitchCount;
-      const currentPaste = stateRefs.current.blockedPasteCount;
-      const currentMouse = stateRefs.current.mouseLeaveCount;
-      
-      const tabInc = Math.max(0, currentTab - lastCounts.current.tab);
-      const pasteInc = Math.max(0, currentPaste - lastCounts.current.paste);
-      const mouseInc = Math.max(0, currentMouse - lastCounts.current.mouse);
-      
-      try {
-        await api.patch(`/activities/coding-sessions/${sessionId}/activity`, {
-          tab_switch_increment: tabInc,
-          blocked_paste_increment: pasteInc,
-          mouseleave_increment: mouseInc,
-          idle_duration_increment_seconds: 0
-        });
-        
-        lastCounts.current.tab = currentTab;
-        lastCounts.current.paste = currentPaste;
-        lastCounts.current.mouse = currentMouse;
-      } catch (err) {
-        console.error("Failed to send heartbeat", err);
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    
+    // Connect to WebSocket
+    const wsUrl = `ws://localhost:8000/api/v1/ws/student?token=${token}`;
+    ws.current = new WebSocket(wsUrl);
+    
+    // Heartbeat
+    const interval = setInterval(() => {
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({ 
+          event_type: "heartbeat",
+          task_id: activityId ? parseInt(activityId) : null,
+          tab_switch_count: tabSwitchCount,
+          blocked_paste_count: blockedPasteCount,
+          mouseleave_count: mouseLeaveCount
+        }));
       }
     }, 5000);
 
-    return () => clearInterval(interval);
-  }, [sessionId]);
+    return () => {
+      clearInterval(interval);
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
+  }, [activityId, tabSwitchCount, blockedPasteCount, mouseLeaveCount]);
 
   useEffect(() => {
     const handleLossOfFocus = () => {
@@ -444,25 +415,36 @@ export default function Workspace() {
     // For now we do nothing here since Monaco isn't passing standard React DOM events.
   };
 
-  const [isRunCooldown, setIsRunCooldown] = useState(false);
-
   const handleRun = async () => {
-    if (isRunCooldown) return;
     if (!activityId) {
       setExecutionStatus("unavailable");
       setActivePanel("output");
       setOutput("No activity selected.");
       return;
     }
-    
-    setIsRunCooldown(true);
-    setTimeout(() => setIsRunCooldown(false), 3000);
-    
+
     setRunAttemptCount((count) => count + 1);
+
     setExecutionStatus("running");
     setActivePanel("output");
-    if (typeof setTriggerRun === 'function') {
-      setTriggerRun((prev) => prev + 1);
+    setOutput("Sending execution request...");
+
+    try {
+      const execRes = await api.post("/execution/requests/", {
+        request_kind: "run",
+        task_id: parseInt(activityId),
+        source_code: code,
+        standard_input: standardInput || ""
+      });
+
+      // Poll for result
+      pollExecution(execRes.execution_id);
+    } catch (err) {
+      setExecutionStatus("failed");
+      const isOffline = err.message === "Failed to fetch" || err.message === "Network Error";
+      const msg = isOffline ? "Backend server is not connected or python sandbox is offline." : `Failed to start execution: ${err.message || err.detail || 'Unknown error'}`;
+      setOutput(msg);
+      setNotice(msg);
     }
   };
 
@@ -568,8 +550,8 @@ export default function Workspace() {
         await api.post("/logs/behavioral/", {
           sub_id: subId,
           tab_switches_count: tabSwitchCount,
-          blocked_paste_count: stateRefs.current.blockedPasteCount,
-          mouseleave_count: stateRefs.current.mouseLeaveCount,
+          blocked_paste_count: blockedPasteCount,
+          mouseleave_count: mouseLeaveCount,
           run_attempt_count: runAttemptCount,
           idle_duration_seconds: 0,
           ...(lastBlockedPasteIso && { last_blocked_paste_at: lastBlockedPasteIso })
@@ -747,7 +729,7 @@ export default function Workspace() {
             <button
               type="button"
               onClick={handleRun}
-              disabled={executionStatus === "running" || isRunCooldown}
+              disabled={executionStatus === "running"}
               className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -1052,13 +1034,9 @@ export default function Workspace() {
 
               <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
                 {activePanel === "output" && (
-                  <div className="w-full h-full min-h-[300px]">
-                    <InteractiveTerminal 
-                      code={code} 
-                      triggerRun={triggerRun} 
-                      onRunFinished={() => setExecutionStatus("completed")} 
-                    />
-                  </div>
+                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-5 text-text-muted">
+                    {output}
+                  </pre>
                 )}
 
                 {activePanel === "analysis" && (
@@ -1250,7 +1228,7 @@ export default function Workspace() {
           </aside>
         </div>
 
-        <Statusbar sessionStatus={sessionId ? "active" : "connecting"} pythonVersion="Python 3" />
+        <Statusbar pythonVersion="Python 3" />
       </div>
     
       <ConfirmationModal 

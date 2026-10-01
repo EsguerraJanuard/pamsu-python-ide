@@ -205,7 +205,7 @@ export default function StudentDashboard() {
 
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {
-      navigate(`/student/submissions/task/${activity.id}`);
+      navigate(`/student/submissions/${activity.id}`);
       return;
     }
 
@@ -232,7 +232,6 @@ export default function StudentDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-text-blue">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
                     <LayoutDashboardIcon className="h-6 w-6 text-blue-500" />
                     {getGreeting()}, {getFirstName(user.name)}
@@ -297,7 +296,7 @@ export default function StudentDashboard() {
                 ) : (
                   <>
                   <article
-                    onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
                     <p
@@ -325,7 +324,7 @@ export default function StudentDashboard() {
                   </article>
                   
                   <article
-                    onClick={() => navigate('/student/assignments')} className="cursor-pointer dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
+                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
                   >
                     <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
                     <p
@@ -409,7 +408,7 @@ export default function StudentDashboard() {
                       return (
                         <article
                           key={activity.id}
-                          onClick={() => navigate('/student/workspace?activity=' + activity.id)} className={`cursor-pointer dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong ${status.accentClass} group`}
+                          className={`dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong ${status.accentClass} group`}
                           style={{
                             animation: `dashboardFadeUp 400ms ease ${
                               200 + index * 70
@@ -583,12 +582,9 @@ export default function StudentDashboard() {
       <JoinClassModal 
         isOpen={isJoinModalOpen} 
         onClose={() => setIsJoinModalOpen(false)}
-        onSuccess={(classId) => {
+        onSuccess={() => {
           console.log("Successfully joined class!");
           fetchDashboardData();
-          if (classId) {
-            navigate(`/student/classes/${classId}`);
-          }
         }}
       />
     </div>

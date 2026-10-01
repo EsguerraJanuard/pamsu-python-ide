@@ -108,7 +108,6 @@ export const App = () => {
                 <Route path="/student/practice/workspace" element={<PracticeWorkspace />} />
                 <Route path="/student/submissions" element={<Submissions />} />
                 <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
-                <Route path="/student/submissions/task/:taskId" element={<SubmissionDetails />} />
                 <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
                 <Route path="/student/audit-logs" element={<AuditLogsPage role="student" />} />
                 <Route path="/student/analytics" element={<Analytics />} />

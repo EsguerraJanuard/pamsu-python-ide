@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 import CustomSelect from "../../components/ui/CustomSelect";
-import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { api, ApiError } from "../../services/api";
 
 function getPasswordStrength(password) {
@@ -24,7 +23,6 @@ export default function InstructorSettings() {
   const { user, updateUser } = useAuth();
   const [saved, setSaved] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [isConfirmSaveOpen, setIsConfirmSaveOpen] = useState(false);
 
   const inputClass = "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
   const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/60";
@@ -111,27 +109,20 @@ export default function InstructorSettings() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsConfirmSaveOpen(true);
-  };
-
-  const performSave = async () => {
     setErrorMsg(null);
-    setIsConfirmSaveOpen(false);
     setSaved(false);
 
     try {
       const updatedUser = await api.patch("/users/me", {
         name: formData.name.trim(),
-        ast_strictness_level: formData.astStrictness,
       });
       
       // Update global auth context
       updateUser({
         ...user,
         name: updatedUser.name,
-        ast_strictness_level: updatedUser.ast_strictness_level,
       });
 
       setSaved(true);
@@ -152,14 +143,11 @@ export default function InstructorSettings() {
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
             
-            <div className="mx-auto max-w-4xl">
+            <div className="mx-auto max-w-6xl ">
         <header className="mb-6 flex items-center justify-between">
           <div>
             <p className="mb-1 font-mono text-xs text-text-emerald">ACCOUNT & SYSTEM</p>
-            <h1 className="text-2xl font-bold flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-              Settings
-            </h1>
+            <h1 className="text-2xl font-bold">Settings</h1>
             <p className="mt-1 text-sm text-text-muted">
               Manage your faculty profile and evaluation preferences.
             </p>
@@ -181,7 +169,7 @@ export default function InstructorSettings() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
             <h2 className="text-sm font-semibold text-text-main mb-4">Faculty Profile</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs text-text-muted mb-1">Full Name (Verified)</label>
                   <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
@@ -206,37 +194,33 @@ export default function InstructorSettings() {
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-text-muted mb-1 flex items-center justify-between">
-                    Department
-                    <span className="text-[10px] text-emerald-500/80">Managed by Admin</span>
-                  </label>
-                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
-                    <input
-                      type="text"
-                      name="department"
-                      value="College of Computing Studies"
-                      disabled
-                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-text-muted mb-1 flex items-center justify-between">
-                    Default Course
-                    <span className="text-[10px] text-emerald-500/80">Managed by Admin</span>
-                  </label>
-                  <div className="opacity-100 bg-bg-glass cursor-not-allowed rounded-lg border border-border-subtle px-3 py-2">
-                    <input
-                      type="text"
-                      name="defaultCourse"
-                      value="CCS101"
-                      disabled
-                      className="w-full bg-transparent text-xs text-text-main outline-none cursor-not-allowed"
-                    />
+              <div>
+                <label className="block text-xs text-text-muted mb-1">Department</label>
+                <div className="relative">
+                  <select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="w-full appearance-none rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="College of Computing Studies">College of Computing Studies</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-muted">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </div>
                 </div>
               </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1">Default Course</label>
+                <input
+                  type="text"
+                  name="defaultCourse"
+                  value={formData.defaultCourse}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+            </div>
           </section>
 
           <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
@@ -291,9 +275,8 @@ export default function InstructorSettings() {
           )}
 
           <form onSubmit={handleChangePassword} className="space-y-4" noValidate>
-            <div className="max-w-lg space-y-4">
-              <div>
-                <label htmlFor="current-password" className="mb-1.5 block text-xs font-medium text-text-muted">
+            <div>
+              <label htmlFor="current-password" className="mb-1.5 block text-xs font-medium text-text-muted">
                 Current password
               </label>
               <div className={inputWrap}>
@@ -384,7 +367,6 @@ export default function InstructorSettings() {
                 Show passwords
               </label>
             </div>
-            </div>
 
             <div className="flex justify-end pt-1">
               <button
@@ -400,18 +382,6 @@ export default function InstructorSettings() {
           </main>
         </div>
       </div>
-      
-      <ConfirmationModal
-        isOpen={isConfirmSaveOpen}
-        title="Save Changes"
-        message="Are you sure you want to update your faculty profile and evaluation settings?"
-        confirmText="Save"
-        cancelText="Cancel"
-        onConfirm={performSave}
-        onCancel={() => setIsConfirmSaveOpen(false)}
-      />
     </div>
   );
 }
-
-

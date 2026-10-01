@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import InteractiveTerminal from "../workspace/InteractiveTerminal";
 import MonacoEditor from "@monaco-editor/react";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { useTheme } from "../theme/ThemeContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
 import api from "../../services/api";
 
 
@@ -40,9 +38,6 @@ export default function PracticeWorkspace() {
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
-  const [aiHint, setAiHint] = useState(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [triggerRun, setTriggerRun] = useState(0);
 
   useEffect(() => {
     // Monaco editor applies settings dynamically via the options prop.
@@ -89,17 +84,7 @@ export default function PracticeWorkspace() {
             setTaskDetails(foundTask);
             setModuleDetails(foundModule);
             setNextTaskId(nTaskId);
-            const draftStorageKey = `pamsu_saved_code_${taskId}`;
-            try {
-              const savedCode = localStorage.getItem(draftStorageKey);
-              if (savedCode) {
-                setCode(savedCode);
-              } else {
-                setCode(foundTask.starter_code || "");
-              }
-            } catch {
-              setCode(foundTask.starter_code || "");
-            }
+            setCode(foundTask.starter_code || "");
           }
         } else {
           navigate("/student/practice");
@@ -112,62 +97,21 @@ export default function PracticeWorkspace() {
     };
     fetchTask();
   }, [taskId, navigate]);
-  useEffect(() => {
-    if (!taskId) return;
-    const draftStorageKey = `pamsu_saved_code_${taskId}`;
-    const autosaveTimer = window.setTimeout(() => {
-      try {
-        localStorage.setItem(draftStorageKey, code);
-      } catch {}
-    }, 2000);
-
-    return () => {
-      window.clearTimeout(autosaveTimer);
-    };
-  }, [code, taskId]);
-
-  const [isRunCooldown, setIsRunCooldown] = useState(false);
 
   const handleSubmit = async () => {
-    if (isRunCooldown) return;
-    setIsRunCooldown(true);
-    setTimeout(() => setIsRunCooldown(false), 3000);
-    
     setIsSubmitting(true);
     setFeedback(null);
-    setAiHint(null);
-    setNextTaskId(null);
-
-    // Also trigger InteractiveTerminal so student sees raw output
-    setTriggerRun(prev => prev + 1);
-
     try {
-      const res = await api.post(`/practice/tasks/${taskId}/submit`, { code });
+      const res = await api.post(`/practice/tasks/${taskId}/submit`, {
+        code: code
+      });
       setFeedback(res);
-      
-      if (res.is_successful) {
-        // Find next task id
-        if (moduleDetails) {
-          const tIndex = moduleDetails.tasks.findIndex(t => String(t.task_id) === String(taskId));
-          if (tIndex !== -1 && tIndex < moduleDetails.tasks.length - 1) {
-            setNextTaskId(moduleDetails.tasks[tIndex + 1].task_id);
-          }
-        }
-      } else {
-        // Fetch AI hint
-        setIsAiLoading(true);
-        try {
-          const aiRes = await api.post(`/practice/attempts/${res.attempt_id}/ai-hint`);
-          setAiHint(aiRes.ai_hint);
-        } catch (aiErr) {
-          console.error("AI hint fetch failed", aiErr);
-          setAiHint("The AI Tutor is currently unavailable. Please check your syntax and try again.");
-        } finally {
-          setIsAiLoading(false);
-        }
-      }
     } catch (err) {
-      console.error("Submission failed", err);
+      setFeedback({
+        is_successful: false,
+        message: "An error occurred while evaluating your code.",
+        execution_feedback: err.response?.data?.detail || err.message
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -187,7 +131,7 @@ export default function PracticeWorkspace() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-base">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-blue-500"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-subtle border-t-violet-500"></div>
       </div>
     );
   }
@@ -233,19 +177,19 @@ export default function PracticeWorkspace() {
 
         <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
           <div className="max-w-3xl w-full">
-            <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+            <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
               Lesson
             </div>
             <h1 className="text-4xl font-extrabold mb-8 text-text-main tracking-tight">{taskDetails.title}</h1>
             
-            <div className="prose dark:prose-invert prose-emerald max-w-none mb-12">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || 'No instructions provided.'}</ReactMarkdown>
+            <div className="prose prose-invert prose-emerald max-w-none mb-12">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{taskDetails.instructions || 'No instructions provided.'}</ReactMarkdown>
             </div>
             
             <div className="border-t border-border-subtle pt-8 flex justify-end pb-24">
               <button 
                 onClick={() => setViewMode("coding")} 
-                className="flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 hover:scale-[1.02]"
+                className="flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-violet-500/20 transition-all hover:bg-violet-500 hover:scale-[1.02]"
               >
                 Start Coding Challenge
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -280,19 +224,18 @@ export default function PracticeWorkspace() {
               onClick={() => {
                 setTaskDetails(null); // trigger re-fetch/loading
                 setFeedback(null);
-    setAiHint(null);
                 setCode("");
                 navigate(`/student/practice/workspace?task=${nextTaskId}`);
               }}
               className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-500"
             >
-              Next Task ?
+              Next Task →
             </button>
           )}
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || isRunCooldown}
-            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 rounded-md bg-violet-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
@@ -309,9 +252,9 @@ export default function PracticeWorkspace() {
         <div className="flex w-1/3 flex-col border-r border-border-subtle bg-bg-base overflow-y-auto">
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between border-b border-border-subtle pb-2"><h2 className="text-lg font-bold text-text-main">Instructions</h2>
-              <button onClick={() => setViewMode("lesson")} className="text-xs text-blue-400 hover:text-blue-300 font-medium">Read Full Lesson</button></div>
-            <div className="prose dark:prose-invert prose-sm max-w-none text-text-main">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{taskDetails.instructions || ''}</ReactMarkdown>
+              <button onClick={() => setViewMode("lesson")} className="text-xs text-violet-400 hover:text-violet-300 font-medium">Read Full Lesson</button></div>
+            <div className="prose prose-invert prose-sm max-w-none text-text-main">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{taskDetails.instructions || ''}</ReactMarkdown>
             </div>
 
             {feedback && (
@@ -321,29 +264,16 @@ export default function PracticeWorkspace() {
                 <h3 className={`text-base font-bold flex items-center gap-2 mb-3
                   ${feedback.is_successful ? "text-emerald-500" : "text-rose-500"}`}
                 >
-                  {feedback.is_successful ? "Evaluation Passed!" : "Evaluation Failed"}
+                  {feedback.is_successful ? "🎉 Evaluation Passed!" : "❌ Evaluation Failed"}
                 </h3>
                 <p className="text-sm font-medium mb-4">{feedback.message}</p>
                 
-
-
-                
-                {(isAiLoading || aiHint) && (
-                  <div className="mt-6 animate-fade-in rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-5 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
-                    <h3 className="text-base font-bold flex items-center gap-2 mb-3 text-indigo-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
-                      AI Tutor Feedback
-                    </h3>
-                    {isAiLoading ? (
-                      <div className="flex items-center gap-3 text-sm text-indigo-300">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-400/20 border-t-indigo-400"></div>
-                        Generating pedagogical hint...
-                      </div>
-                    ) : (
-                      <div className="prose dark:prose-invert prose-sm max-w-none text-indigo-900 dark:text-indigo-100">
-                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{aiHint}</ReactMarkdown>
-                      </div>
-                    )}
+                {feedback.execution_feedback && (
+                  <div className="mb-4">
+                    <h4 className="text-xs font-semibold uppercase text-text-muted mb-1">Execution Output</h4>
+                    <pre className="p-3 bg-black/30 rounded-md text-xs font-mono text-text-muted overflow-x-auto whitespace-pre-wrap">
+                      {feedback.execution_feedback}
+                    </pre>
                   </div>
                 )}
 
@@ -376,15 +306,6 @@ export default function PracticeWorkspace() {
               options={monacoOptions}
             />
           </div>
-          {/* Output Terminal */}
-          <div className="h-56 border-t border-border-subtle bg-bg-base flex flex-col">
-             <div className="flex items-center px-4 py-2 border-b border-white/5 bg-bg-panel">
-                <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
-             </div>
-               <div className="flex-1 p-1 bg-transparent h-full relative">
-                 <InteractiveTerminal code={code} triggerRun={triggerRun} onRunFinished={() => setIsSubmitting(false)} />
-               </div>
-          </div>
         </div>
       </div>
       
@@ -396,4 +317,3 @@ export default function PracticeWorkspace() {
     </div>
   );
 }
-

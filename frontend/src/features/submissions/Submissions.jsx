@@ -117,12 +117,12 @@ function SubmissionList({ submissions, onOpen, isLoading }) {
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-medium text-text-blue">
+              <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-text-emerald">
                 Attempt {submission.latestAttempt}
               </span>
 
               {submission.isOfficial && (
-                <span className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-2.5 py-1 text-[10px] text-text-blue">
+                <span className="rounded-full border border-green-500/20 bg-green-500/[0.06] px-2.5 py-1 text-[10px] text-text-emerald">
                   Latest official submission
                 </span>
               )}
@@ -271,7 +271,7 @@ function SubmissionDetails({ submission, onBack }) {
                 </div>
 
                 {attempt.isOfficial ? (
-                  <span className="w-fit rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-medium text-text-blue">
+                  <span className="w-fit rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-text-emerald">
                     Latest official submission
                   </span>
                 ) : (
@@ -434,9 +434,8 @@ export default function Submissions() {
               <>
                 <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                   <div>
-                    <p className="mb-1 font-mono text-xs text-text-blue">PROGRESS</p>
                     <h1 className="text-2xl font-bold flex items-center gap-3">
-                      <ArchiveIcon className="h-6 w-6 text-blue-500" />
+                      <ArchiveIcon className="h-6 w-6 text-green-500" />
                       Submissions
                     </h1>
                     <p className="mt-1 text-sm text-text-muted">

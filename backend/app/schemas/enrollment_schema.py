@@ -85,7 +85,6 @@ class EnrollmentResponse(BaseModel):
         description="Enrolled student identifier.",
     )
     status: EnrollmentStatus
-    is_online: bool = False
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -119,7 +118,6 @@ class ClassMemberResponse(BaseModel):
         max_length=255,
     )
     status: EnrollmentStatus
-    is_online: bool = False
 
     model_config = ConfigDict(
         extra="forbid",
@@ -156,7 +154,6 @@ class StudentClassroomResponse(BaseModel):
         gt=0,
     )
     enrollment_status: EnrollmentStatus
-    is_online: bool = False
     classroom: ClassroomResponse
 
     model_config = ConfigDict(
@@ -176,5 +173,3 @@ class StudentClassroomResponse(BaseModel):
 # STATUS BOUNDARY:
 # Classroom availability uses Classroom.is_active.
 # Enrollment membership uses active, disabled, or removed.
-
-

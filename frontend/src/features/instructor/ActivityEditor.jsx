@@ -195,7 +195,6 @@ const ActivityEditor = () => {
   const initialClassId = searchParams.get('class');
   
   const [classrooms, setClassrooms] = useState([]);
-  const [classroomSearch, setClassroomSearch] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     class_ids: initialClassId ? [parseInt(initialClassId)] : [],
@@ -333,20 +332,7 @@ const ActivityEditor = () => {
       delete payload.is_published;
       delete payload.allow_paste;
 
-      
-        const response = await api.post('/instructors/tasks/', payload);
-        const tasks = Array.isArray(response) ? response : [response];
-        
-        if (formData.is_published) {
-          for (const task of tasks) {
-            try {
-              await api.patch(`/instructors/tasks/${task.task_id}/publication`, { is_published: true });
-            } catch (pubErr) {
-              console.error('Failed to auto-publish task', pubErr);
-            }
-          }
-        }
-
+      const response = await api.post('/instructors/tasks/', payload);
       
       // If expected output was provided, automatically convert it into a global test case
       if (formData.expected_output && formData.expected_output.trim() !== "") {
@@ -394,10 +380,7 @@ const ActivityEditor = () => {
             <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
               <div>
                 <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-text-emerald">MANAGEMENT</p>
-                <h1 className="text-2xl font-bold tracking-tight text-text-main flex items-center gap-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
-                  Create New Activity
-                </h1>
+                <h1 className="text-2xl font-bold tracking-tight text-text-main">Create New Activity</h1>
                 <p className="mt-1 text-sm text-text-muted">
                   Author new laboratory activities, code templates, and automated AST testing guidelines.
                 </p>
@@ -434,41 +417,14 @@ const ActivityEditor = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1.5 flex items-center justify-between">
-                    <span>Target Classroom(s) <span className="text-text-emerald">*</span></span>
-                    {classrooms.length > 0 && (
-                      <div className="relative w-48">
-                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                          <svg className="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Search class..."
-                          value={classroomSearch}
-                          onChange={(e) => setClassroomSearch(e.target.value)}
-                          className="w-full pl-8 pr-3 py-1.5 bg-bg-base border border-border-subtle rounded-lg text-xs text-text-main focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-text-muted"
-                        />
-                      </div>
-                    )}
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                    Target Classroom(s) <span className="text-text-emerald">*</span>
                   </label>
                   <div className="bg-bg-glass border border-border-subtle rounded-xl p-3 max-h-56 overflow-y-auto custom-scrollbar flex flex-col gap-2">
                     {classrooms.length === 0 ? (
                       <div className="text-sm text-text-muted italic py-2 text-center">No classrooms available</div>
-                    ) : (() => {
-                      const filteredClassrooms = classrooms.filter(cls => {
-                        if (!classroomSearch.trim()) return true;
-                        const query = classroomSearch.toLowerCase();
-                        return (cls.subject_code && cls.subject_code.toLowerCase().includes(query)) || 
-                               (cls.section && cls.section.toLowerCase().includes(query));
-                      });
-
-                      if (filteredClassrooms.length === 0) {
-                        return <div className="text-sm text-text-muted italic py-2 text-center">No classrooms match your search.</div>;
-                      }
-
-                      return filteredClassrooms.map(cls => {
+                    ) : (
+                      classrooms.map(cls => {
                         const isSelected = formData.class_ids.includes(cls.class_id);
                         return (
                           <label 
@@ -509,8 +465,8 @@ const ActivityEditor = () => {
                             />
                           </label>
                         );
-                      });
-                    })()}
+                      })
+                    )}
                   </div>
                 </div>
                 

@@ -5,8 +5,6 @@ import { useAuth } from "../../features/auth/AuthContext";
 
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
-import ConfirmationModal from "../../components/modals/ConfirmationModal";
-import AlertModal from "../../components/modals/AlertModal";
 
 
 
@@ -53,8 +51,6 @@ export default function ClassDetails() {
   const [activities, setActivities] = useState([]);
   const [totalActivitiesCount, setTotalActivitiesCount] = useState(0);
   const [membersCount, setMembersCount] = useState(0);
-  const [isUnenrollModalOpen, setIsUnenrollModalOpen] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: "", message: "", isError: false });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,7 +124,7 @@ export default function ClassDetails() {
           setClassroom({
             class_id: id,
             subject_code: "CCS101",
-            name: "Computer Programming 1",
+            subject_name: "Computer Programming 1",
             instructor_name: "Dr. Maria Santos",
             section: "BSCS-1A",
           });
@@ -141,24 +137,9 @@ export default function ClassDetails() {
     fetchData();
   }, [id]);
 
-  const handleUnenroll = async () => {
-    setIsUnenrollModalOpen(false);
-    try {
-      await api.delete(`/classrooms/${id}/enrollment`);
-      navigate("/student/classes");
-    } catch (err) {
-      setAlertConfig({
-        isOpen: true,
-        title: "Unenrollment Failed",
-        message: err.response?.data?.detail || err.message,
-        isError: true
-      });
-    }
-  };
-
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {
-      navigate(`/student/submissions/task/${activity.id}`);
+      navigate(`/student/submissions/${activity.id}`);
       return;
     }
     navigate(`/student/workspace?activity=${activity.id}`);
@@ -218,29 +199,21 @@ export default function ClassDetails() {
                       <MegaphoneIcon className="w-64 h-64 text-blue-500 transform rotate-[-15deg] translate-x-12 -translate-y-12" />
                     </div>
                     <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
-                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                      <div>
-                        <div className="mb-4 flex flex-wrap items-center gap-3">
-                          <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold tracking-wide text-text-blue shadow-sm">
-                            {classroom.subject_code}
-                          </span>
-                          <span className="rounded-full border border-border-strong bg-bg-glass px-3 py-1 text-xs font-semibold text-text-muted shadow-sm">
-                            {classroom.section}
-                          </span>
-                        </div>
-                        <h1 className="text-3xl font-bold text-text-main mb-3 tracking-tight">{classroom.name || "Classroom"}</h1>
-                        {classroom.instructor_name && (
-                          <p className="text-sm font-medium text-text-muted">
-                            Instructor: <span className="text-text-main">{classroom.instructor_name}</span>
-                          </p>
-                        )}
+                    <div className="relative z-10">
+                      <div className="mb-4 flex flex-wrap items-center gap-3">
+                        <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold tracking-wide text-text-blue shadow-sm">
+                          {classroom.subject_code}
+                        </span>
+                        <span className="rounded-full border border-border-strong bg-bg-glass px-3 py-1 text-xs font-semibold text-text-muted shadow-sm">
+                          {classroom.section}
+                        </span>
                       </div>
-                      <button
-                        onClick={() => setIsUnenrollModalOpen(true)}
-                        className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-500/20 shadow-sm"
-                      >
-                        Unenroll
-                      </button>
+                      <h1 className="text-3xl font-bold text-text-main mb-3 tracking-tight">{classroom.subject_name || "Classroom"}</h1>
+                      {classroom.instructor_name && (
+                        <p className="text-sm font-medium text-text-muted">
+                          Instructor: <span className="text-text-main">{classroom.instructor_name}</span>
+                        </p>
+                      )}
                     </div>
                   </header>
 
@@ -301,7 +274,7 @@ export default function ClassDetails() {
                           </div>
                         </div>
                         <p className="text-xs leading-relaxed text-text-muted group-hover:text-text-main transition-colors">
-                          Welcome to <strong>{classroom.name || "this class"}</strong>! All coding activities for this course will be completed and graded here. Make sure to check the active assignments board regularly. Good luck!
+                          Welcome to the laboratory component! All coding activities for this course will be completed and graded here. Make sure to check the active assignments board regularly. Good luck!
                         </p>
                       </div>
                       
@@ -337,25 +310,6 @@ export default function ClassDetails() {
           studentName={user.name}
         />
       </div>
-      
-      <ConfirmationModal
-        isOpen={isUnenrollModalOpen}
-        title="Drop Classroom"
-        message="Are you sure you want to drop this class? You will lose access to all assignments and materials. This action cannot be undone."
-        confirmText="Unenroll"
-        cancelText="Cancel"
-        onConfirm={handleUnenroll}
-        onCancel={() => setIsUnenrollModalOpen(false)}
-        isDanger={true}
-      />
-      
-      <AlertModal
-        isOpen={alertConfig.isOpen}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        isError={alertConfig.isError}
-        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
-      />
     </div>
   );
 }

@@ -104,7 +104,6 @@ export default function MyClasses() {
               
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-text-blue">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
                     <UsersIcon className="h-6 w-6 text-blue-500" />
                     My Classes
@@ -183,7 +182,7 @@ export default function MyClasses() {
                           </div>
                           
                           <h3 className="text-lg font-bold text-text-main mb-2 line-clamp-1 group-hover:text-text-main transition-colors relative z-10">
-                            {cls.classroom.name || 'Classroom'}
+                            {cls.classroom.subject_name || 'Classroom'}
                           </h3>
                           
                           <div className="flex items-center gap-2 mb-6 relative z-10">
@@ -248,12 +247,9 @@ export default function MyClasses() {
       <JoinClassModal 
         isOpen={isJoinModalOpen} 
         onClose={() => setIsJoinModalOpen(false)}
-        onSuccess={(classId) => {
+        onSuccess={() => {
           console.log("Successfully joined class!");
           fetchClassesData();
-          if (classId) {
-            navigate(`/student/classes/${classId}`);
-          }
         }}
       />
     </div>

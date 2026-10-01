@@ -41,9 +41,6 @@ def verify_password(
     if not plain_password or not password_hash:
         return False
 
-    if not password_hash.startswith(("$2a$", "$2b$", "$2y$")):
-        return False
-
     try:
         return bcrypt.checkpw(
             plain_password.encode("utf-8"),
@@ -62,7 +59,7 @@ def get_password_hash(
     if not isinstance(password, str) or not password:
         raise ValueError("Password cannot be empty.")
 
-    salt = bcrypt.gensalt(rounds=12)  # Render free tier CPU fix
+    salt = bcrypt.gensalt()
     hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed_bytes.decode("utf-8")
 
@@ -247,4 +244,3 @@ def get_current_student(
 # permission to execute arbitrary requests. FastAPI first validates the user,
 # persists an authorized execution request, and sends only its execution ID
 # through the trusted queue adapter.
-

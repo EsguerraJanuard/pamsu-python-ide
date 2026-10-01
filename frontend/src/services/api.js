@@ -121,37 +121,19 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
       throw new ApiError('Request timed out. Please check your connection or try again.', 408);
     }
 
-    if (!navigator.onLine || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      throw new ApiError('Cannot connect to the server. This may be a CORS issue (if using a preview URL) or the backend is offline.', 0);
+    if (!navigator.onLine || error.message.includes('Failed to fetch')) {
+      throw new ApiError('Cannot connect to the server. Please verify the backend is running.', 0);
     }
 
     throw new ApiError(error.message || 'An unexpected network error occurred.', 500);
   }
 };
 
-
-const pendingRequests = new Map();
-
 export const api = {
-  get: (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT) => {
-    const url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-    const key = `GET::${url}`;
-    
-    if (pendingRequests.has(key)) {
-      return pendingRequests.get(key);
-    }
-    
-    const promise = request(endpoint, { ...options, method: 'GET' }, timeoutMs)
-      .finally(() => {
-        pendingRequests.delete(key);
-      });
-      
-    pendingRequests.set(key, promise);
-    return promise;
-  },
+  get: (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT) =>
+    request(endpoint, { ...options, method: 'GET' }, timeoutMs),
 
   post: (endpoint, body, options = {}, timeoutMs = DEFAULT_TIMEOUT) =>
-
     request(
       endpoint,
       {

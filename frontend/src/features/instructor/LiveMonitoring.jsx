@@ -12,7 +12,6 @@ const LiveMonitoring = () => {
   const [error, setError] = useState(null);
   const [classrooms, setClassrooms] = useState([]);
   const [selectedClassroom, setSelectedClassroom] = useState('All');
-  const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
     const fetchClassrooms = async () => {
@@ -23,18 +22,7 @@ const LiveMonitoring = () => {
         console.error('Error fetching classrooms:', err);
       }
     };
-    
-    const fetchTasks = async () => {
-      try {
-        const response = await api.get('/instructors/tasks/');
-        setTasks(Array.isArray(response) ? response : response.items || []);
-      } catch (err) {
-        console.error('Error fetching tasks:', err);
-      }
-    };
-
     fetchClassrooms();
-    fetchTasks();
   }, []);
 
   useEffect(() => {
@@ -49,7 +37,7 @@ const LiveMonitoring = () => {
       try {
         const url = mode === 'global' 
           ? `/instructors/coding-sessions/live`
-          : `/instructors/tasks/${activeTaskId}/coding-sessions?active_only=true`;
+          : `/instructors/tasks/${activeTaskId}/coding-sessions`;
           
         const response = await api.get(url);
         // Handle both possible wrapper object or direct array
@@ -95,10 +83,7 @@ const LiveMonitoring = () => {
           <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
-              <h1 className="text-2xl font-bold flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-text-emerald"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
-                Live Monitoring
-              </h1>
+              <h1 className="text-2xl font-bold">Live Monitoring</h1>
               <p className="mt-1 text-sm text-text-muted">
                 Monitor real-time student activity and execution metrics.
               </p>
@@ -151,25 +136,28 @@ const LiveMonitoring = () => {
         
         {mode === 'task' && (
           <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle mb-8 shadow-sm">
-            <div className="flex flex-col gap-2 max-w-md">
-              <label htmlFor="taskId" className="block text-sm font-medium text-text-muted mb-1">
-                Select Task to Monitor
-              </label>
-              <CustomSelect
-                value={activeTaskId || ''}
-                onChange={(val) => {
-                  setActiveTaskId(val);
-                }}
-                className="w-full text-sm py-2"
-                options={[
-                  { value: "", label: "Select a task..." },
-                  ...tasks.map(t => ({
-                    value: t.task_id,
-                    label: t.title
-                  }))
-                ]}
-              />
-            </div>
+            <form onSubmit={handleMonitor} className="flex gap-4 items-end">
+              <div className="flex-1 max-w-md">
+                <label htmlFor="taskId" className="block text-sm font-medium text-text-muted mb-2">
+                  Task ID to Monitor
+                </label>
+                <input
+                  type="text"
+                  id="taskId"
+                  value={taskIdInput}
+                  onChange={(e) => setTaskIdInput(e.target.value)}
+                  className="w-full bg-bg-base border border-border-subtle rounded-lg px-4 py-2.5 text-text-main focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                  placeholder="Enter Task ID (e.g., 123)"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!taskIdInput.trim()}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-text-muted text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
+              >
+                Monitor
+              </button>
+            </form>
           </div>
         )}
 
@@ -327,8 +315,8 @@ const LiveMonitoring = () => {
                       Last Heartbeat
                     </span>
                     <span className="font-medium text-text-muted">
-                      {session.last_activity_at 
-                        ? new Date(session.last_activity_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
+                      {session.last_heartbeat 
+                        ? new Date(session.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
                         : 'Never'}
                     </span>
                   </div>

@@ -19,7 +19,7 @@ from app.services.reporting_service import (
     ReportingAccessDeniedError,
     ReportingPaginationError,
     ReportingTaskUnavailableError,
-    build_gradebook_excel_export,
+    build_gradebook_csv_export,
     get_activity_completion_summary,
     get_classroom_completion_summary,
     get_grade_distribution,
@@ -677,42 +677,30 @@ def test_student_progress_uses_only_authenticated_students_own_released_grades(
     assert formula_response["completion_percentage"] == 50.0
 
 
-def test_gradebook_excel_export_is_owner_scoped_and_privacy_safe(
+def test_gradebook_csv_export_is_owner_scoped_and_privacy_safe(
     db_session: Session,
 ):
-    import io
-    import openpyxl
-
     context = _create_reporting_context(
         db_session,
     )
 
-    export = build_gradebook_excel_export(
+    export = build_gradebook_csv_export(
         db_session,
         instructor_id=context["owner"].user_id,
         class_id=context["classroom"].class_id,
     )
 
     assert export["filename"] == (
-        f"classroom-{context['classroom'].class_id}-gradebook.xlsx"
+        f"classroom-{context['classroom'].class_id}-gradebook.csv"
     )
-    assert export["media_type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert export["media_type"] == "text/csv; charset=utf-8"
     assert export["row_count"] == 3
     assert export["includes_raw_source"] is False
 
-    wb = openpyxl.load_workbook(io.BytesIO(export["content"]))
-    ws = wb.active
-    rows = list(ws.values)
-    
-    # Check headers
-    headers = rows[0]
-    assert "raw_code" not in headers
-    assert "standard_input" not in headers
-    assert "feedback" not in headers
-    assert "risk_score" not in headers
-    assert "plagiarism_verdict" not in headers
+    decoded = export["content"].decode(
+        "utf-8-sig",
+    )
 
-    # Verify content doesn't contain prohibited values
     prohibited_values = {
         "PRIVATE UNOFFICIAL SOURCE",
         "PRIVATE ALPHA ONE SOURCE",
@@ -726,23 +714,29 @@ def test_gradebook_excel_export_is_owner_scoped_and_privacy_safe(
         "PRIVATE TASK INSTRUCTIONS",
         "PRIVATE STARTER CODE",
     }
-    for row in rows:
-        for cell in row:
-            if cell is not None and isinstance(cell, str):
-                for prohibited in prohibited_values:
-                    assert prohibited not in cell
 
-    # Find the formula row
-    school_id_idx = headers.index("school_id")
-    student_name_idx = headers.index("student_name")
-    activity_title_idx = headers.index("activity_title")
+    for prohibited_value in prohibited_values:
+        assert prohibited_value not in decoded
 
-    formula_row = next(
-        row for row in rows[1:] if str(row[school_id_idx]) == str(context["student_formula"].school_id)
+    reader = csv.DictReader(
+        StringIO(decoded),
     )
 
-    assert formula_row[student_name_idx] == "=Formula Student"
-    assert formula_row[activity_title_idx] == "@Activity Two"
+    rows = list(reader)
+
+    assert len(rows) == 3
+    assert "raw_code" not in reader.fieldnames
+    assert "standard_input" not in reader.fieldnames
+    assert "feedback" not in reader.fieldnames
+    assert "risk_score" not in reader.fieldnames
+    assert "plagiarism_verdict" not in reader.fieldnames
+
+    formula_row = next(
+        row for row in rows if row["school_id"] == context["student_formula"].school_id
+    )
+
+    assert formula_row["student_name"] == "'=Formula Student"
+    assert formula_row["activity_title"] == "'@Activity Two"
 
 
 def test_gradebook_csv_export_denies_another_instructor(
@@ -755,7 +749,7 @@ def test_gradebook_csv_export_denies_another_instructor(
     with pytest.raises(
         ReportingAccessDeniedError,
     ):
-        build_gradebook_excel_export(
+        build_gradebook_csv_export(
             db_session,
             instructor_id=context["other_instructor"].user_id,
             class_id=context["classroom"].class_id,

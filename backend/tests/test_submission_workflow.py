@@ -283,7 +283,7 @@ def test_new_attempt_becomes_official_and_preserves_history(
 
     assert "student_id" not in first_attempt
     assert "jaccard_score" not in first_attempt
-    # assert "ast_pass_fail" not in first_attempt
+    assert "ast_pass_fail" not in first_attempt
 
     second_code = "number = int(input())\nresult = number * 3\nprint(result)\n"
 

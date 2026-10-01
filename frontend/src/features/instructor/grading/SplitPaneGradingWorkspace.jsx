@@ -4,11 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
 import InstructorSidebar from '../../../components/layout/InstructorSidebar';
 import AlertModal from '../../../components/modals/AlertModal';
-import { DiffEditor } from '@monaco-editor/react';
-import { useTheme } from '../../theme/ThemeContext';
 
 const SplitPaneGradingWorkspace = () => {
-  const { resolvedTheme } = useTheme();
   const { classId, taskId } = useParams();
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -16,7 +13,6 @@ const SplitPaneGradingWorkspace = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [detailedSub, setDetailedSub] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [taskDetails, setTaskDetails] = useState(null);
 
   // Grade form state
   const [gradeScore, setGradeScore] = useState('');
@@ -41,18 +37,11 @@ const SplitPaneGradingWorkspace = () => {
         if (subsRes && Array.isArray(subsRes.items)) {
           subsRes.items.forEach(sub => {
               if (sub.activity?.task_id === parseInt(taskId)) {
-                 if (!subsMap[sub.student.student_id]) { subsMap[sub.student.student_id] = sub; }
+                 subsMap[sub.student.student_id] = sub;
               }
           });
         }
         setSubmissions(subsMap);
-        
-        try {
-          const taskRes = await api.get(`/instructors/tasks/${taskId}`);
-          setTaskDetails(taskRes);
-        } catch (taskErr) {
-          console.error('Error fetching task details:', taskErr);
-        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -96,32 +85,22 @@ const SplitPaneGradingWorkspace = () => {
   const handleSubmitGrade = async (e) => {
     e.preventDefault();
     if (!selectedStudent) return;
-    const sub = submissions[(selectedStudent.student_id || selectedStudent.id)];
+    const sub = submissions[selectedStudent.id];
     if (!sub || !sub.sub_id) return;
 
     try {
       setSavingGrade(true);
-      let res;
-      if (sub.has_manual_grade) {
-        // MUST send 'score' and 'feedback' to match InstructorGradeUpdate Pydantic schema
-        res = await api.patch(`/evaluation/submissions/${sub.sub_id}/grade`, {
-          score: parseFloat(gradeScore),
-          feedback: feedbackText
-        });
-      } else {
-        res = await api.put(`/evaluation/submissions/${sub.sub_id}/grade`, {
-          score: parseFloat(gradeScore),
-          max_score: 100,
-          feedback: feedbackText,
-          is_released: true
-        });
-      }
+      // MUST send 'score' and 'feedback' to match InstructorGradeUpdate Pydantic schema
+      const res = await api.patch(`/evaluation/submissions/${sub.sub_id}/grade`, {
+        score: parseFloat(gradeScore),
+        feedback: feedbackText
+      });
       
       // Update local state so the badge updates immediately
       setSubmissions(prev => ({
         ...prev,
-        [(selectedStudent.student_id || selectedStudent.id)]: {
-          ...prev[(selectedStudent.student_id || selectedStudent.id)],
+        [selectedStudent.id]: {
+          ...prev[selectedStudent.id],
           has_manual_grade: true,
           status: 'graded'
         }
@@ -186,7 +165,7 @@ const SplitPaneGradingWorkspace = () => {
           </div>
           <header className="mb-8">
             <h1 className="text-3xl font-bold text-text-main mb-2">Activity Grading Workspace</h1>
-            <p className="text-text-muted">Task ID: {taskId} â€¢ Loading data...</p>
+            <p className="text-text-muted">Task ID: {taskId} • Loading data...</p>
           </header>
           <div className="flex min-h-0 flex-1 flex-row border border-border-subtle rounded-xl overflow-hidden shadow-sm">
             {/* Left Panel Skeleton */}
@@ -229,7 +208,7 @@ const SplitPaneGradingWorkspace = () => {
     );
   }
 
-  const selectedSub = selectedStudent ? submissions[selectedStudent.student_id || selectedStudent.id] : null;
+  const selectedSub = selectedStudent ? submissions[selectedStudent.id] : null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
@@ -246,7 +225,7 @@ const SplitPaneGradingWorkspace = () => {
         </button>
         <header className="mb-4">
           <h1 className="text-3xl font-bold text-text-main mb-2">Activity Grading Workspace</h1>
-          <p className="text-text-muted">Class {classId} â€¢ Task {taskId}</p>
+          <p className="text-text-muted">Class {classId} • Task {taskId}</p>
         </header>
       </div>
       <div className="mt-10">
@@ -270,18 +249,18 @@ const SplitPaneGradingWorkspace = () => {
           {students.map(student => {
             const sub = submissions[student.student_id];
             let badgeText = 'Missing';
-            let badgeColor = 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
+            let badgeColor = 'bg-red-900/50 text-red-400 border border-red-800';
             
             if (sub) {
               if (sub.has_manual_grade || sub.status === 'graded') {
                 badgeText = 'Graded';
-                badgeColor = 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20';
+                badgeColor = 'bg-green-900/50 text-green-400 border border-green-800';
               } else if (sub.status === 'late') {
                 badgeText = 'Late';
-                badgeColor = 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20';
+                badgeColor = 'bg-yellow-900/50 text-yellow-400 border border-yellow-800';
               } else {
                 badgeText = 'Submitted';
-                badgeColor = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+                badgeColor = 'bg-blue-900/50 text-blue-400 border border-blue-800';
               }
             }
 
@@ -317,60 +296,19 @@ const SplitPaneGradingWorkspace = () => {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-text-main">
-                  {selectedStudent.name || selectedStudent.email || `Student ${(selectedStudent.student_id || selectedStudent.id)}`}
+                  {selectedStudent.name || selectedStudent.email || `Student ${selectedStudent.id}`}
                 </h2>
                 <p className="text-sm text-text-muted mt-0.5">Student ID: {selectedStudent.student_id || selectedStudent.id}</p>
               </div>
             </div>
 
-            {/* Anti-Cheating / Telemetry Indicators */}
-            {selectedSub && (
-              <div className="flex flex-wrap gap-4 border-b border-border-subtle pb-4 mb-4">
-                {selectedSub.jaccard_score !== undefined && selectedSub.jaccard_score !== null && (
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.jaccard_score >= 70 ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    <span className="text-sm font-medium">Similarity: {selectedSub.jaccard_score.toFixed(1)}%</span>
-                  </div>
-                )}
-                {selectedSub.coding_session && (
-                  <>
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.tab_switch_count > 3 ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
-                      <span className="text-sm font-medium">Tab Switches: {selectedSub.coding_session.tab_switch_count}</span>
-                    </div>
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.blocked_paste_count > 0 ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
-                      <span className="text-sm font-medium">Blocked Pastes: {selectedSub.coding_session.blocked_paste_count}</span>
-                    </div>
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedSub.coding_session.mouseleave_count > 5 ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'bg-bg-panel border-border-subtle text-text-main'}`}>
-                      <span className="text-sm font-medium">Mouse Leaves: {selectedSub.coding_session.mouseleave_count}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
             {selectedSub ? (
               <>
                 <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
                   <h3 className="text-lg font-medium text-text-main mb-2">Submitted Code</h3>
-                  <div className="h-[400px] border border-border-subtle rounded overflow-hidden">
-                    <DiffEditor
-                      height="100%"
-                      language="python"
-                      theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
-                      original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
-                      modified={detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
-                      options={{
-                        readOnly: true,
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                        renderSideBySide: true,
-                        wordWrap: "on"
-                      }}
-                    />
-                  </div>
-                  {/*
+                  <pre className="bg-bg-panel p-4 rounded text-sm text-emerald-400 overflow-x-auto border border-border-subtle">
                     {detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
-                  */}
+                  </pre>
                 </div>
 
                 <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
