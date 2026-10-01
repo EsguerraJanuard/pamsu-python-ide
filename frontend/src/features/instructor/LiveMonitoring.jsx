@@ -149,29 +149,62 @@ const LiveMonitoring = () => {
             </div>
           </header>
         
-        {mode === 'task' && (
-          <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle mb-8 shadow-sm">
-            <div className="flex flex-col gap-2 max-w-md">
-              <label htmlFor="taskId" className="block text-sm font-medium text-text-muted mb-1">
+                  {mode === 'task' && !activeTaskId && (
+            <div className="mb-8">
+              <h2 className="text-sm font-bold text-text-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
                 Select Task to Monitor
-              </label>
-              <CustomSelect
-                value={activeTaskId || ''}
-                onChange={(val) => {
-                  setActiveTaskId(val);
-                }}
-                className="w-full text-sm py-2"
-                options={[
-                  { value: "", label: "Select a task..." },
-                  ...tasks.map(t => ({
-                    value: t.task_id,
-                    label: t.title
-                  }))
-                ]}
-              />
+              </h2>
+              {tasks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {tasks.map(t => (
+                    <div 
+                      key={t.task_id}
+                      onClick={() => setActiveTaskId(t.task_id.toString())}
+                      className="cursor-pointer group relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 transition-all duration-300 hover:-translate-y-1 hover:border-psu-maroon/50 hover:shadow-lg hover:shadow-psu-maroon/5"
+                    >
+                      <div className="absolute top-0 right-0 h-24 w-24 -translate-y-10 translate-x-10 rounded-full bg-psu-maroon/10 blur-2xl transition-all group-hover:bg-psu-maroon/20"></div>
+                      <div className="flex flex-col h-full min-h-[80px]">
+                         <h3 className="text-sm font-bold text-text-main group-hover:text-text-brand transition-colors line-clamp-2 mb-4 pr-4">{t.title}</h3>
+                         <div className="mt-auto flex items-center justify-between">
+                           <span className="text-[10px] text-text-muted bg-bg-base px-2 py-1 rounded-md border border-border-subtle font-mono">ID: {t.task_id}</span>
+                           <span className="text-xs font-bold text-text-brand opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">Monitor &rarr;</span>
+                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-12 rounded-xl border border-dashed border-border-strong bg-bg-glass/50 text-text-muted text-sm">
+                   No active tasks available to monitor.
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
+
+          {mode === 'task' && activeTaskId && (
+             <div className="flex items-center justify-between bg-bg-glass p-4 rounded-xl border border-border-subtle mb-6 shadow-sm">
+                <div className="flex items-center gap-4">
+                   <div className="p-2.5 rounded-lg bg-psu-maroon/10 text-text-brand ring-1 ring-psu-maroon/20">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                   </div>
+                   <div>
+                     <p className="text-[10px] text-text-muted font-bold tracking-wider uppercase mb-0.5">Currently Monitoring</p>
+                     <h3 className="text-sm font-bold text-text-main">{tasks.find(t => t.task_id.toString() === activeTaskId.toString())?.title || `Task ${activeTaskId}`}</h3>
+                   </div>
+                </div>
+                <button 
+                  onClick={() => setActiveTaskId(null)}
+                  className="px-4 py-2 rounded-lg border border-border-strong text-xs font-semibold text-text-main hover:bg-bg-base hover:text-text-brand transition-colors"
+                >
+                  Change Task
+                </button>
+             </div>
+          )}
 
         {error && (
           <div className="border-rose-500/20 bg-rose-500/10 text-text-rose p-4 rounded-lg mb-8 flex items-center gap-3 border">
