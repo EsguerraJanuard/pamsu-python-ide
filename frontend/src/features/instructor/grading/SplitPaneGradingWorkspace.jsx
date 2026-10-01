@@ -348,46 +348,82 @@ const SplitPaneGradingWorkspace = () => {
                      
                      <div className="space-y-6">
                         {/* Telemetry Indicators */}
-                        <div className="flex flex-wrap gap-4 border-b border-border-subtle pb-6">
-                          {(detailedSub?.jaccard_score !== undefined && detailedSub?.jaccard_score !== null) && (
-                            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${(detailedSub?.jaccard_score >= 70) ? 'bg-psu-red/10 border-psu-red/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                              <span className="text-sm font-semibold">Similarity: {detailedSub?.jaccard_score.toFixed(1)}%</span>
-                            </div>
-                          )}
-                          {detailedSub?.coding_session && (
-                            <>
-                              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${(detailedSub?.coding_session.tab_switch_count > 3) ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                                <span className="text-sm font-semibold">Tab Switches: {detailedSub?.coding_session.tab_switch_count}</span>
+                                                  <div className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-6">
+                            {(detailedSub?.jaccard_score !== undefined && detailedSub?.jaccard_score !== null) && (
+                              <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.jaccard_score >= 70) ? 'bg-psu-maroon/10 border-psu-maroon/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Similarity</span>
+                                <span className="text-2xl font-black">{detailedSub?.jaccard_score.toFixed(1)}%</span>
                               </div>
-                              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${(detailedSub?.coding_session.blocked_paste_count > 0) ? 'bg-psu-red/10 border-psu-red/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                                <span className="text-sm font-semibold">Blocked Pastes: {detailedSub?.coding_session.blocked_paste_count}</span>
-                              </div>
-                              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${(detailedSub?.coding_session.mouseleave_count > 5) ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                                <span className="text-sm font-semibold">Mouse Leaves: {detailedSub?.coding_session.mouseleave_count}</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        
-                        {/* AST Analysis & Execution Logs */}
+                            )}
+                            {detailedSub?.coding_session && (
+                              <>
+                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.tab_switch_count > 3) ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Tab Switches</span>
+                                  <span className="text-2xl font-black">{detailedSub?.coding_session.tab_switch_count}</span>
+                                </div>
+                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.blocked_paste_count > 0) ? 'bg-psu-maroon/10 border-psu-maroon/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Blocked Pastes</span>
+                                  <span className="text-2xl font-black">{detailedSub?.coding_session.blocked_paste_count}</span>
+                                </div>
+                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.mouseleave_count > 5) ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Mouse Leaves</span>
+                                  <span className="text-2xl font-black">{detailedSub?.coding_session.mouseleave_count}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          {/* AST Analysis & Execution Logs */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           <div>
-                             <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">AST Analysis</h4>
-                             <pre className="bg-bg-panel p-4 rounded-lg text-sm text-text-main overflow-x-auto border border-border-strong whitespace-pre-wrap min-h-[120px]">
-                               {(detailedSub?.ast_feedback && detailedSub.ast_feedback.length > 0) ? detailedSub.ast_feedback.join('\n') : '? Passed all structural requirements.'}
-                             </pre>
-                           </div>
-                           <div>
-                             <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Execution Logs</h4>
-                             <pre className="bg-bg-panel p-4 rounded-lg text-sm text-text-main overflow-x-auto border border-border-strong whitespace-pre-wrap min-h-[120px]">
-                               {detailedSub?.execution_log || 'Execution logs not available for this submission.'}
-                             </pre>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* MIDDLE SECTION: Grading Form */}
+                             <div>
+                               <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">AST Analysis</h4>
+                               <div className="bg-bg-panel p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto shadow-inner">
+                                 {detailedSub?.ast_feedback && detailedSub.ast_feedback.length > 0 ? (
+                                   <ul className="space-y-3">
+                                     {detailedSub.ast_feedback.map((fb, idx) => {
+                                        const isPass = fb.includes("PASSED");
+                                        const cleanText = fb.replace(/\[.*?\]\s*PASSED\s*-\s*/, '').replace(/\[.*?\]\s*FAILED\s*-\s*/, '').replace(/\[.*?\]\s*/, '');
+                                        return (
+                                          <li key={idx} className={`flex items-start gap-2 text-sm ${isPass ? 'text-text-main opacity-80' : 'text-psu-red font-semibold'}`}>
+                                            <svg className={`w-4 h-4 mt-0.5 shrink-0 ${isPass ? 'text-text-brand' : 'text-psu-red'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              {isPass ? (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                              ) : (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                              )}
+                                            </svg>
+                                            <span className="leading-snug font-mono text-[11px]">{cleanText}</span>
+                                          </li>
+                                        );
+                                     })}
+                                   </ul>
+                                 ) : (
+                                   <div className="flex flex-col items-center gap-2 text-text-brand h-full justify-center opacity-80 py-6">
+                                      <svg className="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                      <span className="text-xs font-semibold uppercase tracking-widest text-text-main mt-1">Perfect Structure</span>
+                                      <span className="text-[10px] text-text-muted">Passed all AST requirements.</span>
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+                             <div>
+                               <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Execution Logs</h4>
+                               <div className="bg-[#0a0a0f] p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto font-mono text-[11px] leading-relaxed shadow-inner">
+                                 {detailedSub?.execution_log ? (
+                                   <span className="text-slate-300 whitespace-pre-wrap">{detailedSub.execution_log}</span>
+                                 ) : (
+                                   <div className="flex items-center justify-center h-full text-slate-500 italic py-6">
+                                     ~ Execution logs empty or unavailable ~
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+  
+                    {/* MIDDLE SECTION: Grading Form */}
                   <form onSubmit={handleSubmitGrade} className="bg-bg-glass border border-border-subtle rounded-xl p-6 shadow-sm flex flex-col gap-6 mb-6">
                     <h3 className="text-lg font-bold text-text-main border-b border-border-subtle pb-4">Activity Grading Assessment</h3>
                     
