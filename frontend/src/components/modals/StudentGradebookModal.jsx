@@ -94,27 +94,27 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                 </thead>
                 <tbody className="divide-y divide-white/[0.06]">
                   {grades.map((grade) => (
-                    <tr key={grade.submission?.sub_id || Math.random()} className="transition-colors hover:bg-bg-glass-hover">
+                    <tr key={grade.sub_id || Math.random()} className="transition-colors hover:bg-bg-glass-hover">
                       <td className="px-6 py-4 font-medium text-text-main">
                         {grade.activity?.title || 'Unknown Activity'}
                       </td>
                       <td className="px-6 py-4">
-                        {grade.submission?.status === 'graded' ? (
+                        {grade.submission_status === 'graded' ? (
                           <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-text-brand">
                             <CheckCircleIcon className="h-3.5 w-3.5" /> Graded
                           </span>
-                        ) : grade.submission?.status === 'submitted' ? (
+                        ) : grade.submission_status === 'submitted' ? (
                           <span className="inline-flex items-center gap-1.5 rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-text-brand">
                             <ClockIcon className="h-3.5 w-3.5" /> Needs Review
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-400">
-                            Working
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-400 capitalize">
+                            {grade.submission_status || 'Working'}
                           </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-center font-mono">
-                        {grade.submission?.auto_score !== null && grade.submission?.auto_score !== undefined ? `${grade.submission.auto_score}%` : '-'}
+                        {grade.percentage !== null && grade.percentage !== undefined ? `${grade.percentage.toFixed(0)}%` : '-'}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
@@ -122,12 +122,12 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                             type="number"
                             min="0"
                             max="100"
-                            defaultValue={grade.manual_grade?.score_value ?? ''}
+                            defaultValue={grade.score ?? ''}
                             onBlur={async (e) => {
                               const newScore = e.target.value;
-                              if (newScore && grade.submission?.sub_id && newScore !== (grade.manual_grade?.score_value ?? '').toString()) {
+                              if (newScore && grade.sub_id && newScore !== (grade.score ?? '').toString()) {
                                 try {
-                                  await api.patch(`/evaluation/submissions/${grade.submission.sub_id}/grade`, {
+                                  await api.patch(`/evaluation/submissions/${grade.sub_id}/grade`, {
                                     score_value: parseInt(newScore),
                                     is_released: true
                                   });
@@ -139,13 +139,13 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                             className="w-16 rounded border border-border-subtle bg-bg-base px-2 py-1 text-center font-mono text-sm text-text-main focus:border-psu-maroon focus:outline-none"
                             placeholder="---"
                           />
-                          <span className="text-xs text-text-muted">/ 100</span>
+                          <span className="text-xs text-text-muted">/ {grade.max_score || 100}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {grade.submission?.sub_id && (
+                        {grade.sub_id && (
                           <button
-                            onClick={() => navigate(`/instructor/submissions/${grade.submission.sub_id}`)}
+                            onClick={() => navigate(`/instructor/submissions/${grade.sub_id}`)}
                             className="text-xs font-semibold text-text-brand hover:text-text-brand transition-colors"
                           >
                             View Work
@@ -166,9 +166,9 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
             onClick={() => {
               const data = grades.map(g => ({
                 "Activity": g.activity?.title || '',
-                "Status": g.submission?.status || 'N/A',
-                "Auto Score": g.submission?.auto_score !== null && g.submission?.auto_score !== undefined ? `${g.submission.auto_score}%` : 'N/A',
-                "Final Score": g.manual_grade?.score_value ?? 'N/A'
+                "Status": g.submission_status || 'N/A',
+                "Percentage": g.percentage !== null && g.percentage !== undefined ? `${g.percentage.toFixed(0)}%` : 'N/A',
+                "Final Score": g.score ?? 'N/A'
               }));
               const ws = XLSX.utils.json_to_sheet(data);
               const wb = XLSX.utils.book_new();
