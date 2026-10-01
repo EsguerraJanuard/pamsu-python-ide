@@ -99,6 +99,7 @@ export default function Workspace() {
   
   const [activity, setActivity] = useState(null);
   const [astResults, setAstResults] = useState(null);
+  const [submissionStatus, setSubmissionStatus] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -110,10 +111,15 @@ export default function Workspace() {
 
     const loadActivity = async () => {
       try {
-        const [activityRes, testCasesRes] = await Promise.all([
+        const [activityRes, testCasesRes, subStatusRes] = await Promise.allSettled([
           api.get(`/activities/${activityId}`),
-          api.get(`/activities/${activityId}/sample-test-cases`)
+          api.get(`/activities/${activityId}/sample-test-cases`),
+          api.get(`/submissions/my/official/${activityId}`)
         ]);
+        
+        if (activityRes.status === 'fulfilled') setActivity(activityRes.value);
+        if (testCasesRes.status === 'fulfilled') setTestCases(testCasesRes.value);
+        if (subStatusRes.status === 'fulfilled') setSubmissionStatus(subStatusRes.value);
 
         const due = activityRes.due_at ? new Date(activityRes.due_at) : null;
         let dueLabel = "No due date";
@@ -568,6 +574,21 @@ export default function Workspace() {
     pollIntervalRef.current = poll;
   };
 
+    const handleRequestRetake = async () => {
+    try {
+      const res = await api.post(`/submissions/${submissionStatus.sub_id}/request-retake`);
+      setSubmissionStatus(res);
+      setNotice("Retake requested successfully.");
+    } catch(error) {
+      console.error(error);
+      setNotice("Failed to request retake.");
+    }
+  };
+
+  const isLocked = submissionStatus && !submissionStatus.retake_allowed;
+  const canRequestRetake = isLocked && ["graded", "rejected"].includes(submissionStatus.status) && !submissionStatus.retake_requested;
+  const retakePending = isLocked && submissionStatus.retake_requested;
+
   const handleSubmit = async () => {
     if (!activityId) {
       setExecutionStatus("unavailable");
@@ -775,15 +796,40 @@ export default function Workspace() {
               Run
             </button>
 
-            {/* Submit Button */}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={executionStatus === "running"}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-psu-maroon to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-psu-maroon/25 transition-all hover:from-psu-maroon hover:to-indigo-500 hover:shadow-psu-maroon/40 active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              Submit
-            </button>
+            {/* Submit / Retake Actions */}
+            {isLocked ? (
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-lg bg-border-subtle/50 text-text-muted text-xs font-semibold border border-border-strong flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  {submissionStatus.status === 'graded' ? 'Graded' : 'Submitted'}
+                </span>
+                
+                {canRequestRetake && (
+                  <button
+                    type="button"
+                    onClick={handleRequestRetake}
+                    className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-all"
+                  >
+                    Request Retake
+                  </button>
+                )}
+                
+                {retakePending && (
+                  <span className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-500 opacity-70">
+                    Retake Requested...
+                  </span>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={executionStatus === "running"}
+                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-psu-maroon to-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-psu-maroon/25 transition-all hover:from-psu-maroon hover:to-indigo-500 hover:shadow-psu-maroon/40 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                Submit
+              </button>
+            )}
           </div>
         </header>
 

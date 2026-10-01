@@ -341,3 +341,44 @@ def approve_retake(submission_id: str, db: Session = Depends(get_db)):
     submission.has_manual_grade = False
     db.commit()
     return {"message": "Retake approved"}
+
+@router.post(
+    "/{submission_id}/request-retake",
+    response_model=StudentSubmissionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Request a retake for a rejected or failed submission.",
+)
+def request_retake_endpoint(
+    submission_id: int,
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+) -> StudentSubmissionResponse:
+    if submission_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Submission ID must be greater than zero.",
+        )
+        
+    submission = get_student_submission_by_id(
+        db,
+        student_id=current_student.user_id,
+        submission_id=submission_id,
+    )
+    
+    if submission.status not in ["graded", "rejected"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You can only request a retake for graded or rejected submissions.",
+        )
+        
+    if submission.retake_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A retake is already allowed for this submission.",
+        )
+        
+    submission.retake_requested = True
+    db.commit()
+    db.refresh(submission)
+    
+    return StudentSubmissionResponse.model_validate(submission)

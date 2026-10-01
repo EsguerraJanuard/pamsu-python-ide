@@ -503,13 +503,14 @@ const SplitPaneGradingWorkspace = () => {
                         {savingGrade ? 'Saving Grade...' : 'Save Final Grade'}
                       </button>
                       
-                      {detailedSub?.status === 'retake_requested' && (
+                      {detailedSub?.retake_requested && (
                         <button
                           type="button"
                           onClick={async () => {
                             try {
-                              await api.post(`/submissions/${detailedSub.id}/approve-retake`);
+                              await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
                               setNotice("Retake approved! Student can now resubmit.");
+                              setDetailedSub({...detailedSub, retake_allowed: true, retake_requested: false});
                               fetchSubmissions();
                             } catch (err) {
                               setNotice("Failed to approve retake.");
@@ -518,6 +519,25 @@ const SplitPaneGradingWorkspace = () => {
                           className="px-6 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold rounded-lg transition-all hover:bg-amber-500/20"
                         >
                           Approve Retake
+                        </button>
+                      )}
+                      
+                      {!detailedSub?.retake_requested && !detailedSub?.retake_allowed && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
+                              setNotice("Retake allowed! Student can now resubmit.");
+                              setDetailedSub({...detailedSub, retake_allowed: true});
+                              fetchSubmissions();
+                            } catch (err) {
+                              setNotice("Failed to allow retake.");
+                            }
+                          }}
+                          className="px-4 py-3 bg-bg-base border border-border-strong text-text-muted text-sm font-bold rounded-lg transition-all hover:bg-bg-glass-hover hover:text-text-main"
+                        >
+                          Allow Retake
                         </button>
                       )}
                     </div>

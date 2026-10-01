@@ -795,6 +795,18 @@ class Submission(Base):
         nullable=False,
         default=True,
     )
+    retake_requested = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
+    retake_allowed = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
     submitted_at = Column(
         DateTime(timezone=True),
         nullable=False,
