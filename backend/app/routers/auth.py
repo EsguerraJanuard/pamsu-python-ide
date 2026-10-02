@@ -226,36 +226,39 @@ def logout(
 
 @router.post("/guest", response_model=TokenResponse, dependencies=[Depends(RateLimiter(times=2, seconds=60))])
 def login_guest(db: Session = Depends(get_db)):
-    guest = db.query(User).filter(User.email == "guest@pampangastateu.edu.ph").first()
-    if not guest:
-        import random
-        guest = User(
-            email="guest@pampangastateu.edu.ph",
-            first_name="Aspiring Student",
-            last_name="Guest",
-            middle_name="",
-            role="student",
-            password_hash=get_password_hash("guest"),
-            school_id=str(random.randint(1000000000, 9999999999))
-        )
-        db.add(guest)
-        db.commit()
-        db.refresh(guest)
-        
-        # Auto-enroll guest in the first available class so they can see the system
-        from app.models.domain_models import Classroom, Enrollment
-        from app.core.utils import get_utc_now
-        first_class = db.query(Classroom).first()
-        if first_class:
-            enroll = Enrollment(
-                class_id=first_class.class_id,
-                student_id=guest.user_id,
-                status="active",
-                joined_at=get_utc_now()
-            )
-            db.add(enroll)
-            db.commit()
+    import random
+    import uuid
+    from app.models.domain_models import Classroom, Enrollment
+    from app.core.utils import get_utc_now
     
+    short_id = str(uuid.uuid4())[:6]
+    guest_email = f"guest_{short_id}@pampangastateu.edu.ph"
+    
+    guest = User(
+        email=guest_email,
+        first_name="Aspiring Student",
+        last_name=f"Guest {short_id.upper()}",
+        middle_name="",
+        role="student",
+        password_hash=get_password_hash("guest"),
+        school_id=f"GST{random.randint(10000, 99999)}"
+    )
+    db.add(guest)
+    db.commit()
+    db.refresh(guest)
+    
+    # Auto-enroll guest in the first available class so they can see the system
+    first_class = db.query(Classroom).first()
+    if first_class:
+        enroll = Enrollment(
+            class_id=first_class.class_id,
+            student_id=guest.user_id,
+            status="active",
+            joined_at=get_utc_now()
+        )
+        db.add(enroll)
+        db.commit()
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": str(guest.user_id), "role": guest.role},

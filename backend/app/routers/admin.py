@@ -90,7 +90,7 @@ def list_users(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    users = db.query(User).filter(User.role != "admin").offset(skip).limit(limit).all()
+    users = db.query(User).filter(User.role != "admin", ~User.email.startswith("guest_")).offset(skip).limit(limit).all()
     return users
 
 @router.patch("/users/{user_id}/status")
