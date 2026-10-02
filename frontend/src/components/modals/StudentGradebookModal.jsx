@@ -81,7 +81,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
               <p className="text-text-muted text-sm">No activity records found for this student.</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-glass">
+            <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-border-subtle bg-bg-glass">
               <table className="w-full text-left text-sm text-text-muted">
                 <thead className="border-b border-border-subtle bg-bg-glass text-xs font-semibold uppercase tracking-wider text-text-muted">
                   <tr>

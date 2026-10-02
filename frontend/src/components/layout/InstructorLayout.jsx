@@ -6,8 +6,10 @@ export const InstructorLayout = () => {
   return (
     <div className="flex h-screen bg-bg-glass text-text-main overflow-hidden">
       <InstructorSidebar />
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+        <div className="max-w-6xl mx-auto w-full">
         <Outlet />
+      </div>
       </main>
     </div>
   );

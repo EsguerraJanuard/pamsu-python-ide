@@ -169,8 +169,8 @@ export default function AdminDashboard() {
         </button>
       </header>
 
-      <div className="flex">
-        <aside className="w-64 border-r border-border-subtle min-h-[calc(100vh-73px)] p-6 space-y-2">
+      <div className="flex min-h-[calc(100vh-73px)]">
+        <aside className="w-56 lg:w-64 shrink-0 border-r border-border-subtle p-4 lg:p-6 space-y-2 overflow-y-auto">
           <NavButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} label="System Overview" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           <NavButton active={activeTab === 'faculty'} onClick={() => setActiveTab('faculty')} label="Faculty Management" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           <NavButton active={activeTab === 'students'} onClick={() => setActiveTab('students')} label="Student Masterlist" icon="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -178,7 +178,8 @@ export default function AdminDashboard() {
           <NavButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="System Settings" icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         </aside>
 
-        <main className="flex-1 p-8">
+        <main className="flex-1 min-w-0 p-4 lg:p-8 overflow-x-hidden">
+          <div className="max-w-6xl mx-auto w-full">
           <div className="h-14">
             {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-500 shadow-sm">{error}</div>}
             {success && <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm font-medium text-emerald-500 shadow-sm">{success}</div>}
@@ -275,7 +276,7 @@ export default function AdminDashboard() {
                   <h3 className="text-lg font-bold">Student Masterlist</h3>
                   <input type="text" placeholder="Search students..." value={searchStudent} onChange={e => setSearchStudent(e.target.value)} className="rounded-lg border border-border-strong bg-bg-base px-3 py-1.5 text-sm outline-none focus:border-psu-maroon" />
                 </div>
-                <div className="overflow-y-auto flex-1 border border-border-subtle rounded-lg">
+                <div className="overflow-x-auto overflow-y-auto flex-1 border border-border-subtle rounded-lg">
                   <table className="w-full text-left text-sm relative">
                     <thead className="sticky top-0 text-xs text-text-muted uppercase bg-bg-base border-b border-border-subtle z-10 shadow-sm">
                       <tr>
@@ -316,7 +317,7 @@ export default function AdminDashboard() {
                 <input type="text" placeholder="Search logs (actor, action)..." value={searchAudit} onChange={e => setSearchAudit(e.target.value)} className="rounded-lg border border-border-strong bg-bg-base px-3 py-1.5 text-sm outline-none focus:border-psu-maroon w-64" />
               </div>
               <div className="bg-bg-glass border border-border-subtle rounded-2xl shadow-sm flex-1 overflow-hidden flex flex-col">
-                <div className="overflow-y-auto flex-1">
+                <div className="overflow-x-auto overflow-y-auto flex-1">
                   <table className="w-full text-left text-sm relative">
                     <thead className="sticky top-0 text-xs text-text-muted uppercase bg-bg-base border-b border-border-subtle shadow-sm z-10">
                       <tr>
@@ -405,6 +406,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          </div>
         </main>
       </div>
     </div>
