@@ -3,6 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from app.routers.admin import global_system_settings
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -144,6 +145,11 @@ def login(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=("University email verification is required."),
+        )
+    if global_system_settings.get("maintenance_mode", False) and user.role == "student":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=("The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time."),
         )
 
     if user.role not in {
