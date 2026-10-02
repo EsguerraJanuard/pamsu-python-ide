@@ -6,8 +6,50 @@ import { useAuth } from '../auth/AuthContext';
 export default function AdminDashboard() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  const [usersSkip, setUsersSkip] = useState(0);
+  const [logsSkip, setLogsSkip] = useState(0);
+  const [hasMoreUsers, setHasMoreUsers] = useState(true);
+  const [hasMoreLogs, setHasMoreLogs] = useState(true);
+  
+  const { ref: userRef, inView: userInView } = useInView();
+  const { ref: logRef, inView: logInView } = useInView();
+  
+  const loadMoreUsers = async () => {
+    if (!hasMoreUsers) return;
+    const newSkip = usersSkip + 50;
+    try {
+      const res = await api.get(`/admin/users?skip=${newSkip}&limit=50`);
+      if (res.data.length < 50) setHasMoreUsers(false);
+      setUsers(prev => [...prev, ...res.data]);
+      setUsersSkip(newSkip);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  
+  const loadMoreLogs = async () => {
+    if (!hasMoreLogs) return;
+    const newSkip = logsSkip + 50;
+    try {
+      const res = await api.get(`/admin/audit-logs?skip=${newSkip}&limit=50`);
+      if (res.data.length < 50) setHasMoreLogs(false);
+      setAuditLogs(prev => [...prev, ...res.data]);
+      setLogsSkip(newSkip);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  
+  useEffect(() => {
+    if (userInView) loadMoreUsers();
+  }, [userInView]);
+  
+  useEffect(() => {
+    if (logInView) loadMoreLogs();
+  }, [logInView]);
 
-    const [activeTab, setActiveTab] = useState('overview');
   const [pendingTab, setPendingTab] = useState(null);
   
   const [initialSettings, setInitialSettings] = useState({
@@ -38,13 +80,14 @@ export default function AdminDashboard() {
   const [modalConfig, setModalConfig] = useState(null);
 
   const fetchData = async () => {
-    try {
-      const [statsRes, usersRes, logsRes, settingsRes] = await Promise.all([
-        api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
-        api.get("/admin/users").catch(() => ({ data: [] })),
-        api.get("/admin/audit-logs").catch(() => ({ data: [] })),
-        api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
-      ]);
+    try {        const [statsRes, usersRes, logsRes, settingsRes] = await Promise.all([
+          api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
+          api.get("/admin/users?skip=0&limit=50").catch(() => ({ data: [] })),
+          api.get("/admin/audit-logs?skip=0&limit=50").catch(() => ({ data: [] })),
+          api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
+        ]);
+        if (usersRes.data.length < 50) setHasMoreUsers(false);
+        if (logsRes.data.length < 50) setHasMoreLogs(false);
       setStats(statsRes.data || statsRes);
       setUsers(usersRes.data || usersRes);
       setAuditLogs(logsRes.data || logsRes);
@@ -320,6 +363,7 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
+                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-slate-500">Loading more faculty...</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -408,6 +452,7 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
+                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-slate-500">Loading more students...</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -469,6 +514,7 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
+                        {hasMoreLogs && <tr ref={logRef}><td colSpan="3" className="text-center py-4 text-slate-500">Loading more logs...</td></tr>}
                       </tbody>
                     </table>
                   </div>

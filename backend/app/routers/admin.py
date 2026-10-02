@@ -85,10 +85,12 @@ def create_instructor(
 
 @router.get("/users", response_model=List[UserResponse])
 def list_users(
+    skip: int = 0,
+    limit: int = 50,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    users = db.query(User).filter(User.role != "admin").all()
+    users = db.query(User).filter(User.role != "admin").offset(skip).limit(limit).all()
     return users
 
 @router.patch("/users/{user_id}/status")
@@ -133,12 +135,14 @@ def reset_user_password(
 
 @router.get("/audit-logs")
 def get_global_audit_logs(
+    skip: int = 0,
+    limit: int = 50,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
     logs = db.query(AuditRecord, User.first_name, User.last_name, User.role).join(
         User, AuditRecord.actor_user_id == User.user_id, isouter=True
-    ).order_by(AuditRecord.occurred_at.desc()).limit(100).all()
+    ).order_by(AuditRecord.occurred_at.desc()).offset(skip).limit(limit).all()
     
     result = []
     for log, fname, lname, role in logs:
