@@ -430,7 +430,7 @@ export default function Submissions() {
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <main className="submissions-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <main className="submissions-page min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="max-w-6xl mx-auto w-full">
           <style>
             {`

@@ -45,7 +45,7 @@ export default function Analytics() {
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="max-w-6xl mx-auto w-full">
           <header className="mb-8 border-b border-border-subtle pb-6">
             <p className="mb-1 font-mono text-xs text-text-brand">PROGRESS</p>
