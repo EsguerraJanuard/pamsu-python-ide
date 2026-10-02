@@ -1,3 +1,6 @@
+import redis.asyncio as redis
+from fastapi_limiter import FastAPILimiter
+
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -336,6 +339,12 @@ async def startup_event():
         limiter.total_tokens = 200
     except Exception:
         pass
+        
+    try:
+        redis_client = redis.from_url("redis://redis:6379/0", encoding="utf8", decode_responses=True)
+        await FastAPILimiter.init(redis_client)
+    except Exception as e:
+        print("Could not initialize FastAPILimiter:", e)
 
 
 def utc_now() -> datetime:

@@ -1,6 +1,7 @@
 import os
 import base64
 import httpx
+from fastapi_limiter.depends import RateLimiter
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -85,7 +86,7 @@ def get_practice_modules(
 
     return response_modules
 
-@router.post("/tasks/{task_id}/submit", response_model=PracticeSubmissionResponse)
+@router.post("/tasks/{task_id}/submit", response_model=PracticeSubmissionResponse, dependencies=[Depends(RateLimiter(times=3, seconds=10))])
 def submit_practice_task(
     task_id: int,
     request: PracticeSubmissionRequest,

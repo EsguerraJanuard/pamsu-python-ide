@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Literal
 
+from fastapi_limiter.depends import RateLimiter
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app.routers.admin import global_system_settings
@@ -223,7 +224,7 @@ def logout(
     except Exception:
         pass
 
-@router.post("/guest", response_model=TokenResponse)
+@router.post("/guest", response_model=TokenResponse, dependencies=[Depends(RateLimiter(times=2, seconds=60))])
 def login_guest(db: Session = Depends(get_db)):
     guest = db.query(User).filter(User.email == "guest@pampangastateu.edu.ph").first()
     if not guest:

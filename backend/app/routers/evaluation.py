@@ -1,3 +1,4 @@
+from fastapi_limiter.depends import RateLimiter
 from typing import Any, NoReturn
 
 from fastapi import (
@@ -232,6 +233,7 @@ def raise_evaluation_service_http_exception(
 @router.post(
     "/submissions/{sub_id}",
     response_model=EvaluationResponse,
+    dependencies=[Depends(RateLimiter(times=3, seconds=10))],
     status_code=status.HTTP_200_OK,
     operation_id="evaluate_submission",
     summary="Evaluate a submission",
