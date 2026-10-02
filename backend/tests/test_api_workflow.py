@@ -174,7 +174,7 @@ def test_student_cannot_create_instructor_task(
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Instructor access required."
+    assert response.json()["detail"] == "Access denied. Requires one of: instructor, admin"
 
 
 def test_complete_evaluation_workflow(
