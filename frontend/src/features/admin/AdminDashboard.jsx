@@ -25,26 +25,44 @@ export default function AdminDashboard() {
   const [masterlist, setMasterlist] = useState(null);
   const [searchStudent, setSearchStudent] = useState('');
   const [searchAudit, setSearchAudit] = useState('');
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      const [statsRes, usersRes, logsRes, settingsRes] = await Promise.all([
+        api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
+        api.get("/admin/users").catch(() => ({ data: [] })),
+        api.get("/admin/audit-logs").catch(() => ({ data: [] })),
+        api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
+      ]);
+      setStats(statsRes.data || statsRes);
+      setUsers(usersRes.data || usersRes);
+      setAuditLogs(logsRes.data || logsRes);
+      setSettings(settingsRes.data || settingsRes);
+    } catch (err) {
+      console.error("Dashboard error:", err);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, usersRes, logsRes, settingsRes] = await Promise.all([
-          api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
-          api.get("/admin/users").catch(() => ({ data: [] })),
-          api.get("/admin/audit-logs").catch(() => ({ data: [] })),
-          api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
-        ]);
-        setStats(statsRes.data || statsRes);
-        setUsers(usersRes.data || usersRes);
-        setAuditLogs(logsRes.data || logsRes);
-        setSettings(settingsRes.data || settingsRes);
-      } catch (err) {
-        console.error("Dashboard error:", err);
-      }
-    };
     fetchData();
   }, []);
+
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      setIsDark(false);
+    } else {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      setIsDark(true);
+    }
+  };
 
   const showMessage = (msg, isError = false) => {
     isError ? setError(msg) : setSuccess(msg);
@@ -55,15 +73,12 @@ export default function AdminDashboard() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await api.post("/admin/bulk/instructor-provision", form);
+      await api.post("/admin/instructors", form);
       showMessage(`Faculty account for ${form.email} provisioned successfully!`);
       setForm({ email: '', first_name: '', last_name: '', password: '' });
-      const newUsers = await api.get("/admin/users");
-      setUsers(newUsers.data || newUsers);
-      const newStats = await api.get("/admin/stats");
-      setStats(newStats.data || newStats);
+      await fetchData();
     } catch (err) {
-      showMessage(err.message, true);
+      showMessage(err.response?.data?.detail || err.message, true);
     } finally {
       setIsLoading(false);
     }
@@ -77,14 +92,11 @@ export default function AdminDashboard() {
     formData.append("file", file);
     setIsLoading(true);
     try {
-      const res = await api.post("/admin/bulk/student-upload", formData);
+      const res = await api.post("/admin/students/bulk-register/file", formData);
       showMessage(`Successfully provisioned ${res.data?.registered || res.registered} students!`);
-      const newUsers = await api.get("/admin/users");
-      setUsers(newUsers.data || newUsers);
-      const newStats = await api.get("/admin/stats");
-      setStats(newStats.data || newStats);
+      await fetchData();
     } catch (err) {
-      showMessage(err.message, true);
+      showMessage(err.response?.data?.detail || err.message, true);
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +121,42 @@ export default function AdminDashboard() {
       await api.patch("/admin/settings", settings);
       showMessage("Global settings successfully saved.");
     } catch (err) {
-      showMessage(err.message, true);
+      showMessage(err.response?.data?.detail || err.message, true);
+    }
+  };
+
+  const handleAction = (user, actionType) => {
+    if (actionType === 'status') {
+      setModalConfig({
+        title: user.is_active ? 'Suspend Account' : 'Activate Account',
+        message: `Are you sure you want to ${user.is_active ? 'suspend' : 'activate'} ${user.first_name} ${user.last_name}? ${user.is_active ? 'They will not be able to log in.' : 'They will regain access.'}`,
+        danger: user.is_active,
+        onConfirm: async () => {
+          try {
+            await api.patch(`/admin/users/${user.user_id}/status`);
+            showMessage(`Status updated for ${user.email}`);
+            await fetchData();
+          } catch (err) {
+            showMessage(err.response?.data?.detail || err.message, true);
+          }
+          setModalConfig(null);
+        }
+      });
+    } else if (actionType === 'reset') {
+      setModalConfig({
+        title: 'Reset Password',
+        message: `Are you sure you want to reset the password for ${user.first_name} ${user.last_name} to the default "Pass@123"?`,
+        danger: false,
+        onConfirm: async () => {
+          try {
+            await api.patch(`/admin/users/${user.user_id}/password`, { new_password: 'Pass@123' });
+            showMessage(`Password reset to Pass@123 for ${user.email}`);
+          } catch (err) {
+            showMessage(err.response?.data?.detail || err.message, true);
+          }
+          setModalConfig(null);
+        }
+      });
     }
   };
 
@@ -130,6 +177,23 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-bg-base text-text-main font-sans selection:bg-psu-maroon selection:text-white">
+      {modalConfig && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-bg-base border border-border-strong shadow-2xl p-8 animate-fade-in-up">
+            <h3 className="text-2xl font-black mb-2 tracking-tight">{modalConfig.title}</h3>
+            <p className="text-sm text-text-muted mb-8">{modalConfig.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setModalConfig(null)} className="px-6 py-2.5 rounded-xl text-sm font-bold border border-border-strong text-text-muted hover:text-text-main hover:bg-bg-glass transition-colors">
+                Cancel
+              </button>
+              <button onClick={modalConfig.onConfirm} className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:scale-105 ${modalConfig.danger ? 'bg-red-500 shadow-red-500/20' : 'bg-psu-maroon shadow-psu-maroon/20'}`}>
+                Confirm Action
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="sticky top-0 z-50 flex h-16 sm:h-20 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass px-4 sm:px-8 shadow-sm backdrop-blur-md">
         <div className="flex items-center gap-4">
           <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-sm" />
@@ -153,7 +217,7 @@ export default function AdminDashboard() {
         </aside>
 
         <main className="flex-1 min-w-0 p-4 lg:p-10 overflow-x-hidden">
-          <div className="w-full max-w-[1600px] mx-auto">
+          <div className="w-full max-w-[1600px] lg:px-8 mx-auto">
             
             <div className="mb-4 empty:hidden">
               {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-medium text-red-500 shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
@@ -176,14 +240,14 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'faculty' && (
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fade-in">
-                <header className="border-b border-border-subtle pb-6 col-span-1 xl:col-span-3">
+              <div className="flex flex-col gap-8 animate-fade-in w-full">
+                <header className="border-b border-border-subtle pb-6 w-full">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">MANAGEMENT</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">Faculty Management</h1>
                   <p className="mt-2 text-sm text-text-muted">Provision new instructor accounts and manage existing computer science faculty.</p>
                 </header>
                 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl xl:col-span-1 h-fit shadow-sm relative overflow-hidden">
+                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full max-w-xl shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red"></div>
                   <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
                   <form onSubmit={handleCreateFaculty} className="space-y-5">
@@ -199,7 +263,7 @@ export default function AdminDashboard() {
                   </form>
                 </div>
 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl xl:col-span-2 shadow-sm">
+                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm">
                   <h3 className="text-lg font-black mb-6 tracking-tight">CS Department Faculty</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -233,8 +297,8 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="px-4 py-4 text-right space-x-2">
-                              <ActionBtn text="Reset" />
-                              <ActionBtn text={inst.is_active ? "Suspend" : "Activate"} danger={inst.is_active} />
+                              <ActionBtn onClick={() => handleAction(inst, 'reset')} text="Reset" />
+                              <ActionBtn onClick={() => handleAction(inst, 'status')} text={inst.is_active ? "Suspend" : "Activate"} danger={inst.is_active} />
                             </td>
                           </tr>
                         ))}
@@ -246,15 +310,15 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'students' && (
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fade-in">
-                <header className="border-b border-border-subtle pb-6 col-span-1 xl:col-span-3">
+              <div className="flex flex-col gap-8 animate-fade-in w-full">
+                <header className="border-b border-border-subtle pb-6 w-full">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">PROVISIONING</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">Student Masterlist</h1>
                   <p className="mt-2 text-sm text-text-muted">Bulk upload student emails or export the current masterlist.</p>
                 </header>
 
-                <div className="space-y-6 xl:col-span-1">
-                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl h-fit shadow-sm relative overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-400"></div>
                     <h3 className="text-lg font-black mb-6 tracking-tight">Pre-Register Masterlist</h3>
                     <p className="text-sm text-text-muted mb-4">Upload an Excel/CSV file with student emails to auto-provision accounts.</p>
@@ -269,21 +333,23 @@ export default function AdminDashboard() {
                     </label>
                   </div>
                   
-                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm">
-                    <h3 className="text-lg font-black mb-4 tracking-tight">Export Data</h3>
-                    <p className="text-sm text-text-muted mb-4">Download the full user masterlist to CSV.</p>
-                    <button onClick={exportMasterlist} className="w-full rounded-xl bg-bg-base border border-border-strong py-3 text-sm font-bold shadow-sm hover:bg-bg-glass hover:shadow transition-all">
+                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-lg font-black mb-4 tracking-tight">Export Data</h3>
+                      <p className="text-sm text-text-muted mb-4">Download the full user masterlist to CSV.</p>
+                    </div>
+                    <button onClick={exportMasterlist} className="w-full rounded-xl bg-bg-base border border-border-strong py-4 text-sm font-bold shadow-sm hover:bg-bg-glass hover:shadow transition-all">
                       Download CSV
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl xl:col-span-2 shadow-sm">
+                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm mt-4">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-black tracking-tight">Student Database</h3>
-                    <div className="relative group">
+                    <div className="relative group w-72">
                       <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                      <input type="text" placeholder="Search students..." value={searchStudent} onChange={(e) => setSearchStudent(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-bg-base border border-border-strong rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors" />
+                      <input type="text" placeholder="Search students..." value={searchStudent} onChange={(e) => setSearchStudent(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-bg-base border border-border-strong rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors shadow-sm" />
                     </div>
                   </div>
                   
@@ -319,8 +385,8 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="px-4 py-4 text-right space-x-2">
-                              <ActionBtn text="Reset" />
-                              <ActionBtn text={stu.is_active ? "Suspend" : "Activate"} danger={stu.is_active} />
+                              <ActionBtn onClick={() => handleAction(stu, 'reset')} text="Reset" />
+                              <ActionBtn onClick={() => handleAction(stu, 'status')} text={stu.is_active ? "Suspend" : "Activate"} danger={stu.is_active} />
                             </td>
                           </tr>
                         ))}
@@ -332,20 +398,20 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'audit' && (
-              <div className="h-full flex flex-col space-y-6 animate-fade-in">
+              <div className="h-full flex flex-col space-y-6 animate-fade-in w-full">
                 <header className="border-b border-border-subtle pb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                   <div>
                     <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">SECURITY</p>
                     <h1 className="text-3xl font-black text-text-main tracking-tight">Global Audit Trail</h1>
                     <p className="mt-2 text-sm text-text-muted">Immutable log of all critical system actions.</p>
                   </div>
-                  <div className="w-full md:w-64 relative group">
+                  <div className="w-full md:w-80 relative group">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-psu-maroon transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <input type="text" placeholder="Search logs..." value={searchAudit} onChange={(e) => setSearchAudit(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-bg-glass border border-border-strong rounded-xl text-sm focus:outline-none focus:border-psu-maroon transition-colors shadow-sm" />
+                    <input type="text" placeholder="Search logs..." value={searchAudit} onChange={(e) => setSearchAudit(e.target.value)} className="w-full pl-9 pr-4 py-3 bg-bg-glass border border-border-strong rounded-xl text-sm font-medium focus:outline-none focus:border-psu-maroon transition-colors shadow-sm" />
                   </div>
                 </header>
 
-                <div className="bg-bg-glass border border-border-subtle rounded-2xl shadow-sm flex-1 overflow-hidden flex flex-col">
+                <div className="bg-bg-glass border border-border-subtle rounded-2xl shadow-sm flex-1 overflow-hidden flex flex-col min-h-[600px]">
                   <div className="overflow-x-auto overflow-y-auto flex-1">
                     <table className="w-full text-left text-sm relative">
                       <thead className="sticky top-0 text-[11px] font-bold tracking-widest text-text-muted uppercase bg-bg-base border-b border-border-subtle shadow-sm z-10">
@@ -360,7 +426,7 @@ export default function AdminDashboard() {
                       <tbody>
                         {filteredLogs.length === 0 && (
                           <tr>
-                            <td colSpan="5" className="px-4 py-16 text-center text-text-muted">
+                            <td colSpan="5" className="px-4 py-32 text-center text-text-muted">
                               <div className="flex flex-col items-center justify-center">
                                 <svg className="w-10 h-10 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                                 <p className="font-semibold text-text-main">No audit logs available</p>
@@ -397,13 +463,25 @@ export default function AdminDashboard() {
                 <header className="border-b border-border-subtle pb-6 mb-6">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">CONFIGURATION</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">System Settings</h1>
-                  <p className="mt-2 text-sm text-text-muted">Manage global policies and maintenance state.</p>
+                  <p className="mt-2 text-sm text-text-muted">Manage global policies, appearance, and maintenance state.</p>
                 </header>
                 
                 <div className="bg-bg-glass border border-border-subtle p-8 rounded-2xl shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-text-main to-text-muted"></div>
                   <form onSubmit={handleSaveSettings} className="space-y-10">
                     
+                    {/* UI Toggle */}
+                    <div className="flex items-center justify-between border-b border-border-subtle pb-8">
+                      <div className="pr-8">
+                        <h4 className="font-black text-lg tracking-tight">Platform Theme</h4>
+                        <p className="text-sm text-text-muted mt-1">Toggle dark mode appearance for the dashboard.</p>
+                      </div>
+                      <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                        <input type="checkbox" className="peer sr-only" checked={isDark} onChange={toggleTheme} />
+                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-text-main after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                      </label>
+                    </div>
+
                     {/* Maintenance Mode */}
                     <div className="flex items-center justify-between border-b border-border-subtle pb-8">
                       <div className="pr-8">
