@@ -158,13 +158,14 @@ export default function Login() {
       // Save token and user data via AuthContext
       // login() stores in localStorage under pamsu_access_token, pamsu_user_role, pamsu_user_data
       login(data.access_token, data.user, data.user.role);
-
-      // Redirect based on role returned by the backend
-      if (data.user.role === "instructor") {
-        navigate("/instructor/dashboard", { replace: true });
-      } else {
-        navigate("/student/dashboard", { replace: true });
-      }
+        // Redirect based on role returned by the backend
+        if (data.user.role === "instructor") {
+          navigate("/instructor/dashboard", { replace: true });
+        } else if (data.user.role === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else {
+          navigate("/student/dashboard", { replace: true });
+        }
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401) {
