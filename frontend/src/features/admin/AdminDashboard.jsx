@@ -7,7 +7,14 @@ export default function AdminDashboard() {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState('overview');
+  const [pendingTab, setPendingTab] = useState(null);
+  
+  const [initialSettings, setInitialSettings] = useState({
+    registration_enabled: false,
+    default_ast_strictness: 'moderate',
+    maintenance_mode: false
+  });
   const [stats, setStats] = useState({ total_instructors: 0, total_students: 0, total_classrooms: 0 });
   const [users, setUsers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -50,6 +57,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleTabChange = (tabId) => {
+    if (activeTab === 'settings') {
+      const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+      if (isDirty) {
+        setPendingTab(tabId);
+        return;
+      }
+    }
+    setActiveTab(tabId);
+  };
 
   const toggleTheme = () => {
     const root = document.documentElement;
@@ -209,15 +227,15 @@ export default function AdminDashboard() {
 
       <div className="flex min-h-[calc(100vh-80px)]">
         <aside className="w-64 shrink-0 border-r border-border-subtle p-6 space-y-2 bg-bg-base hidden lg:block">
-          <NavButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} label="System Overview" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          <NavButton active={activeTab === 'faculty'} onClick={() => setActiveTab('faculty')} label="Faculty Management" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          <NavButton active={activeTab === 'students'} onClick={() => setActiveTab('students')} label="Student Database" icon="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          <NavButton active={activeTab === 'audit'} onClick={() => setActiveTab('audit')} label="Global Audit Trail" icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          <NavButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="System Settings" icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <NavButton active={activeTab === 'overview'} onClick={() => handleTabChange('overview')} label="System Overview" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          <NavButton active={activeTab === 'faculty'} onClick={() => handleTabChange('faculty')} label="Faculty Management" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          <NavButton active={activeTab === 'students'} onClick={() => handleTabChange('students')} label="Student Database" icon="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          <NavButton active={activeTab === 'audit'} onClick={() => handleTabChange('audit')} label="Global Audit Trail" icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          <NavButton active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} label="System Settings" icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         </aside>
 
         <main className="flex-1 min-w-0 p-4 lg:p-10 overflow-x-hidden">
-          <div className="w-full max-w-[1600px] lg:px-8 mx-auto">
+          <div className="w-full lg:px-4 mx-auto">
             
             <div className="mb-4 empty:hidden">
               {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-medium text-red-500 shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
@@ -499,7 +517,7 @@ export default function AdminDashboard() {
                       <p className="text-sm text-text-muted mb-6">Global strictness level for structural code feedback.</p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500 bg-emerald-500/5 shadow-sm' : 'border-border-subtle hover:border-border-strong hover:bg-bg-base'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500 bg-emerald-500/5 shadow-sm' : 'border-border-strong bg-[#0f1117]/50 hover:border-slate-500 hover:bg-[#0f1117]'}`}>
                           <input type="radio" name="ast_strictness" value="lenient" checked={settings.default_ast_strictness === 'lenient'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500' : 'border-border-strong'}`}>
@@ -510,7 +528,7 @@ export default function AdminDashboard() {
                           <p className="text-xs text-text-muted leading-relaxed">Allows standard variations & formatting differences.</p>
                         </label>
 
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon bg-psu-maroon/5 shadow-sm' : 'border-border-subtle hover:border-border-strong hover:bg-bg-base'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon bg-psu-maroon/5 shadow-sm' : 'border-border-strong bg-[#0f1117]/50 hover:border-slate-500 hover:bg-[#0f1117]'}`}>
                           <input type="radio" name="ast_strictness" value="moderate" checked={settings.default_ast_strictness === 'moderate'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon' : 'border-border-strong'}`}>
@@ -521,7 +539,7 @@ export default function AdminDashboard() {
                           <p className="text-xs text-text-muted leading-relaxed">Standard university policy with balanced checks.</p>
                         </label>
 
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-red-500 bg-red-500/5 shadow-sm' : 'border-border-subtle hover:border-border-strong hover:bg-bg-base'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-red-500 bg-red-500/5 shadow-sm' : 'border-border-strong bg-[#0f1117]/50 hover:border-slate-500 hover:bg-[#0f1117]'}`}>
                           <input type="radio" name="ast_strictness" value="strict" checked={settings.default_ast_strictness === 'strict'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'strict' ? 'border-red-500' : 'border-border-strong'}`}>
@@ -548,6 +566,30 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      {pendingTab && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl border border-border-strong bg-bg-base p-8 shadow-2xl animate-fade-in-up">
+            <h3 className="mb-2 text-2xl font-black text-text-main">Unsaved Changes</h3>
+            <p className="mb-8 text-sm text-text-muted">
+              You have unsaved changes in your System Settings. If you leave this tab, your changes will be discarded.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setPendingTab(null)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-400 transition-colors hover:bg-bg-glass hover:text-text-main">
+                Cancel
+              </button>
+              <button onClick={() => {
+                setSettings(initialSettings);
+                setActiveTab(pendingTab);
+                setPendingTab(null);
+              }} className="rounded-xl bg-psu-maroon px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-psu-maroon/20 hover:scale-105 transition-all">
+                Discard & Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -568,7 +610,7 @@ function StatCard({ title, value, icon, colorClass = "text-text-brand" }) {
         {icon}
       </div>
       <div className="flex items-center gap-4 mb-4 relative z-10">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-bg-base border border-border-subtle shadow-sm ${colorClass}`}>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-bg-base border border-border-strong shadow-md ${colorClass}`}>
           {icon}
         </div>
         <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-widest leading-tight">{title}</h3>
@@ -581,8 +623,8 @@ function StatCard({ title, value, icon, colorClass = "text-text-brand" }) {
 function Input({ label, ...props }) {
   return (
     <div>
-      <label className="mb-2 block text-[10px] font-bold text-text-muted uppercase tracking-widest">{label}</label>
-      <input required className="w-full rounded-xl border border-border-strong bg-bg-base px-4 py-3 text-sm font-medium outline-none transition-all focus:border-psu-maroon focus:shadow-[0_0_15px_rgba(128,0,0,0.1)]" {...props} />
+      <label className="mb-2 block text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</label>
+      <input required className="w-full rounded-xl border border-border-strong bg-[#0f1117] px-4 py-3 text-sm font-medium outline-none transition-all focus:border-psu-maroon focus:shadow-[0_0_15px_rgba(128,0,0,0.1)]" {...props} />
     </div>
   );
 }
@@ -594,3 +636,4 @@ function ActionBtn({ onClick, text, danger }) {
     </button>
   );
 }
+
