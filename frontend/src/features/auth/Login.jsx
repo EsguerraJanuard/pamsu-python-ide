@@ -185,7 +185,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-screen bg-bg-base text-text-main">
+    <main className="flex min-h-screen bg-white text-slate-900">
       <style>{`
         @keyframes loginFade {
           from { opacity: 0; transform: translateY(10px); }
@@ -251,7 +251,7 @@ export default function Login() {
       </div>
 
       {/* Right Side: Login Form */}
-      <div className="flex flex-1 items-center justify-center bg-bg-base px-6 py-12 lg:px-8 relative z-0">
+      <div className="flex flex-1 items-center justify-center bg-white px-6 py-12 lg:px-8 relative z-0">
           {/* TEMP SEED BUTTON FOR DEMO */}
           <button 
             type="button"
@@ -263,7 +263,7 @@ export default function Login() {
                 alert("Backend still deploying. Please try again in 1 minute. " + (err.message || ""));
               }
             }}
-            className="absolute bottom-4 right-4 text-[10px] text-text-muted hover:text-psu-maroon underline"
+            className="absolute bottom-4 right-4 text-[10px] text-slate-500 hover:text-psu-maroon underline"
           >
             Initialize Admin Account (Demo)
           </button>
@@ -273,8 +273,8 @@ export default function Login() {
         <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
           <img src="/school_logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
-            <p className="text-base font-black tracking-tight text-text-main">Python IDE</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Pampanga State University</p>
+            <p className="text-base font-black tracking-tight text-slate-900">Python IDE</p>
           </div>
         </div>
 
@@ -282,10 +282,10 @@ export default function Login() {
 
         <div className="w-full max-w-[480px] animate-login-fade delay-100 opacity-0">
           <div className="mb-8 text-center sm:text-left">
-            <h2 className="text-2xl font-black text-text-main">
+            <h2 className="text-2xl font-black text-slate-900">
               Sign in to your workspace
             </h2>
-            <p className="mt-2 text-sm text-text-muted">
+            <p className="mt-2 text-sm text-slate-500">
               Use your verified university account
             </p>
           </div>
@@ -295,7 +295,7 @@ export default function Login() {
             <div
               role="alert"
               aria-live="polite"
-              className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-text-rose shadow-sm"
+              className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 shadow-sm"
             >
               <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -307,14 +307,14 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email */}
             <div>
-              <label htmlFor="school-email" className="mb-1.5 block text-xs font-bold text-text-muted uppercase tracking-wider">
+              <label htmlFor="school-email" className="mb-1.5 block text-xs font-bold text-slate-500 uppercase tracking-wider">
                 School email
               </label>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-glass px-4 py-3 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-border-strong cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-slate-50 focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-slate-300 cursor-text"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
-                <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-slate-500 pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
                   <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                 </svg>
                 <input
@@ -326,7 +326,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   disabled={isLoading}
-                  className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text-main outline-none placeholder:text-text-muted/50 disabled:opacity-50"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-500/50 disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
               </div>
@@ -335,15 +335,15 @@ export default function Login() {
             {/* Password */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="password" className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                <label htmlFor="password" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Password
                 </label>
               </div>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-glass px-4 py-3 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-bg-glass focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-border-strong cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-slate-50 focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-slate-300 cursor-text"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
-                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-slate-500 pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
                   <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
@@ -356,13 +356,13 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
-                  className="min-w-0 flex-1 bg-transparent text-sm font-medium tracking-widest text-text-main outline-none placeholder:text-text-muted/50 placeholder:tracking-normal disabled:opacity-50"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-medium tracking-widest text-slate-900 outline-none placeholder:text-slate-500/50 placeholder:tracking-normal disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-text-main"
+                  className="shrink-0 cursor-pointer text-slate-500 transition-colors hover:text-slate-900"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
@@ -413,15 +413,15 @@ export default function Login() {
               </button>
               
               <div className="relative mt-6 mb-6">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle"></div></div>
-                <div className="relative flex justify-center"><span className="bg-bg-base px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Or</span></div>
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Or</span></div>
               </div>
 
               <button
                 type="button"
                 onClick={handleGuestLogin}
                 disabled={isLoading}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-bg-glass px-4 py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-bg-glass-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-slate-50-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 Continue as Guest Student
               </button>
