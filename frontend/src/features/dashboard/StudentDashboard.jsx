@@ -210,9 +210,9 @@ export default function StudentDashboard() {
             <div className="mx-auto max-w-6xl">
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
                 <div>
-                  <p className="mb-1 font-mono text-xs text-blue-500">MAIN</p>
+                  <p className="mb-1 font-mono text-xs text-text-brand">MAIN</p>
                   <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <LayoutDashboardIcon className="h-6 w-6 text-blue-500" />
+                    <LayoutDashboardIcon className="h-6 w-6 text-text-brand" />
                     {getGreeting()}, {getFirstName(user.name)}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -227,7 +227,7 @@ export default function StudentDashboard() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-psu-red px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-psu-maroon"
+                    className="flex items-center gap-2 rounded-lg bg-psu-maroon px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-psu-maroon/90"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Join a Class
