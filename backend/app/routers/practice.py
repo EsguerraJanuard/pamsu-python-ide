@@ -28,7 +28,7 @@ router = APIRouter(prefix="/practice", tags=["Solo Practice"])
 @router.get("/modules", response_model=List[PracticeModuleList])
 def get_practice_modules(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_student)
 ):
     modules = db.query(PracticeModule).order_by(PracticeModule.order_index).all()
     progress = db.query(PracticeProgress).filter(PracticeProgress.student_id == current_user.user_id).all()
@@ -90,7 +90,7 @@ def submit_practice_task(
     task_id: int,
     request: PracticeSubmissionRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_student)
 ):
     task = db.query(PracticeTask).filter(PracticeTask.task_id == task_id).first()
     if not task:
@@ -284,7 +284,7 @@ def calculate_growth_for_student(db: Session, student_id: int) -> GrowthAnalytic
 @router.get("/analytics/growth", response_model=GrowthAnalyticsResponse)
 def get_student_growth_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_student)
 ):
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Only students can view their personal growth dashboard")
@@ -510,7 +510,7 @@ def get_ai_hint(
     attempt_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_student)
 ):
     attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id, PracticeAttempt.student_id == current_user.user_id).first()
     if not attempt:

@@ -1609,8 +1609,6 @@ def analyze_solution(
     Analyzes the instructor's reference solution using AST 
     to auto-detect the difficulty and required Python constructs.
     """
-    if current_user.role != UserRole.INSTRUCTOR:
-        raise HTTPException(status_code=403, detail="Not authorized")
         
     analysis_result = analyze_reference_solution(request.reference_code)
     
