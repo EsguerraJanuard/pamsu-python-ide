@@ -134,6 +134,7 @@ export default function Assignments() {
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
         <main className="assignments-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <div className="max-w-6xl mx-auto w-full">
           <style>
             {`
               @keyframes assignmentsFadeUp {
@@ -357,7 +358,8 @@ export default function Assignments() {
               )}
             </section>
           </div>
-        </main>
+        </div>
+      </main>
 
         <Statusbar />
       </div>

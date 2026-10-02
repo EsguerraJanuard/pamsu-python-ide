@@ -116,7 +116,8 @@ export default function SubmissionDetails() {
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+        <main className="min-w-0 flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="max-w-6xl mx-auto w-full">
           <div className="rounded-xl border border-border-subtle bg-bg-glass p-6 shadow-xl relative overflow-hidden">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div>
@@ -180,7 +181,8 @@ export default function SubmissionDetails() {
                 {submission.raw_code}
              </pre>
           </div>
-        </main>
+        </div>
+      </main>
 
         <Statusbar
           sessionStatus="online"

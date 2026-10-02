@@ -266,7 +266,7 @@ export default function PracticeWorkspace() {
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
+        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
           <div className="max-w-3xl w-full">
             <div className="mb-4 inline-flex items-center rounded-full bg-psu-maroon/10 px-3 py-1 text-xs font-medium text-text-brand dark:text-text-brand ring-1 ring-inset ring-psu-maroon/20">
               Lesson
@@ -401,7 +401,7 @@ export default function PracticeWorkspace() {
 
         {/* Right Panel: Code Editor */}
         <div className="flex w-2/3 flex-col">
-          <div className="flex-1 overflow-hidden">
+          <div className="min-w-0 flex-1 overflow-hidden">
              <MonacoEditor
               height="100%"
               language="python"
@@ -417,7 +417,7 @@ export default function PracticeWorkspace() {
              <div className="flex items-center px-4 py-2 border-b border-white/5 bg-bg-panel">
                 <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
              </div>
-               <div className="flex-1 p-1 bg-transparent h-full relative">
+               <div className="min-w-0 flex-1 p-1 bg-transparent h-full relative">
                  <InteractiveTerminal code={code} triggerRun={triggerRun} onRunFinished={() => setIsSubmitting(false)} />
                </div>
           </div>

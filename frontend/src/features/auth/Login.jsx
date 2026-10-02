@@ -326,7 +326,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm font-medium text-text-main outline-none placeholder:text-text-muted/50 disabled:opacity-50"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text-main outline-none placeholder:text-text-muted/50 disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
               </div>
@@ -356,7 +356,7 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm font-medium tracking-widest text-text-main outline-none placeholder:text-text-muted/50 placeholder:tracking-normal disabled:opacity-50"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-medium tracking-widest text-text-main outline-none placeholder:text-text-muted/50 placeholder:tracking-normal disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
                 <button
