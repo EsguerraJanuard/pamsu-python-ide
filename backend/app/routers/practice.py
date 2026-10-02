@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_current_student
 from app.models.domain_models import User, PracticeModule, PracticeTask, PracticeProgress, PracticeAttempt
 from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown, PracticeAiHintResponse
 from app.services.ai_tutor_service import generate_pedagogical_hint
