@@ -211,22 +211,3 @@ def update_settings(request: SettingsUpdate, current_admin: User = Depends(get_c
     return global_system_settings
 
 
-@router.get("/seed-production")
-def seed_production_admin(db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == "admin@pampangastateu.edu.ph").first()
-    if existing:
-        return {"message": "Admin already exists in this database!"}
-    
-    admin = User(
-        email="admin@pampangastateu.edu.ph",
-        first_name="System",
-        last_name="Administrator",
-        middle_name="",
-        role="admin",
-        password_hash=get_password_hash("Admin@2026"),
-        school_id="0000000000",
-        email_verified=True
-    )
-    db.add(admin)
-    db.commit()
-    return {"message": "Admin account successfully seeded into production database!"}

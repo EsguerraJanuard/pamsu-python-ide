@@ -111,6 +111,11 @@ export default function PracticeWorkspace() {
         }
       } catch (err) {
         console.error("Failed to load task:", err);
+        setFeedback({
+          is_successful: false,
+          message: 'Failed to load task: ' + (err.message || 'Network error'),
+          ast_feedback: []
+        });
       } finally {
         setLoading(false);
       }
@@ -203,6 +208,11 @@ export default function PracticeWorkspace() {
       }
     } catch (err) {
       console.error("Submission failed", err);
+        setFeedback({
+          is_successful: false,
+          message: 'Submission failed: ' + (err.message || 'Network error'),
+          ast_feedback: []
+        });
     } finally {
       setIsSubmitting(false);
     }

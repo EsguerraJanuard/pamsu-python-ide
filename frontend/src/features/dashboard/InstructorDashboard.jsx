@@ -472,7 +472,7 @@ export default function InstructorDashboard() {
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => {
-          console.log("Class created successfully!");
+
           fetchDashboardData();
         }}
       />

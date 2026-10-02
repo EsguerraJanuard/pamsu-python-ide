@@ -249,7 +249,7 @@ export default function MyClasses() {
         isOpen={isJoinModalOpen} 
         onClose={() => setIsJoinModalOpen(false)}
         onSuccess={(classId) => {
-          console.log("Successfully joined class!");
+
           fetchClassesData();
           if (classId) {
             navigate(`/student/classes/${classId}`);
