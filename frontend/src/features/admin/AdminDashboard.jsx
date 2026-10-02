@@ -13,7 +13,6 @@ export default function AdminDashboard() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [settings, setSettings] = useState({
     maintenance_mode: false,
-    registration_enabled: false,
     default_ast_strictness: 'moderate'
   });
 
@@ -26,7 +25,6 @@ export default function AdminDashboard() {
   const [masterlist, setMasterlist] = useState(null);
   const [searchStudent, setSearchStudent] = useState('');
   const [searchAudit, setSearchAudit] = useState('');
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,7 +33,7 @@ export default function AdminDashboard() {
           api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
           api.get("/admin/users").catch(() => ({ data: [] })),
           api.get("/admin/audit-logs").catch(() => ({ data: [] })),
-          api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, registration_enabled: false, default_ast_strictness: 'moderate' } }))
+          api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
         ]);
         setStats(statsRes.data || statsRes);
         setUsers(usersRes.data || usersRes);
@@ -47,19 +45,6 @@ export default function AdminDashboard() {
     };
     fetchData();
   }, []);
-
-  const toggleTheme = () => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-      setIsDark(false);
-    } else {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-      setIsDark(true);
-    }
-  };
 
   const showMessage = (msg, isError = false) => {
     isError ? setError(msg) : setSuccess(msg);
@@ -159,7 +144,7 @@ export default function AdminDashboard() {
       </header>
 
       <div className="flex min-h-[calc(100vh-80px)]">
-        <aside className="w-64 shrink-0 border-r border-border-subtle p-6 space-y-2 overflow-y-auto bg-bg-base hidden lg:block">
+        <aside className="w-64 shrink-0 border-r border-border-subtle p-6 space-y-2 bg-bg-base hidden lg:block">
           <NavButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} label="System Overview" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           <NavButton active={activeTab === 'faculty'} onClick={() => setActiveTab('faculty')} label="Faculty Management" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           <NavButton active={activeTab === 'students'} onClick={() => setActiveTab('students')} label="Student Database" icon="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -167,15 +152,16 @@ export default function AdminDashboard() {
           <NavButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="System Settings" icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         </aside>
 
-        <main className="flex-1 min-w-0 p-4 lg:p-8 overflow-x-hidden">
-          <div className="max-w-6xl mx-auto w-full">
-            <div className="h-14 mb-2">
-              {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-500 shadow-sm flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
-              {success && <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm font-medium text-emerald-500 shadow-sm flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{success}</div>}
+        <main className="flex-1 min-w-0 p-4 lg:p-10 overflow-x-hidden">
+          <div className="w-full max-w-[1600px] mx-auto">
+            
+            <div className="mb-4 empty:hidden">
+              {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-medium text-red-500 shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
+              {success && <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-sm font-medium text-emerald-500 shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{success}</div>}
             </div>
 
             {activeTab === 'overview' && (
-              <div className="space-y-8 animate-fade-in">
+              <div className="space-y-6 animate-fade-in">
                 <header className="border-b border-border-subtle pb-6">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">METRICS</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">System Overview</h1>
@@ -190,14 +176,14 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'faculty' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
-                <header className="border-b border-border-subtle pb-6 col-span-1 lg:col-span-3">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fade-in">
+                <header className="border-b border-border-subtle pb-6 col-span-1 xl:col-span-3">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">MANAGEMENT</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">Faculty Management</h1>
                   <p className="mt-2 text-sm text-text-muted">Provision new instructor accounts and manage existing computer science faculty.</p>
                 </header>
                 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl lg:col-span-1 h-fit shadow-sm relative overflow-hidden">
+                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl xl:col-span-1 h-fit shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red"></div>
                   <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
                   <form onSubmit={handleCreateFaculty} className="space-y-5">
@@ -213,7 +199,7 @@ export default function AdminDashboard() {
                   </form>
                 </div>
 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl lg:col-span-2 shadow-sm">
+                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl xl:col-span-2 shadow-sm">
                   <h3 className="text-lg font-black mb-6 tracking-tight">CS Department Faculty</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -260,14 +246,14 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'students' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
-                <header className="border-b border-border-subtle pb-6 col-span-1 lg:col-span-3">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fade-in">
+                <header className="border-b border-border-subtle pb-6 col-span-1 xl:col-span-3">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">PROVISIONING</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">Student Masterlist</h1>
                   <p className="mt-2 text-sm text-text-muted">Bulk upload student emails or export the current masterlist.</p>
                 </header>
 
-                <div className="space-y-6 lg:col-span-1">
+                <div className="space-y-6 xl:col-span-1">
                   <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl h-fit shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-400"></div>
                     <h3 className="text-lg font-black mb-6 tracking-tight">Pre-Register Masterlist</h3>
@@ -292,7 +278,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl lg:col-span-2 shadow-sm">
+                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl xl:col-span-2 shadow-sm">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-black tracking-tight">Student Database</h3>
                     <div className="relative group">
@@ -407,63 +393,70 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'settings' && (
-              <div className="space-y-6 animate-fade-in max-w-2xl">
-                <header className="border-b border-border-subtle pb-6 mb-8">
+              <div className="space-y-6 animate-fade-in w-full max-w-5xl">
+                <header className="border-b border-border-subtle pb-6 mb-6">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">CONFIGURATION</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">System Settings</h1>
-                  <p className="mt-2 text-sm text-text-muted">Manage global policies, UI preferences, and maintenance state.</p>
+                  <p className="mt-2 text-sm text-text-muted">Manage global policies and maintenance state.</p>
                 </header>
                 
                 <div className="bg-bg-glass border border-border-subtle p-8 rounded-2xl shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-text-main to-text-muted"></div>
-                  <form onSubmit={handleSaveSettings} className="space-y-8">
+                  <form onSubmit={handleSaveSettings} className="space-y-10">
                     
-                    {/* UI Toggle */}
-                    <div className="flex items-center justify-between border-b border-border-subtle pb-6">
-                      <div className="pr-8">
-                        <h4 className="font-black text-lg tracking-tight">Dark Mode (Local UI)</h4>
-                        <p className="text-sm text-text-muted mt-1">Toggle between light and dark mode specifically for this dashboard.</p>
-                      </div>
-                      <label className="relative inline-flex cursor-pointer items-center shrink-0">
-                        <input type="checkbox" className="peer sr-only" checked={isDark} onChange={toggleTheme} />
-                        <div className="h-7 w-12 rounded-full bg-border-strong peer-checked:bg-text-main after:absolute after:left-[2px] after:top-[2px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
-                      </label>
-                    </div>
-
                     {/* Maintenance Mode */}
-                    <div className="flex items-center justify-between border-b border-border-subtle pb-6">
+                    <div className="flex items-center justify-between border-b border-border-subtle pb-8">
                       <div className="pr-8">
                         <h4 className="font-black text-lg tracking-tight">Maintenance Mode</h4>
                         <p className="text-sm text-text-muted mt-1">Suspend all student logins and task execution. Only MIS and Instructors can access the platform while this is on.</p>
                       </div>
                       <label className="relative inline-flex cursor-pointer items-center shrink-0">
                         <input type="checkbox" className="peer sr-only" checked={settings.maintenance_mode} onChange={e => setSettings({...settings, maintenance_mode: e.target.checked})} />
-                        <div className="h-7 w-12 rounded-full bg-border-strong peer-checked:bg-red-500 after:absolute after:left-[2px] after:top-[2px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between border-b border-border-subtle pb-6">
-                      <div className="pr-8">
-                        <h4 className="font-black text-lg tracking-tight">Allow Public Registration</h4>
-                        <p className="text-sm text-text-muted mt-1">Allow students to sign up manually without MIS pre-registration via masterlist upload.</p>
-                      </div>
-                      <label className="relative inline-flex cursor-pointer items-center shrink-0">
-                        <input type="checkbox" className="peer sr-only" checked={settings.registration_enabled} onChange={e => setSettings({...settings, registration_enabled: e.target.checked})} />
-                        <div className="h-7 w-12 rounded-full bg-border-strong peer-checked:bg-psu-maroon after:absolute after:left-[2px] after:top-[2px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-red-500 after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
                       </label>
                     </div>
 
                     <div className="pb-4">
                       <h4 className="font-black text-lg tracking-tight mb-2">Default AST Strictness</h4>
-                      <p className="text-sm text-text-muted mb-4">Global strictness level for structural code feedback.</p>
-                      <select value={settings.default_ast_strictness} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="w-full rounded-xl border border-border-strong bg-bg-base px-4 py-3 text-sm font-medium outline-none focus:border-psu-maroon focus:ring-2 focus:ring-psu-maroon/20 transition-all cursor-pointer">
-                        <option value="lenient">Lenient (Allows standard variations & formatting differences)</option>
-                        <option value="moderate">Moderate (Standard university policy)</option>
-                        <option value="strict">Strict (Requires exact structural AST match)</option>
-                      </select>
+                      <p className="text-sm text-text-muted mb-6">Global strictness level for structural code feedback.</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500 bg-emerald-500/5 shadow-sm' : 'border-border-subtle hover:border-border-strong hover:bg-bg-base'}`}>
+                          <input type="radio" name="ast_strictness" value="lenient" checked={settings.default_ast_strictness === 'lenient'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500' : 'border-border-strong'}`}>
+                              {settings.default_ast_strictness === 'lenient' && <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
+                            </div>
+                            <span className="font-black text-text-main">Lenient</span>
+                          </div>
+                          <p className="text-xs text-text-muted leading-relaxed">Allows standard variations & formatting differences.</p>
+                        </label>
+
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon bg-psu-maroon/5 shadow-sm' : 'border-border-subtle hover:border-border-strong hover:bg-bg-base'}`}>
+                          <input type="radio" name="ast_strictness" value="moderate" checked={settings.default_ast_strictness === 'moderate'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon' : 'border-border-strong'}`}>
+                              {settings.default_ast_strictness === 'moderate' && <div className="w-2 h-2 rounded-full bg-psu-maroon"></div>}
+                            </div>
+                            <span className="font-black text-text-main">Moderate</span>
+                          </div>
+                          <p className="text-xs text-text-muted leading-relaxed">Standard university policy with balanced checks.</p>
+                        </label>
+
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-red-500 bg-red-500/5 shadow-sm' : 'border-border-subtle hover:border-border-strong hover:bg-bg-base'}`}>
+                          <input type="radio" name="ast_strictness" value="strict" checked={settings.default_ast_strictness === 'strict'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'strict' ? 'border-red-500' : 'border-border-strong'}`}>
+                              {settings.default_ast_strictness === 'strict' && <div className="w-2 h-2 rounded-full bg-red-500"></div>}
+                            </div>
+                            <span className="font-black text-text-main">Strict</span>
+                          </div>
+                          <p className="text-xs text-text-muted leading-relaxed">Requires exact structural AST match for submission.</p>
+                        </label>
+                      </div>
                     </div>
 
-                    <div className="pt-2">
+                    <div className="pt-4 border-t border-border-subtle">
                       <button type="submit" className="rounded-2xl bg-psu-maroon px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-psu-maroon/20 hover:scale-[1.02] hover:shadow-psu-maroon/40 transition-all">
                         Save Global Settings
                       </button>
