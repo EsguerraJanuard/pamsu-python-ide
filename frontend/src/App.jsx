@@ -117,6 +117,12 @@ export const App = () => {
               </Route>
 
               {/* Instructor Role Tree */}
+
+              {/* Admin Role Tree */}
+              <Route element={<RoleRoute allowedRole="admin" />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              </Route>
+
               <Route element={<RoleRoute allowedRole="instructor" />}>
                 <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                 <Route path="/instructor/classes" element={<ClassManagement />} />
