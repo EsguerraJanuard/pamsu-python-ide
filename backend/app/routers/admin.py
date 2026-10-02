@@ -75,7 +75,8 @@ def create_instructor(
         last_name=request.last_name,
         role="instructor",
         password_hash=get_password_hash(request.password),
-        school_id=str(random.randint(1000000000, 9999999999))
+        school_id=str(random.randint(1000000000, 9999999999)),
+        email_verified=True
     )
     db.add(new_instructor)
     db.commit()
@@ -189,7 +190,8 @@ async def bulk_register_students_file(
                 last_name="Student",
                 role="student",
                 password_hash=get_password_hash("PamsU@2026"),
-                school_id=str(random.randint(1000000000, 9999999999))
+                school_id=str(random.randint(1000000000, 9999999999)),
+                email_verified=True
             )
             db.add(new_user)
             registered_count += 1
@@ -222,7 +224,8 @@ def seed_production_admin(db: Session = Depends(get_db)):
         middle_name="",
         role="admin",
         password_hash=get_password_hash("Admin@2026"),
-        school_id="0000000000"
+        school_id="0000000000",
+        email_verified=True
     )
     db.add(admin)
     db.commit()
