@@ -149,6 +149,7 @@ def login(
     if user.role not in {
         "student",
         "instructor",
+        "admin",
     }:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
