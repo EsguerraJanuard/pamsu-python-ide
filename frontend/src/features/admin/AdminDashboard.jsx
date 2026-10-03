@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   }, [logInView]);
 
   const [pendingTab, setPendingTab] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   const [initialSettings, setInitialSettings] = useState({
     registration_enabled: false,
@@ -244,6 +245,20 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-bg-base text-text-main font-sans selection:bg-psu-maroon selection:text-white">
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm rounded-3xl border border-border-strong bg-bg-base p-8 shadow-2xl animate-scale-in">
+            <h3 className="mb-2 text-xl font-black text-text-main tracking-tight">Sign Out?</h3>
+            <p className="mb-8 text-sm text-text-muted">Are you sure you want to end your administration session?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowLogoutModal(false)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-400 transition-colors hover:bg-bg-glass hover:text-text-main border border-border-strong">Cancel</button>
+              <button onClick={logout} className="rounded-xl bg-psu-maroon px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-psu-red">Sign Out</button>
+            </div>
+          </div>
+        </div>
+      )}
       {modalConfig && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="w-full max-w-md rounded-3xl bg-bg-base border border-border-strong shadow-2xl p-8 animate-fade-in-up">
@@ -269,7 +284,7 @@ export default function AdminDashboard() {
             <p className="text-xs font-bold text-psu-maroon dark:text-psu-gold uppercase tracking-widest">MIS Administration</p>
           </div>
         </div>
-        <button onClick={logout} className="rounded-xl border border-border-subtle bg-bg-base px-5 py-2.5 text-sm font-bold shadow-sm transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-md">
+        <button onClick={() => setShowLogoutModal(true)} className="rounded-xl border border-border-subtle bg-bg-base px-5 py-2.5 text-sm font-bold shadow-sm transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-md">
           Sign Out
         </button>
       </header>
