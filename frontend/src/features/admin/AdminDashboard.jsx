@@ -564,7 +564,7 @@ export default function AdminDashboard() {
                       <p className="text-sm text-text-muted mb-6">Global strictness level for structural code feedback.</p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500 bg-emerald-500/5 shadow-sm' : 'border-border-strong bg-[#0f1117]/50 hover:border-slate-500 hover:bg-[#0f1117]'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500 bg-emerald-500/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
                           <input type="radio" name="ast_strictness" value="lenient" checked={settings.default_ast_strictness === 'lenient'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500' : 'border-border-strong'}`}>
@@ -575,7 +575,7 @@ export default function AdminDashboard() {
                           <p className="text-xs text-text-muted leading-relaxed">Allows standard variations & formatting differences.</p>
                         </label>
 
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon bg-psu-maroon/5 shadow-sm' : 'border-border-strong bg-[#0f1117]/50 hover:border-slate-500 hover:bg-[#0f1117]'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon dark:border-psu-gold bg-psu-maroon/5 dark:bg-psu-gold/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
                           <input type="radio" name="ast_strictness" value="moderate" checked={settings.default_ast_strictness === 'moderate'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon' : 'border-border-strong'}`}>
@@ -586,7 +586,7 @@ export default function AdminDashboard() {
                           <p className="text-xs text-text-muted leading-relaxed">Standard university policy with balanced checks.</p>
                         </label>
 
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-red-500 bg-red-500/5 shadow-sm' : 'border-border-strong bg-[#0f1117]/50 hover:border-slate-500 hover:bg-[#0f1117]'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-red-500 bg-red-500/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
                           <input type="radio" name="ast_strictness" value="strict" checked={settings.default_ast_strictness === 'strict'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'strict' ? 'border-red-500' : 'border-border-strong'}`}>
