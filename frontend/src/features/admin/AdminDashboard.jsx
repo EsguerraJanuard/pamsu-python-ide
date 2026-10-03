@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../auth/AuthContext';
+import { useInView } from 'react-intersection-observer';
 
 export default function AdminDashboard() {
   const { logout } = useAuth();
