@@ -279,7 +279,7 @@ export default function AdminDashboard() {
         </aside>
 
         <main className="flex-1 min-w-0 p-4 lg:p-10 overflow-x-hidden">
-          <div className="w-full lg:px-4 mx-auto">
+          <div className="w-full max-w-6xl lg:px-4 mx-auto">
             
             <div className="mb-4 empty:hidden">
               {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-medium text-red-500 shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'faculty' && (
-              <div className="flex flex-col gap-8 animate-fade-in w-full">
+              <div className="flex flex-col gap-8 animate-fade-in w-full mx-auto max-w-6xl">
                 <header className="border-b border-border-subtle pb-6 w-full">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">MANAGEMENT</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">Faculty Management</h1>
@@ -373,7 +373,7 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'students' && (
-              <div className="flex flex-col gap-8 animate-fade-in w-full">
+              <div className="flex flex-col gap-8 animate-fade-in w-full mx-auto max-w-6xl">
                 <header className="border-b border-border-subtle pb-6 w-full">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">PROVISIONING</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">Student Masterlist</h1>
@@ -524,7 +524,7 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'settings' && (
-              <div className="space-y-6 animate-fade-in w-full max-w-5xl">
+              <div className="space-y-6 animate-fade-in w-full mx-auto max-w-6xl">
                 <header className="border-b border-border-subtle pb-6 mb-6">
                   <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">CONFIGURATION</p>
                   <h1 className="text-3xl font-black text-text-main tracking-tight">System Settings</h1>
@@ -671,7 +671,7 @@ function Input({ label, ...props }) {
   return (
     <div>
       <label className="mb-2 block text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</label>
-      <input required className="w-full rounded-xl border border-border-strong bg-[#0f1117] px-4 py-3 text-sm font-medium outline-none transition-all focus:border-psu-maroon focus:shadow-[0_0_15px_rgba(128,0,0,0.1)]" {...props} />
+      <input required className="w-full rounded-xl border border-border-strong bg-bg-base px-4 py-3 text-sm font-medium outline-none transition-all focus:border-psu-maroon focus:shadow-[0_0_15px_rgba(128,0,0,0.1)]" {...props} />
     </div>
   );
 }
