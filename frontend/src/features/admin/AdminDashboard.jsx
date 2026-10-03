@@ -96,6 +96,7 @@ export default function AdminDashboard() {
       setUsers(usersRes.data || usersRes);
       setAuditLogs(logsRes.data || logsRes);
       setSettings(settingsRes.data || settingsRes);
+        setInitialSettings(settingsRes.data || settingsRes);
     } catch (err) {
       console.error("Dashboard error:", err);
     }
@@ -107,7 +108,7 @@ export default function AdminDashboard() {
 
   const handleTabChange = (tabId) => {
     if (activeTab === 'settings') {
-      const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+      const isDirty = settings.maintenance_mode !== initialSettings.maintenance_mode || settings.default_ast_strictness !== initialSettings.default_ast_strictness || settings.registration_enabled !== initialSettings.registration_enabled;
       if (isDirty) {
         setPendingTab(tabId);
         return;
@@ -185,6 +186,7 @@ export default function AdminDashboard() {
     try {
       await api.patch("/admin/settings", settings);
       showMessage("Global settings successfully saved.");
+        setInitialSettings(settings);
     } catch (err) {
       showMessage(err.response?.data?.detail || err.message, true);
     }
