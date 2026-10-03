@@ -543,7 +543,7 @@ export default function AdminDashboard() {
                       </div>
                       <label className="relative inline-flex cursor-pointer items-center shrink-0">
                         <input type="checkbox" className="peer sr-only" checked={isDark} onChange={toggleTheme} />
-                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-text-main after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-psu-maroon dark:peer-checked:bg-psu-gold after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
                       </label>
                     </div>
 
@@ -555,7 +555,7 @@ export default function AdminDashboard() {
                       </div>
                       <label className="relative inline-flex cursor-pointer items-center shrink-0">
                         <input type="checkbox" className="peer sr-only" checked={settings.maintenance_mode} onChange={e => setSettings({...settings, maintenance_mode: e.target.checked})} />
-                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-red-500 after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-psu-maroon dark:peer-checked:bg-psu-gold after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
                       </label>
                     </div>
 
