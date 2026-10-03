@@ -679,6 +679,19 @@ function StatCard({ title, value, icon, colorClass = "text-text-brand" }) {
   );
 }
 
+
+function QuickActionCard({ title, desc, icon, onClick }) {
+  return (
+    <button onClick={onClick} className="group flex flex-col items-start p-6 rounded-2xl bg-bg-glass border border-border-subtle hover:bg-bg-panel hover:border-psu-maroon/50 dark:hover:border-psu-gold/50 hover:shadow-md transition-all text-left w-full h-full">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-bg-base border border-border-strong text-psu-maroon dark:text-psu-gold mb-4 group-hover:scale-110 group-hover:shadow-sm transition-all">
+        {icon}
+      </div>
+      <h4 className="font-bold text-text-main text-sm mb-1">{title}</h4>
+      <p className="text-xs text-text-muted">{desc}</p>
+    </button>
+  );
+}
+
 function Input({ label, ...props }) {
   return (
     <div>
