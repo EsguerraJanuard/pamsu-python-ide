@@ -314,8 +314,10 @@ export default function AdminDashboard() {
                   <p className="mt-2 text-sm text-text-muted">Provision new instructor accounts and manage existing computer science faculty.</p>
                 </header>
                 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full max-w-xl shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red"></div>
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 w-full">
+                    <div className="xl:col-span-1">
+                      <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm relative overflow-hidden sticky top-6">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
                   <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
                   <form onSubmit={handleCreateFaculty} className="space-y-5">
                     <Input label="Official PSU Email" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
@@ -329,8 +331,10 @@ export default function AdminDashboard() {
                     </button>
                   </form>
                 </div>
-
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm">
+                      </div>
+                    </div>
+                    <div className="xl:col-span-2">
+                      <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm">
                   <h3 className="text-lg font-black mb-6 tracking-tight">CS Department Faculty</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -371,11 +375,12 @@ export default function AdminDashboard() {
                         ))}
                         {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-slate-500">Loading more faculty...</td></tr>}
                       </tbody>
-                    </table>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {activeTab === 'students' && (
               <div className="flex flex-col gap-8 animate-fade-in w-full mx-auto max-w-6xl">
