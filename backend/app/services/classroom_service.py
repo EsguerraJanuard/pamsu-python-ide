@@ -708,7 +708,7 @@ def list_class_members(
             "enrollment_id": enrollment.enrollment_id,
             "student_id": user.user_id,
             "school_id": user.school_id,
-            "name": f"{user.first_name} {user.last_name}",
+            "name": f"{user.last_name}, {user.first_name}",
             "email": user.email,
             "status": enrollment.status,
             "is_online": user.user_id in online_users,

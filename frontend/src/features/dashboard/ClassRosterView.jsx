@@ -183,7 +183,7 @@ export default function ClassRosterView() {
                           onClick={() => setStudentToInspect(student)}
                           className="transition-colors hover:bg-bg-glass cursor-pointer"
                         >
-                          <td className="px-6 py-4 font-medium text-text-main">{student?.first_name} {student?.last_name}</td>
+                          <td className="px-6 py-4 font-medium text-text-main">{student?.name}</td>
                           <td className="px-6 py-4">
                             <div className="text-text-main">{student.school_id || "2026-N/A"}</div>
                             <div className="text-xs text-text-muted">{student.email}</div>
