@@ -9,6 +9,29 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+
+      manifest: {
+        name: 'PAMSU Python IDE',
+        short_name: 'PAMSU IDE',
+        description: 'Advanced Agentic Coding Environment for Pampanga State University',
+        theme_color: '#800000',
+        background_color: '#ffffff',
+        display: 'standalone',
+        icons: [
+          {
+            src: '/school_logo.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/school_logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
