@@ -334,10 +334,10 @@ export default function AdminDashboard() {
                     <table className="w-full text-left text-sm">
                       <thead className="text-[11px] font-bold tracking-widest text-text-muted uppercase bg-bg-base border-b border-border-subtle">
                         <tr>
-                          <th className="px-4 py-3">Name</th>
-                          <th className="px-4 py-3">Email</th>
-                          <th className="px-4 py-3">Status</th>
-                          <th className="px-4 py-3 text-right">Actions</th>
+                          <th className="px-4 py-3 w-[35%]">Name</th>
+                            <th className="px-4 py-3 w-[40%]">Email</th>
+                            <th className="px-4 py-3 w-[15%]">Status</th>
+                            <th className="px-4 py-3 w-[10%] text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -423,10 +423,10 @@ export default function AdminDashboard() {
                     <table className="w-full text-left text-sm">
                       <thead className="text-[11px] font-bold tracking-widest text-text-muted uppercase bg-bg-base border-b border-border-subtle">
                         <tr>
-                          <th className="px-4 py-3">Name</th>
-                          <th className="px-4 py-3">PSU Email</th>
-                          <th className="px-4 py-3">Status</th>
-                          <th className="px-4 py-3 text-right">Actions</th>
+                          <th className="px-4 py-3 w-[35%]">Name</th>
+                            <th className="px-4 py-3 w-[40%]">PSU Email</th>
+                            <th className="px-4 py-3 w-[15%]">Status</th>
+                            <th className="px-4 py-3 w-[10%] text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
