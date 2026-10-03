@@ -266,7 +266,7 @@ export default function AdminDashboard() {
           <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-sm" />
           <div className="hidden sm:block">
             <h1 className="text-xl font-black text-text-main tracking-tight">Pampanga State University</h1>
-            <p className="text-xs font-bold text-psu-maroon uppercase tracking-widest">MIS Administration</p>
+            <p className="text-xs font-bold text-psu-maroon dark:text-psu-gold uppercase tracking-widest">MIS Administration</p>
           </div>
         </div>
         <button onClick={logout} className="rounded-xl border border-border-subtle bg-bg-base px-5 py-2.5 text-sm font-bold shadow-sm transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-md">
