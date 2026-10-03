@@ -155,6 +155,7 @@ export default function ClassRosterView() {
                       <th className="px-6 py-4">ID / Email</th>
                       <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4 text-center">Submissions</th>
+                        <th className="px-6 py-4 text-center">Integrity</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -169,7 +170,7 @@ export default function ClassRosterView() {
                       if (filteredStudents.length === 0) {
                         return (
                           <tr>
-                            <td colSpan="5" className="px-6 py-8 text-center text-text-muted">
+                            <td colSpan="6" className="px-6 py-8 text-center text-text-muted">
                               {searchQuery ? "No students found matching your search." : "No students enrolled yet."}
                             </td>
                           </tr>
