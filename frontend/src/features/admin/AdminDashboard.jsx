@@ -537,7 +537,7 @@ export default function AdminDashboard() {
                 </header>
                 
                 <div className="bg-bg-glass border border-border-subtle p-8 rounded-2xl shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-text-main to-text-muted"></div>
+                  
                   <form onSubmit={handleSaveSettings} className="space-y-10">
                     
                     {/* UI Toggle */}
