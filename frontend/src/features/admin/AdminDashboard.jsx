@@ -22,8 +22,9 @@ export default function AdminDashboard() {
     const newSkip = usersSkip + 50;
     try {
       const res = await api.get(`/admin/users?skip=${newSkip}&limit=50`);
-      if (res.data.length < 50) setHasMoreUsers(false);
-      setUsers(prev => [...prev, ...res.data]);
+      const resData = res.data || res;
+      if (resData.length < 50) setHasMoreUsers(false);
+      setUsers(prev => [...prev, ...resData]);
       setUsersSkip(newSkip);
     } catch (err) {
       console.error(err);
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
     try {
       const res = await api.get(`/admin/audit-logs?skip=${newSkip}&limit=50`);
       if (res.data.length < 50) setHasMoreLogs(false);
-      setAuditLogs(prev => [...prev, ...res.data]);
+      setAuditLogs(prev => [...prev, ...resData]);
       setLogsSkip(newSkip);
     } catch (err) {
       console.error(err);
@@ -87,8 +88,10 @@ export default function AdminDashboard() {
           api.get("/admin/audit-logs?skip=0&limit=50").catch(() => ({ data: [] })),
           api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
         ]);
-        if (usersRes.data.length < 50) setHasMoreUsers(false);
-        if (logsRes.data.length < 50) setHasMoreLogs(false);
+        const usersList = usersRes.data || usersRes;
+        if (usersList.length < 50) setHasMoreUsers(false);
+        const logsList = logsRes.data || logsRes;
+        if (logsList.length < 50) setHasMoreLogs(false);
       setStats(statsRes.data || statsRes);
       setUsers(usersRes.data || usersRes);
       setAuditLogs(logsRes.data || logsRes);
