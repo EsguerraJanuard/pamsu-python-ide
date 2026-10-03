@@ -86,6 +86,7 @@ class EnrollmentResponse(BaseModel):
     )
     status: EnrollmentStatus
     is_online: bool = False
+    academic_integrity_score: float = 100.0
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -120,6 +121,7 @@ class ClassMemberResponse(BaseModel):
     )
     status: EnrollmentStatus
     is_online: bool = False
+    academic_integrity_score: float = 100.0
 
     model_config = ConfigDict(
         extra="forbid",

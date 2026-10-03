@@ -384,9 +384,9 @@ const SplitPaneGradingWorkspace = () => {
                           </div>
                           {/* AST Analysis & Execution Logs */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div>
-                               <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">AST Analysis</h4>
-                               <div className="bg-bg-panel p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto shadow-inner">
+                             <div className="flex flex-col h-full">
+                                 <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">AST Analysis</h4>
+                               <div className="flex-1 bg-bg-panel p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto shadow-inner">
                                  {detailedSub?.ast_feedback && detailedSub.ast_feedback.length > 0 ? (
                                    <ul className="space-y-3">
                                      {detailedSub.ast_feedback.map((fb, idx) => {
@@ -417,9 +417,9 @@ const SplitPaneGradingWorkspace = () => {
                                  )}
                                </div>
                              </div>
-                             <div>
-                               <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Execution Logs</h4>
-                               <div className="bg-[#0a0a0f] p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto font-mono text-[11px] leading-relaxed shadow-inner">
+                             <div className="flex flex-col h-full">
+                                 <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Execution Logs</h4>
+                               <div className="flex-1 bg-[#0a0a0f] p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto font-mono text-[11px] leading-relaxed shadow-inner">
                                  {detailedSub?.execution_log ? (
                                    <span className="text-slate-300 whitespace-pre-wrap">{detailedSub.execution_log}</span>
                                  ) : (

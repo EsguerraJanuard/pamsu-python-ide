@@ -712,6 +712,7 @@ def list_class_members(
             "email": user.email,
             "status": enrollment.status,
             "is_online": user.user_id in online_users,
+            "academic_integrity_score": user.academic_integrity_score,
         }
         for enrollment, user in member_rows
     ]
