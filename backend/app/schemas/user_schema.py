@@ -16,7 +16,8 @@ class UserBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     middle_name: str | None = Field(default=None, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
-    school_id: str = Field(..., pattern=r"^(\d{10}|\d{4}-\d{5})$")
+    school_id: str
+    academic_integrity_score: float = 100.0 = Field(..., pattern=r"^(\d{10}|\d{4}-\d{5})$")
     email: str = Field(..., min_length=1, max_length=255)
 
     model_config = ConfigDict(

@@ -55,6 +55,7 @@ class User(Base):
         nullable=False,
         default="student",
     )
+    academic_integrity_score = Column(Float, default=100.0, nullable=False)
     password_hash = Column(
         String(255),
         nullable=False,

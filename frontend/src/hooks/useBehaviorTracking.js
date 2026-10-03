@@ -49,11 +49,9 @@ export function useBehaviorTracking({ sessionId }) {
     };
   }, []);
 
-  // Telemetry heartbeat — sends increments every 5 seconds
+  // Telemetry heartbeat - sends increments every 5 seconds
   const lastCounts = useRef({ tab: 0, paste: 0, mouse: 0 });
   useEffect(() => {
-    if (!sessionId) return;
-
     const interval = setInterval(async () => {
       const currentTab = stateRefs.current.tabSwitchCount;
       const currentPaste = stateRefs.current.blockedPasteCount;
@@ -63,13 +61,25 @@ export function useBehaviorTracking({ sessionId }) {
       const pasteInc = Math.max(0, currentPaste - lastCounts.current.paste);
       const mouseInc = Math.max(0, currentMouse - lastCounts.current.mouse);
 
+      if (tabInc === 0 && pasteInc === 0 && mouseInc === 0) return;
+
       try {
-        await api.patch(`/activities/coding-sessions/${sessionId}/activity`, {
-          tab_switch_increment: tabInc,
-          blocked_paste_increment: pasteInc,
-          mouseleave_increment: mouseInc,
-          idle_duration_increment_seconds: 0,
-        });
+        if (sessionId) {
+          await api.patch(`/activities/coding-sessions/${sessionId}/activity`, {
+            tab_switch_increment: tabInc,
+            blocked_paste_increment: pasteInc,
+            mouseleave_increment: mouseInc,
+            idle_duration_increment_seconds: 0,
+          }).catch(() => {});
+        }
+        
+        // Also deduct integrity points globally!
+        await api.patch('/users/me/integrity', {
+            is_graded: !!sessionId,
+            tab_switch_increment: tabInc,
+            blocked_paste_increment: pasteInc,
+            mouseleave_increment: mouseInc,
+        }).catch(() => {});
 
         lastCounts.current.tab = currentTab;
         lastCounts.current.paste = currentPaste;
