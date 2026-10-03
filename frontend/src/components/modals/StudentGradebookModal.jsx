@@ -52,7 +52,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
               <h2 className="text-xl font-bold text-text-main">{student?.name}</h2>
               <p className="text-sm text-text-muted">{student?.school_id || 'ID Unknown'} • {student?.email}</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Global Integrity Score:</span>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Academic Integrity:</span>
                   <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
                     (student?.academic_integrity_score ?? 100) >= 90 ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20" : 
                     (student?.academic_integrity_score ?? 100) >= 70 ? "bg-amber-500/10 text-amber-400 ring-amber-500/20" : 

@@ -334,7 +334,7 @@ const SplitPaneGradingWorkspace = () => {
                 </h2>
                                   <p className="text-sm text-text-muted mt-0.5">Student ID: {selectedStudent.student_id || selectedStudent.id}</p>
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Global Integrity:</span>
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Academic Integrity:</span>
                     <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
                       (selectedStudent.academic_integrity_score ?? 100) >= 90 ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20" : 
                       (selectedStudent.academic_integrity_score ?? 100) >= 70 ? "bg-amber-500/10 text-amber-400 ring-amber-500/20" : 

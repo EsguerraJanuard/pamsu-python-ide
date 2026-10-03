@@ -155,7 +155,7 @@ export default function ClassRosterView() {
                       <th className="px-6 py-4">ID / Email</th>
                       <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4 text-center">Submissions</th>
-                        <th className="px-6 py-4 text-center">Integrity</th>
+                        <th className="px-6 py-4 text-center">Academic Integrity</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
