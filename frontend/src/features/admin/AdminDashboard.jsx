@@ -297,9 +297,9 @@ export default function AdminDashboard() {
                   <p className="mt-2 text-sm text-text-muted">High-level statistics across the entire Python IDE platform.</p>
                 </header>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <StatCard title="Total Instructors" value={stats.total_instructors} colorClass="text-blue-500" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>} />
-                  <StatCard title="Registered Students" value={stats.total_students} colorClass="text-emerald-500" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>} />
-                  <StatCard title="Active Classrooms" value={stats.total_classrooms} colorClass="text-purple-500" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>} />
+                  <StatCard title="Total Instructors" value={stats.total_instructors} colorClass="text-psu-maroon dark:text-psu-gold" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>} />
+                  <StatCard title="Registered Students" value={stats.total_students} colorClass="text-psu-maroon dark:text-psu-gold" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>} />
+                  <StatCard title="Active Classrooms" value={stats.total_classrooms} colorClass="text-psu-maroon dark:text-psu-gold" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>} />
                 </div>
               </div>
             )}
@@ -385,14 +385,14 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
                   <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-400"></div>
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
                     <h3 className="text-lg font-black mb-6 tracking-tight">Pre-Register Masterlist</h3>
                     <p className="text-sm text-text-muted mb-4">Upload an Excel/CSV file with student emails to auto-provision accounts.</p>
                     
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border-strong rounded-xl cursor-pointer bg-bg-base hover:bg-bg-glass transition-colors group">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-3 text-text-muted group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                        <p className="mb-2 text-sm text-text-muted"><span className="font-semibold text-text-main group-hover:text-emerald-500 transition-colors">Click to upload</span></p>
+                        <svg className="w-8 h-8 mb-3 text-text-muted group-hover:text-psu-maroon dark:group-hover:text-psu-gold transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p className="mb-2 text-sm text-text-muted"><span className="font-semibold text-text-main group-hover:text-psu-maroon dark:group-hover:text-psu-gold transition-colors">Click to upload</span></p>
                         <p className="text-xs text-text-muted/70">CSV or Excel files only</p>
                       </div>
                       <input type="file" accept=".csv, .xlsx" onChange={handleFileUpload} className="hidden" />
@@ -414,8 +414,8 @@ export default function AdminDashboard() {
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-black tracking-tight">Student Database</h3>
                     <div className="relative group w-72">
-                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                      <input type="text" placeholder="Search students..." value={searchStudent} onChange={(e) => setSearchStudent(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-bg-base border border-border-strong rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors shadow-sm" />
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-psu-maroon dark:group-focus-within:text-psu-gold transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      <input type="text" placeholder="Search students..." value={searchStudent} onChange={(e) => setSearchStudent(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-bg-base border border-border-strong rounded-xl text-sm focus:outline-none focus:border-psu-maroon dark:focus:border-psu-gold transition-colors shadow-sm" />
                     </div>
                   </div>
                   
