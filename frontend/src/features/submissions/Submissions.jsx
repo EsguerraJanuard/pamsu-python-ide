@@ -37,6 +37,9 @@ function getPercentage(value, maximum) {
 }
 
 function SubmissionList({ submissions, onOpen, isLoading }) {
+  const currentPage = 1;
+  const itemsPerPage = 50;
+
   if (isLoading) {
     return (
       <section className="space-y-4">
