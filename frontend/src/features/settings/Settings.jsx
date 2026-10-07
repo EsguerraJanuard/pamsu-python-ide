@@ -583,7 +583,7 @@ export default function Settings() {
 
                         type="submit"
 
-                        className="rounded-lg bg-gradient-to-br from-[var(--color-psu-red, #ce0000)] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                        className="rounded-lg bg-psu-maroon hover:bg-psu-maroon/90 px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.98]"
 
                       >
 
@@ -873,7 +873,7 @@ export default function Settings() {
 
                       type="submit"
 
-                      className="rounded-lg bg-gradient-to-br from-[var(--color-psu-red, #ce0000)] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      className="rounded-lg bg-psu-maroon hover:bg-psu-maroon/90 px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.98]"
 
                     >
 
