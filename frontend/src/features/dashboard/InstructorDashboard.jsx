@@ -46,7 +46,7 @@ function getActivityColor(type) {
   const colors = {
     run: "var(--color-psu-gold, #eeb319)",
     analysis: "#f59e0b",
-    submission: "var(--color-psu-red, #ce0000)",
+    submission: "var(--color-text-brand)",
     grade: "#a78bfa",
   };
   return colors[type] ?? "#64748b";
@@ -124,7 +124,7 @@ export default function InstructorDashboard() {
       label: "Pending Reviews",
       description: "Submissions awaiting grade",
       progress: reviewQueue.length > 0 ? 100 : 0,
-      color: "var(--color-psu-red, #ce0000)",
+      color: "var(--color-text-brand)",
       path: "/instructor/bench"
     },
     {

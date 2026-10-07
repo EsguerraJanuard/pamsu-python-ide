@@ -349,7 +349,7 @@ export default function StudentDashboard() {
                   <button
                     type="button"
                     onClick={() => navigate("/student/assignments")}
-                    className="text-xs text-psu-red transition-colors hover:text-[#60a5fa]"
+                    className="text-xs text-text-brand transition-colors hover:text-text-brand/80"
                   >
                     View all
                   </button>
@@ -479,7 +479,7 @@ export default function StudentDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/student/analytics")}
-                  className="text-[10px] text-psu-red transition-colors hover:text-[#60a5fa]"
+                  className="text-[10px] text-text-brand transition-colors hover:text-text-brand/80"
                 >
                   Details
                 </button>
@@ -506,7 +506,7 @@ export default function StudentDashboard() {
                       cy="60"
                       r="48"
                       fill="none"
-                      stroke="var(--color-psu-red, #ce0000)"
+                      stroke="var(--color-text-brand)"
                       strokeWidth="10"
                       strokeLinecap="round"
                       strokeDasharray={`${totalActivitiesCount > 0 ? ((completedCount / totalActivitiesCount) * 301.59).toFixed(2) : 0} 301.59`}
