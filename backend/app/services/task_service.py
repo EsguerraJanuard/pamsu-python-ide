@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import Any, TypeVar
 from uuid import uuid4
@@ -12,6 +13,9 @@ from app.services.academic_event_service import (AcademicEventWorkflowError,
 from app.services.audit_service import AuditServiceError, create_audit_record
 from app.services.notification_service import NotificationServiceError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
 
 ModelType = TypeVar(
     "ModelType",

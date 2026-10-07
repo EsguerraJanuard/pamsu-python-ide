@@ -1,3 +1,4 @@
+import logging
 import secrets
 from datetime import datetime, timezone
 from typing import Any
@@ -450,6 +451,9 @@ def regenerate_class_code(
 from app.models.domain_models import PendingEnrollment
 from app.schemas.enrollment_schema import BulkEnrollmentResponse
 
+logger = logging.getLogger(__name__)
+
+
 
 def bulk_enroll_students(
     *,
@@ -681,8 +685,8 @@ def list_class_members(
     try:
         online_members = redis_client.smembers("presence:online_students")
         online_users = {int(x) for x in online_members}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Caught silent exception: {e}", exc_info=True)
 
     return [
         {

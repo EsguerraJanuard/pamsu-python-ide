@@ -21,6 +21,9 @@ from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+logger = logging.getLogger(__name__)
+
+
 OTP_CODE_LENGTH = 6
 
 OTP_EXPIRE_SECONDS = int(os.getenv("OTP_EXPIRE_SECONDS", "600"))

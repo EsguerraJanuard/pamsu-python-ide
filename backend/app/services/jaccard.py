@@ -1,3 +1,4 @@
+import logging
 import builtins
 import io
 import keyword
@@ -6,6 +7,9 @@ import tokenize
 from typing import Any
 
 from app.services.ast_fingerprinter import generate_ast_fingerprint
+
+logger = logging.getLogger(__name__)
+
 
 IGNORED_TOKEN_TYPES = {
     tokenize.ENCODING,

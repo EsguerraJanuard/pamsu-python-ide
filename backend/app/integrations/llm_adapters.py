@@ -14,7 +14,9 @@ class OllamaLLMAdapter:
     Adapter for a local Ollama instance or any OpenAI-compatible API.
     """
     def __init__(self):
-        self.api_url = os.getenv("LLM_API_URL", "http://localhost:11434/api/generate")
+        self.api_url = os.getenv("LLM_API_URL")
+        if not self.api_url:
+            raise ValueError("LLM_API_URL is missing.")
         self.model_name = os.getenv("LLM_MODEL_NAME", "llama3")
         self.api_key = os.getenv("LLM_API_KEY", "")
 

@@ -1,3 +1,4 @@
+import logging
 from typing import NoReturn
 
 from app.core.database import get_db
@@ -16,6 +17,9 @@ from app.services.submission_service import (
 from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException, Query,
                      status)
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter(
     prefix="/submissions",
@@ -150,7 +154,7 @@ def create_submission_endpoint(
             ),
         )
     except Exception as e:
-        print(f"Failed to dispatch execution for submission: {e}")
+        logger.error(f"Failed to dispatch execution for submission: {e}")
 
     return StudentSubmissionResponse.model_validate(submission)
 

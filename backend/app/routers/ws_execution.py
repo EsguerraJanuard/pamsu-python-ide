@@ -1,4 +1,5 @@
 ﻿import asyncio
+import logging
 import sys
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -9,6 +10,9 @@ router = APIRouter(
 )
 
 from app.core.redis_async import async_redis_client
+
+logger = logging.getLogger(__name__)
+
 
 
 @router.websocket("/execute")
@@ -34,7 +38,7 @@ async def websocket_endpoint(websocket: WebSocket):
         if new_count == 1:
             await async_redis_client.expire(rate_limit_key, 60)
     except Exception as e:
-        print(f"Redis rate limiter error: {e}")
+        logger.error(f"Redis rate limiter error: {e}")
 
     await websocket.accept()
     
@@ -71,7 +75,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     # Send output to the frontend terminal
                     await websocket.send_text(chunk.decode('utf-8', errors='replace'))
             except Exception as e:
-                print(f"Stdout read error: {e}")
+                logger.error(f"Stdout read error: {e}")
                 
         async def write_stdin():
             try:
@@ -83,7 +87,7 @@ async def websocket_endpoint(websocket: WebSocket):
             except WebSocketDisconnect:
                 pass
             except Exception as e:
-                print(f"Stdin write error: {e}")
+                logger.error(f"Stdin write error: {e}")
 
         # Run both tasks concurrently
         stdout_task = asyncio.create_task(read_stdout())
@@ -112,7 +116,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"WebSocket execution error: {e}")
+        logger.error(f"WebSocket execution error: {e}")
         try:
             await websocket.close(code=1011)
         except Exception:

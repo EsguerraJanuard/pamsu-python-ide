@@ -8,7 +8,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 
-router = APIRouter()`n`nclass IntegrityUpdate(BaseModel):
+router = APIRouter()
+
+class IntegrityUpdate(BaseModel):
     is_graded: bool
     tab_switch_increment: int
     blocked_paste_increment: int

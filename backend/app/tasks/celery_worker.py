@@ -49,7 +49,7 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         )
         
         if not request_record:
-            print(f"ExecutionRequest {execution_request_id} not found.")
+            logger.error(f"ExecutionRequest {execution_request_id} not found.")
             return
 
         import base64
@@ -96,7 +96,7 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
 
     except Exception as e:
         db.rollback()
-        print(f"Failed to dispatch to partner: {e}")
+        logger.error(f"Failed to dispatch to partner: {e}")
         try:
             db.begin()
             req = db.query(ExecutionRequest).filter(ExecutionRequest.execution_id == execution_request_id).first()

@@ -1639,8 +1639,8 @@ def build_gradebook_excel_export(
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Caught silent exception: {e}", exc_info=True)
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
@@ -1825,8 +1825,8 @@ def build_gradebook_excel_export(
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Caught silent exception: {e}", exc_info=True)
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
@@ -2011,8 +2011,8 @@ def build_gradebook_excel_export(
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Caught silent exception: {e}", exc_info=True)
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
