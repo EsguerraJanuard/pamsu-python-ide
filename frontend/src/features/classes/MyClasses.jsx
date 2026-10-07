@@ -117,7 +117,7 @@ export default function MyClasses() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-psu-red px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-psu-maroon"
+                    className="flex items-center gap-2 rounded-lg bg-psu-maroon px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-psu-maroon/90"
                   >
                     <PlusIcon className="h-4 w-4" />
                     Join a Class
