@@ -228,7 +228,7 @@ export default function Login() {
             <span className="text-psu-gold">Learn to think.</span>
           </h1>
           <p className="mt-6 max-w-md text-sm leading-relaxed text-white/80">
-            An intelligent, browser-based Python workspace built exclusively for the Pampanga State University Computer Science department.
+            An intelligent, browser-based Python workspace built exclusively for the Pampanga State University College of Computing Studies Department.
           </p>
           
           <ul className="mt-8 space-y-4">
