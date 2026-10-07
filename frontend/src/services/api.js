@@ -4,7 +4,7 @@
  * and strict FastAPI / Pydantic error response parsing.
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ;
 const DEFAULT_TIMEOUT = Number(import.meta.env.VITE_DEFAULT_REQUEST_TIMEOUT_MS) || 15000;
 
 export class ApiError extends Error {

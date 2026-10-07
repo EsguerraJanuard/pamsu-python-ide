@@ -148,7 +148,7 @@ const SplitPaneGradingWorkspace = () => {
   const handleExport = async () => {
     try {
       const token = localStorage.getItem('pamsu_access_token');
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const baseUrl = import.meta.env.VITE_API_BASE_URL ;
       const response = await fetch(`${baseUrl}/reports/classrooms/${classId}/gradebook.csv?task_id=${taskId}`, {
         headers: {
           'Authorization': `Bearer ${token}`

@@ -326,6 +326,7 @@ export default function Submissions() {
   const itemsPerPage = 5;
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchSubmissions = async () => {
@@ -350,7 +351,7 @@ export default function Submissions() {
               break;
             }
           } catch (e) {
-            console.error("Failed to fetch grades page", e);
+            setError("Failed to fetch grades page.");
             break;
           }
           currentPage++;
@@ -406,7 +407,7 @@ export default function Submissions() {
 
         setSubmissions(mappedSubs);
       } catch (err) {
-        console.error("Failed to load submissions", err);
+        setError("Failed to load submissions. Please try again later.");
       } finally {
         setIsLoading(false);
       }

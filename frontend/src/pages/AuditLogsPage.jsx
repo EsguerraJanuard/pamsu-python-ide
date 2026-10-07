@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import api from "../services/api";
 import Sidebar from "../components/layout/Sidebar";
 import InstructorSidebar from "../components/layout/InstructorSidebar";
-import Statusbar from "../components/layout/Statusbar";
 import CustomSelect from "../components/ui/CustomSelect";
 
 function ShieldIcon(props) {
@@ -25,7 +24,7 @@ export default function AuditLogsPage({ role: propRole }) {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState("");
 
-  const fetchAuditLogs = async (currentPage = 1, currentFilter = "all") => {
+  const fetchAuditLogs = useCallback(async (currentPage = 1, currentFilter = "all") => {
     setLoading(true);
     setError("");
     try {
@@ -41,16 +40,16 @@ export default function AuditLogsPage({ role: propRole }) {
       } else {
         setLogs([]);
       }
-    } catch (err) {
+    } catch {
       setLogs([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAuditLogs(page, actionFilter);
-  }, [page, actionFilter]);
+  }, [page, actionFilter, fetchAuditLogs]);
 
   const filteredLogs = logs.filter((log) => {
     const matchesQuery =
@@ -165,7 +164,7 @@ export default function AuditLogsPage({ role: propRole }) {
                           {filteredLogs.map((log) => (
                             <tr key={log.id} className="hover:bg-bg-glass-hover transition">
                               <td className="py-3.5 px-4 text-text-muted whitespace-nowrap">
-                                {new Date(log.timestamp || log.occurred_at || log.created_at || Date.now()).toLocaleString()}
+                                {new Date(log.timestamp || log.occurred_at || log.created_at ).toLocaleString()}
                               </td>
                               <td className="py-3.5 px-4 font-semibold text-text-main font-sans">
                                 {log.action || log.action_type}

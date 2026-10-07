@@ -394,7 +394,7 @@ export default function AdminDashboard() {
                             <td className="px-4 py-4 font-bold text-text-main">{inst.first_name} {inst.last_name}</td>
                             <td className="px-4 py-4 text-text-muted">{inst.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-2.5 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full ${inst.is_active ? 'bg-green-500/10 text-emerald-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                              <span className={`px-2.5 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full ${inst.is_active ? 'bg-psu-maroon/10 text-text-brand border border-green-500/20' : 'bg-bg-glass text-text-muted border border-red-500/20'}`}>
                                 {inst.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -502,7 +502,7 @@ export default function AdminDashboard() {
                             <td className="px-4 py-4 font-bold text-text-main">{stu.first_name} {stu.last_name}</td>
                             <td className="px-4 py-4 text-text-muted">{stu.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-2.5 py-1 font-bold rounded-full text-[10px] uppercase tracking-widest ${stu.is_active ? 'bg-green-500/10 text-emerald-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                              <span className={`px-2.5 py-1 font-bold rounded-full text-[10px] uppercase tracking-widest ${stu.is_active ? 'bg-psu-maroon/10 text-text-brand border border-green-500/20' : 'bg-bg-glass text-text-muted border border-red-500/20'}`}>
                                 {stu.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -568,7 +568,7 @@ export default function AdminDashboard() {
                             <td className="px-4 py-4 font-bold text-psu-maroon dark:text-psu-gold">{log.action_type}</td>
                             <td className="px-4 py-4 text-text-muted">{log.resource_type}</td>
                             <td className="px-4 py-4 text-right">
-                              <span className={`px-2 py-1 font-bold rounded text-[10px] uppercase tracking-wider ${log.outcome === 'succeeded' || log.status === 'success' ? 'bg-green-500/10 text-emerald-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                              <span className={`px-2 py-1 font-bold rounded text-[10px] uppercase tracking-wider ${log.outcome === 'succeeded' || log.status === 'success' ? 'bg-psu-maroon/10 text-text-brand border border-green-500/20' : 'bg-bg-glass text-text-muted border border-red-500/20'}`}>
                                 {log.outcome || log.status || 'succeeded'}
                               </span>
                             </td>
@@ -623,10 +623,10 @@ export default function AdminDashboard() {
                       <p className="text-sm text-text-muted mb-6">Global strictness level for structural code feedback.</p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500 bg-emerald-500/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-psu-maroon dark:border-psu-gold bg-emerald-500/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
                           <input type="radio" name="ast_strictness" value="lenient" checked={settings.default_ast_strictness === 'lenient'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'lenient' ? 'border-emerald-500' : 'border-border-strong'}`}>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'lenient' ? 'border-psu-maroon dark:border-psu-gold' : 'border-border-strong'}`}>
                               {settings.default_ast_strictness === 'lenient' && <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
                             </div>
                             <span className="font-black text-text-main">Lenient</span>
