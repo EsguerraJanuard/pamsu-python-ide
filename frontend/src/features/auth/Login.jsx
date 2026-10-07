@@ -210,7 +210,7 @@ export default function Login() {
 
         <div className="relative z-10 animate-login-fade opacity-0">
           <div className="flex items-center gap-3">
-            <img src="/logo-192.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
+            <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-psu-gold/90">Pampanga State University</p>
               <p className="text-lg font-black tracking-tight text-white">Python IDE</p>
@@ -257,7 +257,7 @@ export default function Login() {
         
         {/* Mobile Logo Header */}
         <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
-          <img src="/logo-192.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
+          <img src="/school_logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Pampanga State University</p>
             <p className="text-base font-black tracking-tight text-slate-900">Python IDE</p>
