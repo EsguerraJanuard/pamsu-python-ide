@@ -3,7 +3,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
 ActivityType = Literal["laboratory", "homework"]
 ReportingSortDirection = Literal["asc", "desc"]
 MissingSubmissionSortField = Literal[

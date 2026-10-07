@@ -1,18 +1,17 @@
-import redis
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 import bcrypt
-from jose import JWTError, jwt
-from sqlalchemy.orm import Session
-
+import redis
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.models.domain_models import User
 from app.core.redis_client import redis_client
+from app.models.domain_models import User
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
 
 settings = get_settings()
 

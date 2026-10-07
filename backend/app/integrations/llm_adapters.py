@@ -1,16 +1,13 @@
 ﻿import os
-import json
 from datetime import datetime, timezone
-import httpx
 
-from app.integrations.local_llm import (
-    LocalLLMAdapter,
-    LocalLLMAssistanceRequest,
-    LocalLLMAssistanceResponse,
-    LocalLLMAdapterUnavailableError,
-    LocalLLMAdapterRejectedError,
-    LocalLLMAdapterResponseError,
-)
+import httpx
+from app.integrations.local_llm import (LocalLLMAdapter,
+                                        LocalLLMAdapterResponseError,
+                                        LocalLLMAdapterUnavailableError,
+                                        LocalLLMAssistanceRequest,
+                                        LocalLLMAssistanceResponse)
+
 
 class OllamaLLMAdapter:
     """

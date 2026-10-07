@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
-from app.core.security import get_current_user, get_password_hash, verify_password
+from app.core.security import (get_current_user, get_password_hash,
+                               verify_password)
 from app.models.domain_models import User
 from app.schemas.user_schema import PasswordUpdate, UserResponse, UserUpdate
-
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 
 class IntegrityUpdate(BaseModel):
     is_graded: bool
@@ -91,8 +91,21 @@ def change_password(
 
 
 from app.integrations.otp_delivery import get_otp_delivery_adapter
-from app.services.otp_service import OTPDeliveryAdapter, OTPAttemptLimitError, OTPChallengeConsumedError, OTPChallengeExpiredError, OTPChallengeNotFoundError, OTPDeliveryError, OTPInvalidCodeError, OTPResendLimitError, OTPResendTooSoonError, RegistrationConflictError, start_password_reset, verify_and_complete_password_reset, resend_password_reset_otp
-from app.schemas.otp_schema import OTPChallengeResponse, PasswordResetStartRequest, PasswordResetCompleteRequest, OTPResendRequest
+from app.schemas.otp_schema import (OTPChallengeResponse, OTPResendRequest,
+                                    PasswordResetCompleteRequest,
+                                    PasswordResetStartRequest)
+from app.services.otp_service import (OTPAttemptLimitError,
+                                      OTPChallengeConsumedError,
+                                      OTPChallengeExpiredError,
+                                      OTPChallengeNotFoundError,
+                                      OTPDeliveryAdapter, OTPDeliveryError,
+                                      OTPInvalidCodeError, OTPResendLimitError,
+                                      OTPResendTooSoonError,
+                                      RegistrationConflictError,
+                                      resend_password_reset_otp,
+                                      start_password_reset,
+                                      verify_and_complete_password_reset)
+
 
 @router.post(
     "/password-reset/start",

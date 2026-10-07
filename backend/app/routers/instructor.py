@@ -1,129 +1,93 @@
-from app.services.ast_analyzer import analyze_reference_solution
-from app.schemas.practice_schema import GrowthAnalyticsResponse
-from app.routers.practice import calculate_growth_for_student
 from typing import NoReturn
 from uuid import UUID
 
-from pydantic import BaseModel
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Path,
-    Query,
-    Response,
-    status,
-)
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.core.security import get_current_instructor
-from app.models.domain_models import (
-    Task,
-    TaskTestCase,
-    User,
-)
-from app.schemas.coding_session_schema import (
-    InstructorCodingSessionResponse,
-    GlobalCodingSessionResponse,
-)
-from app.schemas.execution_schema import (
-    ExecutionRequestKind,
-    ExecutionStatus,
-    InstructorExecutionResponse,
-)
-from app.schemas.gradebook_schema import (
-    GradebookSortDirection,
-    GradebookSortField,
-    InstructorGradebookResponse,
-)
-from app.schemas.review_queue_schema import (
-    InstructorReviewQueueResponse,
-    ReviewQueueSortField,
-    SortDirection,
-)
-from app.schemas.submission_schema import (
-    InstructorSubmissionResponse,
-    SubmissionStatus,
-)
-from app.schemas.task_schema import (
-    ActivityType,
-    TaskCreate,
-    TaskPublishRequest,
-    TaskResponse,
-    TaskUpdate,
-)
-from app.schemas.task_test_case_schema import (
-    InstructorTaskTestCaseResponse,
-    TaskTestCaseCreate,
-    TaskTestCaseUpdate,
-)
+from app.models.domain_models import Task, TaskTestCase, User
+from app.routers.practice import calculate_growth_for_student
+from app.schemas.coding_session_schema import (GlobalCodingSessionResponse,
+                                               InstructorCodingSessionResponse)
+from app.schemas.execution_schema import (ExecutionRequestKind,
+                                          ExecutionStatus,
+                                          InstructorExecutionResponse)
+from app.schemas.gradebook_schema import (GradebookSortDirection,
+                                          GradebookSortField,
+                                          InstructorGradebookResponse)
+from app.schemas.practice_schema import GrowthAnalyticsResponse
+from app.schemas.review_queue_schema import (InstructorReviewQueueResponse,
+                                             ReviewQueueSortField,
+                                             SortDirection)
+from app.schemas.submission_schema import (InstructorSubmissionResponse,
+                                           SubmissionStatus)
+from app.schemas.task_schema import (ActivityType, TaskCreate,
+                                     TaskPublishRequest, TaskResponse,
+                                     TaskUpdate)
+from app.schemas.task_test_case_schema import (InstructorTaskTestCaseResponse,
+                                               TaskTestCaseCreate,
+                                               TaskTestCaseUpdate)
+from app.services.ast_analyzer import analyze_reference_solution
 from app.services.coding_session_service import (
-    CodingSessionAccessDeniedError,
-    CodingSessionNotFoundError,
-    CodingSessionPersistenceError,
-    CodingSessionServiceError,
-    get_all_active_instructor_sessions,
-    get_instructor_coding_session as get_instructor_coding_session_service,
-    list_instructor_task_coding_sessions,
-)
-from app.services.execution_service import (
-    ExecutionAccessDeniedError,
-    ExecutionPersistenceError,
-    ExecutionRequestNotFoundError,
-    ExecutionServiceError,
-    get_instructor_execution_request as get_instructor_execution_request_service,
-    list_instructor_task_execution_requests,
-)
-from app.services.gradebook_service import (
-    GradebookAccessDeniedError,
-    GradebookClassNotFoundError,
-    GradebookFilterConflictError,
-    GradebookPaginationError,
-    GradebookServiceError,
-    GradebookTaskNotFoundError,
-    list_instructor_gradebook,
-)
-from app.services.review_queue_service import (
-    ReviewQueueAccessDeniedError,
-    ReviewQueueClassNotFoundError,
-    ReviewQueueFilterConflictError,
-    ReviewQueuePaginationError,
-    ReviewQueueServiceError,
-    ReviewQueueTaskNotFoundError,
-    list_instructor_review_queue,
-)
-from app.services.submission_service import (
-    SubmissionAccessDeniedError,
-    SubmissionNotFoundError,
-    SubmissionPersistenceError,
-    SubmissionServiceError,
-    get_instructor_submission as get_instructor_submission_service,
-    list_instructor_task_submissions,
-)
-from app.services.task_service import (
-    TaskAccessDeniedError,
-    TaskAuditWorkflowError,
-    TaskClassAccessDeniedError,
-    TaskClassInactiveError,
-    TaskClassNotFoundError,
-    TaskNotFoundError,
-    TaskNotificationWorkflowError,
-    TaskPublicationError,
-    TaskTestCaseNotFoundError,
-    TaskUpdateEmptyError,
-    create_task as create_task_service,
-    create_task_test_case,
-    delete_task_test_case,
-    get_instructor_task,
-    get_instructor_test_case,
-    list_instructor_tasks,
-    list_instructor_test_cases,
-    set_task_publication,
-    update_task as update_task_service,
-    update_task_test_case,
-)
-
+    CodingSessionAccessDeniedError, CodingSessionNotFoundError,
+    CodingSessionPersistenceError, CodingSessionServiceError,
+    get_all_active_instructor_sessions)
+from app.services.coding_session_service import \
+    get_instructor_coding_session as get_instructor_coding_session_service
+from app.services.coding_session_service import \
+    list_instructor_task_coding_sessions
+from app.services.execution_service import (ExecutionAccessDeniedError,
+                                            ExecutionPersistenceError,
+                                            ExecutionRequestNotFoundError,
+                                            ExecutionServiceError)
+from app.services.execution_service import \
+    get_instructor_execution_request as \
+    get_instructor_execution_request_service
+from app.services.execution_service import \
+    list_instructor_task_execution_requests
+from app.services.gradebook_service import (GradebookAccessDeniedError,
+                                            GradebookClassNotFoundError,
+                                            GradebookFilterConflictError,
+                                            GradebookPaginationError,
+                                            GradebookServiceError,
+                                            GradebookTaskNotFoundError,
+                                            list_instructor_gradebook)
+from app.services.review_queue_service import (ReviewQueueAccessDeniedError,
+                                               ReviewQueueClassNotFoundError,
+                                               ReviewQueueFilterConflictError,
+                                               ReviewQueuePaginationError,
+                                               ReviewQueueServiceError,
+                                               ReviewQueueTaskNotFoundError,
+                                               list_instructor_review_queue)
+from app.services.submission_service import (SubmissionAccessDeniedError,
+                                             SubmissionNotFoundError,
+                                             SubmissionPersistenceError,
+                                             SubmissionServiceError)
+from app.services.submission_service import \
+    get_instructor_submission as get_instructor_submission_service
+from app.services.submission_service import list_instructor_task_submissions
+from app.services.task_service import (TaskAccessDeniedError,
+                                       TaskAuditWorkflowError,
+                                       TaskClassAccessDeniedError,
+                                       TaskClassInactiveError,
+                                       TaskClassNotFoundError,
+                                       TaskNotFoundError,
+                                       TaskNotificationWorkflowError,
+                                       TaskPublicationError,
+                                       TaskTestCaseNotFoundError,
+                                       TaskUpdateEmptyError)
+from app.services.task_service import create_task as create_task_service
+from app.services.task_service import (create_task_test_case,
+                                       delete_task_test_case,
+                                       get_instructor_task,
+                                       get_instructor_test_case,
+                                       list_instructor_tasks,
+                                       list_instructor_test_cases,
+                                       set_task_publication)
+from app.services.task_service import update_task as update_task_service
+from app.services.task_service import update_task_test_case
+from fastapi import (APIRouter, Depends, HTTPException, Path, Query, Response,
+                     status)
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/instructors",
@@ -653,8 +617,7 @@ def create_task_endpoint(
         tasks = []
         for class_id in task_data.class_ids:
             # We copy the task_data but overwrite the individual class_id for service processing
-            from app.schemas.task_schema import TaskCreate
-            single_task_data = task_data.model_copy()
+            task_data.model_copy()
             # Wait, TaskCreate doesn't have class_id anymore, it only has class_ids.
             # We need to pass the individual class_id to the service.
             # The service currently expects task_data to have a class_id.

@@ -3,36 +3,17 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from app.models.domain_models import Classroom, Enrollment, User
+from app.schemas.classroom_schema import ClassroomCreate, ClassroomUpdate
+from app.schemas.enrollment_schema import (EnrollmentJoinRequest,
+                                           EnrollmentStatus)
+from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_classroom_archived)
+from app.services.audit_service import AuditServiceError, create_audit_record
+from app.services.notification_service import NotificationServiceError
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from app.core.security import get_password_hash
-from app.models.domain_models import (
-    Classroom,
-    Enrollment,
-    User,
-)
-from app.schemas.classroom_schema import (
-    ClassroomCreate,
-    ClassroomUpdate,
-)
-from app.schemas.enrollment_schema import (
-    EnrollmentJoinRequest,
-    EnrollmentStatus,
-)
-from app.services.academic_event_service import (
-    AcademicEventWorkflowError,
-    notify_classroom_archived,
-)
-from app.services.audit_service import (
-    AuditServiceError,
-    create_audit_record,
-)
-from app.services.notification_service import (
-    NotificationServiceError,
-)
-
 
 CLASS_CODE_LENGTH = 8
 CLASS_CODE_MAX_ATTEMPTS = 10
@@ -466,9 +447,9 @@ def regenerate_class_code(
     )
 
 
-from app.core.security import get_password_hash
 from app.models.domain_models import PendingEnrollment
 from app.schemas.enrollment_schema import BulkEnrollmentResponse
+
 
 def bulk_enroll_students(
     *,

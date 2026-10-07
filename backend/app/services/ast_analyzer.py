@@ -1,5 +1,6 @@
 import ast
-from typing import Dict, Any, List
+from typing import Any, Dict
+
 
 class SolutionAnalyzer(ast.NodeVisitor):
     def __init__(self):

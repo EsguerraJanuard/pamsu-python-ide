@@ -1,5 +1,6 @@
 import ast
 
+
 class ASTFingerprinter(ast.NodeVisitor):
     def __init__(self):
         self.fingerprint = []

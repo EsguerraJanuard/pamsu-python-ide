@@ -1,33 +1,17 @@
 ﻿from datetime import datetime, timezone
 from typing import Any
 
+from app.models.domain_models import (Classroom, CodingSession, Enrollment,
+                                      Submission, Task)
+from app.schemas.submission_schema import SubmissionCreate, SubmissionStatus
+from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_submission_created)
+from app.services.audit_service import AuditServiceError, create_audit_record
+from app.services.notification_service import NotificationServiceError
+from pydantic import ValidationError
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from pydantic import ValidationError
 from sqlalchemy.orm import Session
-
-from app.models.domain_models import (
-    Classroom,
-    CodingSession,
-    Enrollment,
-    Submission,
-    Task,
-)
-from app.schemas.submission_schema import (
-    SubmissionCreate,
-    SubmissionStatus,
-)
-from app.services.academic_event_service import (
-    AcademicEventWorkflowError,
-    notify_submission_created,
-)
-from app.services.audit_service import (
-    AuditServiceError,
-    create_audit_record,
-)
-from app.services.notification_service import (
-    NotificationServiceError,
-)
 
 
 class SubmissionServiceError(Exception):

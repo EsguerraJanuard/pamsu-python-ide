@@ -1,24 +1,10 @@
 from uuid import uuid4
 
-from sqlalchemy import (
-    text,
-    JSON,
-    Boolean,
-    CheckConstraint,
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-    func,
-)
-from sqlalchemy.orm import relationship
-
 from app.core.database import Base
+from sqlalchemy import (JSON, Boolean, CheckConstraint, Column, DateTime,
+                        Float, ForeignKey, Index, Integer, String, Text,
+                        UniqueConstraint, func, text)
+from sqlalchemy.orm import relationship
 
 
 class User(Base):

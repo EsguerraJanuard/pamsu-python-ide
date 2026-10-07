@@ -1,4 +1,3 @@
-from app.services.ast_fingerprinter import generate_ast_fingerprint
 import builtins
 import io
 import keyword
@@ -6,6 +5,7 @@ import re
 import tokenize
 from typing import Any
 
+from app.services.ast_fingerprinter import generate_ast_fingerprint
 
 IGNORED_TOKEN_TYPES = {
     tokenize.ENCODING,

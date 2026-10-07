@@ -185,7 +185,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
         <div className="shrink-0 mb-3 border-b border-border-subtle pb-3">
           <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between px-0.5"}`}>
             <div className="flex items-center gap-2.5 min-w-0">
-              <img src="/school_logo.png" alt="PSU Logo" className="h-9 w-9 object-contain drop-shadow-md cursor-pointer" onClick={isCollapsed ? toggleCollapse : undefined} title={isCollapsed ? "Expand sidebar" : undefined} />
+              <img src="/logo-192.png" alt="PSU Logo" className="h-9 w-9 object-contain drop-shadow-md cursor-pointer" onClick={isCollapsed ? toggleCollapse : undefined} title={isCollapsed ? "Expand sidebar" : undefined} />
               {!isCollapsed && (
                 <div className="flex flex-col justify-center">
                   <span className="truncate text-[9px] font-bold tracking-widest text-text-muted uppercase leading-none mb-0.5">Pampanga State</span>

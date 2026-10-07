@@ -2,69 +2,32 @@ from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import UUID
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    Header,
-    HTTPException,
-    Path,
-    Query,
-    status,
-)
+from app.core.database import get_db
+from app.core.security import get_current_student, get_current_user
+from app.integrations.partner_auth import (PartnerExecutionIdentity,
+                                           get_authenticated_execution_partner)
+from app.models.domain_models import (CodingSession, Enrollment, Submission,
+                                      Task, User)
+from app.schemas.execution_schema import (
+    ExecutionRequestCreate, ExecutionRequestKind, ExecutionStatus,
+    Judge0CallbackPayload, PartnerExecutionResultUpdate,
+    PartnerExecutionUpdateAcceptedResponse, StudentExecutionResponse)
+from app.schemas.submission_schema import SubmissionCreate, SubmissionResponse
+from app.services.execution_service import (
+    ExecutionAccessDeniedError, ExecutionCodingSessionUnavailableError,
+    ExecutionPartnerCorrelationError, ExecutionPartnerReplayConflictError,
+    ExecutionPartnerSequenceConflictError, ExecutionPersistenceConflictError,
+    ExecutionPersistenceError, ExecutionRequestIdempotencyConflictError,
+    ExecutionRequestIdempotencyInvalidError, ExecutionRequestNotFoundError,
+    ExecutionServiceError, ExecutionStateConflictError,
+    ExecutionSubmissionUnavailableError, ExecutionTaskUnavailableError,
+    ExecutionWorkerUpdateInvalidError, apply_partner_execution_result_update,
+    create_student_execution_request, get_student_execution_request,
+    list_student_execution_requests)
+from fastapi import (APIRouter, Depends, Header, HTTPException, Path, Query,
+                     status)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from app.core.database import get_db
-from app.integrations.partner_auth import (
-    PartnerExecutionIdentity,
-    get_authenticated_execution_partner,
-)
-from app.core.security import (
-    get_current_student,
-    get_current_user,
-)
-from app.models.domain_models import (
-    CodingSession,
-    Enrollment,
-    Submission,
-    Task,
-    User,
-)
-from app.schemas.execution_schema import (
-    ExecutionRequestCreate,
-    ExecutionRequestKind,
-    ExecutionStatus,
-    Judge0CallbackPayload,
-    PartnerExecutionResultUpdate,
-    PartnerExecutionUpdateAcceptedResponse,
-    StudentExecutionResponse,
-)
-from app.schemas.submission_schema import (
-    SubmissionCreate,
-    SubmissionResponse,
-)
-from app.services.execution_service import (
-    ExecutionAccessDeniedError,
-    ExecutionCodingSessionUnavailableError,
-    ExecutionPartnerCorrelationError,
-    ExecutionPartnerReplayConflictError,
-    ExecutionPartnerSequenceConflictError,
-    ExecutionPersistenceConflictError,
-    ExecutionPersistenceError,
-    ExecutionRequestIdempotencyConflictError,
-    ExecutionRequestIdempotencyInvalidError,
-    ExecutionRequestNotFoundError,
-    ExecutionServiceError,
-    ExecutionStateConflictError,
-    ExecutionSubmissionUnavailableError,
-    ExecutionTaskUnavailableError,
-    ExecutionWorkerUpdateInvalidError,
-    apply_partner_execution_result_update,
-    create_student_execution_request,
-    get_student_execution_request,
-    list_student_execution_requests,
-)
-
 
 router = APIRouter(
     prefix="/execution",
@@ -679,8 +642,9 @@ def apply_judge0_callback_endpoint(
     # unless we configure it in Judge0 config, but query params act as a signature.
 ) -> PartnerExecutionUpdateAcceptedResponse:
     import base64
-    from datetime import datetime, timezone
     import uuid
+    from datetime import datetime, timezone
+
     from app.schemas.execution_schema import MAX_EXECUTION_OUTPUT_LENGTH
 
     # Map Judge0 status IDs:
@@ -739,7 +703,8 @@ def apply_judge0_callback_endpoint(
         completed_at=now_ts,
     )
 
-    from app.services.execution_service import apply_partner_execution_result_update
+    from app.services.execution_service import \
+        apply_partner_execution_result_update
     try:
         return apply_partner_execution_result_update(
             db,
@@ -843,6 +808,7 @@ def apply_partner_execution_result_endpoint(
 
 from app.schemas.lint_schema import LintRequest, LintResult
 from app.services.lint_service import lint_python_code
+
 
 @router.post("/lint", response_model=LintResult)
 async def lint_endpoint(request: LintRequest):

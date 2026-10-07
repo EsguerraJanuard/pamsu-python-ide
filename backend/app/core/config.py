@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-
 load_dotenv()
 
 

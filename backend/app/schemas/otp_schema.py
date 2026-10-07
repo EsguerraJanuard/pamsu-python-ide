@@ -1,14 +1,7 @@
 from typing import Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-)
-
 from app.schemas.user_schema import UserCreate, UserResponse
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 OTPPurpose = Literal["registration", "email_change", "password_reset"]
 

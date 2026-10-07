@@ -278,7 +278,7 @@ export default function AdminDashboard() {
 
       <header className="sticky top-0 z-50 flex h-16 sm:h-20 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass px-4 sm:px-8 shadow-sm backdrop-blur-md">
         <div className="flex items-center gap-4">
-          <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-sm" />
+          <img src="/logo-192.png" alt="PSU Logo" className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-sm" />
           <div className="hidden sm:block">
             <h1 className="text-xl font-black text-text-main tracking-tight">Pampanga State University</h1>
             <p className="text-xs font-bold text-psu-maroon dark:text-psu-gold uppercase tracking-widest">MIS Administration</p>

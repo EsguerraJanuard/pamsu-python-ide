@@ -2,35 +2,20 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from pydantic import ValidationError
-
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session, selectinload
-
-from app.models.domain_models import (
-    ASTAnalysis,
-    InstructorGrade,
-    SimilarityResult,
-    Submission,
-    Task,
-    User,
-)
-from app.schemas.evaluation_schema import (
-    EvaluationStatusUpdate,
-    InstructorGradeCreate,
-    InstructorGradeUpdate,
-)
-from app.services.academic_event_service import (
-    AcademicEventWorkflowError,
-    notify_grade_released,
-)
+from app.models.domain_models import (ASTAnalysis, InstructorGrade,
+                                      SimilarityResult, Submission, Task, User)
+from app.schemas.evaluation_schema import (EvaluationStatusUpdate,
+                                           InstructorGradeCreate,
+                                           InstructorGradeUpdate)
+from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_grade_released)
 from app.services.ast_evaluator import evaluate_ast_details
-from app.services.audit_service import (
-    AuditServiceError,
-    create_audit_record,
-)
+from app.services.audit_service import AuditServiceError, create_audit_record
 from app.services.jaccard import find_highest_similarity
 from app.services.notification_service import NotificationServiceError
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session, selectinload
 
 
 class EvaluationServiceError(Exception):

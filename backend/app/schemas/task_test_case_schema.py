@@ -1,12 +1,7 @@
 from datetime import datetime
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import (BaseModel, ConfigDict, Field, field_validator,
+                      model_validator)
 
 
 def normalize_test_case_name(value: str) -> str:

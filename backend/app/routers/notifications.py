@@ -1,39 +1,23 @@
 from typing import NoReturn
 from uuid import UUID
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Path,
-    Query,
-    status,
-)
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.domain_models import User
-from app.schemas.notification_schema import (
-    MarkAllNotificationsReadResponse,
-    NotificationListResponse,
-    NotificationReadFilter,
-    NotificationResponse,
-    NotificationSortDirection,
-    NotificationUnreadCountResponse,
-)
+from app.schemas.notification_schema import (MarkAllNotificationsReadResponse,
+                                             NotificationListResponse,
+                                             NotificationReadFilter,
+                                             NotificationResponse,
+                                             NotificationSortDirection,
+                                             NotificationUnreadCountResponse)
 from app.services.notification_service import (
-    NotificationNotFoundError,
-    NotificationPaginationError,
-    NotificationPersistenceError,
-    NotificationServiceError,
-    count_user_unread_notifications,
-    get_user_notification,
-    list_user_notifications,
-    mark_all_user_notifications_read,
-    mark_user_notification_read,
-)
-
+    NotificationNotFoundError, NotificationPaginationError,
+    NotificationPersistenceError, NotificationServiceError,
+    count_user_unread_notifications, get_user_notification,
+    list_user_notifications, mark_all_user_notifications_read,
+    mark_user_notification_read)
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/notifications",

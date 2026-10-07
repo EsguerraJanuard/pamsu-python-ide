@@ -1,45 +1,25 @@
-import redis.asyncio as redis
-from fastapi_limiter import FastAPILimiter
-
 from datetime import datetime, timezone
 from typing import Literal
 
+import redis.asyncio as redis
+from app.core.config import get_settings
+from app.core.database import get_db
+from app.core.request_context import (RequestContextMiddleware,
+                                      configure_request_logging)
+from app.integrations.partner_auth import PARTNER_EXECUTION_TOKEN_HEADER
+from app.routers import (activities, admin, audit_records, auth, classrooms,
+                         evaluation, execution, instructor, logs,
+                         notifications, practice, reporting, submissions,
+                         users, ws_execution)
 from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi_limiter import FastAPILimiter
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-
-from app.core.config import get_settings
-from app.core.database import get_db
-from app.core.request_context import (
-    RequestContextMiddleware,
-    configure_request_logging,
-)
-from app.integrations.partner_auth import (
-    PARTNER_EXECUTION_TOKEN_HEADER,
-)
-from app.routers import (
-    admin,
-    ws_execution,
-    practice,
-    activities,
-    audit_records,
-    auth,
-    classrooms,
-    evaluation,
-    execution,
-    instructor,
-    logs,
-    notifications,
-    registration,
-    reporting,
-    submissions,
-    users,
-)
 
 APP_TITLE = "PAMSU Python IDE Backend"
 APP_VERSION = "1.0.0"
@@ -233,7 +213,6 @@ redoc_url = "/redoc" if settings.enable_api_docs else None
 openapi_url = "/openapi.json" if settings.enable_api_docs else None
 
 
-from app.integrations.llm_adapters import get_local_llm_adapter
 app = FastAPI(
     title=APP_TITLE,
     description=(

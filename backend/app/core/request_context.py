@@ -8,14 +8,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from starlette.datastructures import MutableHeaders
-from starlette.types import (
-    ASGIApp,
-    Message,
-    Receive,
-    Scope,
-    Send,
-)
-
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 REQUEST_LOGGER_NAME = "pamsu.request"
 

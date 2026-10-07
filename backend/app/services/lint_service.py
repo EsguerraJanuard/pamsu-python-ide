@@ -1,7 +1,7 @@
 import pyflakes.api
 import pyflakes.reporter
 from app.schemas.lint_schema import LintMarker, LintResult
-import io
+
 
 class LintReporter(pyflakes.reporter.Reporter):
     def __init__(self):

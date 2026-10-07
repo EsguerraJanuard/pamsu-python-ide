@@ -1,33 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
-from app.integrations.otp_delivery import (
-    get_otp_delivery_adapter,
-)
-from app.schemas.otp_schema import (
-    OTPChallengeResponse,
-    OTPResendRequest,
-    OTPVerificationRequest,
-    RegistrationCompleteResponse,
-    RegistrationStartRequest,
-)
-from app.services.otp_service import (
-    OTPAttemptLimitError,
-    OTPChallengeConsumedError,
-    OTPChallengeExpiredError,
-    OTPChallengeNotFoundError,
-    OTPDeliveryAdapter,
-    OTPDeliveryError,
-    OTPInvalidCodeError,
-    OTPResendLimitError,
-    OTPResendTooSoonError,
-    RegistrationConflictError,
-    resend_registration_otp,
-    start_registration,
-    verify_registration_otp,
-)
-
+from app.integrations.otp_delivery import get_otp_delivery_adapter
+from app.schemas.otp_schema import (OTPChallengeResponse, OTPResendRequest,
+                                    OTPVerificationRequest,
+                                    RegistrationCompleteResponse,
+                                    RegistrationStartRequest)
+from app.services.otp_service import (OTPAttemptLimitError,
+                                      OTPChallengeConsumedError,
+                                      OTPChallengeExpiredError,
+                                      OTPChallengeNotFoundError,
+                                      OTPDeliveryAdapter, OTPDeliveryError,
+                                      OTPInvalidCodeError, OTPResendLimitError,
+                                      OTPResendTooSoonError,
+                                      RegistrationConflictError,
+                                      resend_registration_otp,
+                                      start_registration,
+                                      verify_registration_otp)
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/registration",

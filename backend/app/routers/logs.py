@@ -1,24 +1,11 @@
+from app.core.database import get_db
+from app.core.security import get_current_instructor, get_current_student
+from app.models.domain_models import BehavioralLog, Submission, Task, User
+from app.schemas.log_schema import (BehavioralLogCreate, BehavioralLogResponse,
+                                    BehavioralLogUpdate)
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from app.core.database import get_db
-from app.core.security import (
-    get_current_instructor,
-    get_current_student,
-)
-from app.models.domain_models import (
-    BehavioralLog,
-    Submission,
-    Task,
-    User,
-)
-from app.schemas.log_schema import (
-    BehavioralLogCreate,
-    BehavioralLogResponse,
-    BehavioralLogUpdate,
-)
-
 
 router = APIRouter(
     prefix="/logs",

@@ -1,6 +1,5 @@
 from typing import Literal, Protocol, runtime_checkable
 
-
 OTPDeliveryPurpose = Literal[
     "registration",
     "email_change",

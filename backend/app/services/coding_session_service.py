@@ -1,19 +1,10 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
+from app.models.domain_models import (Classroom, CodingSession, Enrollment,
+                                      Task, User)
+from app.schemas.coding_session_schema import CodingSessionActivityUpdate
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
-
-from app.models.domain_models import (
-    Classroom,
-    CodingSession,
-    Enrollment,
-    Task,
-    User,
-)
-from app.schemas.coding_session_schema import (
-    CodingSessionActivityUpdate,
-)
-
 
 MAX_DATABASE_COUNTER_VALUE = 2_147_483_647
 

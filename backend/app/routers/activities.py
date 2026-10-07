@@ -1,65 +1,40 @@
 from typing import NoReturn
 from uuid import UUID
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Path,
-    Query,
-    status,
-)
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.core.security import get_current_student
-from app.models.domain_models import (
-    Task,
-    TaskTestCase,
-    User,
-)
-from app.schemas.coding_session_schema import (
-    CodingSessionActivityUpdate,
-    CodingSessionStartRequest,
-    StudentCodingSessionResponse,
-)
-from app.schemas.gradebook_schema import (
-    StudentReleasedGradeListResponse,
-)
-from app.schemas.task_schema import (
-    ActivityType,
-    StudentTaskResponse,
-)
-from app.schemas.task_test_case_schema import (
-    StudentSampleTestCaseResponse,
-)
+from app.models.domain_models import Task, TaskTestCase, User
+from app.schemas.coding_session_schema import (CodingSessionActivityUpdate,
+                                               CodingSessionStartRequest,
+                                               StudentCodingSessionResponse)
+from app.schemas.gradebook_schema import StudentReleasedGradeListResponse
+from app.schemas.task_schema import ActivityType, StudentTaskResponse
+from app.schemas.task_test_case_schema import StudentSampleTestCaseResponse
 from app.services.coding_session_service import (
-    CodingSessionAccessDeniedError,
-    CodingSessionEndedError,
-    CodingSessionNotFoundError,
-    CodingSessionPersistenceConflictError,
-    CodingSessionPersistenceError,
-    CodingSessionServiceError,
-    CodingSessionStateConflictError,
-    CodingSessionTaskUnavailableError,
-    end_student_coding_session as end_student_coding_session_service,
-    get_student_coding_session as get_student_coding_session_service,
-    list_student_coding_sessions as list_student_coding_sessions_service,
-    start_or_resume_student_coding_session,
-    update_student_coding_session_activity as update_student_coding_session_activity_service,
-)
-from app.services.gradebook_service import (
-    GradebookPaginationError,
-    GradebookServiceError,
-    list_student_released_grades,
-)
-from app.services.task_service import (
-    StudentTaskUnavailableError,
-    get_student_task,
-    list_student_sample_test_cases,
-    list_student_tasks,
-)
-
+    CodingSessionAccessDeniedError, CodingSessionEndedError,
+    CodingSessionNotFoundError, CodingSessionPersistenceConflictError,
+    CodingSessionPersistenceError, CodingSessionServiceError,
+    CodingSessionStateConflictError, CodingSessionTaskUnavailableError)
+from app.services.coding_session_service import \
+    end_student_coding_session as end_student_coding_session_service
+from app.services.coding_session_service import \
+    get_student_coding_session as get_student_coding_session_service
+from app.services.coding_session_service import \
+    list_student_coding_sessions as list_student_coding_sessions_service
+from app.services.coding_session_service import \
+    start_or_resume_student_coding_session
+from app.services.coding_session_service import \
+    update_student_coding_session_activity as \
+    update_student_coding_session_activity_service
+from app.services.gradebook_service import (GradebookPaginationError,
+                                            GradebookServiceError,
+                                            list_student_released_grades)
+from app.services.task_service import (StudentTaskUnavailableError,
+                                       get_student_task,
+                                       list_student_sample_test_cases,
+                                       list_student_tasks)
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/activities",
@@ -544,6 +519,8 @@ def get_student_activity_endpoint(
 
 
 from pydantic import BaseModel
+
+
 class AstCheckRequest(BaseModel):
     source_code: str
 
@@ -568,8 +545,8 @@ def analyze_student_ast_endpoint(
     except StudentTaskUnavailableError as exc:
         raise_student_activity_http_exception(exc)
         
-    from app.services.ast_evaluator import evaluate_ast_details
     from app.models.domain_models import User
+    from app.services.ast_evaluator import evaluate_ast_details
     instructor = db.query(User).filter(User.user_id == task.instructor_id).first()
     strictness = instructor.ast_strictness_level if instructor else "moderate"
     details = evaluate_ast_details(request.source_code, task.required_ast_rules, strictness_level=strictness)

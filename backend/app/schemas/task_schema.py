@@ -1,13 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-)
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ActivityType = Literal[
     "laboratory",

@@ -1,35 +1,20 @@
 from typing import NoReturn
 from uuid import UUID
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Path,
-    Query,
-    status,
-)
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.domain_models import User
-from app.schemas.audit_schema import (
-    AuditActionType,
-    AuditOutcome,
-    AuditRecordListResponse,
-    AuditRecordResponse,
-    AuditResourceType,
-)
-from app.services.audit_service import (
-    AuditMetadataTooLargeError,
-    AuditRecordConflictError,
-    AuditRecordNotFoundError,
-    AuditServiceError,
-    get_actor_owned_audit_record,
-    list_actor_owned_audit_records,
-)
-
+from app.schemas.audit_schema import (AuditActionType, AuditOutcome,
+                                      AuditRecordListResponse,
+                                      AuditRecordResponse, AuditResourceType)
+from app.services.audit_service import (AuditMetadataTooLargeError,
+                                        AuditRecordConflictError,
+                                        AuditRecordNotFoundError,
+                                        AuditServiceError,
+                                        get_actor_owned_audit_record,
+                                        list_actor_owned_audit_records)
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/audit-records",

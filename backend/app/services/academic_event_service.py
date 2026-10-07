@@ -1,22 +1,12 @@
 from datetime import datetime, timezone
 from typing import Any
 
+from app.models.domain_models import (Classroom, Enrollment, InstructorGrade,
+                                      Submission, Task, User)
+from app.schemas.notification_schema import AcademicEventCreate
+from app.services.notification_service import \
+    create_academic_event_notifications
 from sqlalchemy.orm import Session
-
-from app.models.domain_models import (
-    Classroom,
-    Enrollment,
-    InstructorGrade,
-    Submission,
-    Task,
-    User,
-)
-from app.schemas.notification_schema import (
-    AcademicEventCreate,
-)
-from app.services.notification_service import (
-    create_academic_event_notifications,
-)
 
 
 class AcademicEventWorkflowError(Exception):

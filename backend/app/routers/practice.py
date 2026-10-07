@@ -1,28 +1,30 @@
-import os
 import base64
-import httpx
-from fastapi_limiter.depends import RateLimiter
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+import os
 from typing import List
-from app.core.database import get_db
-from app.core.security import get_current_user, get_current_student
-from app.models.domain_models import User, PracticeModule, PracticeTask, PracticeProgress, PracticeAttempt
-from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown, PracticeAiHintResponse
-from app.services.ai_tutor_service import generate_pedagogical_hint
-from sqlalchemy import func
 
-from app.core.security import get_current_instructor
-from app.schemas.practice_schema import (
-    PracticeModuleCreate,
-    PracticeModuleUpdate,
-    PracticeTaskCreate,
-    PracticeTaskUpdate,
-    PracticeModuleBase,
-    PracticeTaskBase
-)
+import httpx
+from app.core.database import get_db
+from app.core.security import get_current_instructor, get_current_student
+from app.models.domain_models import (PracticeAttempt, PracticeModule,
+                                      PracticeProgress, PracticeTask, User)
+from app.schemas.practice_schema import (GrowthAnalyticsResponse,
+                                         ModuleBreakdown,
+                                         PracticeAiHintResponse,
+                                         PracticeModuleBase,
+                                         PracticeModuleCreate,
+                                         PracticeModuleList,
+                                         PracticeModuleUpdate,
+                                         PracticeSubmissionRequest,
+                                         PracticeSubmissionResponse,
+                                         PracticeTaskBase, PracticeTaskCreate,
+                                         PracticeTaskDetail,
+                                         PracticeTaskUpdate)
+from app.services.ai_tutor_service import generate_pedagogical_hint
 from app.services.ast_evaluator import evaluate_ast_details
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi_limiter.depends import RateLimiter
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/practice", tags=["Solo Practice"])
 

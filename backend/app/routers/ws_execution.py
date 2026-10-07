@@ -1,7 +1,6 @@
 ﻿import asyncio
-import tempfile
-import os
 import sys
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter(
@@ -10,7 +9,7 @@ router = APIRouter(
 )
 
 from app.core.redis_async import async_redis_client
-import time
+
 
 @router.websocket("/execute")
 async def websocket_endpoint(websocket: WebSocket):

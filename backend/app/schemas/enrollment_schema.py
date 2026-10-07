@@ -1,14 +1,7 @@
 from typing import Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-)
-
 from app.schemas.classroom_schema import ClassroomResponse
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 EnrollmentStatus = Literal[
     "active",

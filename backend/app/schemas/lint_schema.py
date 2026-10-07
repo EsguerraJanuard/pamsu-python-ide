@@ -1,5 +1,7 @@
+from typing import List, Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Literal, Optional
+
 
 class LintRequest(BaseModel):
     code: str = Field(..., description="The python code to lint")

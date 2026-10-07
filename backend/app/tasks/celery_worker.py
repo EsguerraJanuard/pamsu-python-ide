@@ -1,5 +1,6 @@
 import os
 import ssl
+
 from celery import Celery
 
 redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
@@ -30,7 +31,6 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
     import httpx
     from app.core.database import SessionLocal
     from app.models.domain_models import ExecutionRequest
-    from sqlalchemy.exc import SQLAlchemyError
     
     judge0_url = os.getenv("JUDGE0_API_URL", "http://mock_judge0:8001")
     if judge0_url and not judge0_url.startswith("http"):
@@ -104,7 +104,7 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
                 req.status = "failed"
                 req.stderr = f"System Error: Failed to contact Judge0 - {str(e)}"
                 db.commit()
-        except Exception as inner_e:
+        except Exception:
             db.rollback()
         # Retry task if partner is down
         raise self.retry(exc=e, countdown=5)
@@ -114,8 +114,9 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
 
 @celery.task(bind=True, max_retries=3)
 def evaluate_submission_background_task(self, sub_id: int) -> None:
-    from app.core.database import SessionLocal
     import logging
+
+    from app.core.database import SessionLocal
     from app.services.evaluation_service import evaluate_submission_by_id
     logger = logging.getLogger(__name__)
     db = SessionLocal()

@@ -1,10 +1,11 @@
 import os
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import NoReturn
 
-from app.integrations.otp_email import OTPEmailAdapter as OTPDeliveryAdapter, OTPEmailAdapterRejectedError
+from app.integrations.otp_email import OTPEmailAdapter as OTPDeliveryAdapter
+from app.integrations.otp_email import OTPEmailAdapterRejectedError
 
 
 class OTPDeliveryUnavailableError(RuntimeError):

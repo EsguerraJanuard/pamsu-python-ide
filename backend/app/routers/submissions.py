@@ -1,39 +1,21 @@
 from typing import NoReturn
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    HTTPException,
-    Query,
-    status,
-)
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.core.security import get_current_student
 from app.models.domain_models import User
-from app.schemas.submission_schema import (
-    StudentSubmissionResponse,
-    SubmissionCreate,
-    SubmissionStatus,
-)
+from app.schemas.submission_schema import (StudentSubmissionResponse,
+                                           SubmissionCreate, SubmissionStatus)
 from app.services.submission_service import (
-    CodingSessionUnavailableError,
-    SubmissionAuditWorkflowError,
-    SubmissionConflictError,
-    SubmissionNotFoundError,
-    SubmissionNotificationWorkflowError,
-    SubmissionPersistenceError,
-    SubmissionServiceError,
-    SubmissionTaskNotGradableError,
-    SubmissionTaskUnavailableError,
-    create_student_submission,
-    get_student_official_submission,
-    get_student_submission,
-    list_student_submissions,
-)
-
+    CodingSessionUnavailableError, SubmissionAuditWorkflowError,
+    SubmissionConflictError, SubmissionNotFoundError,
+    SubmissionNotificationWorkflowError, SubmissionPersistenceError,
+    SubmissionServiceError, SubmissionTaskNotGradableError,
+    SubmissionTaskUnavailableError, create_student_submission,
+    get_student_official_submission, get_student_submission,
+    list_student_submissions)
+from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException, Query,
+                     status)
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/submissions",
@@ -152,8 +134,9 @@ def create_submission_endpoint(
     evaluate_submission_background_task.delay(submission.sub_id)
 
     try:
-        from app.services.execution_service import create_student_execution_request
         from app.schemas.execution_schema import ExecutionRequestCreate
+        from app.services.execution_service import \
+            create_student_execution_request
         create_student_execution_request(
             db,
             student_id=current_student.user_id,

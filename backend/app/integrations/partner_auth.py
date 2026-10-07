@@ -1,15 +1,9 @@
 import secrets
 from typing import Annotated, Literal
 
+from app.core.config import MIN_PARTNER_EXECUTION_TOKEN_LENGTH, get_settings
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
-
-from app.core.config import (
-    MIN_PARTNER_EXECUTION_TOKEN_LENGTH,
-    PARTNER_EXECUTION_TOKEN_ENV,
-    get_settings,
-)
-
 
 PARTNER_EXECUTION_TOKEN_HEADER = "X-Partner-Token"
 

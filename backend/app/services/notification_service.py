@@ -1,37 +1,21 @@
 from datetime import datetime, timezone
 from typing import Any, Sequence
 
-from sqlalchemy.exc import (
-    IntegrityError,
-    SQLAlchemyError,
-)
+from app.core.pagination import (DEFAULT_PAGE, DEFAULT_PAGE_SIZE,
+                                 PaginationBounds, PaginationError,
+                                 PaginationRequest, SortConfigurationError,
+                                 build_deterministic_sort,
+                                 build_pagination_metadata,
+                                 validate_pagination)
+from app.models.domain_models import AcademicEvent, Notification, User
+from app.schemas.notification_schema import (MAX_NOTIFICATION_PAGE_SIZE,
+                                             MIN_NOTIFICATION_PAGE_SIZE,
+                                             AcademicEventCreate,
+                                             NotificationCreate,
+                                             NotificationReadFilter,
+                                             NotificationSortDirection)
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
-
-from app.core.pagination import (
-    DEFAULT_PAGE,
-    DEFAULT_PAGE_SIZE,
-    PaginationBounds,
-    PaginationError,
-    PaginationRequest,
-    SortConfigurationError,
-    build_deterministic_sort,
-    build_pagination_metadata,
-    validate_pagination,
-)
-from app.models.domain_models import (
-    AcademicEvent,
-    Notification,
-    User,
-)
-from app.schemas.notification_schema import (
-    AcademicEventCreate,
-    MAX_NOTIFICATION_PAGE_SIZE,
-    MIN_NOTIFICATION_PAGE_SIZE,
-    NotificationCreate,
-    NotificationReadFilter,
-    NotificationSortDirection,
-)
-
 
 MAX_NOTIFICATION_RECIPIENTS_PER_EVENT = 5_000
 

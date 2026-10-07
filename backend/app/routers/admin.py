@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from typing import List, Dict, Any
+import random
+import re
+from typing import List
+
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
-from app.models.domain_models import User, Classroom, AuditRecord
+from app.models.domain_models import AuditRecord, Classroom, User
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
-import re
-import random
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 

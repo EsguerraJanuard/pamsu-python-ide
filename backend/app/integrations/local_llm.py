@@ -2,15 +2,8 @@ from datetime import datetime, timezone
 from typing import Annotated, Literal, Protocol, Self, runtime_checkable
 from uuid import UUID
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    StringConstraints,
-    field_validator,
-    model_validator,
-)
-
+from pydantic import (BaseModel, ConfigDict, Field, StringConstraints,
+                      field_validator, model_validator)
 
 LocalLLMAssistanceKind = Literal[
     "explanation",

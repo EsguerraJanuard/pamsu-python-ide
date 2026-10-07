@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Final, Literal
 
-
 MIN_PAGE: Final[int] = 1
 DEFAULT_PAGE: Final[int] = 1
 

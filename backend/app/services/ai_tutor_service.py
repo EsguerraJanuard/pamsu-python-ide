@@ -1,5 +1,7 @@
-import google.generativeai as genai
 import os
+
+import google.generativeai as genai
+
 
 def generate_pedagogical_hint(task_instructions: str, student_code: str, error_output: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY")

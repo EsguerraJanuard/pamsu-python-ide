@@ -1,34 +1,18 @@
 from typing import Any
 
+from app.core.pagination import (DEFAULT_PAGE, DEFAULT_PAGE_SIZE,
+                                 PaginationBounds, PaginationError,
+                                 PaginationRequest, SortConfigurationError,
+                                 build_pagination_metadata,
+                                 normalize_sort_direction, validate_pagination)
+from app.models.domain_models import (Classroom, InstructorGrade, Submission,
+                                      Task, User)
+from app.schemas.review_queue_schema import (MAX_PAGE_SIZE, MIN_PAGE_SIZE,
+                                             ReviewQueueSortField,
+                                             SortDirection)
+from app.schemas.submission_schema import SubmissionStatus
 from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
-
-from app.core.pagination import (
-    DEFAULT_PAGE,
-    DEFAULT_PAGE_SIZE,
-    PaginationBounds,
-    PaginationError,
-    PaginationRequest,
-    SortConfigurationError,
-    build_pagination_metadata,
-    normalize_sort_direction,
-    validate_pagination,
-)
-from app.models.domain_models import (
-    Classroom,
-    InstructorGrade,
-    Submission,
-    Task,
-    User,
-)
-from app.schemas.review_queue_schema import (
-    MAX_PAGE_SIZE,
-    MIN_PAGE_SIZE,
-    ReviewQueueSortField,
-    SortDirection,
-)
-from app.schemas.submission_schema import SubmissionStatus
-
 
 REVIEW_QUEUE_PAGINATION_BOUNDS = PaginationBounds(
     minimum_page=1,

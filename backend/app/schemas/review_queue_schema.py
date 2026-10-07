@@ -1,18 +1,9 @@
 from datetime import datetime, timezone
 from typing import Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
-
-from app.schemas.submission_schema import (
-    SubmissionStatus,
-)
-
+from app.schemas.submission_schema import SubmissionStatus
+from pydantic import (BaseModel, ConfigDict, Field, field_validator,
+                      model_validator)
 
 ReviewQueueSortField = Literal[
     "submitted_at",

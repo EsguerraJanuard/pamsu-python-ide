@@ -1,33 +1,24 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Literal
+from uuid import uuid4
 
-from fastapi_limiter.depends import RateLimiter
+from app.core.database import get_db
+from app.core.redis_client import redis_client
+from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
+                               SECRET_KEY, create_access_token, oauth2_scheme,
+                               verify_password)
+from app.models.domain_models import User
+from app.routers.admin import global_system_settings
+from app.schemas.audit_schema import AuditRecordCreateInternal
+from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
+from app.services.audit_service import create_audit_record
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from app.routers.admin import global_system_settings
+from fastapi_limiter.depends import RateLimiter
+from jose import jwt
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-
-
-from app.services.audit_service import create_audit_record
-from app.schemas.audit_schema import AuditRecordCreateInternal
-from uuid import uuid4
-from app.core.database import get_db
-from app.core.security import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    create_access_token,
-    verify_password,
-    oauth2_scheme,
-    SECRET_KEY,
-    ALGORITHM,
-)
-from app.core.redis_client import redis_client
-from jose import jwt
-from datetime import datetime, timezone
-from app.models.domain_models import User
-from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
-
 
 router = APIRouter(
     tags=["Authentication"],
@@ -228,8 +219,9 @@ def logout(
 def login_guest(db: Session = Depends(get_db)):
     import random
     import uuid
-    from app.models.domain_models import Classroom, Enrollment
+
     from app.core.utils import get_utc_now
+    from app.models.domain_models import Classroom, Enrollment
     
     short_id = str(uuid.uuid4())[:6]
     guest_email = f"guest_{short_id}@pampangastateu.edu.ph"
