@@ -74,6 +74,7 @@ export default function AdminDashboard() {
   
   // Data States
   const [form, setForm] = useState({ email: '', first_name: '', last_name: '', password: '' });
+  const [studentForm, setStudentForm] = useState({ email: '', first_name: '', last_name: '', school_id: '', password: 'Pass@123' });
   const [masterlist, setMasterlist] = useState(null);
   const [searchStudent, setSearchStudent] = useState('');
   const [searchAudit, setSearchAudit] = useState('');
@@ -134,6 +135,21 @@ export default function AdminDashboard() {
   const showMessage = (msg, isError = false) => {
     isError ? setError(msg) : setSuccess(msg);
     setTimeout(() => { setError(null); setSuccess(null); }, 5000);
+  };
+
+  const handleCreateStudent = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await api.post("/admin/students", studentForm);
+      showMessage(`Student account for ${studentForm.email} provisioned successfully!`);
+      setStudentForm({ email: '', first_name: '', last_name: '', school_id: '', password: 'Pass@123' });
+      await fetchData();
+    } catch (err) {
+      showMessage(err.response?.data?.detail || err.message, true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateFaculty = async (e) => {
@@ -434,7 +450,23 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm mt-4">
+                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden mt-4">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
+                    <h3 className="text-lg font-black mb-6 tracking-tight">Manual Provisioning</h3>
+                    <form onSubmit={handleCreateStudent} className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <input type="text" placeholder="First Name" required value={studentForm.first_name} onChange={e => setStudentForm({...studentForm, first_name: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
+                        <input type="text" placeholder="Last Name" required value={studentForm.last_name} onChange={e => setStudentForm({...studentForm, last_name: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
+                        <input type="email" placeholder="PSU Email" required value={studentForm.email} onChange={e => setStudentForm({...studentForm, email: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
+                        <input type="text" placeholder="School ID (e.g. 2020-0001)" required value={studentForm.school_id} onChange={e => setStudentForm({...studentForm, school_id: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
+                      </div>
+                      <button type="submit" disabled={isLoading} className="w-full rounded-xl bg-psu-maroon px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-psu-maroon/90 disabled:opacity-50">
+                        {isLoading ? "Provisioning..." : "Provision Student"}
+                      </button>
+                    </form>
+                  </div>
+                  
+                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm mt-4">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-black tracking-tight">Student Database</h3>
                     <div className="relative group w-72">

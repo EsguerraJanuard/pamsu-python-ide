@@ -17,6 +17,13 @@ class InstructorCreate(BaseModel):
     last_name: str
     password: str
 
+class StudentCreate(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    school_id: str
+    password: str
+
 class UserResponse(BaseModel):
     user_id: int
     email: str
@@ -58,6 +65,30 @@ def get_system_stats(
         "total_students": total_students,
         "total_classrooms": total_classrooms
     }
+
+@router.post("/students", response_model=UserResponse)
+def create_student(
+    request: StudentCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    existing = db.query(User).filter((User.email == request.email) | (User.school_id == request.school_id)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Student with this email or school ID already exists")
+    
+    new_student = User(
+        email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        role="student",
+        password_hash=get_password_hash(request.password),
+        school_id=request.school_id,
+        email_verified=True
+    )
+    db.add(new_student)
+    db.commit()
+    db.refresh(new_student)
+    return new_student
 
 @router.post("/instructors", response_model=UserResponse)
 def create_instructor(
