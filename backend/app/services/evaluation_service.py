@@ -611,6 +611,26 @@ def evaluate_submission_by_id(
 
         db.add(similarity_result)
 
+    # Panel Requirement: AST-Based Auto-Grading
+    # If the code satisfies all required AST rules, automatically award full score for the structural portion.
+    if ast_pass_fail:
+        existing_grade = (
+            db.query(InstructorGrade)
+            .filter(InstructorGrade.submission_id == submission.sub_id)
+            .first()
+        )
+        if not existing_grade:
+            auto_grade = InstructorGrade(
+                submission_id=submission.sub_id,
+                instructor_id=task.instructor_id,
+                score=100.0,
+                max_score=100.0,
+                feedback="Auto-graded: Passed all structural (AST) requirements.",
+                is_released=True
+            )
+            db.add(auto_grade)
+            submission.status = "graded"
+
     _commit_evaluation_transaction(db)
 
     db.refresh(submission)

@@ -90,6 +90,37 @@ def create_student(
     db.refresh(new_student)
     return new_student
 
+
+class GuestCreate(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    password: str
+
+@router.post("/guests", response_model=UserResponse)
+def create_guest(
+    request: GuestCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    existing = db.query(User).filter(User.email == request.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Guest with this email already exists")
+    
+    new_guest = User(
+        email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        role="guest",
+        password_hash=get_password_hash(request.password),
+        school_id="GUEST-" + str(random.randint(1000, 9999)),
+        email_verified=True
+    )
+    db.add(new_guest)
+    db.commit()
+    db.refresh(new_guest)
+    return new_guest
+
 @router.post("/instructors", response_model=UserResponse)
 def create_instructor(
     request: InstructorCreate,

@@ -75,7 +75,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     user_id: int
-    role: Literal["student", "instructor"]
+    role: Literal["student", "instructor", "superadmin", "guest"]
     email_verified: bool
     is_active: bool
     ast_strictness_level: str

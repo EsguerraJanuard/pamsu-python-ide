@@ -60,6 +60,13 @@ def start_registration_endpoint(
     db: Session = Depends(get_db),
     delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
 ) -> OTPChallengeResponse:
+    raise HTTPException(status_code=403, detail="Open registration is disabled per panel recommendations. Please contact the MIS/SuperAdmin to provision your account.")
+
+def old_start_registration_endpoint(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
+) -> OTPChallengeResponse:
     try:
         return start_registration(
             db=db,
