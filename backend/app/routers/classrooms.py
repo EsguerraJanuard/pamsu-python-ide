@@ -1,62 +1,38 @@
 from typing import NoReturn
 
-from fastapi import (
-    UploadFile,
-    File,
-    APIRouter,
-    Depends,
-    HTTPException,
-    Path,
-    status,
-)
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
-from app.core.security import (
-    get_current_instructor,
-    get_current_student,
-)
-from app.models.domain_models import (
-    Classroom,
-    Enrollment,
-    User,
-)
-from app.schemas.classroom_schema import (
-    ClassroomCodeResponse,
-    ClassroomCreate,
-    ClassroomResponse,
-    ClassroomUpdate,
-)
-from app.schemas.enrollment_schema import (
-    BulkEnrollmentRequest,
-    BulkEnrollmentResponse,
-    ClassMemberResponse,
-    EnrollmentJoinRequest,
-    EnrollmentResponse,
-    EnrollmentStatusUpdate,
-    StudentClassroomResponse,
-)
-from app.services.classroom_service import (
-    ClassroomAccessDeniedError,
-    ClassroomAuditWorkflowError,
-    ClassroomCodeGenerationError,
-    ClassroomInactiveError,
-    ClassroomNotFoundError,
-    ClassroomNotificationWorkflowError,
-    EnrollmentAccessDeniedError,
-    EnrollmentConflictError,
-    EnrollmentNotFoundError,
-    create_classroom,
-    get_owned_classroom,
-    join_classroom,
-    list_class_members,
-    list_instructor_classrooms,
-    list_student_classrooms,
-    regenerate_class_code,
-    update_classroom,
-    update_enrollment_status,
-)
-
+from app.core.security import get_current_instructor, get_current_student
+from app.models.domain_models import Classroom, Enrollment, User
+from app.schemas.classroom_schema import (ClassroomCodeResponse,
+                                          ClassroomCreate, ClassroomResponse,
+                                          ClassroomUpdate)
+from app.schemas.enrollment_schema import (BulkEnrollmentRequest,
+                                           BulkEnrollmentResponse,
+                                           ClassMemberResponse,
+                                           EnrollmentJoinRequest,
+                                           EnrollmentResponse,
+                                           EnrollmentStatusUpdate,
+                                           StudentClassroomResponse)
+from app.services.classroom_service import (ClassroomAccessDeniedError,
+                                            ClassroomAuditWorkflowError,
+                                            ClassroomCodeGenerationError,
+                                            ClassroomInactiveError,
+                                            ClassroomNotFoundError,
+                                            ClassroomNotificationWorkflowError,
+                                            EnrollmentAccessDeniedError,
+                                            EnrollmentConflictError,
+                                            EnrollmentNotFoundError,
+                                            create_classroom,
+                                            get_owned_classroom,
+                                            join_classroom, list_class_members,
+                                            list_instructor_classrooms,
+                                            list_student_classrooms,
+                                            regenerate_class_code,
+                                            unenroll_student, update_classroom,
+                                            update_enrollment_status)
+from fastapi import (APIRouter, Depends, File, HTTPException, Path, UploadFile,
+                     status)
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/classrooms",
@@ -332,15 +308,17 @@ async def bulk_enroll_file_endpoint(
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> BulkEnrollmentResponse:
-    from app.services.classroom_service import bulk_enroll_students
     import re
+
+    from app.services.classroom_service import bulk_enroll_students
     
     content = await file.read()
     text = ""
     try:
         # Try to parse as excel first
-        import openpyxl
         from io import BytesIO
+
+        import openpyxl
         wb = openpyxl.load_workbook(BytesIO(content), read_only=True, data_only=True)
         for sheet in wb.worksheets:
             for row in sheet.iter_rows(values_only=True):

@@ -18,7 +18,7 @@ import { api, ApiError } from "../../services/api";
 import { ThemeToggle } from "../theme/ThemeToggle";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ;
 
 const features = [
   {
@@ -126,13 +126,14 @@ export default function Login() {
       // Save token and user data via AuthContext
       // login() stores in localStorage under pamsu_access_token, pamsu_user_role, pamsu_user_data
       login(data.access_token, data.user, data.user.role);
-
-      // Redirect based on role returned by the backend
-      if (data.user.role === "instructor") {
-        navigate("/instructor/dashboard", { replace: true });
-      } else {
-        navigate("/student/dashboard", { replace: true });
-      }
+        // Redirect based on role returned by the backend
+        if (data.user.role === "instructor") {
+          navigate("/instructor/dashboard", { replace: true });
+        } else if (data.user.role === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else {
+          navigate("/student/dashboard", { replace: true });
+        }
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401) {
@@ -153,7 +154,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-screen overflow-hidden bg-bg-base text-text-main">
+    <main className="flex min-h-screen bg-white text-slate-900">
       <style>{`
         @keyframes loginFadeLeft {
           from { opacity: 0; transform: translateX(-16px); }
@@ -196,9 +197,17 @@ export default function Login() {
           <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
         </div>
 
-        <div className="max-w-md select-none cursor-default">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-text-emerald">
-            Python Learning Platform
+        <div className="relative z-10 my-auto animate-login-fade delay-100 opacity-0">
+          <span className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-psu-gold border border-white/20 backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-psu-gold animate-pulse"></span>
+            Enterprise Platform
+          </span>
+          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl xl:text-6xl leading-[1.1]">
+            Code with integrity.<br />
+            <span className="text-psu-gold">Learn to think.</span>
+          </h1>
+          <p className="mt-6 max-w-md text-sm leading-relaxed text-white/80">
+            An intelligent, browser-based Python workspace built exclusively for the Pampanga State University College of Computing Studies Department.
           </p>
           <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
             Code with integrity.
@@ -229,21 +238,27 @@ export default function Login() {
         </p>
       </section>
 
-      {/* Right panel — login form */}
-      <section className="relative flex flex-1 items-center justify-center px-6 py-12 z-10">
-        {/* Glow effects */}
-        <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] translate-x-1/3 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] -translate-x-1/3 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
+      {/* Right Side: Login Form */}
+      <div className="flex flex-1 items-center justify-center bg-white px-6 py-12 lg:px-8 relative z-0">
 
-        <div
-          className="login-animated w-full max-w-[420px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
-          style={{ animation: "loginFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) 100ms both" }}
-        >
-          <div className="mb-8 text-center select-none cursor-default">
-            <h2 className="text-xl font-bold text-text-main">
+        
+        {/* Mobile Logo Header */}
+        <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
+          <img src="/school_logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Pampanga State University</p>
+            <p className="text-base font-black tracking-tight text-slate-900">Python IDE</p>
+          </div>
+        </div>
+
+        
+
+        <div className="w-full max-w-[540px] animate-login-fade delay-100 opacity-0">
+          <div className="mb-10 text-center sm:text-left">
+            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
               Sign in to your workspace
             </h2>
-            <p className="mt-2 text-sm text-text-muted">
+            <p className="mt-3 text-base text-slate-500">
               Use your verified university account
             </p>
           </div>
@@ -253,27 +268,24 @@ export default function Login() {
             <div
               role="alert"
               aria-live="polite"
-              className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-text-rose"
+              className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 shadow-sm"
             >
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             {/* Email */}
             <div>
-              <label
-                htmlFor="school-email"
-                className="mb-1.5 block text-xs font-medium text-text-muted select-none cursor-default"
-              >
+              <label htmlFor="school-email" className="mb-2 block text-xs font-bold text-slate-500 uppercase tracking-widest">
                 School email
               </label>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass"
+                className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-slate-50 focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-slate-300 cursor-text"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
-                  <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-slate-500 pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                  <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                 </svg>
                 <input
                   id="school-email"
@@ -284,8 +296,8 @@ export default function Login() {
                   autoComplete="email"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                  style={{ caretColor: "#10b981" }}
+                  className="min-w-0 flex-1 bg-transparent text-base font-medium text-slate-900 outline-none placeholder:text-slate-500/50 disabled:opacity-50"
+                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
               </div>
             </div>
@@ -293,10 +305,7 @@ export default function Login() {
             {/* Password */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="text-xs font-medium text-text-muted select-none cursor-default"
-                >
+                <label htmlFor="password" className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                   Password
                 </label>
                 {capsLock && (
@@ -310,12 +319,12 @@ export default function Login() {
                 )}
               </div>
               <div
-                className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-3 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass"
+                className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-slate-50 focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-slate-300 cursor-text"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
-                  <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                  <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-slate-500 pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                  <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 <input
                   id="password"
@@ -326,13 +335,13 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                  style={{ caretColor: "#10b981" }}
+                  className="min-w-0 flex-1 bg-transparent text-base font-medium tracking-widest text-slate-900 outline-none placeholder:text-slate-500/50 placeholder:tracking-normal disabled:opacity-50"
+                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-text-muted"
+                  className="shrink-0 cursor-pointer text-slate-500 transition-colors hover:text-slate-900"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading}
                 >
@@ -382,8 +391,12 @@ export default function Login() {
                 ) : (
                   "Sign in"
                 )}
-              </span>
-            </button>
+              </button>
+              
+              <div className="relative mt-6 mb-6">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Or</span></div>
+              </div>
 
             <p className="text-center text-xs text-text-muted select-none cursor-default">
               <button
@@ -391,6 +404,7 @@ export default function Login() {
                 onClick={() => navigate("/register")}
                 className="font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline"
                 disabled={isLoading}
+                className="group flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-base font-bold text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-slate-50-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 Sign up using university account
               </button>

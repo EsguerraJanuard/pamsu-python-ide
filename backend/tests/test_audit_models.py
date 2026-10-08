@@ -17,7 +17,8 @@ def create_audit_user(
     role: str = "instructor",
 ) -> User:
     user = User(
-        name="Audit Model User",
+        first_name=("Audit Model User").split()[0] if isinstance("Audit Model User", str) else "Test",
+        last_name=" ".join(("Audit Model User").split()[1:]) if isinstance("Audit Model User", str) and " " in "Audit Model User" else "User",
         school_id=school_id,
         email=email,
         role=role,

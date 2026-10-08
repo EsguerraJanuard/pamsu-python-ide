@@ -1,0 +1,301 @@
+import random
+import re
+from typing import List
+
+from app.core.database import get_db
+from app.core.security import get_current_admin, get_password_hash
+from app.models.domain_models import AuditRecord, Classroom, User
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+router = APIRouter(prefix="/admin", tags=["Admin"])
+
+class InstructorCreate(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    password: str
+
+class StudentCreate(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    school_id: str
+    password: str
+
+class UserResponse(BaseModel):
+    user_id: int
+    email: str
+    first_name: str
+    last_name: str
+    role: str
+    school_id: str | None = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class PasswordReset(BaseModel):
+    new_password: str
+
+class SettingsUpdate(BaseModel):
+    maintenance_mode: bool
+    default_ast_strictness: str
+    registration_enabled: bool
+
+# Global mock settings for MVP
+global_system_settings = {
+    "maintenance_mode": False,
+    "default_ast_strictness": "moderate",
+    "registration_enabled": False
+}
+
+@router.get("/stats")
+def get_system_stats(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    total_instructors = db.query(User).filter(User.role == "instructor").count()
+    total_students = db.query(User).filter(User.role == "student").count()
+    total_classrooms = db.query(Classroom).count()
+    
+    return {
+        "total_instructors": total_instructors,
+        "total_students": total_students,
+        "total_classrooms": total_classrooms
+    }
+
+@router.post("/students", response_model=UserResponse)
+def create_student(
+    request: StudentCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    existing = db.query(User).filter((User.email == request.email) | (User.school_id == request.school_id)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Student with this email or school ID already exists")
+    
+    new_student = User(
+        email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        role="student",
+        password_hash=get_password_hash(request.password),
+        school_id=request.school_id,
+        email_verified=True
+    )
+    db.add(new_student)
+    db.commit()
+    db.refresh(new_student)
+    return new_student
+
+
+class GuestCreate(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    password: str
+
+@router.post("/guests", response_model=UserResponse)
+def create_guest(
+    request: GuestCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    existing = db.query(User).filter(User.email == request.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Guest with this email already exists")
+    
+    new_guest = User(
+        email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        role="guest",
+        password_hash=get_password_hash(request.password),
+        school_id="GUEST-" + str(random.randint(1000, 9999)),
+        email_verified=True
+    )
+    db.add(new_guest)
+    db.commit()
+    db.refresh(new_guest)
+    return new_guest
+
+@router.post("/instructors", response_model=UserResponse)
+def create_instructor(
+    request: InstructorCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    existing = db.query(User).filter(User.email == request.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists")
+    
+    new_instructor = User(
+        email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        role="instructor",
+        password_hash=get_password_hash(request.password),
+        school_id=str(random.randint(1000000000, 9999999999)),
+        email_verified=True
+    )
+    db.add(new_instructor)
+    db.commit()
+    db.refresh(new_instructor)
+    return new_instructor
+
+@router.get("/users", response_model=List[UserResponse])
+def list_users(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    users = db.query(User).filter(User.role != "admin", ~User.email.startswith("guest_")).offset(skip).limit(limit).all()
+    return users
+
+@router.patch("/users/{user_id}/status")
+def toggle_user_status(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = not user.is_active
+    db.commit()
+    return {"message": "Status updated", "is_active": user.is_active}
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted"}
+
+@router.patch("/users/{user_id}/password")
+def reset_user_password(
+    user_id: int,
+    request: PasswordReset,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.password_hash = get_password_hash(request.new_password)
+    db.commit()
+    return {"message": "Password reset successfully"}
+
+@router.get("/audit-logs")
+def get_global_audit_logs(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    logs = db.query(AuditRecord, User.first_name, User.last_name, User.role).join(
+        User, AuditRecord.actor_user_id == User.user_id, isouter=True
+    ).order_by(AuditRecord.occurred_at.desc()).offset(skip).limit(limit).all()
+    
+    result = []
+    for log, fname, lname, role in logs:
+        result.append({
+            "log_id": log.audit_id,
+            "action_type": log.action_type,
+            "resource_type": log.resource_type,
+            "occurred_at": log.occurred_at,
+            "status": log.outcome,
+            "actor_name": f"{fname} {lname}" if fname else "System",
+            "actor_role": role if role else "system"
+        })
+    return result
+
+@router.post("/students/bulk-register/file")
+async def bulk_register_students_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    content = await file.read()
+    text = content.decode("utf-8")
+    
+    emails = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or "@" not in line:
+            continue
+        match = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', line)
+        if match:
+            emails.append(match.group(0).lower())
+            
+    emails = list(set(emails))
+    valid_emails = [e for e in emails if e.endswith("@pampangastateu.edu.ph")]
+    
+    if not valid_emails:
+        return {"registered": 0, "invalid": len(emails)}
+        
+    existing_users = db.query(User).filter(User.email.in_(valid_emails)).all()
+    existing_emails = {u.email for u in existing_users}
+    
+    registered_count = 0
+    
+    for email in valid_emails:
+        if email not in existing_emails:
+            new_user = User(
+                email=email,
+                first_name=email.split("@")[0].replace(".", " ").title(),
+                last_name="Student",
+                role="student",
+                password_hash=get_password_hash("PamsU@2026"),
+                school_id=str(random.randint(1000000000, 9999999999)),
+                email_verified=True
+            )
+            db.add(new_user)
+            registered_count += 1
+            
+    db.commit()
+    return {"registered": registered_count, "invalid": len(emails) - len(valid_emails)}
+
+@router.get("/settings")
+def get_settings(current_admin: User = Depends(get_current_admin)):
+    return global_system_settings
+
+@router.patch("/settings")
+def update_settings(request: SettingsUpdate, current_admin: User = Depends(get_current_admin)):
+    global_system_settings["maintenance_mode"] = request.maintenance_mode
+    global_system_settings["default_ast_strictness"] = request.default_ast_strictness
+    global_system_settings["registration_enabled"] = request.registration_enabled
+    return global_system_settings
+
+
+
+
+@router.get("/seed-production")
+def seed_production(db: Session = Depends(get_db)):
+    # Temporary seed endpoint for MIS account
+    admin_email = "admin@pampangastateu.edu.ph"
+    existing = db.query(User).filter(User.email == admin_email).first()
+    if existing:
+        return {"msg": "Super Admin already exists."}
+    
+    admin_user = User(
+        email=admin_email,
+        first_name="Super",
+        last_name="Admin",
+        role="superadmin",
+        password_hash=get_password_hash("Admin@2026"),
+        school_id="ADMIN-0001",
+        email_verified=True
+    )
+    db.add(admin_user)
+    db.commit()
+    return {"msg": "Super Admin seeded successfully."}

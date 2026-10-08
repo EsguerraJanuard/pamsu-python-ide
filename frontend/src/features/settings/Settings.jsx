@@ -245,7 +245,8 @@ export default function Settings() {
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
 
-        <main className="settings-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <main className="settings-page min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <div className="max-w-6xl mx-auto w-full">
           <style>
             {`
               @keyframes settingsFadeUp {
@@ -581,7 +582,7 @@ export default function Settings() {
 
                         type="submit"
 
-                        className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                        className="rounded-lg bg-psu-maroon hover:bg-psu-maroon/90 px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.98]"
 
                       >
 
@@ -876,7 +877,7 @@ export default function Settings() {
 
                       type="submit"
 
-                      className="rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#2563eb] px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:opacity-90 active:translate-y-0 active:scale-[0.98]"
+                      className="rounded-lg bg-psu-maroon hover:bg-psu-maroon/90 px-4 py-2 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.98]"
 
                     >
 
@@ -939,7 +940,8 @@ export default function Settings() {
               </section>
             </div>
           </div>
-        </main>
+        </div>
+      </main>
 
         <Statusbar />
       </div>

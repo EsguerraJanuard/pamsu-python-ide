@@ -1,48 +1,32 @@
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Path,
-    Query,
-    Response,
-    status,
-)
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
-from app.core.security import (
-    get_current_instructor,
-    get_current_student,
-)
+from app.core.security import get_current_instructor, get_current_student
 from app.models.domain_models import User
-from app.schemas.reporting_schema import (
-    ActivityCompletionSummaryResponse,
-    ClassroomCompletionSummaryResponse,
-    GradeDistributionResponse,
-    MissingSubmissionListResponse,
-    MissingSubmissionSortField,
-    ReportingSortDirection,
-    StudentProgressSummaryResponse,
-)
-from app.services.reporting_service import (
-    MAX_REPORT_PAGE_SIZE,
-    MIN_REPORT_PAGE_SIZE,
-    ReportingAccessDeniedError,
-    ReportingClassroomNotFoundError,
-    ReportingExportError,
-    ReportingFilterConflictError,
-    ReportingPaginationError,
-    ReportingServiceError,
-    ReportingTaskNotFoundError,
-    ReportingTaskUnavailableError,
-    build_gradebook_excel_export,
-    get_activity_completion_summary,
-    get_classroom_completion_summary,
-    get_grade_distribution,
-    get_student_progress_summary,
-    list_missing_submissions,
-)
-
+from app.schemas.reporting_schema import (ActivityCompletionSummaryResponse,
+                                          ClassroomCompletionSummaryResponse,
+                                          GradeDistributionResponse,
+                                          MissingSubmissionListResponse,
+                                          MissingSubmissionSortField,
+                                          ReportingSortDirection,
+                                          StudentProgressSummaryResponse)
+from app.services.reporting_service import (MAX_REPORT_PAGE_SIZE,
+                                            MIN_REPORT_PAGE_SIZE,
+                                            ReportingAccessDeniedError,
+                                            ReportingClassroomNotFoundError,
+                                            ReportingExportError,
+                                            ReportingFilterConflictError,
+                                            ReportingPaginationError,
+                                            ReportingServiceError,
+                                            ReportingTaskNotFoundError,
+                                            ReportingTaskUnavailableError,
+                                            build_gradebook_excel_export,
+                                            get_activity_completion_summary,
+                                            get_classroom_completion_summary,
+                                            get_grade_distribution,
+                                            get_student_progress_summary,
+                                            list_missing_submissions)
+from fastapi import (APIRouter, Depends, HTTPException, Path, Query, Response,
+                     status)
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/reports",

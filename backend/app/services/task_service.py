@@ -1,36 +1,20 @@
+import logging
 from datetime import datetime, timezone
 from typing import Any, TypeVar
 from uuid import uuid4
 
+from app.models.domain_models import (Classroom, Enrollment, InstructorGrade,
+                                      Submission, Task, TaskTestCase)
+from app.schemas.task_schema import TaskCreate, TaskUpdate
+from app.schemas.task_test_case_schema import (TaskTestCaseCreate,
+                                               TaskTestCaseUpdate)
+from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_activity_published)
+from app.services.audit_service import AuditServiceError, create_audit_record
+from app.services.notification_service import NotificationServiceError
 from sqlalchemy.orm import Session
 
-from app.models.domain_models import (
-    Classroom,
-    Enrollment,
-    Task,
-    TaskTestCase,
-    Submission,
-    InstructorGrade,
-)
-from app.schemas.task_schema import (
-    TaskCreate,
-    TaskUpdate,
-)
-from app.schemas.task_test_case_schema import (
-    TaskTestCaseCreate,
-    TaskTestCaseUpdate,
-)
-from app.services.academic_event_service import (
-    AcademicEventWorkflowError,
-    notify_activity_published,
-)
-from app.services.audit_service import (
-    AuditServiceError,
-    create_audit_record,
-)
-from app.services.notification_service import (
-    NotificationServiceError,
-)
+logger = logging.getLogger(__name__)
 
 
 ModelType = TypeVar(

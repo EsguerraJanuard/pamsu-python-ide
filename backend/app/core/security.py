@@ -1,18 +1,17 @@
-import redis
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 import bcrypt
-from jose import JWTError, jwt
-from sqlalchemy.orm import Session
-
+import redis
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.models.domain_models import User
 from app.core.redis_client import redis_client
+from app.models.domain_models import User
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
 
 settings = get_settings()
 
@@ -244,3 +243,19 @@ def get_current_student(
 # permission to execute arbitrary requests. FastAPI first validates the user,
 # persists an authorized execution request, and sends only its execution ID
 # through the trusted queue adapter.
+
+
+class RequireRole:
+    def __init__(self, allowed_roles: list[str]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Requires one of: {', '.join(self.allowed_roles)}"
+            )
+        return current_user
+
+get_current_admin = RequireRole(["admin"])
+get_current_instructor = RequireRole(["instructor", "admin"])

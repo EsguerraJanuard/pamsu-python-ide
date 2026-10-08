@@ -297,6 +297,7 @@ const ActivityEditor = () => {
         setClassrooms(response || []);
       } catch (err) {
         console.error('Failed to fetch classrooms', err);
+        setError('Failed to fetch classrooms: ' + (err.message || ''));
       }
     };
     fetchClassrooms();
@@ -346,6 +347,7 @@ const ActivityEditor = () => {
             });
           } catch (tcErr) {
             console.error("Failed to save expected output test case:", tcErr);
+            setError('Failed to save test case: ' + (tcErr.message || ''));
           }
         }
       }

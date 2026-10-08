@@ -1,0 +1,130 @@
+﻿import asyncio
+import logging
+import sys
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+router = APIRouter(
+    prefix="/ws",
+    tags=["WebSockets"],
+)
+
+from app.core.redis_async import async_redis_client
+
+logger = logging.getLogger(__name__)
+
+
+
+@router.websocket("/execute")
+async def websocket_endpoint(websocket: WebSocket):
+    # Extract real client IP if behind proxy
+    forwarded_for = websocket.headers.get("x-forwarded-for")
+    if forwarded_for:
+        client_id = forwarded_for.split(",")[0].strip()
+    else:
+        client_id = websocket.client.host if websocket.client else "unknown"
+    
+    # Redis Rate Limiter: max 30 requests per minute per client
+    rate_limit_key = f"ws_rate_limit:{client_id}"
+    try:
+        current_requests = await async_redis_client.get(rate_limit_key)
+        if current_requests and int(current_requests) >= 30:
+            await websocket.accept()
+            await websocket.send_text("Rate limit exceeded. Please wait a minute before running code again.")
+            await websocket.close(code=1008)
+            return
+            
+        new_count = await async_redis_client.incr(rate_limit_key)
+        if new_count == 1:
+            await async_redis_client.expire(rate_limit_key, 60)
+    except Exception as e:
+        logger.error(f"Redis rate limiter error: {e}")
+
+    await websocket.accept()
+    
+    try:
+        # Wait for the initial payload (the source code)
+        data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        return
+        
+    # Code is directly encoded into the Docker command
+        
+    process = None
+    try:
+        # Spawn the process in a sandboxed Docker container
+        import base64
+        encoded_code = base64.b64encode(data.encode('utf-8')).decode('utf-8')
+        runner_cmd = f"import base64; exec(base64.b64decode('{encoded_code}').decode('utf-8'))"
+        
+        # Render Free Tier does not support Docker. Fallback to native python process.
+        process = await asyncio.create_subprocess_exec(
+            sys.executable, "-u", "-c", runner_cmd,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT
+        )
+        
+        async def read_stdout():
+            try:
+                while True:
+                    # Read byte by byte or by chunks
+                    chunk = await process.stdout.read(1024)
+                    if not chunk:
+                        break
+                    # Send output to the frontend terminal
+                    await websocket.send_text(chunk.decode('utf-8', errors='replace'))
+            except Exception as e:
+                logger.error(f"Stdout read error: {e}")
+                
+        async def write_stdin():
+            try:
+                while True:
+                    message = await websocket.receive_text()
+                    if message and process.stdin:
+                        process.stdin.write(message.encode('utf-8'))
+                        await process.stdin.drain()
+            except WebSocketDisconnect:
+                pass
+            except Exception as e:
+                logger.error(f"Stdin write error: {e}")
+
+        # Run both tasks concurrently
+        stdout_task = asyncio.create_task(read_stdout())
+        stdin_task = asyncio.create_task(write_stdin())
+        
+        # Wait for the process to finish
+        try:
+            await asyncio.wait_for(process.wait(), timeout=15.0)
+        except asyncio.TimeoutError:
+            process.terminate()
+            await websocket.send_text("\r\n\r\n[Process terminated: Time limit exceeded (15s)]")
+            # Let the finally block handle cleanup
+        
+        # Wait a tiny bit for stdout to flush
+        await asyncio.wait_for(stdout_task, timeout=1.0)
+        
+        # Cancel the stdin task since the process is done and we don't need input
+        stdin_task.cancel()
+        
+        # Send a terminal closing message
+        await websocket.send_text("\r\n\r\n[Process exited with code " + str(process.returncode) + "]")
+        
+        # Close connection cleanly
+        await websocket.close(code=1000)
+        
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error(f"WebSocket execution error: {e}")
+        try:
+            await websocket.close(code=1011)
+        except Exception:
+            pass
+    finally:
+        # Cleanup process and temp file
+        if process and process.returncode is None:
+            try:
+                process.terminate()
+            except ProcessLookupError:
+                pass

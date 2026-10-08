@@ -1,5 +1,6 @@
 import os
 import ssl
+
 from celery import Celery
 
 redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
@@ -30,7 +31,6 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
     import httpx
     from app.core.database import SessionLocal
     from app.models.domain_models import ExecutionRequest
-    from sqlalchemy.exc import SQLAlchemyError
     
     judge0_url = os.getenv("JUDGE0_API_URL", "http://mock_judge0:8001")
     if judge0_url and not judge0_url.startswith("http"):
@@ -49,7 +49,7 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         )
         
         if not request_record:
-            print(f"ExecutionRequest {execution_request_id} not found.")
+            logger.error(f"ExecutionRequest {execution_request_id} not found.")
             return
 
         import base64
@@ -96,7 +96,7 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
 
     except Exception as e:
         db.rollback()
-        print(f"Failed to dispatch to partner: {e}")
+        logger.error(f"Failed to dispatch to partner: {e}")
         try:
             db.begin()
             req = db.query(ExecutionRequest).filter(ExecutionRequest.execution_id == execution_request_id).first()
@@ -104,10 +104,26 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
                 req.status = "failed"
                 req.stderr = f"System Error: Failed to contact Judge0 - {str(e)}"
                 db.commit()
-        except Exception as inner_e:
+        except Exception:
             db.rollback()
         # Retry task if partner is down
         raise self.retry(exc=e, countdown=5)
     finally:
         db.close()
 
+
+@celery.task(bind=True, max_retries=3)
+def evaluate_submission_background_task(self, sub_id: int) -> None:
+    import logging
+
+    from app.core.database import SessionLocal
+    from app.services.evaluation_service import evaluate_submission_by_id
+    logger = logging.getLogger(__name__)
+    db = SessionLocal()
+    try:
+        evaluate_submission_by_id(db=db, sub_id=sub_id, instructor_id=None)
+    except Exception as e:
+        logger.error(f"Background evaluation failed for submission {sub_id}: {e}")
+        raise self.retry(exc=e, countdown=5)
+    finally:
+        db.close()

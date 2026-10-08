@@ -80,7 +80,7 @@ export default function SoloPractice() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col animate-page-fade">
-        <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
           <div className="mx-auto w-full max-w-5xl">
             <header className="mb-8 flex flex-col gap-4 border-b border-border-subtle pb-6">
               <div>

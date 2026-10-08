@@ -1,21 +1,9 @@
-from app.models.domain_models import (
-    ASTAnalysis,
-    ASTFinding,
-    BehavioralLog,
-    Classroom,
-    CodingSession,
-    Enrollment,
-    ExecutionRequest,
-    InstructorAllowlist,
-    InstructorGrade,
-    OTPChallenge,
-    PendingRegistration,
-    SimilarityResult,
-    Submission,
-    Task,
-    TaskTestCase,
-    User,
-)
+from app.models.domain_models import (ASTAnalysis, ASTFinding, BehavioralLog,
+                                      Classroom, CodingSession, Enrollment,
+                                      ExecutionRequest, InstructorAllowlist,
+                                      InstructorGrade, OTPChallenge,
+                                      PendingRegistration, SimilarityResult,
+                                      Submission, Task, TaskTestCase, User)
 
 __all__ = [
     "ASTAnalysis",

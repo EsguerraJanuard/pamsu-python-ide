@@ -1,13 +1,8 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import (BaseModel, ConfigDict, Field, field_validator,
+                      model_validator)
 
 UNIVERSITY_EMAIL_DOMAIN = "@pampangastateu.edu.ph"
 
@@ -15,6 +10,7 @@ UNIVERSITY_EMAIL_DOMAIN = "@pampangastateu.edu.ph"
 class UserBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
     school_id: str = Field(..., pattern=r"^(\d{10}|\d{4}-\d{5})$")
+    academic_integrity_score: float = Field(default=100.0)
     email: str = Field(..., min_length=1, max_length=255)
 
     model_config = ConfigDict(
@@ -79,7 +75,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     user_id: int
-    role: Literal["student", "instructor"]
+    role: Literal["student", "instructor", "superadmin", "guest"]
     email_verified: bool
     is_active: bool
     ast_strictness_level: str

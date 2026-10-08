@@ -23,7 +23,7 @@ def test_access_token_contains_user_claims():
         {
             "sub": "1",
             "role": "instructor",
-            "name": "Test Instructor",
+            "first_name": "Test", "last_name": "Instructor",
         }
     )
 
@@ -35,5 +35,5 @@ def test_access_token_contains_user_claims():
 
     assert payload["sub"] == "1"
     assert payload["role"] == "instructor"
-    assert payload["name"] == "Test Instructor"
+    assert payload["first_name"] == "Test" and payload["last_name"] == "Instructor"
     assert "exp" in payload

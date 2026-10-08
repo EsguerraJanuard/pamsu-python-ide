@@ -30,7 +30,7 @@ def build_activity_payload() -> dict[str, object]:
 def build_student_payload() -> dict[str, object]:
     return {
         "student_id": 20,
-        "name": "Privacy Contract Student",
+        "first_name": "Privacy Contract", "last_name": "Student",
         "school_id": "7200000001",
     }
 

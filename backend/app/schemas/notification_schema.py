@@ -2,14 +2,8 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
-
+from pydantic import (BaseModel, ConfigDict, Field, field_validator,
+                      model_validator)
 
 AcademicEventType = Literal[
     "student_enrolled",

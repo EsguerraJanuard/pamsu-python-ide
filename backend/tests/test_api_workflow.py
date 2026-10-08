@@ -21,7 +21,8 @@ def create_test_user(
     email: str,
 ) -> User:
     user = User(
-        name=name,
+        first_name=(name).split()[0] if isinstance(name, str) else "Test",
+        last_name=" ".join((name).split()[1:]) if isinstance(name, str) and " " in name else "User",
         school_id=school_id,
         email=email.lower(),
         role=role,
@@ -173,7 +174,7 @@ def test_student_cannot_create_instructor_task(
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Instructor access required."
+    assert response.json()["detail"] == "Access denied. Requires one of: instructor, admin"
 
 
 def test_complete_evaluation_workflow(

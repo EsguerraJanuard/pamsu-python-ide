@@ -1,37 +1,24 @@
+import logging
 from typing import NoReturn
-
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Query,
-    status,
-)
-from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_student
 from app.models.domain_models import User
-from app.schemas.submission_schema import (
-    StudentSubmissionResponse,
-    SubmissionCreate,
-    SubmissionStatus,
-)
+from app.schemas.submission_schema import (StudentSubmissionResponse,
+                                           SubmissionCreate, SubmissionStatus)
 from app.services.submission_service import (
-    CodingSessionUnavailableError,
-    SubmissionAuditWorkflowError,
-    SubmissionConflictError,
-    SubmissionNotFoundError,
-    SubmissionNotificationWorkflowError,
-    SubmissionPersistenceError,
-    SubmissionServiceError,
-    SubmissionTaskNotGradableError,
-    SubmissionTaskUnavailableError,
-    create_student_submission,
-    get_student_official_submission,
-    get_student_submission,
-    list_student_submissions,
-)
+    CodingSessionUnavailableError, SubmissionAuditWorkflowError,
+    SubmissionConflictError, SubmissionNotFoundError,
+    SubmissionNotificationWorkflowError, SubmissionPersistenceError,
+    SubmissionServiceError, SubmissionTaskNotGradableError,
+    SubmissionTaskUnavailableError, create_student_submission,
+    get_student_official_submission, get_student_submission,
+    list_student_submissions)
+from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException, Query,
+                     status)
+from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(
@@ -145,6 +132,28 @@ def create_submission_endpoint(
         )
     except SubmissionServiceError as error:
         _raise_submission_service_error(error)
+
+    from app.tasks.celery_worker import evaluate_submission_background_task
+    evaluate_submission_background_task.delay(submission.sub_id)
+
+    try:
+        from app.schemas.execution_schema import ExecutionRequestCreate
+        from app.services.execution_service import \
+            create_student_execution_request
+        create_student_execution_request(
+            db,
+            student_id=current_student.user_id,
+            payload=ExecutionRequestCreate(
+                request_kind="submit",
+                task_id=payload.task_id,
+                submission_id=submission.sub_id,
+                source_code=None,
+                standard_input="",
+                coding_session_id=payload.coding_session_id,
+            ),
+        )
+    except Exception as e:
+        logger.error(f"Failed to dispatch execution for submission: {e}")
 
     return StudentSubmissionResponse.model_validate(submission)
 

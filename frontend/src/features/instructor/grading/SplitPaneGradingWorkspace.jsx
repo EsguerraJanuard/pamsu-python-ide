@@ -117,8 +117,8 @@ const SplitPaneGradingWorkspace = () => {
   const handleExport = async () => {
     try {
       const token = localStorage.getItem('pamsu_access_token');
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${baseUrl}/reports/classrooms/${classId}/tasks/${taskId}/excel`, {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL ;
+      const response = await fetch(`${baseUrl}/reports/classrooms/${classId}/gradebook.csv?task_id=${taskId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -298,17 +298,258 @@ const SplitPaneGradingWorkspace = () => {
                 <h2 className="text-2xl font-bold text-text-main">
                   {selectedStudent.name || selectedStudent.email || `Student ${selectedStudent.id}`}
                 </h2>
-                <p className="text-sm text-text-muted mt-0.5">Student ID: {selectedStudent.student_id || selectedStudent.id}</p>
+                                  <p className="text-sm text-text-muted mt-0.5">Student ID: {selectedStudent.student_id || selectedStudent.id}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Academic Integrity:</span>
+                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                      (selectedStudent.academic_integrity_score ?? 100) >= 90 ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20" : 
+                      (selectedStudent.academic_integrity_score ?? 100) >= 70 ? "bg-amber-500/10 text-amber-400 ring-amber-500/20" : 
+                      "bg-rose-500/10 text-rose-400 ring-rose-500/20"
+                    }`}>
+                      {Math.round(selectedStudent.academic_integrity_score ?? 100)}%
+                    </span>
+                  </div>
               </div>
             </div>
 
-            {selectedSub ? (
-              <>
-                <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-text-main mb-2">Submitted Code</h3>
-                  <pre className="bg-bg-panel p-4 rounded text-sm text-emerald-400 overflow-x-auto border border-border-subtle">
-                    {detailedSub?.raw_code || detailedSub?.code || '# Loading code... or No code provided'}
-                  </pre>
+            {/* NEW LAYOUT: Violations -> Grading -> Code */}
+              {selectedSub ? (
+                <>
+                  {/* TOP SECTION: Student Violations & Activity Analysis */}
+                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-6 shadow-sm mb-6">
+                     <h3 className="text-lg font-bold text-psu-red dark:text-psu-gold mb-4 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        Student Violations & Analysis
+                     </h3>
+                     
+                     <div className="space-y-6">
+                        {/* Telemetry Indicators */}
+                                                  <div className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-6">
+                            {(detailedSub?.jaccard_score !== undefined && detailedSub?.jaccard_score !== null) && (
+                              <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.jaccard_score >= 70) ? 'bg-psu-maroon/10 border-psu-maroon/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Similarity</span>
+                                <span className="text-2xl font-black">{detailedSub?.jaccard_score.toFixed(1)}%</span>
+                              </div>
+                            )}
+                            {detailedSub?.coding_session && (
+                              <>
+                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.tab_switch_count > 3) ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Tab Switches</span>
+                                  <span className="text-2xl font-black">{detailedSub?.coding_session.tab_switch_count}</span>
+                                </div>
+                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.blocked_paste_count > 0) ? 'bg-psu-maroon/10 border-psu-maroon/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Blocked Pastes</span>
+                                  <span className="text-2xl font-black">{detailedSub?.coding_session.blocked_paste_count}</span>
+                                </div>
+                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.mouseleave_count > 5) ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-bg-panel border-border-strong text-text-main'}`}>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Mouse Leaves</span>
+                                  <span className="text-2xl font-black">{detailedSub?.coding_session.mouseleave_count}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          {/* AST Analysis & Execution Logs */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="flex flex-col h-full">
+                                 <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">AST Analysis</h4>
+                               <div className="flex-1 bg-bg-panel p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto shadow-inner">
+                                 {detailedSub?.ast_feedback && detailedSub.ast_feedback.length > 0 ? (
+                                   <ul className="space-y-3">
+                                     {detailedSub.ast_feedback.map((fb, idx) => {
+                                        const isPass = fb.includes("PASSED");
+                                        const cleanText = fb.replace(/\[.*?\]\s*PASSED\s*-\s*/, '').replace(/\[.*?\]\s*FAILED\s*-\s*/, '').replace(/\[.*?\]\s*/, '');
+                                        return (
+                                          <li key={idx} className={`flex items-start gap-2 text-sm ${isPass ? 'text-text-main opacity-80' : 'text-psu-red font-semibold'}`}>
+                                            <svg className={`w-4 h-4 mt-0.5 shrink-0 ${isPass ? 'text-text-brand' : 'text-psu-red'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              {isPass ? (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                              ) : (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                              )}
+                                            </svg>
+                                            <span className="leading-snug font-mono text-[11px]">{cleanText}</span>
+                                          </li>
+                                        );
+                                     })}
+                                   </ul>
+                                 ) : (
+                                   <div className="flex flex-col items-center gap-2 text-text-brand h-full justify-center opacity-80 py-6">
+                                      <svg className="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                      <span className="text-xs font-semibold uppercase tracking-widest text-text-main mt-1">Perfect Structure</span>
+                                      <span className="text-[10px] text-text-muted">Passed all AST requirements.</span>
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+                             <div className="flex flex-col h-full">
+                                 <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Execution Logs</h4>
+                               <div className="flex-1 bg-[#0a0a0f] p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto font-mono text-[11px] leading-relaxed shadow-inner">
+                                 {detailedSub?.execution_log ? (
+                                   <span className="text-slate-300 whitespace-pre-wrap">{detailedSub.execution_log}</span>
+                                 ) : (
+                                   <div className="flex items-center justify-center h-full text-slate-500 italic py-6">
+                                     ~ Execution logs empty or unavailable ~
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+  
+                    {/* MIDDLE SECTION: Grading Form */}
+                  <form onSubmit={handleSubmitGrade} className="bg-bg-glass border border-border-subtle rounded-xl p-6 shadow-sm flex flex-col gap-6 mb-6">
+                    <h3 className="text-lg font-bold text-text-main border-b border-border-subtle pb-4">Activity Grading Assessment</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       {/* Suggested Grade */}
+                       <div className="bg-psu-maroon/5 border border-psu-maroon/20 dark:bg-psu-gold/5 dark:border-psu-gold/20 rounded-lg p-5 flex flex-col justify-center">
+                          <label className="block text-xs font-bold text-text-brand mb-2 uppercase tracking-wider">Suggested Grade</label>
+                          <div className="text-5xl font-black text-text-main tracking-tight">
+                            {(() => {
+                                if (!detailedSub) return '0';
+                                if (detailedSub.jaccard_score >= 70) return '0';
+                                
+                                let score = 100;
+                                if (detailedSub.ast_feedback && detailedSub.ast_feedback.length > 0) {
+                                    const fails = detailedSub.ast_feedback.filter(f => f.includes('missing') || f.includes('failed') || f.includes('Missing'));
+                                    score -= (fails.length * 20);
+                                }
+                                if (detailedSub.execution_log && detailedSub.execution_log.toLowerCase().includes('error')) {
+                                    score -= 30; 
+                                }
+                                if (score < 0) score = 0;
+                                return score;
+                            })()}
+                          </div>
+                          <p className="text-xs text-text-muted mt-3">Calculated from AST rule satisfaction and syntax validation.</p>
+                       </div>
+
+                       {/* Manual Grade */}
+                       <div className="flex flex-col justify-center">
+                          <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Manual Score</label>
+                                                      <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={gradeScore}
+                              onChange={(e) => {
+                                let val = e.target.value;
+                                if (val === '') {
+                                  setGradeScore('');
+                                  return;
+                                }
+                                let num = parseFloat(val);
+                                if (num < 0) val = '0';
+                                if (num > 100) val = '100';
+                                setGradeScore(val);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              className="w-full bg-bg-panel border border-border-strong rounded-lg px-4 py-3 text-2xl font-bold text-text-main focus:outline-none focus:border-psu-maroon focus:ring-2 focus:ring-psu-maroon/30 transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none m-0"
+                              placeholder="e.g. 95"
+                            />
+                          <p className="text-xs text-text-muted mt-3">Override the suggested grade manually here.</p>
+                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Instructor Feedback</label>
+                      <textarea
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        className="w-full bg-bg-panel border border-border-strong rounded-lg p-4 text-text-main h-32 focus:outline-none focus:border-psu-maroon focus:ring-2 focus:ring-psu-maroon/30 transition-all shadow-sm"
+                        placeholder="Provide constructive feedback for the student..."
+                      />
+                    </div>
+
+                    <div className="flex gap-4 pt-4 border-t border-border-subtle mt-2">
+                      <button 
+                        type="submit" 
+                        disabled={savingGrade}
+                        className="px-6 py-3 bg-psu-maroon hover:bg-psu-red text-white font-bold rounded-lg shadow-sm transition-all disabled:opacity-50 flex-1 flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        {savingGrade ? 'Saving Grade...' : 'Save Final Grade'}
+                      </button>
+                      
+                      {detailedSub?.retake_requested && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
+                            try {
+                              await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
+                              setNotice("Retake approved! Student can now resubmit.");
+                              setDetailedSub({...detailedSub, retake_allowed: true, retake_requested: false});
+                              fetchSubmissions();
+                            } catch (err) {
+                              setNotice("Failed to approve retake.");
+                            }
+                          }}
+                          className="px-6 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold rounded-lg transition-all hover:bg-amber-500/20"
+                        >
+                          Approve Retake
+                        </button>
+                      )}
+                      
+                      {!detailedSub?.retake_requested && !detailedSub?.retake_allowed && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
+                            try {
+                              await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
+                              setNotice("Retake allowed! Student can now resubmit.");
+                              setDetailedSub({...detailedSub, retake_allowed: true});
+                              fetchSubmissions();
+                            } catch (err) {
+                              setNotice("Failed to allow retake.");
+                            }
+                          }}
+                          className="px-4 py-3 bg-bg-base border border-border-strong text-text-muted text-sm font-bold rounded-lg transition-all hover:bg-bg-glass-hover hover:text-text-main"
+                        >
+                          Allow Retake
+                        </button>
+                      )}
+                    </div>
+                  </form>
+
+                  {/* BOTTOM SECTION: Submitted Code */}
+                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-6 shadow-sm flex flex-col">
+                    <h3 className="text-lg font-bold text-text-main mb-4 border-b border-border-subtle pb-4">Submitted Code vs Starter Code</h3>
+                    <div className="h-[500px] border border-border-strong rounded-lg overflow-hidden shadow-sm">
+                      {!detailedSub ? (
+                         <div className="flex items-center justify-center h-full text-sm text-text-muted animate-pulse">Loading submission code...</div>
+                      ) : (
+                        <DiffEditor
+                          height="100%"
+                          language="python"
+                          theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                          original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
+                          modified={detailedSub?.raw_code || detailedSub?.code || '# No code provided'}
+                          options={{
+                            ...editorOptions,
+                            readOnly: true,
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            renderSideBySide: true,
+                            wordWrap: "on"
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-text-muted italic bg-bg-panel p-6 rounded-xl border border-border-subtle text-center">
+                  No submission found for this student.
                 </div>
 
                 <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">

@@ -1,10 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
-from app.core.security import get_current_user, get_password_hash, verify_password
+from app.core.security import (get_current_user, get_password_hash,
+                               verify_password)
 from app.models.domain_models import User
 from app.schemas.user_schema import PasswordUpdate, UserResponse, UserUpdate
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+
+router = APIRouter()
+
+class IntegrityUpdate(BaseModel):
+    is_graded: bool
+    tab_switch_increment: int
+    blocked_paste_increment: int
+    mouseleave_increment: int
+
+@router.patch(
+    "/me/integrity",
+    status_code=status.HTTP_200_OK,
+    summary="Deduct points from academic integrity score",
+)
+def update_integrity_score(
+    payload: IntegrityUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Panel Requirement: Telemetry no longer deducts points.
+    return {"academic_integrity_score": current_user.academic_integrity_score}
 
 router = APIRouter(
     prefix="/users",
@@ -22,7 +45,9 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> User:
-    current_user.name = update_data.name
+    current_user.first_name = update_data.first_name
+    current_user.middle_name = update_data.middle_name
+    current_user.last_name = update_data.last_name
     if update_data.ast_strictness_level is not None:
         current_user.ast_strictness_level = update_data.ast_strictness_level
     db.commit()
@@ -53,8 +78,21 @@ def change_password(
 
 
 from app.integrations.otp_delivery import get_otp_delivery_adapter
-from app.services.otp_service import OTPDeliveryAdapter, OTPAttemptLimitError, OTPChallengeConsumedError, OTPChallengeExpiredError, OTPChallengeNotFoundError, OTPDeliveryError, OTPInvalidCodeError, OTPResendLimitError, OTPResendTooSoonError, RegistrationConflictError, start_password_reset, verify_and_complete_password_reset, resend_password_reset_otp
-from app.schemas.otp_schema import OTPChallengeResponse, PasswordResetStartRequest, PasswordResetCompleteRequest, OTPResendRequest
+from app.schemas.otp_schema import (OTPChallengeResponse, OTPResendRequest,
+                                    PasswordResetCompleteRequest,
+                                    PasswordResetStartRequest)
+from app.services.otp_service import (OTPAttemptLimitError,
+                                      OTPChallengeConsumedError,
+                                      OTPChallengeExpiredError,
+                                      OTPChallengeNotFoundError,
+                                      OTPDeliveryAdapter, OTPDeliveryError,
+                                      OTPInvalidCodeError, OTPResendLimitError,
+                                      OTPResendTooSoonError,
+                                      RegistrationConflictError,
+                                      resend_password_reset_otp,
+                                      start_password_reset,
+                                      verify_and_complete_password_reset)
+
 
 @router.post(
     "/password-reset/start",

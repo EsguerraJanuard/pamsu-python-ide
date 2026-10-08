@@ -46,7 +46,7 @@ function getActivityColor(type) {
   const colors = {
     run: "#10b981",
     analysis: "#f59e0b",
-    submission: "#3b82f6",
+    submission: "var(--color-text-brand)",
     grade: "#a78bfa",
   };
   return colors[type] ?? "#64748b";
@@ -124,7 +124,7 @@ export default function InstructorDashboard() {
       label: "Pending Reviews",
       description: "Submissions awaiting grade",
       progress: reviewQueue.length > 0 ? 100 : 0,
-      color: "#3b82f6",
+      color: "var(--color-text-brand)",
       path: "/instructor/bench"
     },
     {
@@ -435,7 +435,7 @@ export default function InstructorDashboard() {
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => {
-          console.log("Class created successfully!");
+
           fetchDashboardData();
         }}
       />

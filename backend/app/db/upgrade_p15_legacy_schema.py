@@ -3,10 +3,8 @@ from __future__ import annotations
 import argparse
 from collections.abc import Iterable
 
-from sqlalchemy import Connection, inspect, text
-
 from app.core.database import engine
-
+from sqlalchemy import Connection, inspect, text
 
 EXPECTED_DATABASE = "pamsu_ide_db"
 EXPECTED_DIALECT = "postgresql"

@@ -1,6 +1,7 @@
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+
 
 class PracticeTaskBase(BaseModel):
     task_id: int

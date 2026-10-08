@@ -1,41 +1,25 @@
 from datetime import datetime, timezone
 from typing import Literal
 
+import redis.asyncio as redis
+from app.core.config import get_settings
+from app.core.database import get_db
+from app.core.request_context import (RequestContextMiddleware,
+                                      configure_request_logging)
+from app.integrations.partner_auth import PARTNER_EXECUTION_TOKEN_HEADER
+from app.routers import (activities, admin, audit_records, auth, classrooms,
+                         evaluation, execution, instructor, logs,
+                         notifications, practice, reporting, submissions,
+                         users, ws_execution)
 from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi_limiter import FastAPILimiter
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-
-from app.core.config import get_settings
-from app.core.database import get_db
-from app.core.request_context import (
-    RequestContextMiddleware,
-    configure_request_logging,
-)
-from app.integrations.partner_auth import (
-    PARTNER_EXECUTION_TOKEN_HEADER,
-)
-from app.routers import ws_monitoring
-from app.routers import (
-    practice,
-    activities,
-    audit_records,
-    auth,
-    classrooms,
-    evaluation,
-    execution,
-    instructor,
-    logs,
-    notifications,
-    registration,
-    reporting,
-    submissions,
-    users,
-)
 
 APP_TITLE = "PAMSU Python IDE Backend"
 APP_VERSION = "1.0.0"
@@ -275,6 +259,7 @@ if settings.cors_allowed_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=(settings.cors_allow_credentials),
         allow_methods=[
             "GET",
@@ -331,6 +316,12 @@ async def startup_event():
         limiter.total_tokens = 200
     except Exception:
         pass
+        
+    try:
+        redis_client = redis.from_url("redis://redis:6379/0", encoding="utf8", decode_responses=True)
+        await FastAPILimiter.init(redis_client)
+    except Exception as e:
+        print("Could not initialize FastAPILimiter:", e)
 
 
 def utc_now() -> datetime:

@@ -18,7 +18,8 @@ def audit_actor(
     db_session: Session,
 ) -> User:
     user = User(
-        name="Audit Router Actor",
+        first_name=("Audit Router Actor").split()[0] if isinstance("Audit Router Actor", str) else "Test",
+        last_name=" ".join(("Audit Router Actor").split()[1:]) if isinstance("Audit Router Actor", str) and " " in "Audit Router Actor" else "User",
         school_id="8600000001",
         email="audit.router.actor@pampangastateu.edu.ph",
         role="instructor",
@@ -39,7 +40,8 @@ def other_audit_actor(
     db_session: Session,
 ) -> User:
     user = User(
-        name="Other Audit Router Actor",
+        first_name=("Other Audit Router Actor").split()[0] if isinstance("Other Audit Router Actor", str) else "Test",
+        last_name=" ".join(("Other Audit Router Actor").split()[1:]) if isinstance("Other Audit Router Actor", str) and " " in "Other Audit Router Actor" else "User",
         school_id="8600000002",
         email="audit.router.other@pampangastateu.edu.ph",
         role="student",

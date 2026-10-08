@@ -36,6 +36,9 @@ function getPercentage(value, maximum) {
 }
 
 function SubmissionList({ submissions, onOpen, isLoading }) {
+  const currentPage = 1;
+  const itemsPerPage = 50;
+
   if (isLoading) {
     return (
       <section className="space-y-4">
@@ -320,6 +323,7 @@ export default function Submissions() {
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchSubmissions = async () => {
@@ -329,6 +333,27 @@ export default function Submissions() {
           api.get("/activities/"),
           api.get("/classrooms/mine"),
         ]);
+        
+        let allGrades = [];
+        let currentPage = 1;
+        let totalPages = 1;
+
+        while (currentPage <= totalPages) {
+          try {
+            const gradesPage = await api.get(`/activities/released-grades?page=${currentPage}&page_size=100`);
+            if (gradesPage && gradesPage.items) {
+              allGrades = [...allGrades, ...gradesPage.items];
+              totalPages = gradesPage.total_pages || gradesPage.pages || 1;
+            } else {
+              break;
+            }
+          } catch (e) {
+            setError("Failed to fetch grades page.");
+            break;
+          }
+          currentPage++;
+        }
+        const gradesRes = { items: allGrades };
 
         const classMap = {};
         classRes.forEach(c => {
@@ -371,7 +396,7 @@ export default function Submissions() {
 
         setSubmissions(mappedSubs);
       } catch (err) {
-        console.error("Failed to load submissions", err);
+        setError("Failed to load submissions. Please try again later.");
       } finally {
         setIsLoading(false);
       }
@@ -398,7 +423,8 @@ export default function Submissions() {
       <Sidebar />
 
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <main className="submissions-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <main className="submissions-page min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+        <div className="max-w-6xl mx-auto w-full">
           <style>
             {`
               @keyframes submissionsFadeUp {
@@ -503,7 +529,8 @@ export default function Submissions() {
               </section>
             )}
           </div>
-        </main>
+        </div>
+      </main>
 
         <Statusbar />
       </div>

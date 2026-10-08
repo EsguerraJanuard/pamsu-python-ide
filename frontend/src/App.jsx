@@ -20,6 +20,7 @@ const RoleRoute = ({ allowedRole }) => {
 const RootRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
 };
 
@@ -27,6 +28,7 @@ const RootRoute = () => {
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Outlet />;
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
 };
 
@@ -64,16 +66,6 @@ import PracticeModuleManager from './features/instructor/PracticeModuleManager';
 
 import MyClasses from './features/classes/MyClasses';
 import ClassDetails from './features/classes/ClassDetails';
-
-const PlaceholderView = ({ title, description }) => (
-  <div className="rounded-xl border border-border-subtle bg-bg-glass/50 p-8 text-center">
-    <h2 className="text-xl font-bold text-text-main">{title}</h2>
-    <p className="mt-2 text-sm text-text-muted">{description}</p>
-    <div className="mt-6 inline-block rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-text-blue">
-      Scheduled for pipeline integration
-    </div>
-  </div>
-);
 
 import { ThemeProvider } from './features/theme/ThemeContext';
 
@@ -115,6 +107,12 @@ export const App = () => {
               </Route>
 
               {/* Instructor Role Tree */}
+
+              {/* Admin Role Tree */}
+              <Route element={<RoleRoute allowedRole="admin" />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              </Route>
+
               <Route element={<RoleRoute allowedRole="instructor" />}>
                 <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                 <Route path="/instructor/classes" element={<ClassManagement />} />

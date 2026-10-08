@@ -2,35 +2,20 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from pydantic import ValidationError
-
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session, selectinload
-
-from app.models.domain_models import (
-    ASTAnalysis,
-    InstructorGrade,
-    SimilarityResult,
-    Submission,
-    Task,
-    User,
-)
-from app.schemas.evaluation_schema import (
-    EvaluationStatusUpdate,
-    InstructorGradeCreate,
-    InstructorGradeUpdate,
-)
-from app.services.academic_event_service import (
-    AcademicEventWorkflowError,
-    notify_grade_released,
-)
+from app.models.domain_models import (ASTAnalysis, InstructorGrade,
+                                      SimilarityResult, Submission, Task, User)
+from app.schemas.evaluation_schema import (EvaluationStatusUpdate,
+                                           InstructorGradeCreate,
+                                           InstructorGradeUpdate)
+from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_grade_released)
 from app.services.ast_evaluator import evaluate_ast_details
-from app.services.audit_service import (
-    AuditServiceError,
-    create_audit_record,
-)
+from app.services.audit_service import AuditServiceError, create_audit_record
 from app.services.jaccard import find_highest_similarity
 from app.services.notification_service import NotificationServiceError
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session, selectinload
 
 
 class EvaluationServiceError(Exception):
@@ -625,6 +610,26 @@ def evaluate_submission_by_id(
         )
 
         db.add(similarity_result)
+
+    # Panel Requirement: AST-Based Auto-Grading
+    # If the code satisfies all required AST rules, automatically award full score for the structural portion.
+    if ast_pass_fail:
+        existing_grade = (
+            db.query(InstructorGrade)
+            .filter(InstructorGrade.submission_id == submission.sub_id)
+            .first()
+        )
+        if not existing_grade:
+            auto_grade = InstructorGrade(
+                submission_id=submission.sub_id,
+                instructor_id=task.instructor_id,
+                score=100.0,
+                max_score=100.0,
+                feedback="Auto-graded: Passed all structural (AST) requirements.",
+                is_released=True
+            )
+            db.add(auto_grade)
+            submission.status = "graded"
 
     _commit_evaluation_transaction(db)
 

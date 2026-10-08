@@ -2,13 +2,7 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-)
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 SubmissionStatus = Literal[
     "submitted",
@@ -240,4 +234,3 @@ class SubmissionResponse(
     StudentSubmissionResponse model.
     """
 
-    pass

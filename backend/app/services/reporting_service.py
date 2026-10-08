@@ -1,39 +1,26 @@
-import openpyxl
-from io import BytesIO
+import csv
+import logging
 from datetime import datetime, timezone
-from io import StringIO
+from io import BytesIO, StringIO
 from typing import Any
 
+import openpyxl
+from app.core.pagination import DEFAULT_PAGE, DEFAULT_PAGE_SIZE
+from app.core.pagination import MAX_PAGE_SIZE as GLOBAL_MAX_PAGE_SIZE
+from app.core.pagination import MIN_PAGE_SIZE as GLOBAL_MIN_PAGE_SIZE
+from app.core.pagination import (PaginationBounds, PaginationError,
+                                 PaginationRequest, SortConfigurationError,
+                                 build_pagination_metadata,
+                                 normalize_sort_direction, validate_pagination)
+from app.models.domain_models import (Classroom, Enrollment, InstructorGrade,
+                                      Submission, Task, User)
+from app.schemas.reporting_schema import (MissingSubmissionSortField,
+                                          ReportingSortDirection)
 from sqlalchemy import and_, case, exists, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.pagination import (
-    DEFAULT_PAGE,
-    DEFAULT_PAGE_SIZE,
-    MAX_PAGE_SIZE as GLOBAL_MAX_PAGE_SIZE,
-    MIN_PAGE_SIZE as GLOBAL_MIN_PAGE_SIZE,
-    PaginationBounds,
-    PaginationError,
-    PaginationRequest,
-    SortConfigurationError,
-    build_pagination_metadata,
-    normalize_sort_direction,
-    validate_pagination,
-)
-from app.models.domain_models import (
-    Classroom,
-    Enrollment,
-    InstructorGrade,
-    Submission,
-    Task,
-    User,
-)
-from app.schemas.reporting_schema import (
-    MissingSubmissionSortField,
-    ReportingSortDirection,
-)
-
+logger = logging.getLogger(__name__)
 
 MIN_REPORT_PAGE_SIZE = GLOBAL_MIN_PAGE_SIZE
 MAX_REPORT_PAGE_SIZE = GLOBAL_MAX_PAGE_SIZE
@@ -1662,8 +1649,8 @@ def build_gradebook_excel_export(
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Caught silent exception: {e}", exc_info=True)
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
@@ -1848,8 +1835,8 @@ def build_gradebook_excel_export(
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Caught silent exception: {e}", exc_info=True)
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:
@@ -2034,8 +2021,8 @@ def build_gradebook_excel_export(
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Caught silent exception: {e}", exc_info=True)
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
     except Exception:

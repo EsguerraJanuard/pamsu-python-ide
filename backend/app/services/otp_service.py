@@ -4,35 +4,25 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from math import ceil
+from typing import Any
+from uuid import uuid4
 
+from app.core.security import get_password_hash
+from app.integrations.otp_email import (OTPEmailAdapter, OTPEmailAdapterError,
+                                        validate_otp_email_adapter)
+from app.models.domain_models import (InstructorAllowlist, OTPChallenge,
+                                      PendingRegistration, User)
+from app.schemas.otp_schema import (OTPChallengeResponse,
+                                    OTPVerificationRequest,
+                                    RegistrationCompleteResponse,
+                                    RegistrationStartRequest)
+from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN, UserResponse
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.security import get_password_hash
-from app.integrations.otp_email import (
-    OTPEmailAdapter,
-    OTPEmailAdapterError,
-    validate_otp_email_adapter,
-)
-from app.models.domain_models import (
-    InstructorAllowlist,
-    OTPChallenge,
-    PendingRegistration,
-    User,
-)
-from app.schemas.otp_schema import (
-    OTPChallengeResponse,
-    OTPVerificationRequest,
-    RegistrationCompleteResponse,
-    RegistrationStartRequest,
-)
-from app.schemas.user_schema import (
-    UNIVERSITY_EMAIL_DOMAIN,
-    UserResponse,
-)
+logger = logging.getLogger(__name__)
 
-from uuid import uuid4
 
 OTP_CODE_LENGTH = 6
 
@@ -551,7 +541,7 @@ def verify_registration_otp(
         db.flush()
         
         # Process pending enrollments
-        from app.models.domain_models import PendingEnrollment, Enrollment
+        from app.models.domain_models import Enrollment, PendingEnrollment
         pending_enrollments = db.query(PendingEnrollment).filter(PendingEnrollment.email == new_user.email).all()
         for pe in pending_enrollments:
             # Add enrollment
@@ -665,8 +655,8 @@ def verify_and_complete_password_reset(
     db: Session,
     completion_data: "PasswordResetCompleteRequest",
 ) -> dict:
-    from app.models.domain_models import User
     from app.core.security import get_password_hash
+    from app.models.domain_models import User
     
     challenge = get_challenge_or_raise(
         db=db,

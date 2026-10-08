@@ -1,33 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
-from app.integrations.otp_delivery import (
-    get_otp_delivery_adapter,
-)
-from app.schemas.otp_schema import (
-    OTPChallengeResponse,
-    OTPResendRequest,
-    OTPVerificationRequest,
-    RegistrationCompleteResponse,
-    RegistrationStartRequest,
-)
-from app.services.otp_service import (
-    OTPAttemptLimitError,
-    OTPChallengeConsumedError,
-    OTPChallengeExpiredError,
-    OTPChallengeNotFoundError,
-    OTPDeliveryAdapter,
-    OTPDeliveryError,
-    OTPInvalidCodeError,
-    OTPResendLimitError,
-    OTPResendTooSoonError,
-    RegistrationConflictError,
-    resend_registration_otp,
-    start_registration,
-    verify_registration_otp,
-)
-
+from app.integrations.otp_delivery import get_otp_delivery_adapter
+from app.schemas.otp_schema import (OTPChallengeResponse, OTPResendRequest,
+                                    OTPVerificationRequest,
+                                    RegistrationCompleteResponse,
+                                    RegistrationStartRequest)
+from app.services.otp_service import (OTPAttemptLimitError,
+                                      OTPChallengeConsumedError,
+                                      OTPChallengeExpiredError,
+                                      OTPChallengeNotFoundError,
+                                      OTPDeliveryAdapter, OTPDeliveryError,
+                                      OTPInvalidCodeError, OTPResendLimitError,
+                                      OTPResendTooSoonError,
+                                      RegistrationConflictError,
+                                      resend_registration_otp,
+                                      start_registration,
+                                      verify_registration_otp)
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/registration",
@@ -67,6 +56,13 @@ DELIVERY_UNAVAILABLE_MESSAGE = "Verification email delivery is temporarily unava
 )
 def start_registration_endpoint(
     registration_data: RegistrationStartRequest,
+    db: Session = Depends(get_db),
+    delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
+) -> OTPChallengeResponse:
+    raise HTTPException(status_code=403, detail="Open registration is disabled per panel recommendations. Please contact the MIS/SuperAdmin to provision your account.")
+
+def old_start_registration_endpoint(
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
 ) -> OTPChallengeResponse:

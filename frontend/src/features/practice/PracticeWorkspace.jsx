@@ -6,6 +6,8 @@ import { useTheme } from "../theme/ThemeContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import api from "../../services/api";
+import { useAuth } from "../auth/AuthContext";
+import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 
 
 import Statusbar from "../../components/layout/Statusbar";
@@ -29,6 +31,19 @@ export default function PracticeWorkspace() {
   
   const { settings } = useEditorSettings();
   const { resolvedTheme } = useTheme();
+  const { user } = useAuth();
+  
+  const { tabSwitchCount, mouseLeaveCount, blockedPasteCount, setBlockedPasteCount, showBehaviorNotice, setShowBehaviorNotice } = useBehaviorTracking({ sessionId: null });
+  
+  const recordBlockedPaste = () => {
+    setBlockedPasteCount((currentCount) => currentCount + 1);
+  };
+  
+  const handleNativePaste = (event) => {
+    event.preventDefault();
+    recordBlockedPaste();
+  };
+  const userId = user?.user_id || user?.id || "anon";
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("lesson");
   const [taskDetails, setTaskDetails] = useState(null);
@@ -91,6 +106,11 @@ export default function PracticeWorkspace() {
         }
       } catch (err) {
         console.error("Failed to load task:", err);
+        setFeedback({
+          is_successful: false,
+          message: 'Failed to load task: ' + (err.message || 'Network error'),
+          ast_feedback: []
+        });
       } finally {
         setLoading(false);
       }
@@ -107,11 +127,12 @@ export default function PracticeWorkspace() {
       });
       setFeedback(res);
     } catch (err) {
-      setFeedback({
-        is_successful: false,
-        message: "An error occurred while evaluating your code.",
-        execution_feedback: err.response?.data?.detail || err.message
-      });
+      console.error("Submission failed", err);
+        setFeedback({
+          is_successful: false,
+          message: 'Submission failed: ' + (err.message || 'Network error'),
+          ast_feedback: []
+        });
     } finally {
       setIsSubmitting(false);
     }
@@ -175,7 +196,7 @@ export default function PracticeWorkspace() {
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
+        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-12 flex justify-center animate-fade-in">
           <div className="max-w-3xl w-full">
             <div className="mb-4 inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
               Lesson
@@ -247,6 +268,24 @@ export default function PracticeWorkspace() {
         </div>
       </header>
 
+      {showBehaviorNotice && (
+        <div
+          className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/20 bg-amber-500/[0.07] px-4 py-2 text-[10px] text-text-amber select-none"
+          role="status"
+        >
+          <span className="truncate">
+            Recorded: {tabSwitchCount} tab {tabSwitchCount === 1 ? "switch" : "switches"}, {blockedPasteCount} blocked {blockedPasteCount === 1 ? "paste" : "pastes"}, and {mouseLeaveCount} mouse {mouseLeaveCount === 1 ? "exit" : "exits"}.
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowBehaviorNotice(false)}
+            className="shrink-0 font-semibold text-text-amber hover:text-text-main transition-colors cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel: Instructions & Feedback */}
         <div className="flex w-1/3 flex-col border-r border-border-subtle bg-bg-base overflow-y-auto">
@@ -296,7 +335,7 @@ export default function PracticeWorkspace() {
 
         {/* Right Panel: Code Editor */}
         <div className="flex w-2/3 flex-col">
-          <div className="flex-1 overflow-hidden">
+          <div className="min-w-0 flex-1 overflow-hidden" onPasteCapture={handleNativePaste}>
              <MonacoEditor
               height="100%"
               language="python"
@@ -304,7 +343,21 @@ export default function PracticeWorkspace() {
               value={code}
               onChange={(value) => setCode(value || "")}
               options={monacoOptions}
-            />
+            onMount={(editor, monaco) => { 
+                editorRef.current = editor; 
+                monacoRef.current = monaco; 
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => recordBlockedPaste());
+              }}
+                />
+          </div>
+          {/* Output Terminal */}
+          <div className="h-56 border-t border-border-subtle bg-bg-base flex flex-col">
+             <div className="flex items-center px-4 py-2 border-b border-white/5 bg-bg-panel">
+                <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
+             </div>
+               <div className="min-w-0 flex-1 p-1 bg-transparent h-full relative">
+                 <InteractiveTerminal code={code} triggerRun={triggerRun} onRunFinished={() => setIsSubmitting(false)} />
+               </div>
           </div>
         </div>
       </div>

@@ -1,14 +1,7 @@
 from typing import Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-)
-
 from app.schemas.classroom_schema import ClassroomResponse
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 EnrollmentStatus = Literal[
     "active",
@@ -85,6 +78,8 @@ class EnrollmentResponse(BaseModel):
         description="Enrolled student identifier.",
     )
     status: EnrollmentStatus
+    is_online: bool = False
+    academic_integrity_score: float = 100.0
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -118,6 +113,8 @@ class ClassMemberResponse(BaseModel):
         max_length=255,
     )
     status: EnrollmentStatus
+    is_online: bool = False
+    academic_integrity_score: float = 100.0
 
     model_config = ConfigDict(
         extra="forbid",

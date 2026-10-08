@@ -24,7 +24,8 @@ def test_instructor(
     db_session: Session,
 ) -> User:
     user = User(
-        name="Test Instructor",
+        first_name=("Test Instructor").split()[0] if isinstance("Test Instructor", str) else "Test",
+        last_name=" ".join(("Test Instructor").split()[1:]) if isinstance("Test Instructor", str) and " " in "Test Instructor" else "User",
         school_id="1111111111",
         email=("instructor_eval@pampangastateu.edu.ph"),
         role="instructor",
@@ -45,7 +46,8 @@ def other_instructor(
     db_session: Session,
 ) -> User:
     user = User(
-        name="Other Instructor",
+        first_name=("Other Instructor").split()[0] if isinstance("Other Instructor", str) else "Test",
+        last_name=" ".join(("Other Instructor").split()[1:]) if isinstance("Other Instructor", str) and " " in "Other Instructor" else "User",
         school_id="3333333333",
         email=("other_instructor_eval@pampangastateu.edu.ph"),
         role="instructor",
@@ -66,7 +68,8 @@ def test_student(
     db_session: Session,
 ) -> User:
     user = User(
-        name="Test Student",
+        first_name=("Test Student").split()[0] if isinstance("Test Student", str) else "Test",
+        last_name=" ".join(("Test Student").split()[1:]) if isinstance("Test Student", str) and " " in "Test Student" else "User",
         school_id="2222222222",
         email=("student_eval@pampangastateu.edu.ph"),
         role="student",
@@ -87,7 +90,8 @@ def other_student(
     db_session: Session,
 ) -> User:
     user = User(
-        name="Other Student",
+        first_name=("Other Student").split()[0] if isinstance("Other Student", str) else "Test",
+        last_name=" ".join(("Other Student").split()[1:]) if isinstance("Other Student", str) and " " in "Other Student" else "User",
         school_id="4444444444",
         email=("other_student_eval@pampangastateu.edu.ph"),
         role="student",

@@ -51,6 +51,16 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
             <div>
               <h2 className="text-xl font-bold text-text-main">{student?.name}</h2>
               <p className="text-sm text-text-muted">{student?.school_id || 'ID Unknown'} • {student?.email}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Academic Integrity:</span>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                    (student?.academic_integrity_score ?? 100) >= 90 ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20" : 
+                    (student?.academic_integrity_score ?? 100) >= 70 ? "bg-amber-500/10 text-amber-400 ring-amber-500/20" : 
+                    "bg-rose-500/10 text-rose-400 ring-rose-500/20"
+                  }`}>
+                    {Math.round(student?.academic_integrity_score ?? 100)}%
+                  </span>
+                </div>
             </div>
           </div>
           <button
@@ -81,7 +91,7 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
               <p className="text-text-muted text-sm">No activity records found for this student.</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-glass">
+            <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-border-subtle bg-bg-glass">
               <table className="w-full text-left text-sm text-text-muted">
                 <thead className="border-b border-border-subtle bg-bg-glass text-xs font-semibold uppercase tracking-wider text-text-muted">
                   <tr>

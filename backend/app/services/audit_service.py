@@ -2,25 +2,15 @@ import json
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy.orm import Session
-
-from app.core.pagination import (
-    PaginationBounds,
-    PaginationError,
-    PaginationRequest,
-    build_pagination_metadata,
-    validate_pagination,
-)
+from app.core.pagination import (PaginationBounds, PaginationError,
+                                 PaginationRequest, build_pagination_metadata,
+                                 validate_pagination)
 from app.models.domain_models import AuditRecord
-from app.schemas.audit_schema import (
-    AuditActionType,
-    AuditOutcome,
-    AuditRecordCreateInternal,
-    AuditRecordListResponse,
-    AuditRecordResponse,
-    AuditResourceType,
-)
-
+from app.schemas.audit_schema import (AuditActionType, AuditOutcome,
+                                      AuditRecordCreateInternal,
+                                      AuditRecordListResponse,
+                                      AuditRecordResponse, AuditResourceType)
+from sqlalchemy.orm import Session
 
 MAX_AUDIT_DATA_BYTES = 16_384
 

@@ -1,37 +1,20 @@
+import logging
 import secrets
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from app.models.domain_models import Classroom, Enrollment, User
+from app.schemas.classroom_schema import ClassroomCreate, ClassroomUpdate
+from app.schemas.enrollment_schema import (EnrollmentJoinRequest,
+                                           EnrollmentStatus)
+from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_classroom_archived)
+from app.services.audit_service import AuditServiceError, create_audit_record
+from app.services.notification_service import NotificationServiceError
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from app.models.domain_models import (
-    Classroom,
-    Enrollment,
-    User,
-)
-from app.schemas.classroom_schema import (
-    ClassroomCreate,
-    ClassroomUpdate,
-)
-from app.schemas.enrollment_schema import (
-    EnrollmentJoinRequest,
-    EnrollmentStatus,
-)
-from app.services.academic_event_service import (
-    AcademicEventWorkflowError,
-    notify_classroom_archived,
-)
-from app.services.audit_service import (
-    AuditServiceError,
-    create_audit_record,
-)
-from app.services.notification_service import (
-    NotificationServiceError,
-)
-
 
 CLASS_CODE_LENGTH = 8
 CLASS_CODE_MAX_ATTEMPTS = 10
@@ -468,6 +451,10 @@ def regenerate_class_code(
 from app.models.domain_models import PendingEnrollment
 from app.schemas.enrollment_schema import BulkEnrollmentResponse
 
+logger = logging.getLogger(__name__)
+
+
+
 def bulk_enroll_students(
     *,
     db: Session,
@@ -689,7 +676,7 @@ def list_class_members(
             User.user_id == Enrollment.student_id,
         )
         .filter(Enrollment.class_id == class_id)
-        .order_by(User.name.asc())
+        .order_by(User.last_name.asc(), User.first_name.asc())
         .all()
     )
 
@@ -698,18 +685,19 @@ def list_class_members(
     try:
         online_members = redis_client.smembers("presence:online_students")
         online_users = {int(x) for x in online_members}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Caught silent exception: {e}", exc_info=True)
 
     return [
         {
             "enrollment_id": enrollment.enrollment_id,
             "student_id": user.user_id,
             "school_id": user.school_id,
-            "name": user.name,
+            "name": f"{user.last_name}, {user.first_name}",
             "email": user.email,
             "status": enrollment.status,
             "is_online": user.user_id in online_users,
+            "academic_integrity_score": user.academic_integrity_score,
         }
         for enrollment, user in member_rows
     ]

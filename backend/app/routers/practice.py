@@ -1,33 +1,37 @@
-import os
 import base64
-import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+import os
 from typing import List
-from app.core.database import get_db
-from app.core.security import get_current_user
-from app.models.domain_models import User, PracticeModule, PracticeTask, PracticeProgress, PracticeAttempt
-from app.schemas.practice_schema import PracticeModuleList, PracticeTaskDetail, PracticeSubmissionRequest, PracticeSubmissionResponse, GrowthAnalyticsResponse, ModuleBreakdown
-from sqlalchemy import func
 
-from app.core.security import get_current_instructor
-from app.schemas.practice_schema import (
-    PracticeModuleCreate,
-    PracticeModuleUpdate,
-    PracticeTaskCreate,
-    PracticeTaskUpdate,
-    PracticeModuleBase,
-    PracticeTaskBase
-)
+import httpx
+from app.core.database import get_db
+from app.core.security import get_current_instructor, get_current_student
+from app.models.domain_models import (PracticeAttempt, PracticeModule,
+                                      PracticeProgress, PracticeTask, User)
+from app.schemas.practice_schema import (GrowthAnalyticsResponse,
+                                         ModuleBreakdown,
+                                         PracticeAiHintResponse,
+                                         PracticeModuleBase,
+                                         PracticeModuleCreate,
+                                         PracticeModuleList,
+                                         PracticeModuleUpdate,
+                                         PracticeSubmissionRequest,
+                                         PracticeSubmissionResponse,
+                                         PracticeTaskBase, PracticeTaskCreate,
+                                         PracticeTaskDetail,
+                                         PracticeTaskUpdate)
+from app.services.ai_tutor_service import generate_pedagogical_hint
 from app.services.ast_evaluator import evaluate_ast_details
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi_limiter.depends import RateLimiter
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/practice", tags=["Solo Practice"])
 
 @router.get("/modules", response_model=List[PracticeModuleList])
 def get_practice_modules(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_student)
 ):
     modules = db.query(PracticeModule).order_by(PracticeModule.order_index).all()
     progress = db.query(PracticeProgress).filter(PracticeProgress.student_id == current_user.user_id).all()
@@ -84,12 +88,12 @@ def get_practice_modules(
 
     return response_modules
 
-@router.post("/tasks/{task_id}/submit", response_model=PracticeSubmissionResponse)
+@router.post("/tasks/{task_id}/submit", response_model=PracticeSubmissionResponse, dependencies=[Depends(RateLimiter(times=3, seconds=10))])
 def submit_practice_task(
     task_id: int,
     request: PracticeSubmissionRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_student)
 ):
     task = db.query(PracticeTask).filter(PracticeTask.task_id == task_id).first()
     if not task:
@@ -279,7 +283,7 @@ def calculate_growth_for_student(db: Session, student_id: int) -> GrowthAnalytic
 @router.get("/analytics/growth", response_model=GrowthAnalyticsResponse)
 def get_student_growth_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_student)
 ):
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Only students can view their personal growth dashboard")
@@ -466,3 +470,72 @@ def delete_practice_task(
     db.delete(task)
     db.commit()
     return {"message": "Task deleted"}
+
+
+
+def _generate_hint_bg(attempt_id: int):
+    from app.core.database import SessionLocal
+    db = SessionLocal()
+    try:
+        from app.models.domain_models import PracticeAttempt
+        attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id).first()
+        if not attempt or attempt.ai_hint:
+            return
+            
+        task = attempt.task
+        error_output = attempt.execution_feedback or "Unknown Error"
+        
+        hint = generate_pedagogical_hint(
+            task_instructions=task.instructions,
+            student_code=attempt.submitted_code,
+            error_output=error_output
+        )
+        
+        attempt.ai_hint = hint
+        db.commit()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"AI Hint Background Task failed: {e}")
+        try:
+            attempt.ai_hint = f"AI Tutor encountered an error: {str(e)}"
+            db.commit()
+        except:
+            db.rollback()
+    finally:
+        db.close()
+
+@router.post("/attempts/{attempt_id}/ai-hint", response_model=PracticeAiHintResponse)
+def get_ai_hint(
+    attempt_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_student)
+):
+    attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id, PracticeAttempt.student_id == current_user.user_id).first()
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Practice attempt not found.")
+    
+    if attempt.is_successful:
+        raise HTTPException(status_code=400, detail="Cannot generate AI hint for successful attempts.")
+
+    if attempt.ai_hint:
+        return PracticeAiHintResponse(ai_hint=attempt.ai_hint, status="completed")
+        
+    # Check if a task was recently kicked off? 
+    # To keep it simple, we kick off if it's missing, but if frontend polls, it will keep kicking off.
+    # Actually, we can use a Redis key or just kick it off if it's not present.
+    # A cleaner way is: if frontend calls GET, we return status. But this is a POST endpoint.
+    # If it's called multiple times, we might spawn multiple generation tasks.
+    # Let's use Redis to prevent duplicate generation.
+    from app.core.redis_client import redis_client
+    lock_key = f"ai_hint_generating:{attempt_id}"
+    
+    is_generating = redis_client.get(lock_key)
+    if is_generating:
+        return PracticeAiHintResponse(ai_hint=None, status="processing")
+        
+    # Kick off generation
+    redis_client.setex(lock_key, 30, "1")
+    background_tasks.add_task(_generate_hint_bg, attempt_id)
+    
+    return PracticeAiHintResponse(ai_hint=None, status="processing")

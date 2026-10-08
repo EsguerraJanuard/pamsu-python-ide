@@ -3,38 +3,23 @@ import json
 from datetime import datetime, timezone
 from uuid import UUID
 
+from app.models.domain_models import (Classroom, CodingSession, Enrollment,
+                                      ExecutionRequest,
+                                      PartnerExecutionUpdateRecord, Submission,
+                                      Task)
+from app.schemas.execution_schema import (
+    MAX_WORKER_TASK_ID_LENGTH, TERMINAL_EXECUTION_STATUSES,
+    ExecutionRequestCreate, ExecutionRequestKind, ExecutionStatus,
+    ExecutionWorkerUpdate, PartnerExecutionDispatchRequest,
+    PartnerExecutionLimits, PartnerExecutionResultUpdate,
+    PartnerExecutionUpdateAcceptedResponse,
+    is_execution_status_transition_allowed)
+from app.services.coding_session_service import (
+    CodingSessionCounterOverflowError, CodingSessionEndedError,
+    CodingSessionNotFoundError, CodingSessionServiceError,
+    increment_coding_session_run_attempt)
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
-
-from app.models.domain_models import (
-    Classroom,
-    CodingSession,
-    Enrollment,
-    ExecutionRequest,
-    PartnerExecutionUpdateRecord,
-    Submission,
-    Task,
-)
-from app.schemas.execution_schema import (
-    MAX_WORKER_TASK_ID_LENGTH,
-    ExecutionRequestCreate,
-    ExecutionRequestKind,
-    ExecutionStatus,
-    ExecutionWorkerUpdate,
-    PartnerExecutionDispatchRequest,
-    PartnerExecutionLimits,
-    PartnerExecutionResultUpdate,
-    PartnerExecutionUpdateAcceptedResponse,
-    TERMINAL_EXECUTION_STATUSES,
-    is_execution_status_transition_allowed,
-)
-from app.services.coding_session_service import (
-    CodingSessionCounterOverflowError,
-    CodingSessionEndedError,
-    CodingSessionNotFoundError,
-    CodingSessionServiceError,
-    increment_coding_session_run_attempt,
-)
 
 
 class ExecutionServiceError(Exception):

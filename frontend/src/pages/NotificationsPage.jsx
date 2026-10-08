@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import api from "../services/api";
 import Sidebar from "../components/layout/Sidebar";
@@ -26,9 +26,7 @@ export default function NotificationsPage({ role: propRole }) {
   const [error, setError] = useState("");
   const [selectedNotification, setSelectedNotification] = useState(null);
 
-
-
-  const fetchNotifications = async (currentPage = 1) => {
+  const fetchNotifications = useCallback(async (currentPage = 1) => {
     setLoading(true);
     setError("");
     try {
@@ -46,11 +44,11 @@ export default function NotificationsPage({ role: propRole }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotifications(page);
-  }, [page]);
+  }, [page, fetchNotifications]);
 
   const handleMarkAllRead = async () => {
     setActionLoading(true);

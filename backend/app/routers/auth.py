@@ -1,31 +1,24 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Literal
+from uuid import uuid4
 
+from app.core.database import get_db
+from app.core.redis_client import redis_client
+from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
+                               SECRET_KEY, create_access_token, oauth2_scheme,
+                               verify_password)
+from app.models.domain_models import User
+from app.routers.admin import global_system_settings
+from app.schemas.audit_schema import AuditRecordCreateInternal
+from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
+from app.services.audit_service import create_audit_record
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_limiter.depends import RateLimiter
+from jose import jwt
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-
-
-from app.services.audit_service import create_audit_record
-from app.schemas.audit_schema import AuditRecordCreateInternal
-from uuid import uuid4
-from app.core.database import get_db
-from app.core.security import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    create_access_token,
-    verify_password,
-    oauth2_scheme,
-    SECRET_KEY,
-    ALGORITHM,
-)
-from app.core.redis_client import redis_client
-from jose import jwt
-from datetime import datetime, timezone
-from app.models.domain_models import User
-from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
-
 
 router = APIRouter(
     tags=["Authentication"],
@@ -34,10 +27,11 @@ router = APIRouter(
 
 class AuthenticatedUserResponse(BaseModel):
     user_id: int
-    name: str
+    first_name: str
+    last_name: str
     school_id: str
     email: str
-    role: Literal["student", "instructor"]
+    role: str
     email_verified: bool
 
     model_config = ConfigDict(from_attributes=True)
@@ -144,10 +138,16 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=("University email verification is required."),
         )
+    if global_system_settings.get("maintenance_mode", False) and user.role == "student":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=("The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time."),
+        )
 
     if user.role not in {
         "student",
         "instructor",
+        "admin",
     }:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -162,7 +162,7 @@ def login(
         data={
             "sub": str(user.user_id),
             "role": user.role,
-            "name": user.name,
+            "name": f"{user.first_name} {user.last_name}",
             "email": user.email,
             "pwd_ver": user.password_version,
         },
@@ -214,3 +214,51 @@ def logout(
                 redis_client.setex(f"blacklist:{jti}", ttl, "revoked")
     except Exception:
         pass
+
+@router.post("/guest", response_model=TokenResponse, dependencies=[Depends(RateLimiter(times=2, seconds=60))])
+def login_guest(db: Session = Depends(get_db)):
+    import random
+    import uuid
+
+    from app.core.utils import get_utc_now
+    from app.models.domain_models import Classroom, Enrollment
+    
+    short_id = str(uuid.uuid4())[:6]
+    guest_email = f"guest_{short_id}@pampangastateu.edu.ph"
+    
+    guest = User(
+        email=guest_email,
+        first_name="Aspiring Student",
+        last_name=f"Guest {short_id.upper()}",
+        middle_name="",
+        role="student",
+        password_hash=get_password_hash("guest"),
+        school_id=f"GST{random.randint(10000, 99999)}"
+    )
+    db.add(guest)
+    db.commit()
+    db.refresh(guest)
+    
+    # Auto-enroll guest in the first available class so they can see the system
+    first_class = db.query(Classroom).first()
+    if first_class:
+        enroll = Enrollment(
+            class_id=first_class.class_id,
+            student_id=guest.user_id,
+            status="active",
+            joined_at=get_utc_now()
+        )
+        db.add(enroll)
+        db.commit()
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(guest.user_id), "role": guest.role},
+        expires_delta=access_token_expires,
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.model_validate(guest)
+    )

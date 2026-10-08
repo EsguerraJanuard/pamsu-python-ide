@@ -1,24 +1,10 @@
 from uuid import uuid4
 
-from sqlalchemy import (
-    text,
-    JSON,
-    Boolean,
-    CheckConstraint,
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-    func,
-)
-from sqlalchemy.orm import relationship
-
 from app.core.database import Base
+from sqlalchemy import (JSON, Boolean, CheckConstraint, Column, DateTime,
+                        Float, ForeignKey, Index, Integer, String, Text,
+                        UniqueConstraint, func, text)
+from sqlalchemy.orm import relationship
 
 
 class User(Base):
@@ -53,6 +39,7 @@ class User(Base):
         nullable=False,
         default="student",
     )
+    academic_integrity_score = Column(Float, default=100.0, nullable=False)
     password_hash = Column(
         String(255),
         nullable=False,
@@ -411,7 +398,7 @@ class Classroom(Base):
 
     @property
     def instructor_name(self) -> str | None:
-        return self.instructor.name if self.instructor else None
+        return f"{self.instructor.first_name} {self.instructor.last_name}" if self.instructor else None
 
 
 class Enrollment(Base):

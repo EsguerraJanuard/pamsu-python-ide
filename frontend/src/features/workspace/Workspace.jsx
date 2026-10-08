@@ -16,7 +16,7 @@ const DEFAULT_CODE = `# Fibonacci Sequence
 def fibonacci(n):
     sequence = []
 
-    # TODO: implement the solution
+    
 
     return sequence
 

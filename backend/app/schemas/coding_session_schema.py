@@ -1,13 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-)
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 MAX_TAB_SWITCH_INCREMENT = 100
 MAX_BLOCKED_PASTE_INCREMENT = 100

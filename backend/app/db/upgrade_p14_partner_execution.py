@@ -1,14 +1,10 @@
 from dataclasses import dataclass
 from uuid import uuid4
 
+from app.core.database import engine
+from app.models.domain_models import PartnerExecutionUpdateRecord
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Connection, Engine
-
-from app.core.database import engine
-from app.models.domain_models import (
-    PartnerExecutionUpdateRecord,
-)
-
 
 EXECUTION_REQUESTS_TABLE = "execution_requests"
 PARTNER_UPDATES_TABLE = "partner_execution_updates"

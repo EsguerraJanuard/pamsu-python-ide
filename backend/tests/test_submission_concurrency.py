@@ -244,7 +244,8 @@ def _seed_submission_context(
 ) -> dict[str, int]:
     with session_factory() as db:
         instructor = User(
-            name="Pillar 15 Concurrency Instructor",
+            first_name=("Pillar 15 Concurrency Instructor").split()[0] if isinstance("Pillar 15 Concurrency Instructor", str) else "Test",
+        last_name=" ".join(("Pillar 15 Concurrency Instructor").split()[1:]) if isinstance("Pillar 15 Concurrency Instructor", str) and " " in "Pillar 15 Concurrency Instructor" else "User",
             school_id="9500000001",
             email=("p15.concurrent.instructor@pampangastateu.edu.ph"),
             role="instructor",
@@ -254,7 +255,8 @@ def _seed_submission_context(
         )
 
         student = User(
-            name="Pillar 15 Concurrency Student",
+            first_name=("Pillar 15 Concurrency Student").split()[0] if isinstance("Pillar 15 Concurrency Student", str) else "Test",
+        last_name=" ".join(("Pillar 15 Concurrency Student").split()[1:]) if isinstance("Pillar 15 Concurrency Student", str) and " " in "Pillar 15 Concurrency Student" else "User",
             school_id="9500000002",
             email=("p15.concurrent.student@pampangastateu.edu.ph"),
             role="student",

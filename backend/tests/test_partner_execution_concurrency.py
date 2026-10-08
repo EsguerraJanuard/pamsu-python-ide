@@ -239,7 +239,8 @@ def _seed_execution_context(
 ) -> dict[str, str | int]:
     with session_factory() as db:
         instructor = User(
-            name="Partner Replay Instructor",
+            first_name=("Partner Replay Instructor").split()[0] if isinstance("Partner Replay Instructor", str) else "Test",
+        last_name=" ".join(("Partner Replay Instructor").split()[1:]) if isinstance("Partner Replay Instructor", str) and " " in "Partner Replay Instructor" else "User",
             school_id="9700000001",
             email=("p15.partner.replay.instructor@pampangastateu.edu.ph"),
             role="instructor",
@@ -249,7 +250,8 @@ def _seed_execution_context(
         )
 
         student = User(
-            name="Partner Replay Student",
+            first_name=("Partner Replay Student").split()[0] if isinstance("Partner Replay Student", str) else "Test",
+        last_name=" ".join(("Partner Replay Student").split()[1:]) if isinstance("Partner Replay Student", str) and " " in "Partner Replay Student" else "User",
             school_id="9700000002",
             email=("p15.partner.replay.student@pampangastateu.edu.ph"),
             role="student",
