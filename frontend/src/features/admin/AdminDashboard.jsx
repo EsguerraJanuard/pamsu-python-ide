@@ -269,7 +269,7 @@ export default function AdminDashboard() {
             <h3 className="mb-2 text-xl font-black text-text-main tracking-tight">Sign Out?</h3>
             <p className="mb-8 text-sm text-text-muted">Are you sure you want to end your administration session?</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowLogoutModal(false)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-400 transition-colors hover:bg-bg-glass hover:text-text-main border border-border-strong">Cancel</button>
+              <button onClick={() => setShowLogoutModal(false)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-text-muted transition-colors hover:bg-bg-glass hover:text-text-main border border-border-strong">Cancel</button>
               <button onClick={logout} className="rounded-xl bg-psu-maroon px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-psu-red">Sign Out</button>
             </div>
           </div>
@@ -365,11 +365,14 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="xl:col-span-2">
-                      <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm">
-                  <h3 className="text-lg font-black mb-6 tracking-tight">CS Department Faculty</h3>
+                      <div className="bg-bg-glass border border-border-subtle rounded-2xl w-full shadow-md overflow-hidden flex flex-col">
+                  <div className="px-6 py-5 border-b border-border-subtle bg-bg-base/30">
+                    <h3 className="text-lg font-bold tracking-tight">CS Department Faculty</h3>
+                    <p className="text-xs text-text-muted mt-1">Manage instructor accounts</p>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="text-[11px] font-bold tracking-widest text-text-muted uppercase bg-bg-base border-b border-border-subtle">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="text-xs font-semibold text-text-muted uppercase bg-bg-panel border-b border-border-subtle tracking-wider">
                         <tr>
                           <th className="px-4 py-3 w-[35%]">Name</th>
                             <th className="px-4 py-3 w-[40%]">Email</th>
@@ -380,21 +383,30 @@ export default function AdminDashboard() {
                       <tbody>
                         {instructors.length === 0 && (
                           <tr>
-                            <td colSpan="4" className="px-4 py-16 text-center text-text-muted">
-                              <div className="flex flex-col items-center justify-center">
-                                <svg className="w-10 h-10 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                <p className="font-semibold text-text-main">No faculty members found</p>
-                                <p className="text-xs mt-1">Provision an instructor to see them here.</p>
+                            <td colSpan="4" className="px-8 py-20 text-center text-text-muted bg-bg-base/30">
+                              <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                                <div className="p-4 bg-bg-glass rounded-full mb-4 shadow-sm border border-border-subtle">
+                                  <svg className="w-8 h-8 text-text-muted opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                </div>
+                                <p className="font-bold text-text-main text-base">No faculty members found</p>
+                                <p className="text-sm mt-1">Use the provision form on the left to add a new instructor to this department.</p>
                               </div>
                             </td>
                           </tr>
                         )}
                         {instructors.map((inst) => (
-                          <tr key={inst.user_id} className="border-b border-border-subtle hover:bg-bg-base/50 transition-colors">
-                            <td className="px-4 py-4 font-bold text-text-main">{inst.first_name} {inst.last_name}</td>
-                            <td className="px-4 py-4 text-text-muted">{inst.email}</td>
+                          <tr key={inst.user_id} className="border-b border-border-subtle hover:bg-bg-panel transition-colors group">
+                            <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-psu-maroon/10 text-text-brand flex items-center justify-center font-bold text-xs border border-psu-maroon/20">
+                                    {inst.first_name[0]}{inst.last_name[0]}
+                                  </div>
+                                  <span className="font-bold text-text-main group-hover:text-text-brand transition-colors">{inst.first_name} {inst.last_name}</span>
+                                </div>
+                            </td>
+                            <td className="px-4 py-4 text-text-muted font-medium">{inst.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-2.5 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full ${inst.is_active ? 'bg-psu-maroon/10 text-text-brand border border-green-500/20' : 'bg-bg-glass text-text-muted border border-red-500/20'}`}>
+                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border-border-strong'}`}>
                                 {inst.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -404,7 +416,7 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
-                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-slate-500">Loading more faculty...</td></tr>}
+                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-text-muted">Loading more faculty...</td></tr>}
                       </tbody>
                         </table>
                       </div>
@@ -438,7 +450,7 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-slate-400 to-slate-300 dark:from-slate-600 dark:to-slate-500"></div>
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
                       <h3 className="text-lg font-black mb-6 tracking-tight">Export Data</h3>
                       <p className="text-sm text-text-muted mb-4">Download the full user masterlist to CSV.</p>
                       
@@ -475,9 +487,16 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   
+                  <div className="bg-bg-glass border border-border-subtle rounded-2xl w-full shadow-md overflow-hidden flex flex-col mt-6">
+                  <div className="px-6 py-5 border-b border-border-subtle bg-bg-base/30 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold tracking-tight">Student Directory</h3>
+                      <p className="text-xs text-text-muted mt-1">Manage provisioned student accounts</p>
+                    </div>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="text-[11px] font-bold tracking-widest text-text-muted uppercase bg-bg-base border-b border-border-subtle">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="text-xs font-semibold text-text-muted uppercase bg-bg-panel border-b border-border-subtle tracking-wider">
                         <tr>
                           <th className="px-4 py-3 w-[35%]">Name</th>
                             <th className="px-4 py-3 w-[40%]">PSU Email</th>
@@ -488,21 +507,30 @@ export default function AdminDashboard() {
                       <tbody>
                         {filteredStudents.length === 0 && (
                           <tr>
-                            <td colSpan="4" className="px-4 py-16 text-center text-text-muted">
-                              <div className="flex flex-col items-center justify-center">
-                                <svg className="w-10 h-10 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                <p className="font-semibold text-text-main">No students found</p>
-                                <p className="text-xs mt-1">Upload a masterlist to provision students.</p>
+                            <td colSpan="4" className="px-8 py-20 text-center text-text-muted bg-bg-base/30">
+                              <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                                <div className="p-4 bg-bg-glass rounded-full mb-4 shadow-sm border border-border-subtle">
+                                  <svg className="w-8 h-8 text-text-muted opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                </div>
+                                <p className="font-bold text-text-main text-base">No students found</p>
+                                <p className="text-sm mt-1">Upload a masterlist or use the provision form above to add students.</p>
                               </div>
                             </td>
                           </tr>
                         )}
                         {filteredStudents.map((stu) => (
-                          <tr key={stu.user_id} className="border-b border-border-subtle hover:bg-bg-base/50 transition-colors">
-                            <td className="px-4 py-4 font-bold text-text-main">{stu.first_name} {stu.last_name}</td>
-                            <td className="px-4 py-4 text-text-muted">{stu.email}</td>
+                          <tr key={stu.user_id} className="border-b border-border-subtle hover:bg-bg-panel transition-colors group">
+                            <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-bg-panel text-text-muted flex items-center justify-center font-bold text-xs border border-border-strong group-hover:border-psu-maroon/30 group-hover:text-text-brand transition-colors">
+                                    {stu.first_name[0]}{stu.last_name[0]}
+                                  </div>
+                                  <span className="font-bold text-text-main transition-colors">{stu.first_name} {stu.last_name}</span>
+                                </div>
+                            </td>
+                            <td className="px-4 py-4 text-text-muted font-medium">{stu.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-2.5 py-1 font-bold rounded-full text-[10px] uppercase tracking-widest ${stu.is_active ? 'bg-psu-maroon/10 text-text-brand border border-green-500/20' : 'bg-bg-glass text-text-muted border border-red-500/20'}`}>
+                              <span className={`px-2.5 py-1 font-bold rounded-full text-[10px] uppercase tracking-widest ${stu.is_active ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
                                 {stu.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -512,7 +540,7 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
-                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-slate-500">Loading more students...</td></tr>}
+                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-text-muted">Loading more students...</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -568,13 +596,13 @@ export default function AdminDashboard() {
                             <td className="px-4 py-4 font-bold text-psu-maroon dark:text-psu-gold">{log.action_type}</td>
                             <td className="px-4 py-4 text-text-muted">{log.resource_type}</td>
                             <td className="px-4 py-4 text-right">
-                              <span className={`px-2 py-1 font-bold rounded text-[10px] uppercase tracking-wider ${log.outcome === 'succeeded' || log.status === 'success' ? 'bg-psu-maroon/10 text-text-brand border border-green-500/20' : 'bg-bg-glass text-text-muted border border-red-500/20'}`}>
+                              <span className={`px-2 py-1 font-bold rounded text-[10px] uppercase tracking-wider ${log.outcome === 'succeeded' || log.status === 'success' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
                                 {log.outcome || log.status || 'succeeded'}
                               </span>
                             </td>
                           </tr>
                         ))}
-                        {hasMoreLogs && <tr ref={logRef}><td colSpan="3" className="text-center py-4 text-slate-500">Loading more logs...</td></tr>}
+                        {hasMoreLogs && <tr ref={logRef}><td colSpan="3" className="text-center py-4 text-text-muted">Loading more logs...</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -623,33 +651,33 @@ export default function AdminDashboard() {
                       <p className="text-sm text-text-muted mb-6">Global strictness level for structural code feedback.</p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-psu-maroon dark:border-psu-gold bg-emerald-500/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-border-focus bg-bg-panel shadow-sm shadow-border-focus/20 ring-1 ring-border-focus' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
                           <input type="radio" name="ast_strictness" value="lenient" checked={settings.default_ast_strictness === 'lenient'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'lenient' ? 'border-psu-maroon dark:border-psu-gold' : 'border-border-strong'}`}>
-                              {settings.default_ast_strictness === 'lenient' && <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
+                              {settings.default_ast_strictness === 'lenient' && <div className="w-2 h-2 rounded-full bg-psu-maroon dark:bg-psu-gold"></div>}
                             </div>
                             <span className="font-black text-text-main">Lenient</span>
                           </div>
                           <p className="text-xs text-text-muted leading-relaxed">Allows standard variations & formatting differences.</p>
                         </label>
 
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon dark:border-psu-gold bg-psu-maroon/5 dark:bg-psu-gold/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-border-focus bg-bg-panel shadow-sm shadow-border-focus/20 ring-1 ring-border-focus' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
                           <input type="radio" name="ast_strictness" value="moderate" checked={settings.default_ast_strictness === 'moderate'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon' : 'border-border-strong'}`}>
-                              {settings.default_ast_strictness === 'moderate' && <div className="w-2 h-2 rounded-full bg-psu-maroon"></div>}
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon dark:border-psu-gold' : 'border-border-strong'}`}>
+                              {settings.default_ast_strictness === 'moderate' && <div className="w-2 h-2 rounded-full bg-psu-maroon dark:bg-psu-gold"></div>}
                             </div>
                             <span className="font-black text-text-main">Moderate</span>
                           </div>
                           <p className="text-xs text-text-muted leading-relaxed">Standard university policy with balanced checks.</p>
                         </label>
 
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-red-500 bg-red-500/5 shadow-sm' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
+                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-border-focus bg-bg-panel shadow-sm shadow-border-focus/20 ring-1 ring-border-focus' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
                           <input type="radio" name="ast_strictness" value="strict" checked={settings.default_ast_strictness === 'strict'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
                           <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'strict' ? 'border-red-500' : 'border-border-strong'}`}>
-                              {settings.default_ast_strictness === 'strict' && <div className="w-2 h-2 rounded-full bg-red-500"></div>}
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'strict' ? 'border-psu-maroon dark:border-psu-gold' : 'border-border-strong'}`}>
+                              {settings.default_ast_strictness === 'strict' && <div className="w-2 h-2 rounded-full bg-psu-maroon dark:bg-psu-gold"></div>}
                             </div>
                             <span className="font-black text-text-main">Strict</span>
                           </div>
@@ -681,7 +709,7 @@ export default function AdminDashboard() {
               You have unsaved changes in your System Settings. If you leave this tab, your changes will be discarded.
             </p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setPendingTab(null)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-400 transition-colors hover:bg-bg-glass hover:text-text-main">
+              <button onClick={() => setPendingTab(null)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-text-muted transition-colors hover:bg-bg-glass hover:text-text-main">
                 Cancel
               </button>
               <button onClick={() => {
@@ -742,15 +770,15 @@ function QuickActionCard({ title, desc, icon, onClick }) {
 function Input({ label, ...props }) {
   return (
     <div>
-      <label className="mb-2 block text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</label>
-      <input required className="w-full rounded-xl border border-border-strong bg-bg-base px-4 py-3 text-sm font-medium outline-none transition-all focus:border-psu-maroon focus:shadow-[0_0_15px_rgba(128,0,0,0.1)]" {...props} />
+      <label className="mb-2 block text-[10px] font-bold text-text-muted uppercase tracking-widest">{label}</label>
+      <input required className="w-full rounded-xl border border-border-strong bg-bg-base px-4 py-3 text-sm font-medium outline-none transition-all focus:border-border-focus focus:ring-1 focus:ring-border-focus" {...props} />
     </div>
   );
 }
 
 function ActionBtn({ onClick, text, danger }) {
   return (
-    <button onClick={onClick} className={`rounded border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all hover:scale-105 ${danger ? 'border-red-500/20 text-red-500 hover:bg-red-500/10' : 'border-border-strong text-text-muted hover:text-text-main hover:border-border-subtle hover:bg-bg-glass'}`}>
+    <button onClick={onClick} className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 shadow-sm ${danger ? 'border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20' : 'border-border-strong text-text-muted hover:text-text-main hover:border-border-subtle hover:bg-bg-base'}`}>
       {text}
     </button>
   );

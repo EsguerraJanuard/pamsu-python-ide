@@ -1,20 +1,16 @@
 import os
 
-files = {
-    "frontend/src/features/practice/SoloPractice.jsx": '<main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">',
-    "frontend/src/features/settings/Settings.jsx": '<main className="settings-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">',
-    "frontend/src/features/submissions/Submissions.jsx": '<main className="submissions-page flex-1 overflow-y-auto px-6 py-6 sm:px-8">',
-    "frontend/src/features/dashboard/Analytics.jsx": '<main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">'
-}
+filepath = "frontend/src/features/admin/AdminDashboard.jsx"
+if os.path.exists(filepath):
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
 
-for filepath, old in files.items():
-    if os.path.exists(filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-        
-        content = content.replace(old, old.replace('flex-1', 'min-w-0 flex-1'))
-        
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(content)
+    # Standardize the Export Data gradient line to look like the others
+    content = content.replace(
+        'bg-gradient-to-r from-slate-400 to-slate-300 dark:from-slate-600 dark:to-slate-500',
+        'bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500'
+    )
 
-print("Fixed stragglers")
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(content)
+    print("Fixed straggling styles")
