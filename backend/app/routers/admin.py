@@ -5,9 +5,10 @@ from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
 from app.models.domain_models import AuditRecord, Classroom, User
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from app.services.email_service import send_provisioning_email
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -124,6 +125,7 @@ def create_guest(
 @router.post("/instructors", response_model=UserResponse)
 def create_instructor(
     request: InstructorCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -143,6 +145,7 @@ def create_instructor(
     db.add(new_instructor)
     db.commit()
     db.refresh(new_instructor)
+    background_tasks.add_task(send_provisioning_email, new_instructor.email, new_instructor.first_name, request.password, 'Instructor')
     return new_instructor
 
 @router.get("/users", response_model=List[UserResponse])
@@ -221,6 +224,7 @@ def get_global_audit_logs(
 
 @router.post("/students/bulk-register/file")
 async def bulk_register_students_file(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
@@ -261,6 +265,7 @@ async def bulk_register_students_file(
             )
             db.add(new_user)
             registered_count += 1
+            background_tasks.add_task(send_provisioning_email, new_user.email, new_user.first_name, 'PamsU@2026', 'Student')
             
     db.commit()
     return {"registered": registered_count, "invalid": len(emails) - len(valid_emails)}
