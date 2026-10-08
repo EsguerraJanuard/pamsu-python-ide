@@ -548,55 +548,6 @@ const SplitPaneGradingWorkspace = () => {
                   </div>
                 </>
               ) : (
-                <div className="text-text-muted italic bg-bg-panel p-6 rounded-xl border border-border-subtle text-center">
-                  No submission found for this student.
-                </div>
-
-                <div className="bg-bg-glass border border-border-subtle rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-text-main mb-2">Execution Feedback / Logs</h3>
-                  <pre className="bg-bg-panel p-4 rounded text-sm text-text-muted overflow-x-auto border border-border-subtle whitespace-pre-wrap">
-                    {detailedSub?.execution_log || detailedSub?.feedback_text || detailedSub?.ast_feedback?.join('\n') || 'Loading execution logs or not available.'}
-                  </pre>
-                </div>
-
-                <form onSubmit={handleSubmitGrade} className="bg-bg-glass border border-border-subtle rounded-lg p-4 flex flex-col gap-4">
-                  <h3 className="text-lg font-medium text-text-main">Manual Grading</h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-text-muted mb-1">Score</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={gradeScore}
-                      onChange={(e) => setGradeScore(e.target.value)}
-                      className="w-[150px] bg-bg-panel border border-border-subtle rounded p-2 text-text-main focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                      placeholder="e.g. 95"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-text-muted mb-1">Feedback</label>
-                    <textarea
-                      value={feedbackText}
-                      onChange={(e) => setFeedbackText(e.target.value)}
-                      className="w-full bg-bg-panel border border-border-subtle rounded p-2 text-text-main h-32 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                      placeholder="Enter feedback for the student..."
-                    />
-                  </div>
-
-                  <div>
-                    <button 
-                      type="submit" 
-                      disabled={savingGrade}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded transition-colors disabled:opacity-50"
-                    >
-                      {savingGrade ? 'Saving...' : 'Save Grade'}
-                    </button>
-                  </div>
-                </form>
-              </>
-            ) : (
               <div className="text-text-muted italic bg-bg-panel p-6 rounded border border-border-subtle text-center">
                 No submission found for this student.
               </div>

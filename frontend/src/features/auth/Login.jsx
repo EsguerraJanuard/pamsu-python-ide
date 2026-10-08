@@ -391,7 +391,8 @@ export default function Login() {
                 ) : (
                   "Sign in"
                 )}
-              </button>
+              </span>
+            </button>
               
               <div className="relative mt-6 mb-6">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
@@ -402,7 +403,6 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="font-medium text-text-emerald transition-colors hover:text-text-emerald hover:underline"
                 disabled={isLoading}
                 className="group flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-base font-bold text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-slate-50-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
@@ -411,7 +411,7 @@ export default function Login() {
             </p>
           </form>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
