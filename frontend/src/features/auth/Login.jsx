@@ -231,7 +231,7 @@ export default function Login() {
           </ul>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0">
+        <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0 mt-12">
           <p>&copy; 2026 Pampanga State University</p>
         </div>
       </div>
