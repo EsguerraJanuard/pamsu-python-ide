@@ -71,6 +71,11 @@ const ActivityDetails = () => {
 
   const handleAddTestCase = async (e) => {
     e.preventDefault();
+    setError('');
+    if (!newTestCase.input_data.trim() || !newTestCase.expected_output.trim()) {
+      setError('Please provide both input data and expected output.');
+      return;
+    }
     try {
       await api.post(`/instructors/tasks/${id}/test-cases`, newTestCase);
       setNewTestCase({ input_data: '', expected_output: '', is_hidden: false });
@@ -242,7 +247,7 @@ const ActivityDetails = () => {
 
           {/* Add Test Case Form */}
           {!activity.is_published ? (
-            <form onSubmit={handleAddTestCase} className="mt-8 border-t border-border-subtle pt-6 space-y-4">
+            <form onSubmit={handleAddTestCase} className="mt-8 border-t border-border-subtle pt-6 space-y-4" noValidate>
               <h3 className="text-lg font-medium text-text-main">Add New Test Case</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -280,7 +285,7 @@ const ActivityDetails = () => {
               </label>
               <button 
                 type="submit"
-                className="px-4 py-2 bg-psu-maroon hover:bg-emerald-700 text-white rounded transition-colors"
+                className="px-4 py-2 bg-psu-maroon hover:bg-psu-maroon/90 text-white rounded transition-colors"
               >
                 Add Test Case
                 </button>

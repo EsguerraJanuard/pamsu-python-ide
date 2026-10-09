@@ -155,6 +155,10 @@ export default function AdminDashboard() {
   
   const handleCreateStudent = async (e) => {
     e.preventDefault();
+    if (!studentForm.first_name.trim() || !studentForm.last_name.trim() || !studentForm.email.trim() || !studentForm.school_id.trim()) {
+      showMessage("Please fill out all required student fields.", true);
+      return;
+    }
     setIsLoading(true);
     try {
       await api.post("/admin/students", studentForm);
@@ -170,6 +174,10 @@ export default function AdminDashboard() {
 
   const handleCreateFaculty = async (e) => {
     e.preventDefault();
+    if (!form.email.trim() || !form.first_name.trim() || !form.last_name.trim() || !form.password.trim()) {
+      showMessage("Please fill out all required faculty fields.", true);
+      return;
+    }
     setIsLoading(true);
     try {
       await api.post("/admin/instructors", form);
@@ -337,7 +345,7 @@ export default function AdminDashboard() {
                       <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm relative overflow-hidden sticky top-6">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
                   <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
-                  <form onSubmit={handleCreateFaculty} className="space-y-5">
+                  <form onSubmit={handleCreateFaculty} className="space-y-5" noValidate>
                     <Input label="Official PSU Email" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
                     <div className="grid grid-cols-2 gap-3">
                       <Input label="First Name" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} />
@@ -393,7 +401,7 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-4 py-4 text-text-muted font-medium">{inst.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border-border-strong'}`}>
+                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-psu-maroon/10 text-psu-maroon border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border-border-strong'}`}>
                                 {inst.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -421,8 +429,8 @@ export default function AdminDashboard() {
           <div className="w-full max-w-6xl lg:px-4 mx-auto">
             
             <div className="mb-4 empty:hidden">
-              {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-medium text-red-500 shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
-              {success && <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-sm font-medium text-emerald-500 shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{success}</div>}
+              {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-medium text-psu-red shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
+              {success && <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-sm font-medium text-psu-maroon shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{success}</div>}
             </div>
 
             {activeTab === 'overview' && (
@@ -453,7 +461,7 @@ export default function AdminDashboard() {
                       <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm relative overflow-hidden sticky top-6">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
                   <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
-                  <form onSubmit={handleCreateFaculty} className="space-y-5">
+                  <form onSubmit={handleCreateFaculty} className="space-y-5" noValidate>
                     <Input label="Official PSU Email" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
                     <div className="grid grid-cols-2 gap-3">
                       <Input label="First Name" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} />
@@ -509,7 +517,7 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-4 py-4 text-text-muted font-medium">{inst.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border-border-strong'}`}>
+                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-psu-maroon/10 text-psu-maroon border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border-border-strong'}`}>
                                 {inst.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -568,7 +576,7 @@ export default function AdminDashboard() {
                 <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden mt-4">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
                     <h3 className="text-lg font-black mb-6 tracking-tight">Manual Provisioning</h3>
-                    <form onSubmit={handleCreateStudent} className="space-y-4">
+                    <form onSubmit={handleCreateStudent} className="space-y-4" noValidate>
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <input type="text" placeholder="First Name" required value={studentForm.first_name} onChange={e => setStudentForm({...studentForm, first_name: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
                         <input type="text" placeholder="Last Name" required value={studentForm.last_name} onChange={e => setStudentForm({...studentForm, last_name: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
@@ -633,7 +641,7 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-4 py-4 text-text-muted font-medium">{stu.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-2.5 py-1 font-bold rounded-full text-[10px] uppercase tracking-widest ${stu.is_active ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
+                              <span className={`px-2.5 py-1 font-bold rounded-full text-[10px] uppercase tracking-widest ${stu.is_active ? 'bg-psu-maroon/10 text-psu-maroon border border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
                                 {stu.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -700,7 +708,7 @@ export default function AdminDashboard() {
                             <td className="px-4 py-4 font-bold text-psu-maroon dark:text-psu-gold">{log.action_type}</td>
                             <td className="px-4 py-4 text-text-muted">{log.resource_type}</td>
                             <td className="px-4 py-4 text-right">
-                              <span className={`px-2 py-1 font-bold rounded text-[10px] uppercase tracking-wider ${log.outcome === 'succeeded' || log.status === 'success' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
+                              <span className={`px-2 py-1 font-bold rounded text-[10px] uppercase tracking-wider ${log.outcome === 'succeeded' || log.status === 'success' ? 'bg-psu-maroon/10 text-psu-maroon border border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
                                 {log.outcome || log.status || 'succeeded'}
                               </span>
                             </td>
@@ -724,7 +732,7 @@ export default function AdminDashboard() {
                 
                 <div className="bg-bg-glass border border-border-subtle p-8 rounded-2xl shadow-sm relative overflow-hidden">
                   
-                  <form onSubmit={handleSaveSettings} className="space-y-10">
+                  <form onSubmit={handleSaveSettings} className="space-y-10" noValidate>
                     
                     {/* UI Toggle */}
                     <div className="flex items-center justify-between border-b border-border-subtle pb-8">
@@ -881,7 +889,7 @@ function Input({ label, ...props }) {
 
 function ActionBtn({ onClick, text, danger }) {
   return (
-    <button onClick={onClick} className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 shadow-sm ${danger ? 'border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20' : 'border-border-strong text-text-muted hover:text-text-main hover:border-border-subtle hover:bg-bg-base'}`}>
+    <button onClick={onClick} className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 shadow-sm ${danger ? 'border-red-500/30 text-psu-red hover:bg-red-500/10 dark:text-psu-red dark:hover:bg-red-500/20' : 'border-border-strong text-text-muted hover:text-text-main hover:border-border-subtle hover:bg-bg-base'}`}>
       {text}
     </button>
   );

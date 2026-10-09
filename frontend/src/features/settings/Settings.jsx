@@ -332,7 +332,7 @@ export default function Settings() {
 
                     aria-live="polite"
 
-                    className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-text-blue"
+                    className="mb-4 rounded-lg border border-psu-maroon/20 bg-psu-maroon/10 px-4 py-3 text-sm text-text-blue"
 
                   >
 
@@ -348,9 +348,7 @@ export default function Settings() {
 
                   onSubmit={handleSaveProfile}
 
-                  className="space-y-4"
-
-                >
+                  className="space-y-4" noValidate>
 
                   <div>
 
@@ -648,7 +646,7 @@ export default function Settings() {
 
                         ? "border-red-500/20 bg-red-500/10 text-text-rose"
 
-                        : "border-blue-500/20 bg-blue-500/10 text-text-blue"
+                        : "border-psu-maroon/20 bg-psu-maroon/10 text-text-blue"
 
                     }`}
 
@@ -863,7 +861,7 @@ export default function Settings() {
                           onChange={() => setShowPasswords(!showPasswords)}
                           className="sr-only peer"
                         />
-                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                        <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
                       </div>
                       Show passwords
                     </label>

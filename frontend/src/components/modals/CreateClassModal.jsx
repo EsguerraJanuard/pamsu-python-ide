@@ -15,6 +15,10 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    if (!formData.name.trim() || !formData.subject_code.trim() || !formData.section.trim()) {
+      setError("Please fill out all required fields.");
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -45,7 +49,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
               Initialize a new class section for automated grading.
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-text-muted">Course Name</label>
                 <input
@@ -54,7 +58,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="e.g. Object-Oriented Programming"
-                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none"
                   required
                 />
               </div>
@@ -66,7 +70,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                   value={formData.subject_code}
                   onChange={handleChange}
                   placeholder="e.g. CCS101"
-                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none"
                   required
                 />
               </div>
@@ -78,7 +82,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                   value={formData.section}
                   onChange={handleChange}
                   placeholder="e.g. Block A"
-                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none"
                   required
                 />
               </div>
@@ -100,7 +104,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
                 <button
                   type="submit"
                   disabled={isLoading || !formData.name || !formData.subject_code || !formData.section}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-emerald-500"
+                  className="rounded-lg bg-psu-maroon px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-psu-maroon"
                 >
                   {isLoading ? "Creating..." : "Create Class"}
                 </button>
@@ -109,7 +113,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
           </>
         ) : (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-text-emerald">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/20 text-text-emerald">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -118,7 +122,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
             <p className="mb-4 text-sm text-text-muted">
               Share this code with your students so they can join the class.
             </p>
-            <div className="mb-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <div className="mb-6 rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 p-4">
               <span className="font-mono text-2xl font-bold tracking-wider text-text-emerald">
                 {generatedCode}
               </span>

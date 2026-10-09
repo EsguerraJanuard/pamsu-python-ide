@@ -25,7 +25,7 @@ export default function InstructorSettings() {
   const [errorMsg, setErrorMsg] = useState(null);
 
   const inputClass = "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
-  const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/60";
+  const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon/60";
 
   // Password state
   const [passwords, setPasswords] = useState({
@@ -113,6 +113,11 @@ export default function InstructorSettings() {
     e.preventDefault();
     setErrorMsg(null);
     setSaved(false);
+    if (!formData.name || !formData.name.trim()) {
+      setErrorMsg("Full name is required.");
+      return;
+    }
+    
 
     try {
       const updatedUser = await api.patch("/users/me", {
@@ -155,18 +160,18 @@ export default function InstructorSettings() {
         </header>
 
         {errorMsg && (
-          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-psu-red">
             {errorMsg}
           </div>
         )}
 
         {saved && (
-          <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-text-emerald">
+          <div className="mb-6 rounded-xl border border-psu-maroon/30 bg-psu-maroon/10 px-4 py-3 text-xs text-text-emerald">
             Settings updated successfully. Changes have been saved.
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
             <h2 className="text-sm font-semibold text-text-main mb-4">Faculty Profile</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -201,7 +206,7 @@ export default function InstructorSettings() {
                     name="department"
                     value={formData.department}
                     onChange={handleChange}
-                    className="w-full appearance-none rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
+                    className="w-full appearance-none rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-psu-maroon focus:outline-none"
                   >
                     <option value="College of Computing Studies">College of Computing Studies</option>
                   </select>
@@ -217,7 +222,7 @@ export default function InstructorSettings() {
                   name="defaultCourse"
                   value={formData.defaultCourse}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 text-xs text-text-main focus:border-psu-maroon focus:outline-none"
                 />
               </div>
             </div>
@@ -243,7 +248,7 @@ export default function InstructorSettings() {
           <div className="flex justify-end gap-3">
             <button
               type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition"
+              className="rounded-lg bg-psu-maroon px-4 py-2 text-xs font-semibold text-white hover:bg-psu-maroon transition"
             >
               Save Changes
             </button>
@@ -267,7 +272,7 @@ export default function InstructorSettings() {
               className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
                 passwordMessageType === "error"
                   ? "border-red-500/20 bg-red-500/10 text-text-rose"
-                  : "border-emerald-500/20 bg-emerald-500/10 text-text-emerald"
+                  : "border-psu-maroon/20 bg-psu-maroon/10 text-text-emerald"
               }`}
             >
               {passwordMessage}
@@ -362,7 +367,7 @@ export default function InstructorSettings() {
                       onChange={() => setShowPasswords(!showPasswords)}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                    <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
                   </div>
                 Show passwords
               </label>
@@ -371,7 +376,7 @@ export default function InstructorSettings() {
             <div className="flex justify-end pt-1">
               <button
                 type="submit"
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition duration-150"
+                className="rounded-lg bg-psu-maroon px-4 py-2 text-xs font-semibold text-white hover:bg-psu-maroon transition duration-150"
               >
                 Update password
               </button>

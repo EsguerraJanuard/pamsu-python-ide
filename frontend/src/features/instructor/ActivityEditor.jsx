@@ -102,7 +102,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
         
         <div className="flex items-center gap-3">
           {checkedCount > 0 && (
-            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-psu-maroon text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
               {checkedCount} selected
             </span>
           )}
@@ -151,7 +151,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     : 'bg-transparent border-transparent hover:bg-bg-glass hover:border-border-subtle'
                 }`}
               >
-                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-psu-maroon dark:text-emerald-400' : 'text-text-main'}`}>
+                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-psu-maroon dark:text-psu-maroon' : 'text-text-main'}`}>
                   {rule.label}
                 </span>
                 
@@ -304,6 +304,13 @@ const ActivityEditor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    
+    if (!formData.title || !formData.title.trim()) {
+      setError('Activity title is required.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (!formData.class_ids || formData.class_ids.length === 0) {
       setError('Please select at least one classroom.');
       return;
@@ -394,7 +401,7 @@ const ActivityEditor = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6" noValidate>
               {/* Left Column: Details & Instructions (7 cols) */}
               <div className="lg:col-span-7 space-y-5 bg-bg-glass p-6 rounded-2xl border border-border-subtle">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-psu-maroon pb-2 border-b border-border-subtle">
@@ -526,7 +533,7 @@ const ActivityEditor = () => {
                             onClick={() => handleDifficultyChange(level)}
                             className={`flex-1 py-2 text-xs font-semibold capitalize rounded-lg transition-colors ${
                               formData.difficulty === level 
-                                ? 'bg-bg-glass text-psu-maroon dark:text-emerald-400 shadow-sm border border-border-subtle' 
+                                ? 'bg-bg-glass text-psu-maroon dark:text-psu-maroon shadow-sm border border-border-subtle' 
                                 : 'text-text-muted hover:text-text-main hover:bg-bg-glass/50'
                             }`}
                           >
@@ -542,7 +549,7 @@ const ActivityEditor = () => {
                         <div className="flex items-center gap-4">
                           {formData.difficulty && (
                             <label className="flex items-center gap-2 cursor-pointer group">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-psu-maroon group-hover:text-emerald-400 transition-colors">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-psu-maroon group-hover:text-psu-maroon transition-colors">
                                 Toggle All
                               </span>
                               <div className="relative inline-flex items-center">

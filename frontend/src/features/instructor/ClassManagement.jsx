@@ -45,6 +45,11 @@ export default function ClassManagement() {
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
+    setAlertConfig(null);
+    if (!formData.name.trim() || !formData.subject_code.trim() || !formData.section.trim()) {
+      setAlertConfig({ title: 'Validation Error', message: 'Please fill out all classroom fields.', isError: true });
+      return;
+    }
     setIsSubmitting(true);
     try {
       await api.post('/classrooms/', formData);
@@ -227,7 +232,7 @@ export default function ClassManagement() {
                     
                     <h2 className="text-lg font-bold mb-6">Create New Class</h2>
                     
-                    <form onSubmit={handleCreateSubmit} className="space-y-4">
+                    <form onSubmit={handleCreateSubmit} className="space-y-4" noValidate>
                       <div>
                         <label className="block text-xs font-medium text-text-muted mb-1">Subject Code</label>
                         <input 
