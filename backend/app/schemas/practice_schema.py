@@ -95,3 +95,8 @@ class PracticeTaskUpdate(BaseModel):
     class Config:
         extra = "forbid"
 
+
+
+class PracticeAiHintResponse(BaseModel):
+    ai_hint: Optional[str] = None
+    status: str

@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.core.request_context import (RequestContextMiddleware,
                                       configure_request_logging)
 from app.integrations.partner_auth import PARTNER_EXECUTION_TOKEN_HEADER
-from app.routers import (activities, admin, audit_records, auth, classrooms,
+from app.routers import (activities, admin, registration, audit_records, auth, classrooms,
                          evaluation, execution, instructor, logs,
                          notifications, practice, reporting, submissions,
                          users, ws_execution)

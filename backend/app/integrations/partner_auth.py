@@ -6,6 +6,7 @@ from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 
 PARTNER_EXECUTION_TOKEN_HEADER = "X-Partner-Token"
+PARTNER_EXECUTION_TOKEN_ENV = "PARTNER_EXECUTION_TOKEN"
 
 PartnerExecutionIdentity = Literal["isolated_execution_worker",]
 

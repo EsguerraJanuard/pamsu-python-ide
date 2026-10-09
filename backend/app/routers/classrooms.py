@@ -28,7 +28,7 @@ from app.services.classroom_service import (ClassroomAccessDeniedError,
                                             list_instructor_classrooms,
                                             list_student_classrooms,
                                             regenerate_class_code,
-                                            unenroll_student, update_classroom,
+                                            update_classroom,
                                             update_enrollment_status)
 from fastapi import (APIRouter, Depends, File, HTTPException, Path, UploadFile,
                      status)
