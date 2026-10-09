@@ -54,6 +54,7 @@ import Workspace from './features/workspace/Workspace';
 import SoloPractice from './features/practice/SoloPractice';
 import PracticeWorkspace from './features/practice/PracticeWorkspace';
 import Settings from './features/settings/Settings';
+import AdminDashboard from './features/admin/AdminDashboard';
 import ClassRosterView from './features/dashboard/ClassRosterView';
 import ClassManagement from './features/instructor/ClassManagement';
 import ActivityEditor from './features/instructor/ActivityEditor';

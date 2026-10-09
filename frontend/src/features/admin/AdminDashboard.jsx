@@ -308,7 +308,94 @@ export default function AdminDashboard() {
       <div className="flex min-h-[calc(100vh-80px)]">
         <aside className="w-64 shrink-0 border-r border-border-subtle p-6 space-y-2 bg-bg-base hidden lg:block">
           <NavButton active={activeTab === 'overview'} onClick={() => handleTabChange('overview')} label="System Overview" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          <NavButton active={activeTab === 'faculty'} onClick={() => handleTabChange('faculty')} label="Faculty Management" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            {activeTab === 'faculty' && (
+              <div className="flex flex-col gap-8 animate-fade-in w-full mx-auto max-w-6xl">
+                <header className="border-b border-border-subtle pb-6 w-full">
+                  <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">MANAGEMENT</p>
+                  <h1 className="text-3xl font-black text-text-main tracking-tight">Faculty Management</h1>
+                  <p className="mt-2 text-sm text-text-muted">Provision new instructor accounts and manage existing computer science faculty.</p>
+                </header>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 w-full">
+                    <div className="xl:col-span-1">
+                      <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm relative overflow-hidden sticky top-6">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
+                  <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
+                  <form onSubmit={handleCreateFaculty} className="space-y-5">
+                    <Input label="Official PSU Email" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input label="First Name" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} />
+                      <Input label="Last Name" value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} />
+                    </div>
+                    <Input label="Initial Password" type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+                    <button disabled={isLoading} type="submit" className="w-full mt-2 rounded-xl bg-psu-maroon py-3 text-sm font-bold text-white shadow-lg shadow-psu-maroon/20 hover:scale-[1.02] hover:shadow-psu-maroon/40 transition-all disabled:opacity-50">
+                      Create Faculty Account
+                    </button>
+                  </form>
+                </div>
+                      </div>
+                    </div>
+                    <div className="xl:col-span-2">
+                      <div className="bg-bg-glass border border-border-subtle rounded-2xl w-full shadow-md overflow-hidden flex flex-col">
+                  <div className="px-6 py-5 border-b border-border-subtle bg-bg-base/30">
+                    <h3 className="text-lg font-bold tracking-tight">CS Department Faculty</h3>
+                    <p className="text-xs text-text-muted mt-1">Manage instructor accounts</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="text-xs font-semibold text-text-muted uppercase bg-bg-panel border-b border-border-subtle tracking-wider">
+                        <tr>
+                          <th className="px-4 py-3 w-[35%]">Name</th>
+                            <th className="px-4 py-3 w-[40%]">Email</th>
+                            <th className="px-4 py-3 w-[15%]">Status</th>
+                            <th className="px-4 py-3 w-[10%] text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {instructors.length === 0 && (
+                          <tr>
+                            <td colSpan="4" className="px-8 py-20 text-center text-text-muted bg-bg-base/30">
+                              <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                                <div className="p-4 bg-bg-glass rounded-full mb-4 shadow-sm border border-border-subtle">
+                                  <svg className="w-8 h-8 text-text-muted opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                </div>
+                                <p className="font-bold text-text-main text-base">No faculty members found</p>
+                                <p className="text-sm mt-1">Use the provision form on the left to add a new instructor to this department.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        {instructors.map((inst) => (
+                          <tr key={inst.user_id} className="border-b border-border-subtle hover:bg-bg-panel transition-colors group">
+                            <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-psu-maroon/10 text-text-brand flex items-center justify-center font-bold text-xs border border-psu-maroon/20">
+                                    {inst.first_name[0]}{inst.last_name[0]}
+                                  </div>
+                                  <span className="font-bold text-text-main group-hover:text-text-brand transition-colors">{inst.first_name} {inst.last_name}</span>
+                                </div>
+                            </td>
+                            <td className="px-4 py-4 text-text-muted font-medium">{inst.email}</td>
+                            <td className="px-4 py-4">
+                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400' : 'bg-bg-base text-text-muted border-border-strong'}`}>
+                                {inst.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-right space-x-2">
+                              <ActionBtn onClick={() => handleAction(inst, 'reset')} text="Reset" />
+                              <ActionBtn onClick={() => handleAction(inst, 'status')} text={inst.is_active ? "Suspend" : "Activate"} danger={inst.is_active} />
+                            </td>
+                          </tr>
+                        ))}
+                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-text-muted">Loading more faculty...</td></tr>}
+                      </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
           <NavButton active={activeTab === 'students'} onClick={() => handleTabChange('students')} label="Student Database" icon="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           <NavButton active={activeTab === 'audit'} onClick={() => handleTabChange('audit')} label="Global Audit Trail" icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           <NavButton active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} label="System Settings" icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -545,6 +632,7 @@ export default function AdminDashboard() {
                     </table>
                   </div>
                 </div>
+              </div>
               </div>
             )}
 
