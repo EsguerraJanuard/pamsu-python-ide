@@ -191,7 +191,7 @@ export default function Login() {
 
         <div className="relative z-10 animate-login-fade opacity-0">
           <div className="flex items-center gap-3">
-            <img src="/pamsu-logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
+            <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-psu-gold/90">Pampanga State University</p>
               <p className="text-lg font-black tracking-tight text-white">Python IDE</p>
@@ -209,8 +209,19 @@ export default function Login() {
             <span className="text-psu-gold">Learn to think.</span>
           </h1>
           <p className="mt-6 max-w-md text-base leading-relaxed text-white/80">
-            A secure, browser-based Python environment built specifically for Pampanga State University. Features automated structural feedback, telemetry monitoring, and zero-setup isolated execution.
+            An intelligent, browser-based Python workspace built exclusively for the Pampanga State University College of Computing Studies Department.
           </p>
+          
+          <ul className="mt-8 space-y-4">
+            {features.map((feat, idx) => (
+              <li key={idx} className="flex items-center gap-3 text-sm font-medium text-white/90">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/5">
+                  {feat.icon}
+                </div>
+                {feat.label}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0">
@@ -223,7 +234,7 @@ export default function Login() {
         
         {/* Mobile Logo Header */}
         <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
-          <img src="/pamsu-logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
+          <img src="/school_logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
             <p className="text-base font-black tracking-tight text-text-main">Python IDE</p>
@@ -237,11 +248,11 @@ export default function Login() {
 
         <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
           <div className="mb-8 text-center sm:text-left">
-            <h2 className="text-2xl font-black text-text-main">
-              Welcome back
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-text-main">
+              Sign in to your workspace
             </h2>
             <p className="mt-2 text-sm text-text-muted">
-              Sign in to your university workspace
+              Use your verified university account
             </p>
           </div>
 
@@ -378,7 +389,7 @@ export default function Login() {
                 disabled={isLoading}
                 className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-bg-glass px-4 py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-bg-glass-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
-                Continue as Guest Panelist
+                Continue as Guest Student
               </button>
             </div>
           </form>
