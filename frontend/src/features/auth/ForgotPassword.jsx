@@ -50,10 +50,18 @@ export default function ForgotPassword() {
 
   const handleStartReset = async (e) => {
     e.preventDefault();
-    if (!email) return;
+    setErrorMsg("");
+    
+    if (!email || !email.trim()) {
+      setErrorMsg("Please enter your university email address.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrorMsg("Please enter a valid email address.");
+      return;
+    }
     
     setLoading(true);
-    setErrorMsg("");
     
     try {
       const response = await api.post("/users/password-reset/start", { email });
@@ -96,8 +104,20 @@ export default function ForgotPassword() {
 
   const handleCompleteReset = async (e) => {
     e.preventDefault();
-    if (!otpCode || !newPassword || !confirmPassword) return;
+    setErrorMsg("");
 
+    if (!otpCode || otpCode.length !== 6) {
+      setErrorMsg("Please enter the 6-digit verification code.");
+      return;
+    }
+    if (!newPassword) {
+      setErrorMsg("Please enter your new password.");
+      return;
+    }
+    if (!confirmPassword) {
+      setErrorMsg("Please confirm your new password.");
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setErrorMsg("Passwords do not match.");
       return;
@@ -165,7 +185,7 @@ export default function ForgotPassword() {
         )}
 
         {step === 1 && (
-          <form onSubmit={handleStartReset} className="animate-[registerFadeUp_400ms_ease-out_both] space-y-6">
+          <form onSubmit={handleStartReset} className="animate-[registerFadeUp_400ms_ease-out_both] space-y-6" noValidate>
             <div>
               <label htmlFor="email" className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
                 University Email Address
@@ -207,7 +227,7 @@ export default function ForgotPassword() {
         )}
 
         {step === 2 && (
-          <form onSubmit={handleCompleteReset} className="animate-[registerFadeUp_400ms_ease-out_both] space-y-6">
+          <form onSubmit={handleCompleteReset} className="animate-[registerFadeUp_400ms_ease-out_both] space-y-6" noValidate>
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <label className="text-[13px] font-bold text-text-muted uppercase tracking-wider">
