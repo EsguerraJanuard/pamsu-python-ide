@@ -18,6 +18,7 @@ function getProgressColor(value) {
 export default function Analytics() {
   const [metrics, setMetrics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -25,7 +26,8 @@ export default function Analytics() {
         const response = await api.get("/practice/analytics/growth");
         setMetrics(response);
       } catch (err) {
-        console.error("Failed to load analytics data", err);
+        console.error("API Error", err);
+        setError("Failed to load data. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -179,6 +181,13 @@ export default function Analytics() {
         </div>
       </main>
         <Statusbar />
+
+        {error && (
+          <div className="m-6 mb-0 p-4 bg-psu-red/10 border border-psu-red/20 text-psu-red rounded-lg flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-psu-red hover:opacity-80">X</button>
+          </div>
+        )}
       </div>
     </div>
   );

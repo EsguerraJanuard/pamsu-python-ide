@@ -142,8 +142,9 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                                     is_released: true
                                   });
                                 } catch (err) {
-                                  console.error("Failed to update score", err);
-                                }
+                                    console.error("Failed to update score", err);
+                                    setError("Failed to update score.");
+                                  }
                               }
                             }}
                             className="w-16 rounded border border-border-subtle bg-bg-base px-2 py-1 text-center font-mono text-sm text-text-main focus:border-blue-500 focus:outline-none"

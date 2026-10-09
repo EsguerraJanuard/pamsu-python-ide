@@ -54,6 +54,7 @@ export default function MyClasses() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [classrooms, setClassrooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // We fetch dashboard data to get the accurate assignmentCount for Sidebar, and the classrooms
   const [activeActivitiesCount, setActiveActivitiesCount] = useState(0);
@@ -75,8 +76,9 @@ export default function MyClasses() {
       setActiveActivitiesCount(activeCount);
       setClassrooms(classRes);
     } catch (err) {
-      console.error("Failed to load classes data", err);
-    } finally {
+        console.error("API Error", err);
+        setError("Failed to load data. Please try again.");
+      } finally {
       setIsLoading(false);
     }
   };
@@ -242,6 +244,13 @@ export default function MyClasses() {
           courseName={user.courseName}
           studentName={user.name}
         />
+
+        {error && (
+          <div className="m-6 mb-0 p-4 bg-psu-red/10 border border-psu-red/20 text-psu-red rounded-lg flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-psu-red hover:opacity-80">X</button>
+          </div>
+        )}
       </div>
 
       <JoinClassModal 

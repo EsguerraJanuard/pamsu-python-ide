@@ -53,8 +53,9 @@ const ActivityDetails = () => {
       await api.patch(`/instructors/tasks/${id}/publication`, { is_published: newStatus });
       setActivity(prev => ({ ...prev, is_published: newStatus }));
     } catch (err) {
-      console.error('Failed to toggle publication status', err);
-    }
+        console.error('Failed to toggle publication status', err);
+        setError('Failed to toggle publication status.');
+      }
   };
 
   const toggleAllowPaste = async () => {
@@ -63,8 +64,9 @@ const ActivityDetails = () => {
       await api.patch(`/instructors/tasks/${id}`, { allow_paste: newStatus });
       setActivity(prev => ({ ...prev, allow_paste: newStatus }));
     } catch (err) {
-      console.error('Failed to toggle allow paste', err);
-    }
+        console.error('Failed to toggle allow paste', err);
+        setError('Failed to toggle allow paste.');
+      }
   };
 
   const handleAddTestCase = async (e) => {
@@ -74,8 +76,9 @@ const ActivityDetails = () => {
       setNewTestCase({ input_data: '', expected_output: '', is_hidden: false });
       fetchTestCases();
     } catch (err) {
-      console.error('Failed to add test case', err);
-    }
+        console.error('Failed to add test case', err);
+        setError('Failed to add test case.');
+      }
   };
 
   const promptDeleteTestCase = (testCaseId) => {
@@ -91,8 +94,9 @@ const ActivityDetails = () => {
       fetchTestCases();
       setConfirmModal({ isOpen: false, testCaseId: null });
     } catch (err) {
-      console.error('Failed to delete test case', err);
-    }
+        console.error('Failed to delete test case', err);
+        setError('Failed to delete test case.');
+      }
   };
 
   if (loading) {
@@ -140,7 +144,7 @@ const ActivityDetails = () => {
               <h1 className="text-2xl font-bold mb-2">{activity.title}</h1>
               <p className="text-text-muted">{activity.description}</p>
             </div>
-            <button onClick={() => navigate(-1)} className="text-text-emerald hover:text-text-emerald">
+            <button onClick={() => navigate(-1)} className="text-psu-maroon hover:text-psu-maroon">
               Back
             </button>
           </div>
@@ -153,7 +157,7 @@ const ActivityDetails = () => {
                   onChange={togglePublication}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
               </div>
               <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">
                 {activity.is_published ? "Published" : "Draft"}
@@ -169,7 +173,7 @@ const ActivityDetails = () => {
                   disabled={activity.is_published}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-emerald-500"></div>
+                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-psu-maroon"></div>
               </div>
               <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
             </label>
@@ -181,14 +185,14 @@ const ActivityDetails = () => {
           <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Details</h2>
           
           <div>
-            <h3 className="text-sm font-medium text-text-emerald">Instructions</h3>
+            <h3 className="text-sm font-medium text-psu-maroon">Instructions</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.instructions || 'No instructions provided.'}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-text-emerald">Requirements</h3>
+            <h3 className="text-sm font-medium text-psu-maroon">Requirements</h3>
             <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
               {activity.required_ast_rules && Object.keys(activity.required_ast_rules).length > 0 ? Object.keys(activity.required_ast_rules).join(", ") : 'No requirements provided.'}
             </div>
@@ -246,7 +250,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.input_data}
                   onChange={e => setNewTestCase({...newTestCase, input_data: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-psu-maroon focus:outline-none h-24"
                   placeholder="Enter input data..."
                 />
               </div>
@@ -255,7 +259,7 @@ const ActivityDetails = () => {
                 <textarea 
                   value={newTestCase.expected_output}
                   onChange={e => setNewTestCase({...newTestCase, expected_output: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
+                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-psu-maroon focus:outline-none h-24"
                   required
                   placeholder="Enter expected output..."
                 />
@@ -270,13 +274,13 @@ const ActivityDetails = () => {
                     onChange={e => setNewTestCase({...newTestCase, is_hidden: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
+                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
                 </div>
                 <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Hidden Test Case</span>
               </label>
               <button 
                 type="submit"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+                className="px-4 py-2 bg-psu-maroon hover:bg-emerald-700 text-white rounded transition-colors"
               >
                 Add Test Case
                 </button>

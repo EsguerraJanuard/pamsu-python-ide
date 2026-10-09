@@ -135,7 +135,7 @@ export default function ClassDetails() {
     };
 
     fetchData();
-  }, [id]);
+  }, [id, classroom]);
 
   const handleOpenActivity = (activity) => {
     if (activity.status === "graded" || activity.status === "submitted") {

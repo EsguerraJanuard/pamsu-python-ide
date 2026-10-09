@@ -100,7 +100,7 @@ export default function NotificationsPage({ role: propRole }) {
               <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6 shrink-0">
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-3 tracking-wide">
-                    <BellIcon className="h-6 w-6 text-text-emerald" />
+                    <BellIcon className="h-6 w-6 text-psu-maroon" />
                     {isInstructor ? "System Alerts" : "Notifications"}
                   </h1>
                   <p className="mt-1 text-sm text-text-muted">
@@ -161,13 +161,13 @@ export default function NotificationsPage({ role: propRole }) {
                                 isSelected 
                                   ? "bg-bg-glass" 
                                   : !notif.is_read 
-                                    ? "bg-blue-500/[0.03] hover:bg-blue-500/[0.06]" 
+                                    ? "bg-psu-maroon/[0.03] hover:bg-psu-maroon/[0.06]" 
                                     : "hover:bg-bg-glass"
                               }`}
                             >
                               <div className="flex items-start gap-3">
                                 {!notif.is_read && (
-                                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-psu-maroon shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
                                 )}
                                 <div className={`min-w-0 flex-1 ${notif.is_read ? "ml-4.5" : ""}`}>
                                   <h3 className={`truncate text-sm ${!notif.is_read ? "font-semibold text-text-main" : "font-medium text-text-muted"}`}>
@@ -200,7 +200,7 @@ export default function NotificationsPage({ role: propRole }) {
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                         </button>
-                        <h2 className="text-sm font-semibold text-text-emerald">Notification Details</h2>
+                        <h2 className="text-sm font-semibold text-psu-maroon">Notification Details</h2>
                       </div>
                       
                       <div className="flex-1 overflow-y-auto p-8">
@@ -221,17 +221,17 @@ export default function NotificationsPage({ role: propRole }) {
                             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Suggested Actions</h3>
                             <div className="flex flex-wrap gap-3">
                               {selectedNotification.type === "submission" && (
-                                <button onClick={() => handleAction("submission", selectedNotification.reference_id)} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition">
+                                <button onClick={() => handleAction("submission", selectedNotification.reference_id)} className="rounded-lg bg-psu-maroon px-4 py-2 text-xs font-semibold text-white hover:bg-psu-maroon transition">
                                   Review Submission
                                 </button>
                               )}
                               {selectedNotification.type === "classroom" && (
-                                <button onClick={() => handleAction("classroom", selectedNotification.reference_id)} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-text-emerald hover:bg-emerald-500/20 transition">
+                                <button onClick={() => handleAction("classroom", selectedNotification.reference_id)} className="rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 px-4 py-2 text-xs font-semibold text-psu-maroon hover:bg-psu-maroon/20 transition">
                                   Manage Classroom
                                 </button>
                               )}
                               {selectedNotification.type === "grade" && (
-                                <button onClick={() => handleAction("grade", selectedNotification.reference_id)} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition">
+                                <button onClick={() => handleAction("grade", selectedNotification.reference_id)} className="rounded-lg bg-psu-maroon px-4 py-2 text-xs font-semibold text-white hover:bg-psu-maroon transition">
                                   View Grade
                                 </button>
                               )}

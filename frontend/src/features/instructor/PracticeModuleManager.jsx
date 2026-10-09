@@ -127,13 +127,13 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
         className="flex items-center p-4 cursor-pointer hover:bg-bg-glass transition-colors group gap-4"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm font-bold text-text-main group-hover:text-emerald-500 transition-colors flex-1">
+        <span className="text-sm font-bold text-text-main group-hover:text-psu-maroon transition-colors flex-1">
           {category.title}
         </span>
         
         <div className="flex items-center gap-3">
           {checkedCount > 0 && (
-            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
               {checkedCount} selected
             </span>
           )}
@@ -147,7 +147,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
             strokeWidth="2.5" 
             strokeLinecap="round" 
             strokeLinejoin="round"
-            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-emerald-500' : ''}`}
+            className={`text-text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-psu-maroon' : ''}`}
           >
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -167,7 +167,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 onChange={(e) => onToggleCategory(category, e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
             </div>
           </label>
           {category.rules.map(rule => {
@@ -178,7 +178,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 key={rule.id} 
                 className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border ${
                   isChecked 
-                    ? 'bg-emerald-500/10 border-emerald-500/30 shadow-sm' 
+                    ? 'bg-psu-maroon/10 border-psu-maroon/30 shadow-sm' 
                     : 'bg-transparent border-transparent hover:bg-bg-glass'
                 }`}
               >
@@ -194,7 +194,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     onChange={(e) => onToggleRule(rule.id, e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
                 </div>
               </label>
             );
@@ -383,7 +383,7 @@ export default function PracticeModuleManager() {
         <div className="mx-auto max-w-6xl w-full space-y-6">
           <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
             <div>
-              <p className="mb-1 font-mono text-xs font-semibold tracking-wider text-text-emerald uppercase">MANAGEMENT</p>
+              <p className="mb-1 font-mono text-xs font-semibold tracking-wider text-psu-maroon uppercase">MANAGEMENT</p>
               <h1 className="text-2xl font-bold">Practice Modules</h1>
               <p className="mt-1 text-sm text-text-muted">
                 Create and manage structured solo practice modules and coding tasks for students.
@@ -391,7 +391,7 @@ export default function PracticeModuleManager() {
             </div>
             <button
               onClick={() => openModuleModal()}
-              className="rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg transition-all hover:bg-emerald-500 hover:shadow-emerald-500/20 active:scale-95"
+              className="rounded-lg bg-psu-maroon px-4 py-2.5 text-xs font-semibold text-white shadow-lg transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/20 active:scale-95"
             >
               + Create New Module
             </button>
@@ -400,7 +400,7 @@ export default function PracticeModuleManager() {
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <div className="flex flex-col items-center gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-psu-maroon border-t-transparent"></div>
                 <p className="text-sm text-text-muted">Loading practice modules...</p>
               </div>
             </div>
@@ -413,7 +413,7 @@ export default function PracticeModuleManager() {
             </div>
           ) : modules.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border-subtle p-12 text-center">
-              <div className="mb-4 rounded-full bg-bg-glass p-4 text-emerald-500">
+              <div className="mb-4 rounded-full bg-bg-glass p-4 text-psu-maroon">
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
@@ -438,7 +438,7 @@ export default function PracticeModuleManager() {
                           {mod.title}
                         </h2>
                         {mod.instructor_id === null && (
-                          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 shadow-sm">
+                          <span className="rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 shadow-sm">
                             Protected Base
                           </span>
                         )}
@@ -515,7 +515,7 @@ export default function PracticeModuleManager() {
                     
                     <button
                       onClick={() => openTaskModal(mod.module_id)}
-                      className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border-subtle p-2.5 text-xs font-semibold text-text-muted hover:border-emerald-500/50 hover:bg-emerald-500/5 hover:text-emerald-400 transition"
+                      className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border-subtle p-2.5 text-xs font-semibold text-text-muted hover:border-psu-maroon/50 hover:bg-psu-maroon/5 hover:text-emerald-400 transition"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -549,20 +549,20 @@ export default function PracticeModuleManager() {
             <form onSubmit={handleModuleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1.5">Module Title</label>
-                <input required type="text" value={moduleForm.title} onChange={e => setModuleForm({...moduleForm, title: e.target.value})} placeholder="e.g. Introduction to Python" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition" />
+                <input required type="text" value={moduleForm.title} onChange={e => setModuleForm({...moduleForm, title: e.target.value})} placeholder="e.g. Introduction to Python" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1.5">Description (Optional)</label>
-                <textarea value={moduleForm.description} onChange={e => setModuleForm({...moduleForm, description: e.target.value})} placeholder="Briefly describe what this module covers..." className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition" rows="3" />
+                <textarea value={moduleForm.description} onChange={e => setModuleForm({...moduleForm, description: e.target.value})} placeholder="Briefly describe what this module covers..." className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition" rows="3" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1.5">Sort Order Index</label>
-                <input required type="number" min="1" value={moduleForm.order_index} onChange={e => setModuleForm({...moduleForm, order_index: parseInt(e.target.value) || 1})} className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition" />
+                <input required type="number" min="1" value={moduleForm.order_index} onChange={e => setModuleForm({...moduleForm, order_index: parseInt(e.target.value) || 1})} className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition" />
                 <p className="mt-1.5 text-[10px] text-text-muted">Lower numbers appear first in the curriculum.</p>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle mt-6">
                 <button type="button" onClick={() => setIsModuleModalOpen(false)} className="rounded-lg border border-border-subtle bg-transparent px-4 py-2 text-sm font-semibold text-text-main hover:bg-bg-glass transition">Cancel</button>
-                <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 transition">Save Module</button>
+                <button type="submit" className="rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-psu-maroon transition">Save Module</button>
               </div>
             </form>
           </div>
@@ -587,11 +587,11 @@ export default function PracticeModuleManager() {
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
                     <label className="block text-xs font-semibold text-text-main mb-1.5">Task Title</label>
-                    <input required type="text" value={taskForm.title} onChange={e => setTaskForm({...taskForm, title: e.target.value})} placeholder="e.g. Printing Hello World" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition" />
+                    <input required type="text" value={taskForm.title} onChange={e => setTaskForm({...taskForm, title: e.target.value})} placeholder="e.g. Printing Hello World" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition" />
                   </div>
                   <div className="sm:col-span-1">
                     <label className="block text-xs font-semibold text-text-main mb-1.5">Order Index</label>
-                    <input required type="number" min="1" value={taskForm.order_index} onChange={e => setTaskForm({...taskForm, order_index: parseInt(e.target.value) || 1})} className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition" />
+                    <input required type="number" min="1" value={taskForm.order_index} onChange={e => setTaskForm({...taskForm, order_index: parseInt(e.target.value) || 1})} className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition" />
                   </div>
                 </div>
                 
@@ -607,13 +607,13 @@ export default function PracticeModuleManager() {
                     </ul>
                   </InfoTooltip>
                 </label>
-                  <textarea required value={taskForm.instructions} onChange={e => setTaskForm({...taskForm, instructions: e.target.value})} placeholder="Write the prompt for the student here..." className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono" rows="4" />
+                  <textarea required value={taskForm.instructions} onChange={e => setTaskForm({...taskForm, instructions: e.target.value})} placeholder="Write the prompt for the student here..." className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition font-mono" rows="4" />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-semibold text-text-main mb-1.5">Starter Code (Optional)</label>
-                    <textarea value={taskForm.starter_code} onChange={e => setTaskForm({...taskForm, starter_code: e.target.value})} placeholder="# Write your code below" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-emerald-400 placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono whitespace-pre" rows="5" />
+                    <textarea value={taskForm.starter_code} onChange={e => setTaskForm({...taskForm, starter_code: e.target.value})} placeholder="# Write your code below" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-emerald-400 placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition font-mono whitespace-pre" rows="5" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
@@ -622,7 +622,7 @@ export default function PracticeModuleManager() {
                         The exact console output the student's code must produce to pass. Trailing whitespaces and empty newlines at the end are ignored, but exact casing and spelling are required.
                       </InfoTooltip>
                     </label>
-                    <textarea required value={taskForm.expected_output} onChange={e => setTaskForm({...taskForm, expected_output: e.target.value})} placeholder="Hello World" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-amber-400 placeholder-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-mono whitespace-pre" rows="5" />
+                    <textarea required value={taskForm.expected_output} onChange={e => setTaskForm({...taskForm, expected_output: e.target.value})} placeholder="Hello World" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-amber-400 placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition font-mono whitespace-pre" rows="5" />
                   </div>
                 </div>
 
@@ -654,7 +654,7 @@ export default function PracticeModuleManager() {
 
             <div className="flex justify-end gap-3 p-5 border-t border-border-subtle shrink-0">
               <button type="button" onClick={() => setIsTaskModalOpen(false)} className="rounded-lg border border-border-subtle bg-transparent px-4 py-2 text-sm font-semibold text-text-main hover:bg-bg-glass transition">Cancel</button>
-              <button type="submit" form="task-form" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 transition">Save Task</button>
+              <button type="submit" form="task-form" className="rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-psu-maroon transition">Save Task</button>
             </div>
           </div>
         </div>

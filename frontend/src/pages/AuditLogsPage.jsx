@@ -97,7 +97,7 @@ export default function AuditLogsPage({ role: propRole }) {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by action, resource, or IP address..."
-                      className="w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:border-emerald-500/50 focus:outline-none transition"
+                      className="w-full sm:w-80 rounded-lg border border-border-subtle bg-bg-glass px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:border-psu-maroon/50 focus:outline-none transition"
                     />
                   </div>
 
@@ -175,7 +175,7 @@ export default function AuditLogsPage({ role: propRole }) {
                                 <span
                                   className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
                                     (log.status === "SUCCESS" || log.outcome === "succeeded")
-                                      ? "border-emerald-500/30 bg-emerald-500/10 text-text-emerald"
+                                      ? "border-psu-maroon/30 bg-psu-maroon/10 text-text-emerald"
                                       : "border-rose-500/30 bg-rose-500/10 text-text-rose"
                                   }`}
                                 >

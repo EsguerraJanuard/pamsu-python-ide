@@ -9,9 +9,19 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({ total_instructors: 0, total_students: 0, total_classrooms: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const showMessage = (msg, isError = false) => {
+    isError ? setError(msg) : setSuccess(msg);
+    setTimeout(() => { setError(null); setSuccess(null); }, 5000);
+  };
+
   const [users, setUsers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [settings, setSettings] = useState({
+
     maintenance_mode: false,
     default_ast_strictness: 'moderate'
   });
@@ -24,6 +34,7 @@ export default function AdminDashboard() {
   const { ref: userRef, inView: userInView } = useInView();
   const { ref: logRef, inView: logInView } = useInView();
   
+  
   const loadMoreUsers = async () => {
     if (!hasMoreUsers) return;
     const newSkip = usersSkip + 50;
@@ -34,8 +45,9 @@ export default function AdminDashboard() {
       setUsers(prev => [...prev, ...resData]);
       setUsersSkip(newSkip);
     } catch (err) {
-      console.error(err);
-    }
+        console.error(err);
+        showMessage("An error occurred during fetch.", true);
+      }
   };
   
   const loadMoreLogs = async () => {
@@ -47,8 +59,9 @@ export default function AdminDashboard() {
       setAuditLogs(prev => [...prev, ...(res.data || res)]);
       setLogsSkip(newSkip);
     } catch (err) {
-      console.error(err);
-    }
+        console.error(err);
+        showMessage("An error occurred during fetch.", true);
+      }
   };
   
   useEffect(() => {
@@ -70,9 +83,7 @@ export default function AdminDashboard() {
     maintenance_mode: false
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+
   
   // Data States
   const [form, setForm] = useState({ email: '', first_name: '', last_name: '', password: '' });
@@ -104,8 +115,9 @@ export default function AdminDashboard() {
       setSettings(settingsRes.data || settingsRes);
       setInitialSettings(settingsRes.data || settingsRes);
     } catch (err) {
-      console.error("Dashboard error:", err);
-    }
+        console.error("Dashboard error:", err);
+        showMessage("Dashboard error occurred.", true);
+      }
   };
 
   useEffect(() => {
@@ -140,11 +152,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const showMessage = (msg, isError = false) => {
-    isError ? setError(msg) : setSuccess(msg);
-    setTimeout(() => { setError(null); setSuccess(null); }, 5000);
-  };
-
+  
   const handleCreateStudent = async (e) => {
     e.preventDefault();
     setIsLoading(true);

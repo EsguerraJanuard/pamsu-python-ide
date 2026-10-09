@@ -1,5 +1,5 @@
 import BulkEnrollModal from "../../components/modals/BulkEnrollModal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import EditClassModal from "../../components/modals/EditClassModal";
@@ -21,7 +21,7 @@ export default function ClassRosterView() {
 
   const [classroom, setClassroom] = useState(null);
 
-  const fetchRoster = async () => {
+  const fetchRoster = useCallback(async () => {
     setIsLoading(true);
     try {
       const [classData, membersData, tasksData] = await Promise.all([
@@ -37,11 +37,11 @@ export default function ClassRosterView() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [classId]);
 
   useEffect(() => {
     fetchRoster();
-  }, [classId]);
+  }, [classId, fetchRoster]);
 
 
   const handleRemoveConfirm = async () => {

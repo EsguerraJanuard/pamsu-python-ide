@@ -82,7 +82,7 @@ const LiveMonitoring = () => {
         <div className="w-full">
           <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="mb-1 font-mono text-xs text-text-emerald">MONITORING & GRADING</p>
+              <p className="mb-1 font-mono text-xs text-psu-maroon">MONITORING & GRADING</p>
               <h1 className="text-2xl font-bold">Live Monitoring</h1>
               <p className="mt-1 text-sm text-text-muted">
                 Monitor real-time student activity and execution metrics.
@@ -93,13 +93,13 @@ const LiveMonitoring = () => {
               <div className="flex bg-bg-glass rounded-lg p-1 border border-border-subtle">
                 <button
                   onClick={() => setMode('global')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-emerald-500/20 text-text-emerald' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'global' ? 'bg-psu-maroon/20 text-psu-maroon' : 'text-text-muted hover:text-text-main'}`}
                 >
                   All Active Students
                 </button>
                 <button
                   onClick={() => setMode('task')}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-emerald-500/20 text-text-emerald' : 'text-text-muted hover:text-text-main'}`}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${mode === 'task' ? 'bg-psu-maroon/20 text-psu-maroon' : 'text-text-muted hover:text-text-main'}`}
                 >
                   Specific Task
                 </button>
@@ -122,7 +122,7 @@ const LiveMonitoring = () => {
                 )}
 
                 {(mode === 'global' || activeTaskId) && (
-                  <div className="flex items-center gap-2 text-sm text-text-emerald bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
+                  <div className="flex items-center gap-2 text-sm text-psu-maroon bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/20">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -146,14 +146,14 @@ const LiveMonitoring = () => {
                   id="taskId"
                   value={taskIdInput}
                   onChange={(e) => setTaskIdInput(e.target.value)}
-                  className="w-full bg-bg-base border border-border-subtle rounded-lg px-4 py-2.5 text-text-main focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                  className="w-full bg-bg-base border border-border-subtle rounded-lg px-4 py-2.5 text-text-main focus:outline-none focus:border-psu-maroon focus:ring-1 focus:ring-psu-maroon transition-colors"
                   placeholder="Enter Task ID (e.g., 123)"
                 />
               </div>
               <button
                 type="submit"
                 disabled={!taskIdInput.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-text-muted text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
+                className="bg-psu-maroon hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-text-muted text-white font-semibold py-2.5 px-6 rounded-lg transition-colors"
               >
                 Monitor
               </button>
@@ -247,7 +247,7 @@ const LiveMonitoring = () => {
                     {mode === 'global' && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {session.classroom_name && (
-                          <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-text-blue ring-1 ring-inset ring-blue-500/20">
+                          <span className="inline-flex items-center rounded-md bg-psu-maroon/10 px-2 py-1 text-xs font-medium text-text-blue ring-1 ring-inset ring-psu-maroon/20">
                             {session.classroom_name}
                           </span>
                         )}

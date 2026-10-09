@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
@@ -93,7 +92,7 @@ const GradingBenchRoot = () => {
               <div
                 key={cls.class_id}
                 onClick={() => navigate(`/instructor/bench/${cls.class_id}`)}
-                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 overflow-hidden flex flex-col h-48"
+                className="dashboard-card group cursor-pointer bg-bg-glass hover:bg-bg-glass-hover transition-all duration-200 rounded-xl border border-border-subtle hover:border-psu-maroon/50 hover:shadow-lg hover:shadow-psu-maroon/10 overflow-hidden flex flex-col h-48"
               >
                 <div className="p-6 flex-grow">
                   <h2 className="text-xl font-semibold text-text-main mb-2 group-hover:text-emerald-400 transition-colors">

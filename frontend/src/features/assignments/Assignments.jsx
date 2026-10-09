@@ -146,6 +146,7 @@ export default function Assignments() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchActivities = async () => {
     setIsLoading(true);
@@ -204,8 +205,9 @@ export default function Assignments() {
       });
       setActivities(mappedActivities);
     } catch (err) {
-      console.error("Failed to load activities", err);
-    } finally {
+        console.error("API Error", err);
+        setError("Failed to load data. Please try again.");
+      } finally {
       setIsLoading(false);
     }
   };
@@ -475,6 +477,13 @@ export default function Assignments() {
       </main>
 
         <Statusbar />
+
+        {error && (
+          <div className="m-6 mb-0 p-4 bg-psu-red/10 border border-psu-red/20 text-psu-red rounded-lg flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-psu-red hover:opacity-80">X</button>
+          </div>
+        )}
       </div>
     </div>
   );
