@@ -15,10 +15,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { api, ApiError } from "../../services/api";
-import { ThemeToggle } from "../theme/ThemeToggle";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ;
 
 const features = [
   {
@@ -95,6 +93,37 @@ export default function Login() {
     if (error) setError("");
   };
 
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains("dark");
+  });
+
+  const toggleTheme = () => {
+    const isDark = document.documentElement.classList.contains("dark");
+    if (isDark) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDarkMode(true);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await api.post("/auth/guest");
+      const { access_token, user } = response.data || response;
+      login(access_token, user, user.role);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Guest login failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -156,45 +185,34 @@ export default function Login() {
   return (
     <main className="flex min-h-screen bg-white text-slate-900">
       <style>{`
-        @keyframes loginFadeLeft {
-          from { opacity: 0; transform: translateX(-16px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes loginFadeUp {
-          from { opacity: 0; transform: translateY(18px); }
+        @keyframes loginFade {
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes featureFadeIn {
-          from { opacity: 0; transform: translateX(-8px); }
-          to { opacity: 1; transform: translateX(0); }
+        .animate-login-fade {
+          animation: loginFade 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .login-animated { animation: none !important; }
-        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
       `}</style>
 
-      {/* Premium Background Grid */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      {/* Left Side: Brand Panel (Hidden on Mobile) */}
+      <div className="relative hidden lg:flex lg:w-[45%] flex-col justify-between bg-psu-maroon overflow-hidden px-14 py-16 text-white shadow-2xl z-10">
+        {/* Subtle Background Pattern / Gradient */}
+        <div className="absolute inset-0 z-0 opacity-20">
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-psu-gold blur-[100px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-psu-red blur-[120px]"></div>
+        </div>
 
-      {/* Theme Toggle */}
-      <div className="absolute top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
-
-      {/* Left panel — platform info */}
-      <section
-        className="login-animated hidden w-[52%] flex-col justify-between border-r border-border-subtle px-16 py-10 lg:flex relative z-10"
-        style={{ animation: "loginFadeLeft 700ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
-        aria-label="Platform introduction"
-      >
-        <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 font-mono text-xs font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-            &gt;_
+        <div className="relative z-10 animate-login-fade opacity-0">
+          <div className="flex items-center gap-3">
+            <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-psu-gold/90">Pampanga State University</p>
+              <p className="text-lg font-black tracking-tight text-white">Python IDE</p>
+            </div>
           </div>
-          <span className="font-semibold tracking-wide text-text-main">PAMSU Python IDE</span>
         </div>
 
         <div className="relative z-10 my-auto animate-login-fade delay-100 opacity-0">
@@ -209,34 +227,26 @@ export default function Login() {
           <p className="mt-6 max-w-md text-sm leading-relaxed text-white/80">
             An intelligent, browser-based Python workspace built exclusively for the Pampanga State University College of Computing Studies Department.
           </p>
-          <h1 className="mb-1 text-4xl font-extrabold leading-tight text-text-main">
-            Code with integrity.
-          </h1>
-          <h2 className="mb-6 text-4xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
-            Learn to think.
-          </h2>
-          <p className="mb-8 text-sm leading-relaxed text-text-muted">
-            A browser-based Python environment that supports structural feedback,
-            safe code execution, personal practice, and instructor-guided review.
-          </p>
-          <ul className="space-y-3">
-            {features.map((feature, index) => (
-              <li
-                key={feature.label}
-                className="login-animated flex items-center gap-3 text-sm text-text-muted transition-all duration-300 hover:translate-x-2 hover:text-text-main group"
-                style={{ animation: `featureFadeIn 450ms ease ${250 + index * 100}ms both` }}
-              >
-                <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{feature.icon}</span>
-                <span>{feature.label}</span>
+          
+          <ul className="mt-8 space-y-4">
+            {features.map((feature, idx) => (
+              <li key={idx} className="flex items-center gap-3 text-sm font-medium text-white/90">
+                <div 
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10" 
+                  style={{ color: feature.color }}
+                >
+                  {feature.icon}
+                </div>
+                {feature.label}
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="font-mono text-xs text-text-muted select-none cursor-default">
-          Python 3 · FastAPI · Isolated execution
-        </p>
-      </section>
+        <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0">
+          <p>&copy; 2026 Pampanga State University</p>
+        </div>
+      </div>
 
       {/* Right Side: Login Form */}
       <div className="flex flex-1 items-center justify-center bg-white px-6 py-12 lg:px-8 relative z-0">
@@ -270,7 +280,10 @@ export default function Login() {
               aria-live="polite"
               className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 shadow-sm"
             >
-              {error}
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p>{error}</p>
             </div>
           )}
 
@@ -292,7 +305,7 @@ export default function Login() {
                   type="email"
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}
-                  placeholder="Email"
+                  placeholder="name@pampangastateu.edu.ph"
                   autoComplete="email"
                   required
                   disabled={isLoading}
@@ -308,15 +321,6 @@ export default function Login() {
                 <label htmlFor="password" className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                   Password
                 </label>
-                {capsLock && (
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-text-amber select-none">
-                    <svg width="9" height="9" viewBox="0 0 10 12" fill="none" aria-hidden="true">
-                      <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
-                      <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
-                    </svg>
-                    Caps Lock is on
-                  </span>
-                )}
               </div>
               <div
                 className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-slate-50 focus-within:shadow-[0_0_15px_rgba(128,0,0,0.1)] hover:border-slate-300 cursor-text"
@@ -331,7 +335,7 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => updateField("password", e.target.value)}
-                  placeholder="Password"
+                  placeholder="••••••••"
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
@@ -346,69 +350,65 @@ export default function Login() {
                   disabled={isLoading}
                 >
                   {showPassword ? (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.2" />
-                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.2" />
-                      <path d="M3 3l10 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M3 3l10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.2" />
-                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   )}
                 </button>
               </div>
-              <div className="flex justify-end mt-1">
-                <button
-                  type="button"
-                  onClick={() => navigate("/forgot-password")}
-                  className="text-[10px] font-medium text-text-emerald transition-colors hover:underline"
-                  disabled={isLoading}
-                >
-                  Forgot your password?
-                </button>
-              </div>
+              {capsLock && (
+                <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-500">
+                  <svg width="10" height="10" viewBox="0 0 10 12" fill="none" aria-hidden="true">
+                    <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
+                    <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
+                  </svg>
+                  Caps Lock is ON
+                </p>
+              )}
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative overflow-hidden mt-4 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
-            >
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
-              
-              <span className="relative flex items-center justify-center gap-2">
+            {/* Buttons */}
+            <div className="pt-2 animate-login-fade delay-200 opacity-0">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg shadow-psu-maroon/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-psu-maroon/50 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+              >
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                 {isLoading ? (
                   <>
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
                     Signing in...
                   </>
                 ) : (
-                  "Sign in"
+                  "Sign In to Workspace"
                 )}
-              </span>
-            </button>
+              </button>
               
               <div className="relative mt-6 mb-6">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
                 <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Or</span></div>
               </div>
 
-            <p className="text-center text-xs text-text-muted select-none cursor-default">
               <button
                 type="button"
-                onClick={() => navigate("/register")}
+                onClick={handleGuestLogin}
                 disabled={isLoading}
                 className="group flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-base font-bold text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-slate-50-hover hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
-                Sign up using university account
+                Continue as Guest Student
               </button>
-            </p>
+            </div>
           </form>
         </div>
       </div>
