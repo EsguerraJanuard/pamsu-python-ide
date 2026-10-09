@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-psu-maroon: #800000;
-  --color-psu-gold: #eeb319;
+  --color-psu-maroon: #77250b;
+  --color-psu-gold: #eaae19;
   --color-psu-red: #cc0000;
   --color-text-brand: var(--text-brand);
   --color-bg-base: var(--bg-base);
@@ -30,7 +30,7 @@
   --border-strong: rgba(0, 0, 0, 0.15);
   --text-main: #0f1117;
   --text-muted: rgba(15, 17, 23, 0.6);
-  --text-brand: #800000;
+  --text-brand: #77250b;
   --text-blue: #2563eb;
   --text-emerald: #059669;
   --text-amber: #d97706;
@@ -62,7 +62,7 @@
   --border-strong: rgba(255, 255, 255, 0.15);
   --text-main: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.5);
-  --text-brand: #eeb319;
+  --text-brand: #eaae19;
   --text-blue: #60a5fa;
   --text-emerald: #34d399;
   --text-amber: #fbbf24;
