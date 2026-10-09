@@ -8,7 +8,6 @@ import remarkGfm from "remark-gfm";
 import api from "../../services/api";
 import { useAuth } from "../auth/AuthContext";
 import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
-import InteractiveTerminal from "../../components/terminal/InteractiveTerminal";
 
 import Statusbar from "../../components/layout/Statusbar";
 
@@ -46,10 +45,8 @@ export default function PracticeWorkspace() {
   
   const userId = user?.user_id || user?.id || "anon";
   
-  // Added missing refs and state variables
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
-  const [triggerRun, setTriggerRun] = useState(0);
   
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("lesson");
@@ -189,7 +186,6 @@ export default function PracticeWorkspace() {
     );
   }
 
-
   if (viewMode === "lesson") {
     return (
       <div className="flex h-screen flex-col overflow-hidden bg-bg-base text-text-main">
@@ -228,6 +224,7 @@ export default function PracticeWorkspace() {
       </div>
     );
   }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-bg-base text-text-main">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-base px-4">
@@ -350,21 +347,24 @@ export default function PracticeWorkspace() {
               value={code}
               onChange={(value) => setCode(value || "")}
               options={monacoOptions}
-            onMount={(editor, monaco) => { 
+              onMount={(editor, monaco) => { 
                 editorRef.current = editor; 
                 monacoRef.current = monaco; 
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => recordBlockedPaste());
               }}
-                />
+            />
           </div>
+          
           {/* Output Terminal */}
           <div className="h-56 border-t border-border-subtle bg-bg-base flex flex-col">
              <div className="flex items-center px-4 py-2 border-b border-white/5 bg-bg-panel">
                 <span className="text-xs font-mono text-text-muted uppercase tracking-wider">Terminal Output</span>
              </div>
-               <div className="min-w-0 flex-1 p-1 bg-transparent h-full relative">
-                 <InteractiveTerminal code={code} triggerRun={triggerRun} onRunFinished={() => setIsSubmitting(false)} />
-               </div>
+             <div className="min-w-0 flex-1 p-4 bg-transparent h-full relative overflow-y-auto">
+               <pre className="font-mono text-[11px] text-text-muted whitespace-pre-wrap">
+                 {feedback?.execution_feedback || "The editor is ready. Code execution output will appear here after running your solution."}
+               </pre>
+             </div>
           </div>
         </div>
       </div>
