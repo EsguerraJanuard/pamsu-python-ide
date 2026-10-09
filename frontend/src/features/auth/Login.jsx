@@ -211,7 +211,8 @@ export default function Login() {
             Enterprise Platform
           </span>
           <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl xl:text-6xl leading-[1.1]">
-            Code with integrity.<br />
+            Code with<br />
+            integrity.<br />
             <span className="text-psu-gold">Learn to think.</span>
           </h1>
           <p className="mt-6 max-w-md text-base leading-relaxed text-white/80">
@@ -236,7 +237,7 @@ export default function Login() {
       </div>
 
       {/* Right Side: Login Form */}
-      <div className="flex flex-1 items-center justify-center bg-slate-50 px-6 py-12 lg:px-8 relative z-0">
+      <div className="flex flex-1 items-center justify-center bg-white px-6 py-12 lg:px-8 relative z-0">
         
         {/* Mobile Logo Header */}
         <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
@@ -278,7 +279,7 @@ export default function Login() {
                 School email
               </label>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-white px-4 py-3 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-border-strong cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
                 <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -289,7 +290,7 @@ export default function Login() {
                   type="email"
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}
-                  placeholder="********"
+                  placeholder="name@pampangastateu.edu.ph"
                   autoComplete="email"
                   required
                   disabled={isLoading}
@@ -310,7 +311,7 @@ export default function Login() {
                 </Link>
               </div>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-white px-4 py-3 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-border-strong cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -366,7 +367,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg shadow-psu-maroon/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-psu-maroon/50 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                 {isLoading ? (
@@ -384,14 +385,14 @@ export default function Login() {
               
               <div className="relative mt-6 mb-6">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle"></div></div>
-                <div className="relative flex justify-center"><span className="bg-slate-50 px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Or</span></div>
+                <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Or</span></div>
               </div>
 
               <button
                 type="button"
                 onClick={handleGuestLogin}
                 disabled={isLoading}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-white px-4 py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-slate-50 hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 Continue as Guest Student
               </button>
