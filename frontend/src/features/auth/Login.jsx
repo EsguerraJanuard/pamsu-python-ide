@@ -248,12 +248,12 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
+        <div className="w-full max-w-[440px] animate-login-fade delay-100 opacity-0">
           <div className="mb-8 text-center sm:text-left">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-text-main">
+            <h2 className="text-4xl sm:text-[40px] font-black tracking-tight text-text-main leading-tight">
               Sign in to your workspace
             </h2>
-            <p className="mt-2 text-sm text-text-muted">
+            <p className="mt-3 text-[15px] text-text-muted">
               Use your verified university account
             </p>
           </div>
@@ -275,11 +275,11 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email */}
             <div>
-              <label htmlFor="school-email" className="mb-1.5 block text-xs font-bold text-text-muted uppercase tracking-wider">
+              <label htmlFor="school-email" className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
                 School email
               </label>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
                 <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -294,7 +294,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm font-medium text-text-main outline-none placeholder:text-text-muted/50 disabled:opacity-50"
+                  className="flex-1 bg-transparent text-[15px] font-medium text-text-main outline-none placeholder:text-text-muted/50 disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
               </div>
@@ -302,16 +302,13 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="password" className="text-xs font-bold text-text-muted uppercase tracking-wider">
+              <div className="mb-2 block">
+                <label htmlFor="password" className="text-[13px] font-bold text-text-muted uppercase tracking-wider">
                   Password
                 </label>
-                <Link to="/forgot-password" className="text-[11px] font-bold text-psu-maroon hover:text-psu-gold transition-colors">
-                  Forgot password?
-                </Link>
               </div>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -327,7 +324,7 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm font-medium tracking-widest text-text-main outline-none placeholder:text-text-muted/50 placeholder:tracking-normal disabled:opacity-50"
+                  className="flex-1 bg-transparent text-base font-medium tracking-widest text-text-main outline-none placeholder:text-text-muted/50 placeholder:tracking-normal disabled:opacity-50"
                   style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
                 />
                 <button
@@ -351,6 +348,11 @@ export default function Login() {
                   )}
                 </button>
               </div>
+              <div className="mt-3 flex justify-end">
+                <Link to="/forgot-password" className="text-[13px] font-bold text-psu-maroon hover:text-psu-gold transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
               {capsLock && (
                 <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-500">
                   <svg width="10" height="10" viewBox="0 0 10 12" fill="none" aria-hidden="true">
@@ -367,7 +369,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-5 py-4 text-[15px] font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                 {isLoading ? (
@@ -392,7 +394,7 @@ export default function Login() {
                 type="button"
                 onClick={handleGuestLogin}
                 disabled={isLoading}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 Continue as Guest Student
               </button>
