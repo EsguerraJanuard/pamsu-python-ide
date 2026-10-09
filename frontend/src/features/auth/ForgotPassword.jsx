@@ -129,13 +129,13 @@ export default function ForgotPassword() {
     }
   };
 
-  const inputClass = "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
-  const inputWrap = "flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text";
+  const inputClass = "flex-1 bg-transparent text-[15px] text-text-main outline-none placeholder:text-text-muted";
+  const inputWrap = "flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 text-text-main overflow-hidden p-6 relative">
       {/* Premium Background Grid (Matches Login!) */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+      
 
       {/* Glow effects (Matches Login!) */}
       <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] translate-x-1/4 -translate-y-1/4 rounded-full bg-psu-gold/20 blur-[120px]" />
@@ -143,12 +143,12 @@ export default function ForgotPassword() {
 
 
 
-      <div className="relative z-10 w-full max-w-[440px] rounded-2xl border border-border-subtle bg-white p-8 shadow-2xl animate-page-fade">
+      <div className="relative z-10 w-full max-w-[480px] rounded-[24px] border border-border-subtle bg-white p-10 sm:p-12 shadow-2xl animate-page-fade">
         
         {step === 1 && (
           <form onSubmit={handleStartReset} className="animate-[registerFadeUp_400ms_ease-out_both]">
             <div className="mb-6 text-center">
-              <h2 className="text-xl font-bold text-text-main">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-text-main">
                 Forgot your password?
               </h2>
               <p className="mt-3 text-sm text-text-muted leading-relaxed">
@@ -185,7 +185,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+              className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-5 py-4 text-[15px] font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
@@ -194,7 +194,7 @@ export default function ForgotPassword() {
               )}
             </button>
 
-            <div className="mt-6 text-center text-[13px]">
+            <div className="mt-8 text-center text-[14px]">
               <span className="text-text-muted">Remember your password?</span>{" "}
               <Link to="/login" className="font-semibold text-psu-maroon hover:text-psu-gold transition-colors">
                 Log in instead
@@ -216,10 +216,10 @@ export default function ForgotPassword() {
                 </svg>
                 Back to email
               </button>
-              <h2 className="text-xl font-bold text-text-main">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-text-main">
                 Secure Password Reset
               </h2>
-              <p className="mt-2 text-[13px] text-text-muted">
+              <p className="mt-3 text-[15px] leading-relaxed text-text-muted">
                 We've sent a 6-digit verification code to <span className="font-semibold text-text-main">{email}</span>.
               </p>
             </div>
@@ -232,7 +232,7 @@ export default function ForgotPassword() {
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="mb-1.5 flex justify-between text-xs font-medium text-text-muted">
+                <label className="mb-2 flex justify-between text-[13px] font-bold text-text-muted uppercase tracking-wider">
                   <span>Verification Code</span>
                   <button
                     type="button"
@@ -256,7 +256,7 @@ export default function ForgotPassword() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-text-muted">
+                <label className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
                   New Password
                 </label>
                 <div className={inputWrap}>
@@ -288,7 +288,7 @@ export default function ForgotPassword() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-text-muted">
+                <label className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
                   Confirm New Password
                 </label>
                 <div className={inputWrap}>
@@ -319,7 +319,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading || otpCode.length !== 6}
-              className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+              className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-5 py-4 text-[15px] font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
@@ -337,15 +337,15 @@ export default function ForgotPassword() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="mb-2 text-xl font-bold text-text-main">
+            <h2 className="mb-3 text-2xl sm:text-3xl font-black tracking-tight text-text-main">
               Password Reset Complete
             </h2>
-            <p className="mb-8 text-[13px] leading-relaxed text-text-muted">
+            <p className="mb-10 text-[15px] leading-relaxed text-text-muted">
               Your password has been successfully updated. You can now use your new password to sign in.
             </p>
             <button
               onClick={() => navigate("/login")}
-              className="flex w-full items-center justify-center rounded-xl bg-bg-glass py-3 text-sm font-semibold text-text-main transition-colors hover:bg-bg-glass-hover"
+              className="flex w-full items-center justify-center rounded-xl bg-slate-100 py-4 text-[15px] font-bold text-text-main transition-colors hover:bg-slate-200"
             >
               Continue to Login
             </button>
