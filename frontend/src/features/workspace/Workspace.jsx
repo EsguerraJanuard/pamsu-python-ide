@@ -25,7 +25,6 @@ n = int(input())
 print(fibonacci(n))
 `;
 
-
 const EXECUTION_STATUS = {
   idle: {
     label: "Ready",
@@ -46,11 +45,6 @@ const EXECUTION_STATUS = {
     label: "Execution failed",
     dotClass: "bg-red-500",
     textClass: "text-red-400",
-  },
-  unavailable: {
-    label: "Backend not connected",
-    dotClass: "bg-amber-500",
-    textClass: "text-amber-400",
   },
   unavailable: {
     label: "Backend not connected",
@@ -83,12 +77,50 @@ export default function Workspace() {
   const activityId = searchParams.get("activity");
   const draftStorageKey = `pamsu-workspace-draft-${activityId}`;
 
+  // Refs
   const editorRef = useRef(null);
+  const ws = useRef(null);
   
+  // State Declarations
   const [activity, setActivity] = useState(null);
   const [astResults, setAstResults] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [code, setCode] = useState(() => loadDraft(draftStorageKey));
+  const [editorTheme, setEditorTheme] = useState("vs-dark");
+  const [standardInput, setStandardInput] = useState("");
+  const [output, setOutput] = useState(
+    "The editor is ready. Code execution will appear here after the sandbox API is connected.",
+  );
+  
+  const [activePanel, setActivePanel] = useState("output");
+  const [executionStatus, setExecutionStatus] = useState("idle");
+  const [notice, setNotice] = useState("");
+  const [visibleNotice, setVisibleNotice] = useState("");
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  const [internalClipboard, setInternalClipboard] = useState("");
+  const [blockedPasteCount, setBlockedPasteCount] = useState(0);
+  const [mouseLeaveCount, setMouseLeaveCount] = useState(0);
+  const [lastBlockedPasteAt, setLastBlockedPasteAt] = useState("");
+  const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [runAttemptCount, setRunAttemptCount] = useState(0);
+  const [showBehaviorNotice, setShowBehaviorNotice] = useState(false);
+
+  const [showProblemPanel, setShowProblemPanel] = useState(
+    () => window.matchMedia("(min-width: 1280px)").matches,
+  );
+  const [showReviewPanel, setShowReviewPanel] = useState(false);
+
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem("pamsu_problem_panel_width");
+    return saved ? parseInt(saved, 10) : 320;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState(null);
 
   useEffect(() => {
     if (!activityId) {
@@ -140,21 +172,7 @@ export default function Workspace() {
     };
 
     loadActivity();
-  }, [activityId]);
-
-  const [code, setCode] = useState(() =>
-    loadDraft(draftStorageKey),
-  );
-  const [editorTheme, setEditorTheme] = useState("vs-dark");
-  const [standardInput, setStandardInput] = useState("");
-  const [output, setOutput] = useState(
-    "The editor is ready. Code execution will appear here after the sandbox API is connected.",
-  );
-  const [activePanel, setActivePanel] = useState("output");
-  const [executionStatus, setExecutionStatus] = useState("idle");
-  const [notice, setNotice] = useState("");
-  const [visibleNotice, setVisibleNotice] = useState("");
-  const [isFadingOut, setIsFadingOut] = useState(false);
+  }, [activityId, draftStorageKey]);
 
   // Silky-smooth auto-dismiss fade animation for notice message
   useEffect(() => {
@@ -178,27 +196,6 @@ export default function Workspace() {
       clearTimeout(clearTimer);
     };
   }, [notice]);
-  const [internalClipboard, setInternalClipboard] = useState("");
-  const [blockedPasteCount, setBlockedPasteCount] = useState(0);
-  const [mouseLeaveCount, setMouseLeaveCount] = useState(0);
-  const [lastBlockedPasteAt, setLastBlockedPasteAt] = useState("");
-  const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [runAttemptCount, setRunAttemptCount] = useState(0);
-  const [showBehaviorNotice, setShowBehaviorNotice] = useState(false);
-
-  const [showProblemPanel, setShowProblemPanel] = useState(
-    () => window.matchMedia("(min-width: 1280px)").matches,
-  );
-  const [showReviewPanel, setShowReviewPanel] =
-    useState(false);
-
-  // Resizable Problem Panel State
-  const [panelWidth, setPanelWidth] = useState(() => {
-    const saved = localStorage.getItem("pamsu_problem_panel_width");
-    return saved ? parseInt(saved, 10) : 320;
-  });
-  const [isResizing, setIsResizing] = useState(false);
 
   const startResizing = (mouseDownEvent) => {
     mouseDownEvent.preventDefault();
@@ -239,8 +236,6 @@ export default function Workspace() {
       window.clearTimeout(autosaveTimer);
     };
   }, [code, draftStorageKey]);
-
-  const ws = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -410,9 +405,6 @@ export default function Workspace() {
 
   const handleEditorKeyDown = (event) => {
     // Monaco handles Tab and other inputs natively.
-    // We only intercept Ctrl+S if we need to. But we don't bind onKeyDown to Monaco this way.
-    // Instead we can use monaco's addCommand for save.
-    // For now we do nothing here since Monaco isn't passing standard React DOM events.
   };
 
   const handleRun = async () => {

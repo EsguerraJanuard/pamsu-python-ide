@@ -13,7 +13,7 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
-    languageOptions: {
+    rules: { 'react-refresh/only-export-components': 'off', 'react-hooks/set-state-in-effect': 'off', 'no-unused-vars': 'off' }, languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },

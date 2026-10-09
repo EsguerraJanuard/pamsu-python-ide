@@ -223,12 +223,12 @@ const LiveMonitoring = () => {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredSessions.map((session) => {
+                {filteredSessions.map((session, index) => {
             const hasWarning = session.tab_switch_count > 3;
             
             return (
               <div 
-                key={session.id || session.student_id || Math.random()} 
+                key={session.id || session.student_id || index} 
                 className={`bg-bg-glass p-5 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${
                   hasWarning 
                     ? 'border-amber-500/50 bg-amber-900/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 

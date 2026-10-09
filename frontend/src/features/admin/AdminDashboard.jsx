@@ -8,6 +8,13 @@ export default function AdminDashboard() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [stats, setStats] = useState({ total_instructors: 0, total_students: 0, total_classrooms: 0 });
+  const [users, setUsers] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [settings, setSettings] = useState({
+    maintenance_mode: false,
+    default_ast_strictness: 'moderate'
+  });
   
   const [usersSkip, setUsersSkip] = useState(0);
   const [logsSkip, setLogsSkip] = useState(0);
@@ -37,7 +44,7 @@ export default function AdminDashboard() {
     try {
       const res = await api.get(`/admin/audit-logs?skip=${newSkip}&limit=50`);
       if (res.data.length < 50) setHasMoreLogs(false);
-      setAuditLogs(prev => [...prev, ...resData]);
+      setAuditLogs(prev => [...prev, ...(res.data || res)]);
       setLogsSkip(newSkip);
     } catch (err) {
       console.error(err);
@@ -46,10 +53,12 @@ export default function AdminDashboard() {
   
   useEffect(() => {
     if (userInView) loadMoreUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInView]);
   
   useEffect(() => {
     if (logInView) loadMoreLogs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [logInView]);
 
   const [pendingTab, setPendingTab] = useState(null);
@@ -59,13 +68,6 @@ export default function AdminDashboard() {
     registration_enabled: false,
     default_ast_strictness: 'moderate',
     maintenance_mode: false
-  });
-  const [stats, setStats] = useState({ total_instructors: 0, total_students: 0, total_classrooms: 0 });
-  const [users, setUsers] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [settings, setSettings] = useState({
-    maintenance_mode: false,
-    default_ast_strictness: 'moderate'
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -84,21 +86,23 @@ export default function AdminDashboard() {
   const [modalConfig, setModalConfig] = useState(null);
 
   const fetchData = async () => {
-    try {        const [statsRes, usersRes, logsRes, settingsRes] = await Promise.all([
-          api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
-          api.get("/admin/users?skip=0&limit=50").catch(() => ({ data: [] })),
-          api.get("/admin/audit-logs?skip=0&limit=50").catch(() => ({ data: [] })),
-          api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
-        ]);
-        const usersList = usersRes.data || usersRes;
-        if (usersList.length < 50) setHasMoreUsers(false);
-        const logsList = logsRes.data || logsRes;
-        if (logsList.length < 50) setHasMoreLogs(false);
+    try {        
+      const [statsRes, usersRes, logsRes, settingsRes] = await Promise.all([
+        api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
+        api.get("/admin/users?skip=0&limit=50").catch(() => ({ data: [] })),
+        api.get("/admin/audit-logs?skip=0&limit=50").catch(() => ({ data: [] })),
+        api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
+      ]);
+      const usersList = usersRes.data || usersRes;
+      if (usersList.length < 50) setHasMoreUsers(false);
+      const logsList = logsRes.data || logsRes;
+      if (logsList.length < 50) setHasMoreLogs(false);
+      
       setStats(statsRes.data || statsRes);
       setUsers(usersRes.data || usersRes);
       setAuditLogs(logsRes.data || logsRes);
       setSettings(settingsRes.data || settingsRes);
-        setInitialSettings(settingsRes.data || settingsRes);
+      setInitialSettings(settingsRes.data || settingsRes);
     } catch (err) {
       console.error("Dashboard error:", err);
     }
@@ -106,11 +110,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleTabChange = (tabId) => {
     if (activeTab === 'settings') {
-      const isDirty = settings.maintenance_mode !== initialSettings.maintenance_mode || settings.default_ast_strictness !== initialSettings.default_ast_strictness || settings.registration_enabled !== initialSettings.registration_enabled;
+      const isDirty = 
+        settings.maintenance_mode !== initialSettings.maintenance_mode || 
+        settings.default_ast_strictness !== initialSettings.default_ast_strictness || 
+        settings.registration_enabled !== initialSettings.registration_enabled;
       if (isDirty) {
         setPendingTab(tabId);
         return;
@@ -674,8 +682,8 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         )}
-                        {filteredLogs.map((log) => (
-                          <tr key={log.audit_id || Math.random()} className="border-b border-border-subtle hover:bg-bg-base/50 transition-colors">
+                        {filteredLogs.map((log, index) => (
+                          <tr key={log.audit_id || index} className="border-b border-border-subtle hover:bg-bg-base/50 transition-colors">
                             <td className="px-4 py-4 text-text-muted whitespace-nowrap">{new Date(log.occurred_at).toLocaleString()}</td>
                             <td className="px-4 py-4">
                               <div className="font-bold text-text-main">{log.actor_name || 'System Administrator'}</div>
@@ -842,7 +850,6 @@ function StatCard({ title, value, icon, colorClass = "text-text-brand" }) {
   );
 }
 
-
 function QuickActionCard({ title, desc, icon, onClick }) {
   return (
     <button onClick={onClick} className="group flex flex-col items-start p-6 rounded-2xl bg-bg-glass border border-border-subtle hover:bg-bg-panel hover:border-psu-maroon/50 dark:hover:border-psu-gold/50 hover:shadow-md transition-all text-left w-full h-full">
@@ -871,4 +878,3 @@ function ActionBtn({ onClick, text, danger }) {
     </button>
   );
 }
-

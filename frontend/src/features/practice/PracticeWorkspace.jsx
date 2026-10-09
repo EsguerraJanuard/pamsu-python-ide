@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import api from "../../services/api";
 import { useAuth } from "../auth/AuthContext";
 import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
-
+import InteractiveTerminal from "../../components/terminal/InteractiveTerminal";
 
 import Statusbar from "../../components/layout/Statusbar";
 
@@ -43,7 +43,14 @@ export default function PracticeWorkspace() {
     event.preventDefault();
     recordBlockedPaste();
   };
+  
   const userId = user?.user_id || user?.id || "anon";
+  
+  // Added missing refs and state variables
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const [triggerRun, setTriggerRun] = useState(0);
+  
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("lesson");
   const [taskDetails, setTaskDetails] = useState(null);

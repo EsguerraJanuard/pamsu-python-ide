@@ -20,12 +20,7 @@ const ActivityDetails = () => {
 
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, testCaseId: null });
 
-  useEffect(() => {
-    fetchActivityDetails();
-    fetchTestCases();
-  }, [id]);
-
-  const fetchActivityDetails = async () => {
+  async function fetchActivityDetails() {
     try {
       const response = await api.get(`/instructors/tasks/${id}`);
       setActivity(response);
@@ -33,9 +28,9 @@ const ActivityDetails = () => {
       setError('Failed to fetch activity details.');
       console.error(err);
     }
-  };
+  }
 
-  const fetchTestCases = async () => {
+  async function fetchTestCases() {
     try {
       const response = await api.get(`/instructors/tasks/${id}/test-cases`);
       setTestCases(response);
@@ -44,7 +39,13 @@ const ActivityDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    fetchActivityDetails();
+    fetchTestCases();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const togglePublication = async () => {
     try {

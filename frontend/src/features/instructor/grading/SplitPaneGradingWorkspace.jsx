@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
 import InstructorSidebar from '../../../components/layout/InstructorSidebar';
+import { DiffEditor } from '@monaco-editor/react';
 import AlertModal from '../../../components/modals/AlertModal';
 
 const SplitPaneGradingWorkspace = () => {
@@ -486,11 +487,11 @@ const SplitPaneGradingWorkspace = () => {
                             if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
                             try {
                               await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
-                              setNotice("Retake approved! Student can now resubmit.");
+                              alert("Retake approved! Student can now resubmit.");
                               setDetailedSub({...detailedSub, retake_allowed: true, retake_requested: false});
-                              fetchSubmissions();
+                              window.location.reload();
                             } catch (err) {
-                              setNotice("Failed to approve retake.");
+                              alert("Failed to approve retake.");
                             }
                           }}
                           className="px-6 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold rounded-lg transition-all hover:bg-amber-500/20"
@@ -506,11 +507,11 @@ const SplitPaneGradingWorkspace = () => {
                             if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
                             try {
                               await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
-                              setNotice("Retake allowed! Student can now resubmit.");
+                              alert("Retake allowed! Student can now resubmit.");
                               setDetailedSub({...detailedSub, retake_allowed: true});
-                              fetchSubmissions();
+                              window.location.reload();
                             } catch (err) {
-                              setNotice("Failed to allow retake.");
+                              alert("Failed to allow retake.");
                             }
                           }}
                           className="px-4 py-3 bg-bg-base border border-border-strong text-text-muted text-sm font-bold rounded-lg transition-all hover:bg-bg-glass-hover hover:text-text-main"
@@ -531,11 +532,10 @@ const SplitPaneGradingWorkspace = () => {
                         <DiffEditor
                           height="100%"
                           language="python"
-                          theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
-                          original={taskDetails?.data?.starter_code || taskDetails?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
+                          theme={'vs-dark'}
+                          original={detailedSub?.activity?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
                           modified={detailedSub?.raw_code || detailedSub?.code || '# No code provided'}
                           options={{
-                            ...editorOptions,
                             readOnly: true,
                             minimap: { enabled: false },
                             scrollBeyondLastLine: false,
@@ -580,4 +580,3 @@ const SplitPaneGradingWorkspace = () => {
 };
 
 export default SplitPaneGradingWorkspace;
-

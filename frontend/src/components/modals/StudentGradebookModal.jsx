@@ -103,8 +103,8 @@ export default function StudentGradebookModal({ isOpen, onClose, student, classI
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.06]">
-                  {grades.map((grade) => (
-                    <tr key={grade.submission?.sub_id || Math.random()} className="transition-colors hover:bg-bg-glass-hover">
+                  {grades.map((grade, index) => (
+                    <tr key={grade.submission?.sub_id || index} className="transition-colors hover:bg-bg-glass-hover">
                       <td className="px-6 py-4 font-medium text-text-main">
                         {grade.activity?.title || 'Unknown Activity'}
                       </td>
