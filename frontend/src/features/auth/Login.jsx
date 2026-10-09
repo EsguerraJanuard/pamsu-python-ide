@@ -15,7 +15,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { api, ApiError } from "../../services/api";
-import { ThemeToggle } from "../theme/ThemeToggle";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -75,6 +74,13 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [capsLock, setCapsLock] = useState(false);
+
+
+  // Lock Login page to Light Mode
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("pamsu_theme", "light");
+  }, []);
 
   useEffect(() => {
     const handler = (e) => {
@@ -239,11 +245,6 @@ export default function Login() {
             <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
             <p className="text-base font-black tracking-tight text-text-main">Python IDE</p>
           </div>
-        </div>
-
-        {/* Theme Toggle */}
-        <div className="absolute top-6 right-6 lg:top-8 lg:right-8 animate-login-fade opacity-0">
-          <ThemeToggle />
         </div>
 
         <div className="w-full max-w-[400px] animate-login-fade delay-100 opacity-0">
