@@ -12,13 +12,32 @@ from app.routers.admin import global_system_settings
 from app.schemas.audit_schema import AuditRecordCreateInternal
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.services.audit_service import create_audit_record
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_limiter.depends import RateLimiter
 from jose import jwt
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+def RateLimiter(times: int = 5, seconds: int = 60):
+    def _limiter(request: Request):
+        try:
+            client_ip = request.client.host if request.client else "unknown"
+            key = f"rate_limit:{request.url.path}:{client_ip}"
+            cnt = redis_client.get(key)
+            if cnt and int(cnt) >= times:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Too many requests. Please try again later.",
+                )
+            new_cnt = redis_client.incr(key)
+            if new_cnt == 1:
+                redis_client.expire(key, seconds)
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+    return _limiter
 
 router = APIRouter(
     tags=["Authentication"],
