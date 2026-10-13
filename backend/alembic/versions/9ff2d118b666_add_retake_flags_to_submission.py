@@ -1,7 +1,7 @@
 """Add retake flags to Submission
 
 Revision ID: 9ff2d118b666
-Revises: 068b56b87330
+Revises: 333fed79e9f7
 Create Date: 2026-10-01 05:20:34.369303+00:00
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '9ff2d118b666'
-down_revision: Union[str, Sequence[str], None] = '068b56b87330'
+down_revision: Union[str, Sequence[str], None] = '333fed79e9f7'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -27,18 +27,20 @@ def upgrade() -> None:
 
     # 2. Data migration using Python for DB compatibility
     connection = op.get_bind()
-    from sqlalchemy.sql import text
-    users = connection.execute(text("SELECT user_id, name FROM users")).fetchall()
-    
-    for user_id, name in users:
-        parts = name.split()
-        first_name = parts[0] if parts else ""
-        last_name = " ".join(parts[1:]) if len(parts) > 1 else ""
-        middle_name = ""
-        connection.execute(
-            text("UPDATE users SET first_name = :f, last_name = :l, middle_name = :m WHERE user_id = :id"),
-            {"f": first_name, "l": last_name, "m": middle_name, "id": user_id}
-        )
+    if connection:
+        from sqlalchemy.sql import text
+        res = connection.execute(text("SELECT user_id, name FROM users"))
+        if res is not None:
+            users = res.fetchall()
+            for user_id, name in users:
+                parts = (name or "").split()
+                first_name = parts[0] if parts else ""
+                last_name = " ".join(parts[1:]) if len(parts) > 1 else ""
+                middle_name = ""
+                connection.execute(
+                    text("UPDATE users SET first_name = :f, last_name = :l, middle_name = :m WHERE user_id = :id"),
+                    {"f": first_name, "l": last_name, "m": middle_name, "id": user_id}
+                )
 
     # 3. Make columns not nullable
     op.alter_column('users', 'first_name', nullable=False)
