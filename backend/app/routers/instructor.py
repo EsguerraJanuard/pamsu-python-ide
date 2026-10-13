@@ -1476,8 +1476,23 @@ def get_student_growth_for_instructor(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
         
-    # Technically we might want to check if the student belongs to the instructor's classroom
-    # But for a gamified metric, read access is generally safe if authorized as instructor
+    # Ensure the student is enrolled in at least one of the instructor's classrooms
+    from app.models.domain_models import Classroom, Enrollment
+    is_enrolled = (
+        db.query(Enrollment.enrollment_id)
+        .join(Classroom, Enrollment.class_id == Classroom.class_id)
+        .filter(
+            Classroom.instructor_id == current_instructor.user_id,
+            Enrollment.student_id == student_id,
+            Enrollment.status == "enrolled",
+        )
+        .first()
+    )
+    if not is_enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student is not enrolled in any of your classrooms.",
+        )
     
     return calculate_growth_for_student(db, student_id)
 

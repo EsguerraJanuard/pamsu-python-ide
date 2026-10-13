@@ -49,6 +49,11 @@ def update_profile(
     current_user.middle_name = update_data.middle_name
     current_user.last_name = update_data.last_name
     if update_data.ast_strictness_level is not None:
+        if current_user.role != "instructor":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only instructors are authorized to configure AST strictness.",
+            )
         current_user.ast_strictness_level = update_data.ast_strictness_level
     db.commit()
     db.refresh(current_user)
@@ -78,21 +83,9 @@ def change_password(
 
 
 from app.integrations.otp_delivery import get_otp_delivery_adapter
-from app.schemas.otp_schema import (OTPChallengeResponse, OTPResendRequest,
-                                    PasswordResetCompleteRequest,
-                                    PasswordResetStartRequest)
-from app.services.otp_service import (OTPAttemptLimitError,
-                                      OTPChallengeConsumedError,
-                                      OTPChallengeExpiredError,
-                                      OTPChallengeNotFoundError,
-                                      OTPDeliveryAdapter, OTPDeliveryError,
-                                      OTPInvalidCodeError, OTPResendLimitError,
-                                      OTPResendTooSoonError,
-                                      RegistrationConflictError,
-                                      resend_password_reset_otp,
-                                      start_password_reset,
-                                      verify_and_complete_password_reset)
-
+from app.services.otp_service import OTPDeliveryAdapter, OTPAttemptLimitError, OTPChallengeConsumedError, OTPChallengeExpiredError, OTPChallengeNotFoundError, OTPDeliveryError, OTPInvalidCodeError, OTPResendLimitError, OTPResendTooSoonError, RegistrationConflictError, start_password_reset, verify_and_complete_password_reset, resend_password_reset_otp
+from app.schemas.otp_schema import OTPChallengeResponse, PasswordResetStartRequest, PasswordResetCompleteRequest, OTPResendRequest
+import uuid
 
 @router.post(
     "/password-reset/start",
@@ -111,11 +104,16 @@ def start_password_reset_endpoint(
             reset_data=reset_data,
             delivery_adapter=delivery_adapter,
         )
-    except RegistrationConflictError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
+    except RegistrationConflictError:
+        # Prevent user enumeration: return generic challenge response
+        return OTPChallengeResponse(
+            challenge_id=str(uuid.uuid4()),
+            email=reset_data.email,
+            purpose="password_reset",
+            expires_in_seconds=300,
+            resend_after_seconds=60,
+            message="If an account exists with this email, a verification code has been sent.",
+        )
     except OTPDeliveryError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

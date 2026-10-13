@@ -646,6 +646,27 @@ def apply_judge0_callback_endpoint(
     from datetime import datetime, timezone
 
     from app.schemas.execution_schema import MAX_EXECUTION_OUTPUT_LENGTH
+    from app.models.domain_models import ExecutionRequest
+
+    # Verify that execution exists, matches secret correlation_id, and is not already finalized
+    req_record = (
+        db.query(ExecutionRequest)
+        .filter(
+            ExecutionRequest.execution_id == execution_id,
+            ExecutionRequest.correlation_id == correlation_id,
+        )
+        .first()
+    )
+    if not req_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution request not found or correlation token mismatch.",
+        )
+    if req_record.status in {"completed", "failed", "runtime_error", "timed_out"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Execution request is already in a terminal state.",
+        )
 
     # Map Judge0 status IDs:
     # 3 = Accepted -> completed

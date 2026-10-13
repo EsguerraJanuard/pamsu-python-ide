@@ -110,8 +110,11 @@ PROHIBITED_AUDIT_KEYS = frozenset(
 )
 
 
+import re
+
 def _normalize_audit_key(value: str) -> str:
-    return value.strip().lower().replace("-", "_").replace(" ", "_")
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value.strip())
+    return s.lower().replace("-", "_").replace(" ", "_")
 
 
 def _validate_json_value(

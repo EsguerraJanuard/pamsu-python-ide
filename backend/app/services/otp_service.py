@@ -732,6 +732,9 @@ def resend_password_reset_otp(
                 int(OTP_RESEND_COOLDOWN_SECONDS - seconds_since_sent)
             )
 
+    if challenge.resend_count >= OTP_MAX_RESENDS:
+        raise OTPResendLimitError()
+
     otp_code = generate_otp_code()
 
     challenge.otp_hash = hash_otp_code(
@@ -741,6 +744,7 @@ def resend_password_reset_otp(
     challenge.expires_at = current_time + timedelta(seconds=OTP_EXPIRE_SECONDS)
     challenge.last_sent_at = current_time
     challenge.attempt_count = 0
+    challenge.resend_count += 1
 
     deliver_otp(
         delivery_adapter=delivery_adapter,

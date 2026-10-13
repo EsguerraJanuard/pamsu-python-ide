@@ -93,6 +93,23 @@ def login(
 ) -> TokenResponse:
     normalized_email = form_data.username.strip().lower()
 
+    # Rate limiting: max 10 login attempts per minute per email
+    try:
+        login_rl_key = f"rl:login:{normalized_email}"
+        attempts = redis_client.get(login_rl_key)
+        if attempts and int(attempts) >= 10:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts. Please wait a minute before trying again.",
+            )
+        new_cnt = redis_client.incr(login_rl_key)
+        if new_cnt == 1:
+            redis_client.expire(login_rl_key, 60)
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
     def raise_invalid(user_obj=None):
         if user_obj:
             create_audit_record(
@@ -125,7 +142,7 @@ def login(
         form_data.password,
         user.password_hash,
     ):
-        raise invalid_credentials_exception()
+        raise_invalid(user)
 
     if not user.is_active:
         raise HTTPException(

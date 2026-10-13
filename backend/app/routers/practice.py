@@ -364,6 +364,8 @@ def update_practice_module(
     
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot edit default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this module")
     
     if request.title is not None:
         mod.title = request.title
@@ -388,6 +390,8 @@ def delete_practice_module(
         
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot delete default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this module")
         
     db.delete(mod)
     db.commit()
@@ -406,6 +410,8 @@ def create_practice_task(
         
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this module")
         
     task = PracticeTask(
         module_id=module_id,
@@ -435,6 +441,8 @@ def update_practice_task(
     mod = task.module
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify tasks in this module")
         
     if request.title is not None:
         task.title = request.title
@@ -466,6 +474,8 @@ def delete_practice_task(
     mod = task.module
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete tasks in this module")
         
     db.delete(task)
     db.commit()
