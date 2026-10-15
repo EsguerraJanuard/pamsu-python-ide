@@ -100,16 +100,18 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to dispatch to partner: {e}")
-        try:
-            db.begin()
-            req = db.query(ExecutionRequest).filter(ExecutionRequest.execution_id == execution_request_id).first()
-            if req:
-                req.status = "failed"
-                req.stderr = f"System Error: Failed to contact Judge0 - {str(e)}"
-                db.commit()
-        except Exception:
-            db.rollback()
-        # Retry task if partner is down
+        if self.request.retries >= self.max_retries:
+            try:
+                db.begin()
+                req = db.query(ExecutionRequest).filter(ExecutionRequest.execution_id == execution_request_id).first()
+                if req:
+                    req.status = "failed"
+                    req.stderr = f"System Error: Failed to contact Judge0 - {str(e)}"
+                    db.commit()
+            except Exception:
+                db.rollback()
+            raise
+        # Retry task if partner is down and retries remain
         raise self.retry(exc=e, countdown=5)
     finally:
         db.close()

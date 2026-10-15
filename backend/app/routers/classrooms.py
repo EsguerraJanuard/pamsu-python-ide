@@ -336,7 +336,7 @@ async def bulk_enroll_file_endpoint(
                 pass
     
     # Extract all emails using regex
-    emails = re.findall(r'[a-zA-Z0-9_.+-]+@pampangastateu\\.edu\\.ph', text.lower())
+    emails = re.findall(r'[a-zA-Z0-9_.+-]+@pampangastateu\.edu\.ph', text.lower())
     
     return bulk_enroll_students(
         db=db,

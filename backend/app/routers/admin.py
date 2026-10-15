@@ -4,6 +4,7 @@ from typing import List
 
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
+from app.core.system_settings import get_all_system_settings, set_system_setting
 from app.models.domain_models import AuditRecord, Classroom, User
 from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, computed_field
@@ -171,6 +172,8 @@ def toggle_user_status(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
+    if user_id == current_admin.user_id:
+        raise HTTPException(status_code=400, detail="Cannot modify own admin account status")
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -184,6 +187,8 @@ def delete_user(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
+    if user_id == current_admin.user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete own admin account")
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -279,13 +284,25 @@ async def bulk_register_students_file(
     return {"registered": registered_count, "invalid": len(emails) - len(valid_emails)}
 
 @router.get("/settings")
-def get_settings(current_admin: User = Depends(get_current_admin)):
-    return global_system_settings
+def get_settings(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    settings = get_all_system_settings(db)
+    global_system_settings.update(settings)
+    return settings
 
 @router.patch("/settings")
-def update_settings(request: SettingsUpdate, current_admin: User = Depends(get_current_admin)):
+def update_settings(
+    request: SettingsUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    set_system_setting(db, "maintenance_mode", request.maintenance_mode)
+    set_system_setting(db, "default_ast_strictness", request.default_ast_strictness)
+    set_system_setting(db, "registration_enabled", request.registration_enabled)
     global_system_settings["maintenance_mode"] = request.maintenance_mode
     global_system_settings["default_ast_strictness"] = request.default_ast_strictness
     global_system_settings["registration_enabled"] = request.registration_enabled
-    return global_system_settings
+    return get_all_system_settings(db)
 

@@ -88,9 +88,9 @@ def analyze_reference_solution(code: str) -> Dict[str, Any]:
     if stats["While"] > 0:
         suggested_rules["require_while_loop"] = {"required": True, "min_count": stats["While"]}
     if stats["FunctionDef"] > 0:
-        suggested_rules["require_function"] = {"required": True, "min_count": stats["FunctionDef"]}
+        suggested_rules["require_function_def"] = {"required": True, "min_count": stats["FunctionDef"]}
     if stats["ClassDef"] > 0:
-        suggested_rules["require_class"] = {"required": True, "min_count": stats["ClassDef"]}
+        suggested_rules["require_class_def"] = {"required": True, "min_count": stats["ClassDef"]}
     if stats["ListComp"] > 0:
         suggested_rules["require_list_comprehension"] = {"required": True, "min_count": stats["ListComp"]}
     if stats["DictComp"] > 0:

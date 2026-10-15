@@ -11,7 +11,7 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('student', 'instructor')",
+            "role IN ('student', 'instructor', 'admin')",
             name="ck_users_role",
         ),
         CheckConstraint(
@@ -216,7 +216,7 @@ class OTPChallenge(Base):
             name="ck_otp_resend_count",
         ),
         CheckConstraint(
-            "purpose IN ('registration', 'email_change')",
+            "purpose IN ('registration', 'email_change', 'password_reset')",
             name="ck_otp_purpose",
         ),
     )
@@ -2136,3 +2136,16 @@ class PracticeAttempt(Base):
 
     student = relationship("User")
     task = relationship("PracticeTask", back_populates="attempts")
+
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(String(255), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

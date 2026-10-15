@@ -7,7 +7,10 @@ from app.schemas.submission_schema import SubmissionCreate, SubmissionStatus
 from app.services.academic_event_service import (AcademicEventWorkflowError,
                                                  notify_submission_created)
 from app.services.audit_service import AuditServiceError, create_audit_record
-from app.services.notification_service import NotificationServiceError
+from app.services.notification_service import (
+    NotificationRecipientUnavailableError,
+    NotificationServiceError,
+)
 from pydantic import ValidationError
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -136,6 +139,17 @@ def _get_student_submission_task(
         raise SubmissionTaskUnavailableError(
             "The activity is unavailable for submission."
         )
+
+    if task.due_at is not None:
+        now = _utc_now()
+        due_at = task.due_at
+        if due_at.tzinfo is None:
+            due_at = due_at.replace(tzinfo=timezone.utc)
+        allow_late = getattr(task, "allow_late_submissions", False)
+        if not allow_late and now > due_at:
+            raise SubmissionTaskUnavailableError(
+                "The activity deadline has passed."
+            )
 
     active_enrollment = (
         db.query(Enrollment)
@@ -378,6 +392,9 @@ def create_student_submission(
             student_id=student_id,
             submission_id=submission.sub_id,
         )
+    except NotificationRecipientUnavailableError:
+        # Instructor is deactivated or unavailable; commit the student's submission rather than failing
+        db.commit()
     except (
         AcademicEventWorkflowError,
         NotificationServiceError,

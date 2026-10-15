@@ -268,6 +268,10 @@ if hasattr(ast, "Match"):
         ),
     }
 
+# Backward compatibility aliases for legacy rule names
+SUPPORTED_AST_RULES["require_function"] = SUPPORTED_AST_RULES["require_function_def"]
+SUPPORTED_AST_RULES["require_class"] = SUPPORTED_AST_RULES["require_class_def"]
+
 
 def _is_rule_enabled(configuration: Any) -> bool:
     if isinstance(configuration, bool):

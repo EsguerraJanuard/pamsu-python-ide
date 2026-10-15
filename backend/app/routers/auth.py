@@ -7,8 +7,8 @@ from app.core.redis_client import redis_client
 from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
                                SECRET_KEY, create_access_token, get_password_hash,
                                oauth2_scheme, verify_password)
+from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
-from app.routers.admin import global_system_settings
 from app.schemas.audit_schema import AuditRecordCreateInternal
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.services.audit_service import create_audit_record
@@ -141,24 +141,27 @@ def login(
         pass
 
     def raise_invalid(user_obj=None):
-        if user_obj:
+        try:
+            actor_id = user_obj.user_id if user_obj else None
+            res_id = str(user_obj.user_id) if user_obj else normalized_email
             create_audit_record(
                 db=db,
                 payload=AuditRecordCreateInternal(
-                    audit_key=f"login_failed_{user_obj.user_id}_{uuid4().hex[:8]}",
-                    actor_user_id=user_obj.user_id,
+                    audit_key=f"login_failed_{actor_id or 'anon'}_{uuid4().hex[:8]}",
+                    actor_user_id=actor_id,
                     action_type="login_failed",
                     resource_type="user",
-                    resource_id=str(user_obj.user_id),
+                    resource_id=res_id,
                     outcome="failed",
                     audit_data={"email": normalized_email}
                 )
             )
+        except Exception:
+            pass
         raise invalid_credentials_exception()
-
 
     if not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN):
-        raise invalid_credentials_exception()
+        raise_invalid(None)
 
     user = get_user_by_email(
         db=db,
@@ -166,7 +169,7 @@ def login(
     )
 
     if user is None:
-        raise invalid_credentials_exception()
+        raise_invalid(None)
 
     if not verify_password(
         form_data.password,
@@ -185,7 +188,7 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=("University email verification is required."),
         )
-    if global_system_settings.get("maintenance_mode", False) and user.role == "student":
+    if get_system_setting(db, "maintenance_mode", default=False) and user.role == "student":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=("The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time."),
@@ -267,7 +270,6 @@ def login_guest(db: Session = Depends(get_db)):
     import random
     import uuid
 
-    from app.core.utils import get_utc_now
     from app.models.domain_models import Classroom, Enrollment
     
     short_id = str(uuid.uuid4())[:6]
@@ -284,14 +286,37 @@ def login_guest(db: Session = Depends(get_db)):
     db.commit()
     db.refresh(guest)
     
-    # Auto-enroll guest in the first available class so they can see the system
-    first_class = db.query(Classroom).first()
-    if first_class:
+    # Auto-enroll guest into dedicated sandbox classroom to avoid polluting real classrooms
+    sandbox_class = (
+        db.query(Classroom)
+        .filter(Classroom.class_code == "SANDBOX01")
+        .first()
+    )
+    if not sandbox_class:
+        sandbox_instructor = (
+            db.query(User)
+            .filter(User.role.in_(["instructor", "admin"]))
+            .first()
+        )
+        if sandbox_instructor:
+            sandbox_class = Classroom(
+                name="Guest Sandbox Classroom",
+                subject_code="DEMO101",
+                section="Sandbox",
+                class_code="SANDBOX01",
+                instructor_id=sandbox_instructor.user_id,
+                is_active=True,
+            )
+            db.add(sandbox_class)
+            db.commit()
+            db.refresh(sandbox_class)
+
+    if sandbox_class:
         enroll = Enrollment(
-            class_id=first_class.class_id,
+            class_id=sandbox_class.class_id,
             student_id=guest.user_id,
             status="active",
-            joined_at=get_utc_now()
+            joined_at=datetime.now(timezone.utc),
         )
         db.add(enroll)
         db.commit()

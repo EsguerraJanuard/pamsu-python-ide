@@ -237,19 +237,13 @@ def start_or_resume_student_coding_session(
         .all()
     )
 
-    if len(active_sessions) > 1:
-        db.rollback()
-
-        raise CodingSessionStateConflictError(
-            "Multiple active coding sessions were detected "
-            "for the same student and activity."
-        )
-
     now = _utc_now()
 
     if active_sessions:
         coding_session = active_sessions[0]
         coding_session.last_activity_at = now
+        for stale in active_sessions[1:]:
+            stale.ended_at = now
 
         _commit_session_transaction(db)
         db.refresh(coding_session)
