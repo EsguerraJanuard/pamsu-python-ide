@@ -132,6 +132,47 @@ class User(Base):
         foreign_keys="AuditRecord.actor_user_id",
     )
 
+    def __init__(self, **kwargs):
+        if "name" not in kwargs:
+            first = kwargs.pop("first_name", "") or ""
+            last = kwargs.pop("last_name", "") or ""
+            middle = kwargs.pop("middle_name", "") or ""
+            parts = [p for p in (first, middle, last) if p]
+            if parts:
+                kwargs["name"] = " ".join(parts).strip()
+        kwargs.pop("first_name", None)
+        kwargs.pop("middle_name", None)
+        kwargs.pop("last_name", None)
+        super().__init__(**kwargs)
+
+    @property
+    def first_name(self) -> str:
+        parts = (self.name or "").split()
+        return parts[0] if parts else ""
+
+    @first_name.setter
+    def first_name(self, val: str) -> None:
+        last = self.last_name
+        self.name = f"{val} {last}".strip()
+
+    @property
+    def last_name(self) -> str:
+        parts = (self.name or "").split()
+        return " ".join(parts[1:]) if len(parts) > 1 else ""
+
+    @last_name.setter
+    def last_name(self, val: str) -> None:
+        first = self.first_name
+        self.name = f"{first} {val}".strip()
+
+    @property
+    def middle_name(self) -> str:
+        return ""
+
+    @middle_name.setter
+    def middle_name(self, val: str) -> None:
+        pass
+
 
 class InstructorAllowlist(Base):
     __tablename__ = "instructor_allowlist"
@@ -398,7 +439,7 @@ class Classroom(Base):
 
     @property
     def instructor_name(self) -> str | None:
-        return f"{self.instructor.first_name} {self.instructor.last_name}" if self.instructor else None
+        return self.instructor.name if self.instructor else None
 
 
 class Enrollment(Base):

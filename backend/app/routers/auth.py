@@ -5,8 +5,8 @@ from uuid import uuid4
 from app.core.database import get_db
 from app.core.redis_client import redis_client
 from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
-                               SECRET_KEY, create_access_token, oauth2_scheme,
-                               verify_password)
+                               SECRET_KEY, create_access_token, get_password_hash,
+                               oauth2_scheme, verify_password)
 from app.models.domain_models import User
 from app.routers.admin import global_system_settings
 from app.schemas.audit_schema import AuditRecordCreateInternal
@@ -15,7 +15,7 @@ from app.services.audit_service import create_audit_record
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -46,14 +46,25 @@ router = APIRouter(
 
 class AuthenticatedUserResponse(BaseModel):
     user_id: int
-    first_name: str
-    last_name: str
+    name: str
     school_id: str
     email: str
     role: str
     email_verified: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def first_name(self) -> str:
+        parts = self.name.split()
+        return parts[0] if parts else ""
+
+    @computed_field
+    @property
+    def last_name(self) -> str:
+        parts = self.name.split()
+        return " ".join(parts[1:]) if len(parts) > 1 else ""
 
 
 class TokenResponse(BaseModel):
@@ -198,7 +209,7 @@ def login(
         data={
             "sub": str(user.user_id),
             "role": user.role,
-            "name": f"{user.first_name} {user.last_name}",
+            "name": user.name,
             "email": user.email,
             "pwd_ver": user.password_version,
         },
@@ -264,12 +275,10 @@ def login_guest(db: Session = Depends(get_db)):
     
     guest = User(
         email=guest_email,
-        first_name="Aspiring Student",
-        last_name=f"Guest {short_id.upper()}",
-        middle_name="",
+        name=f"Guest {short_id.upper()}",
         role="student",
         password_hash=get_password_hash("guest"),
-        school_id=f"GST{random.randint(10000, 99999)}"
+        school_id=f"GST{random.randint(1000000, 9999999)}",
     )
     db.add(guest)
     db.commit()
@@ -289,12 +298,19 @@ def login_guest(db: Session = Depends(get_db)):
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(guest.user_id), "role": guest.role},
+        data={
+            "sub": str(guest.user_id),
+            "role": guest.role,
+            "name": guest.name,
+            "email": guest.email,
+            "pwd_ver": guest.password_version,
+        },
         expires_delta=access_token_expires,
     )
     
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse.model_validate(guest)
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=AuthenticatedUserResponse.model_validate(guest)
     )

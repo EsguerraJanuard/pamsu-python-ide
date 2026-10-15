@@ -15,6 +15,8 @@ from app.models.domain_models import (InstructorAllowlist, OTPChallenge,
                                       PendingRegistration, User)
 from app.schemas.otp_schema import (OTPChallengeResponse,
                                     OTPVerificationRequest,
+                                    PasswordResetCompleteRequest,
+                                    PasswordResetStartRequest,
                                     RegistrationCompleteResponse,
                                     RegistrationStartRequest)
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN, UserResponse
@@ -598,7 +600,7 @@ def verify_registration_otp(
 def start_password_reset(
     *,
     db: Session,
-    reset_data: "PasswordResetStartRequest",
+    reset_data: PasswordResetStartRequest,
     delivery_adapter: OTPDeliveryAdapter,
 ) -> OTPChallengeResponse:
     from app.models.domain_models import User
@@ -654,7 +656,7 @@ def start_password_reset(
 def verify_and_complete_password_reset(
     *,
     db: Session,
-    completion_data: "PasswordResetCompleteRequest",
+    completion_data: PasswordResetCompleteRequest,
 ) -> dict:
     from app.core.security import get_password_hash
     from app.models.domain_models import User

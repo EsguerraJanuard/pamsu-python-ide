@@ -9,8 +9,11 @@ def generate_pedagogical_hint(task_instructions: str, student_code: str, error_o
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        # We can use flash for faster tutor responses
-        model = genai.GenerativeModel('models/gemini-3.8-flash')
+        models_to_try = [
+            os.getenv("GEMINI_MODEL", "models/gemini-3.8-flash"),
+            "models/gemini-1.5-flash",
+            "gemini-1.5-flash",
+        ]
         
         prompt = f'''You are an AI coding tutor helping a beginner Python student.
 Analyze their code and the execution error, then provide a guiding hint using Markdown.
@@ -34,7 +37,15 @@ Task Instructions:
 {error_output}
 </execution_error>
 '''
-        response = model.generate_content(prompt)
-        return response.text
+        for m_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(m_name)
+                response = model.generate_content(prompt)
+                if response and response.text:
+                    return response.text
+            except Exception:
+                continue
+
+        return "AI Tutor is temporarily unavailable. Please review your code or try again shortly."
     except Exception as e:
         return "AI Tutor is temporarily unavailable. Please review your code or try again shortly."

@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
 from app.models.domain_models import AuditRecord, Classroom, User
 from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, computed_field
 from sqlalchemy.orm import Session
 from app.services.email_service import send_provisioning_email
 
@@ -28,14 +28,24 @@ class StudentCreate(BaseModel):
 class UserResponse(BaseModel):
     user_id: int
     email: str
-    first_name: str
-    last_name: str
+    name: str
     role: str
     school_id: str | None = None
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def first_name(self) -> str:
+        parts = self.name.split()
+        return parts[0] if parts else ""
+
+    @computed_field
+    @property
+    def last_name(self) -> str:
+        parts = self.name.split()
+        return " ".join(parts[1:]) if len(parts) > 1 else ""
 
 class PasswordReset(BaseModel):
     new_password: str
@@ -79,8 +89,7 @@ def create_student(
     
     new_student = User(
         email=request.email,
-        first_name=request.first_name,
-        last_name=request.last_name,
+        name=f"{request.first_name} {request.last_name}".strip(),
         role="student",
         password_hash=get_password_hash(request.password),
         school_id=request.school_id,
@@ -110,11 +119,10 @@ def create_guest(
     
     new_guest = User(
         email=request.email,
-        first_name=request.first_name,
-        last_name=request.last_name,
-        role="guest",
+        name=f"{request.first_name} {request.last_name}".strip(),
+        role="student",
         password_hash=get_password_hash(request.password),
-        school_id="GUEST-" + str(random.randint(1000, 9999)),
+        school_id=f"GST{random.randint(1000000, 9999999)}",
         email_verified=True
     )
     db.add(new_guest)
@@ -135,8 +143,7 @@ def create_instructor(
     
     new_instructor = User(
         email=request.email,
-        first_name=request.first_name,
-        last_name=request.last_name,
+        name=f"{request.first_name} {request.last_name}".strip(),
         role="instructor",
         password_hash=get_password_hash(request.password),
         school_id=str(random.randint(1000000000, 9999999999)),
@@ -145,7 +152,7 @@ def create_instructor(
     db.add(new_instructor)
     db.commit()
     db.refresh(new_instructor)
-    background_tasks.add_task(send_provisioning_email, new_instructor.email, new_instructor.first_name, request.password, 'Instructor')
+    background_tasks.add_task(send_provisioning_email, new_instructor.email, request.first_name, request.password, 'Instructor')
     return new_instructor
 
 @router.get("/users", response_model=List[UserResponse])
@@ -195,6 +202,7 @@ def reset_user_password(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.password_hash = get_password_hash(request.new_password)
+    user.password_version += 1
     db.commit()
     return {"message": "Password reset successfully"}
 
@@ -205,19 +213,19 @@ def get_global_audit_logs(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    logs = db.query(AuditRecord, User.first_name, User.last_name, User.role).join(
+    logs = db.query(AuditRecord, User.name, User.role).join(
         User, AuditRecord.actor_user_id == User.user_id, isouter=True
     ).order_by(AuditRecord.occurred_at.desc()).offset(skip).limit(limit).all()
     
     result = []
-    for log, fname, lname, role in logs:
+    for log, name, role in logs:
         result.append({
             "log_id": log.audit_id,
             "action_type": log.action_type,
             "resource_type": log.resource_type,
             "occurred_at": log.occurred_at,
             "status": log.outcome,
-            "actor_name": f"{fname} {lname}" if fname else "System",
+            "actor_name": name if name else "System",
             "actor_role": role if role else "system"
         })
     return result
@@ -254,10 +262,10 @@ async def bulk_register_students_file(
     
     for email in valid_emails:
         if email not in existing_emails:
+            student_name = f"{email.split('@')[0].replace('.', ' ').title()} Student"
             new_user = User(
                 email=email,
-                first_name=email.split("@")[0].replace(".", " ").title(),
-                last_name="Student",
+                name=student_name,
                 role="student",
                 password_hash=get_password_hash("PamsU@2026"),
                 school_id=str(random.randint(1000000000, 9999999999)),
@@ -265,7 +273,7 @@ async def bulk_register_students_file(
             )
             db.add(new_user)
             registered_count += 1
-            background_tasks.add_task(send_provisioning_email, new_user.email, new_user.first_name, 'PamsU@2026', 'Student')
+            background_tasks.add_task(send_provisioning_email, new_user.email, student_name.split()[0], 'PamsU@2026', 'Student')
             
     db.commit()
     return {"registered": registered_count, "invalid": len(emails) - len(valid_emails)}
@@ -281,26 +289,3 @@ def update_settings(request: SettingsUpdate, current_admin: User = Depends(get_c
     global_system_settings["registration_enabled"] = request.registration_enabled
     return global_system_settings
 
-
-
-
-@router.get("/seed-production")
-def seed_production(db: Session = Depends(get_db)):
-    # Temporary seed endpoint for MIS account
-    admin_email = "admin@pampangastateu.edu.ph"
-    existing = db.query(User).filter(User.email == admin_email).first()
-    if existing:
-        return {"msg": "Super Admin already exists."}
-    
-    admin_user = User(
-        email=admin_email,
-        first_name="Super",
-        last_name="Admin",
-        role="superadmin",
-        password_hash=get_password_hash("Admin@2026"),
-        school_id="ADMIN-0001",
-        email_verified=True
-    )
-    db.add(admin_user)
-    db.commit()
-    return {"msg": "Super Admin seeded successfully."}

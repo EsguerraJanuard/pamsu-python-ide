@@ -1,7 +1,10 @@
+import logging
 import os
 import ssl
 
 from celery import Celery
+
+logger = logging.getLogger(__name__)
 
 redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
 # Remove any leftover query params if they were added in Render

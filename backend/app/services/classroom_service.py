@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from app.core.redis_client import redis_client
 from app.models.domain_models import Classroom, Enrollment, User
 from app.schemas.classroom_schema import ClassroomCreate, ClassroomUpdate
 from app.schemas.enrollment_schema import (EnrollmentJoinRequest,
@@ -676,7 +677,7 @@ def list_class_members(
             User.user_id == Enrollment.student_id,
         )
         .filter(Enrollment.class_id == class_id)
-        .order_by(User.last_name.asc(), User.first_name.asc())
+        .order_by(User.name.asc())
         .all()
     )
 
@@ -693,7 +694,7 @@ def list_class_members(
             "enrollment_id": enrollment.enrollment_id,
             "student_id": user.user_id,
             "school_id": user.school_id,
-            "name": f"{user.last_name}, {user.first_name}",
+            "name": user.name,
             "email": user.email,
             "status": enrollment.status,
             "is_online": user.user_id in online_users,

@@ -45,9 +45,7 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> User:
-    current_user.first_name = update_data.first_name
-    current_user.middle_name = update_data.middle_name
-    current_user.last_name = update_data.last_name
+    current_user.name = update_data.name
     if update_data.ast_strictness_level is not None:
         if current_user.role != "instructor":
             raise HTTPException(

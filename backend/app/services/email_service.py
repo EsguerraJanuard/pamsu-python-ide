@@ -1,8 +1,9 @@
-import smtplib
-import os
+import html
 import logging
-from email.mime.text import MIMEText
+import os
+import smtplib
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,15 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
     
     # If no credentials, just log and return (for local dev)
     if not config["user"] or not config["password"]:
-        logger.warning(f"SMTP credentials missing. Mock email to {recipient_email} (Pass: {temp_password})")
+        logger.warning(f"SMTP credentials missing. Mock email to {recipient_email}")
         return
 
-    subject = f"Welcome to PAMSU Python IDE - Your {role} Account"
+    safe_first_name = html.escape(first_name)
+    safe_role = html.escape(role)
+    safe_temp_password = html.escape(temp_password)
+    safe_recipient_email = html.escape(recipient_email)
+
+    subject = f"Welcome to PAMSU Python IDE - Your {safe_role} Account"
     
     frontend_url = os.getenv("FRONTEND_URL", "https://pamsu-python-ide.vercel.app")
     
@@ -118,13 +124,13 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
                 <p style="margin-top: 10px; opacity: 0.9;">College of Computing Studies</p>
             </div>
             <div class="content">
-                <p>Hello <strong>{first_name}</strong>,</p>
-                <p>Your official {role} account for the <strong>PAMSU Python IDE</strong> has been successfully provisioned by the MIS Administrator.</p>
+                <p>Hello <strong>{safe_first_name}</strong>,</p>
+                <p>Your official {safe_role} account for the <strong>PAMSU Python IDE</strong> has been successfully provisioned by the MIS Administrator.</p>
                 
                 <div class="credentials-box">
                     <p style="margin-top: 0; font-weight: 600; color: #555;">Your Login Credentials:</p>
-                    <p>School Email: <span class="highlight">{recipient_email}</span></p>
-                    <p>Temporary Password: <span class="highlight">{temp_password}</span></p>
+                    <p>School Email: <span class="highlight">{safe_recipient_email}</span></p>
+                    <p>Temporary Password: <span class="highlight">{safe_temp_password}</span></p>
                 </div>
                 
                 <p>For your security, please log in immediately and update your password in your Account Settings.</p>

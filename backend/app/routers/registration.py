@@ -63,6 +63,7 @@ def start_registration_endpoint(
 
 def old_start_registration_endpoint(
     background_tasks: BackgroundTasks,
+    registration_data: RegistrationStartRequest = None,
     db: Session = Depends(get_db),
     delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
 ) -> OTPChallengeResponse:
