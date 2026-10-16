@@ -1,87 +1,98 @@
-import React from 'react';
-import { useEditorSettings } from '../../hooks/useEditorSettings';
+import { useEditorSettings } from "../../hooks/useEditorSettings";
+import { SettingsSection } from "./AccountSections";
 
+function Toggle({ id, label, description, checked, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <label htmlFor={id} className="text-sm font-medium text-text-main">
+          {label}
+        </label>
+        <p id={`${id}-description`} className="text-xs text-text-muted">
+          {description}
+        </p>
+      </div>
+      <button
+        id={id}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-describedby={`${id}-description`}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+          checked ? "bg-psu-maroon" : "bg-border-strong"
+        }`}
+      >
+        <span
+          className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            checked ? "translate-x-[22px]" : "translate-x-0.5"
+          }`}
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+  );
+}
+
+/** Editor preferences are stored in this browser and applied by the workspace. */
 export default function EditorSettings() {
   const { settings, updateSetting } = useEditorSettings();
 
-  const inputWrap = "mt-2 overflow-hidden rounded-lg border border-border-subtle bg-bg-base transition focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500";
-  const selectClass = "w-full appearance-none bg-transparent px-3 py-2 text-sm text-text-main focus:outline-none";
-
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-glass p-5">
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold">Code Editor Preferences</h2>
-        <p className="mt-1 text-[11px] text-text-muted">
-          Customize your coding environment. Changes apply automatically to the workspace.
-        </p>
-      </div>
-
+    <SettingsSection
+      id="editor-heading"
+      title="Code editor preferences"
+      description="Saved in this browser and applied the next time you open a workspace."
+    >
       <div className="space-y-6">
-        {/* Font Size */}
         <div>
-          <label className="mb-1.5 flex justify-between text-xs font-medium text-text-muted">
-            <span>Font Size</span>
-            <span className="text-primary-500">{settings.fontSize}px</span>
-          </label>
-          <input 
-            type="range" min="10" max="24" 
+          <div className="mb-1.5 flex items-center justify-between">
+            <label htmlFor="editor-font-size" className="text-sm font-medium text-text-main">
+              Font size
+            </label>
+            <span className="text-sm font-semibold text-text-brand">{settings.fontSize}px</span>
+          </div>
+          <input
+            id="editor-font-size"
+            type="range"
+            min="10"
+            max="24"
             value={settings.fontSize}
-            onChange={(e) => updateSetting('fontSize', parseInt(e.target.value))}
-            className="w-full accent-primary-500"
+            onChange={(e) => updateSetting("fontSize", parseInt(e.target.value, 10))}
+            className="w-full accent-psu-maroon"
           />
         </div>
 
-        {/* Tab Size */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-muted">
-            Tab Size
+          <label htmlFor="editor-tab-size" className="field-label">
+            Tab size
           </label>
-          <div className={inputWrap}>
-            <select 
-              value={settings.tabSize}
-              onChange={(e) => updateSetting('tabSize', parseInt(e.target.value))}
-              className={selectClass}
-            >
-              <option value={2} className="bg-bg-base text-text-main">2 spaces</option>
-              <option value={4} className="bg-bg-base text-text-main">4 spaces</option>
-            </select>
-          </div>
+          <select
+            id="editor-tab-size"
+            value={settings.tabSize}
+            onChange={(e) => updateSetting("tabSize", parseInt(e.target.value, 10))}
+            className="input-field sm:w-48"
+          >
+            <option value={2}>2 spaces</option>
+            <option value={4}>4 spaces</option>
+          </select>
         </div>
 
-        {/* Word Wrap Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-text-main">Word Wrap</p>
-            <p className="text-[10px] text-text-muted">Wrap lines that exceed the editor width</p>
-          </div>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <input 
-              type="checkbox" 
-              checked={settings.wordWrap === 'on'}
-              onChange={(e) => updateSetting('wordWrap', e.target.checked ? 'on' : 'off')}
-              className="peer sr-only" 
-            />
-            <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-          </label>
-        </div>
-
-        {/* Minimap Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-text-main">Minimap Overview</p>
-            <p className="text-[10px] text-text-muted">Show a zoomed-out code map on the right side</p>
-          </div>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <input 
-              type="checkbox" 
-              checked={settings.minimap}
-              onChange={(e) => updateSetting('minimap', e.target.checked)}
-              className="peer sr-only" 
-            />
-            <div className="peer h-5 w-9 rounded-full bg-slate-300 dark:bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 dark:after:border-slate-700 after:bg-white after:transition-all peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-          </label>
-        </div>
+        <Toggle
+          id="editor-word-wrap"
+          label="Word wrap"
+          description="Wrap lines that are wider than the editor."
+          checked={settings.wordWrap === "on"}
+          onChange={(on) => updateSetting("wordWrap", on ? "on" : "off")}
+        />
+        <Toggle
+          id="editor-minimap"
+          label="Minimap"
+          description="Show a zoomed-out overview of the code on the right."
+          checked={Boolean(settings.minimap)}
+          onChange={(on) => updateSetting("minimap", on)}
+        />
       </div>
-    </section>
+    </SettingsSection>
   );
 }

@@ -1,19 +1,21 @@
 import { Link } from 'react-router-dom';
+import { useAuth, homePathForRole } from '../features/auth/AuthContext';
 
 export const NotFound = () => {
+  const { isAuthenticated, role } = useAuth();
+  const destination = isAuthenticated ? homePathForRole(role) : '/login';
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-bg-glass p-6 text-center text-text-main">
-      <div className="max-w-md space-y-6 rounded-2xl border border-border-subtle bg-bg-glass/80 p-8 shadow-2xl">
-        <p className="text-sm font-semibold uppercase tracking-widest text-psu-maroon">Error 404</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-text-main">Page Not Found</h1>
-        <p className="text-sm leading-relaxed text-text-muted">
-          We couldn&apos;t find the workspace or classroom page you are looking for. It may have been moved, archived, or deleted.
+    <main className="flex min-h-screen items-center justify-center bg-bg-base p-6 text-text-main">
+      <div className="card w-full max-w-md p-8 text-center">
+        <img src="/school_logo.png" alt="Pampanga State University logo" className="mx-auto mb-5 h-14 w-14 object-contain" />
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-text-brand">Error 404</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">Page not found</h1>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          The page you are looking for does not exist. It may have been moved, or the link may be incorrect.
         </p>
-        <Link
-          to="/login"
-          className="inline-flex w-full items-center justify-center rounded-lg bg-psu-maroon px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-psu-maroon/90 focus:outline-none focus:ring-2 focus:ring-psu-maroon focus:ring-offset-2 focus:ring-offset-slate-900"
-        >
-          Return to Login
+        <Link to={destination} className="btn-primary mt-6 w-full">
+          {isAuthenticated ? 'Go to my dashboard' : 'Go to sign in'}
         </Link>
       </div>
     </main>

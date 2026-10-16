@@ -9,10 +9,10 @@ function getPasswordStrength(password) {
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#ef4444", width: "25%" };
-  if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
-  return { label: "Strong password", color: "#22c55e", width: "100%" };
+  if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#b42318", width: "25%" };
+  if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#8a6200", width: "50%" };
+  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#77250b", width: "75%" };
+  return { label: "Strong password", color: "#15803d", width: "100%" };
 }
 
 export default function ForgotPassword() {
@@ -56,21 +56,21 @@ export default function ForgotPassword() {
       setErrorMsg("Please enter your university email address.");
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setErrorMsg("Please enter a valid email address.");
+    if (!/^[^\s@]+@pampangastateu\.edu\.ph$/i.test(email.trim())) {
+      setErrorMsg("Use your university email ending in @pampangastateu.edu.ph.");
       return;
     }
     
     setLoading(true);
     
     try {
-      const response = await api.post("/users/password-reset/start", { email });
+      const response = await api.post("/users/password-reset/start", { email: email.trim().toLowerCase() });
       setChallengeId(response.challenge_id);
       setResendTimer(response.resend_after_seconds || 60);
       setStep(2);
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorMsg(error.details || error.message);
+        setErrorMsg(error.status >= 500 ? "The server ran into a problem. Please try again shortly." : error.message);
       } else {
         setErrorMsg("An unexpected error occurred. Please try again.");
       }
@@ -93,7 +93,7 @@ export default function ForgotPassword() {
       setResendTimer(response.resend_after_seconds || 60);
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorMsg(error.details || error.message);
+        setErrorMsg(error.status >= 500 ? "The server ran into a problem. Please try again shortly." : error.message);
       } else {
         setErrorMsg("Failed to resend code.");
       }
@@ -140,7 +140,7 @@ export default function ForgotPassword() {
       setStep(3); // Success
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorMsg(error.details || error.message);
+        setErrorMsg(error.status >= 500 ? "The server ran into a problem. Please try again shortly." : error.message);
       } else {
         setErrorMsg("Failed to reset password.");
       }
@@ -150,20 +150,20 @@ export default function ForgotPassword() {
   };
 
   const inputClass = "flex-1 bg-transparent text-[15px] font-medium text-text-main outline-none placeholder:text-text-muted/50 placeholder:font-normal disabled:opacity-50";
-  const inputWrap = "flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text";
+  const inputWrap = "flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text";
   const buttonClass = "group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-5 py-4 text-[15px] font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 text-text-main overflow-hidden p-6 relative">
+    <main className="flex min-h-screen items-center justify-center bg-bg-base text-text-main overflow-hidden p-6 relative">
       {/* Subtle Ambient Glows */}
       <div className="absolute top-0 right-0 -z-10 h-[800px] w-[800px] translate-x-1/4 -translate-y-1/4 rounded-full bg-psu-gold/10 blur-[150px]" />
       <div className="absolute bottom-0 left-0 -z-10 h-[800px] w-[800px] -translate-x-1/4 translate-y-1/4 rounded-full bg-psu-maroon/10 blur-[150px]" />
 
-      <div className="relative z-10 w-full max-w-[500px] rounded-[28px] border border-slate-200/50 bg-white/90 backdrop-blur-2xl p-10 sm:p-14 shadow-2xl shadow-slate-200 animate-page-fade">
+      <div className="relative z-10 w-full max-w-[500px] rounded-[28px] border border-border-subtle bg-bg-panel p-10 sm:p-14 shadow-sm animate-page-fade">
         
         {/* Brand Header */}
         <div className="mb-10 text-center flex flex-col items-center">
-          <div className="mb-6 flex items-center justify-center h-16 w-16 rounded-2xl bg-white shadow-md border border-slate-100">
+          <div className="mb-6 flex items-center justify-center h-16 w-16 rounded-2xl bg-white shadow-md border border-border-subtle">
             <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-sm" />
           </div>
           <h2 className="text-3xl sm:text-[34px] font-black tracking-tight text-text-main leading-tight">
@@ -179,7 +179,7 @@ export default function ForgotPassword() {
         </div>
 
         {errorMsg && (
-          <div className="mb-8 rounded-xl border border-red-500/20 bg-red-50 px-5 py-4 text-[14px] font-medium text-red-600 shadow-sm">
+          <div role="alert" className="mb-8 rounded-xl border border-psu-red/25 bg-psu-red/[0.06] px-5 py-4 text-[14px] font-medium text-psu-red">
             {errorMsg}
           </div>
         )}
@@ -203,7 +203,7 @@ export default function ForgotPassword() {
                   required
                   disabled={loading}
                   className={inputClass}
-                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
                 />
               </div>
             </div>
@@ -250,7 +250,7 @@ export default function ForgotPassword() {
                   placeholder="------"
                   required
                   className={`${inputClass} tracking-[0.5em] text-center font-mono text-lg font-bold`}
-                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
                 />
               </div>
             </div>
@@ -271,7 +271,7 @@ export default function ForgotPassword() {
                   placeholder="At least 8 characters"
                   required
                   className={`${inputClass} tracking-widest`}
-                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
                 />
                 <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="shrink-0 text-text-muted hover:text-text-main" aria-label="Toggle password visibility">
                   {showPasswords ? (
@@ -289,7 +289,7 @@ export default function ForgotPassword() {
                       <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
                       <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: strength.color }}>{strength.label.split(' - ')[0] || strength.label}</span>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-alt">
                       <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />
                     </div>
                   </div>
@@ -313,7 +313,7 @@ export default function ForgotPassword() {
                   placeholder="Enter the new password again"
                   required
                   className={`${inputClass} tracking-widest`}
-                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
                 />
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function ForgotPassword() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow active:translate-y-0 active:scale-[0.98]"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-white px-5 py-4 text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-bg-alt hover:shadow active:translate-y-0 active:scale-[0.98]"
               >
                 Back to email
               </button>
@@ -340,14 +340,14 @@ export default function ForgotPassword() {
 
         {step === 3 && (
           <div className="animate-[registerFadeUp_400ms_ease-out_both] flex flex-col items-center pt-2">
-            <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 ring-8 ring-emerald-50/50">
+            <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-600/10 text-text-emerald ring-8 ring-emerald-600/5">
               <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div className="w-full">
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/login", { state: { passwordReset: true, email: email.trim().toLowerCase() } })}
                 className={buttonClass}
               >
                 Continue to Login

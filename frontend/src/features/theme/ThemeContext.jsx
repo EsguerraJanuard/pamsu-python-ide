@@ -1,54 +1,27 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
 
 const ThemeContext = createContext(undefined);
 
-export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("pamsu_theme");
-    return saved || "system";
-  });
-  const [resolvedTheme, setResolvedTheme] = useState("light");
+/**
+ * The application chrome ships a single light PSU theme. The previous
+ * light/dark switch only re-skinned part of the UI, so it was retired.
+ * The code editor keeps its own theme preference (see Workspace).
+ */
+const THEME_VALUE = Object.freeze({ theme: "light", resolvedTheme: "light", setTheme: () => {} });
 
+export function ThemeProvider({ children }) {
   useEffect(() => {
     const root = window.document.documentElement;
-    
-    // Remove both classes to start fresh
-    root.classList.remove("light", "dark");
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      root.classList.add(systemTheme);
-      setResolvedTheme(systemTheme);
-    } else {
-      root.classList.add(theme);
-      setResolvedTheme(theme);
+    root.classList.remove("dark");
+    root.classList.add("light");
+    try {
+      localStorage.removeItem("pamsu_theme");
+    } catch {
+      // Storage may be unavailable; nothing to clean up.
     }
+  }, []);
 
-    localStorage.setItem("pamsu_theme", theme);
-  }, [theme]);
-
-  // Listen for system theme changes if set to system
-  useEffect(() => {
-    if (theme !== "system") return;
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => {
-      const root = window.document.documentElement;
-      const systemTheme = mediaQuery.matches ? "dark" : "light";
-      root.classList.remove("light", "dark");
-      root.classList.add(systemTheme);
-      setResolvedTheme(systemTheme);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
-
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={THEME_VALUE}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Flatpickr from 'react-flatpickr';
-import 'flatpickr/dist/themes/dark.css';
-import api from '../../services/api';
+import 'flatpickr/dist/flatpickr.css';
+import api, { getErrorMessage } from '../../services/api';
+import { classLabel } from '../../utils/format';
+import { InlineAlert } from '../../components/ui/StateViews';
 import InstructorSidebar from "../../components/layout/InstructorSidebar";
 
 const AST_GROUPS = [
@@ -102,7 +104,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
         
         <div className="flex items-center gap-3">
           {checkedCount > 0 && (
-            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-psu-maroon text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
               {checkedCount} selected
             </span>
           )}
@@ -136,7 +138,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 onChange={(e) => onToggleCategory(category, e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
             </div>
           </label>
           {category.rules.map(rule => {
@@ -151,7 +153,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     : 'bg-transparent border-transparent hover:bg-bg-glass hover:border-border-subtle'
                 }`}
               >
-                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-psu-maroon dark:text-psu-maroon' : 'text-text-main'}`}>
+                <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-psu-maroon' : 'text-text-main'}`}>
                   {rule.label}
                 </span>
                 
@@ -162,7 +164,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     onChange={(e) => onToggleRule(rule.id, e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
                 </div>
               </label>
             );
@@ -188,6 +190,9 @@ ASTCategoryAccordion.propTypes = {
   onToggleCategory: PropTypes.func.isRequired,
 };
 
+// The page scrolls inside <main>, not the window.
+const scrollFormToTop = () => document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+
 const ActivityEditor = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -211,6 +216,7 @@ const ActivityEditor = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [createdTaskId, setCreatedTaskId] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -295,8 +301,7 @@ const ActivityEditor = () => {
         const response = await api.get('/classrooms/');
         setClassrooms(response || []);
       } catch (err) {
-        console.error('Failed to fetch classrooms', err);
-        setError('Failed to fetch classrooms: ' + (err.message || ''));
+        setError(`Your classes could not be loaded, so no target class can be selected. ${getErrorMessage(err)}`);
       }
     };
     fetchClassrooms();
@@ -308,7 +313,7 @@ const ActivityEditor = () => {
     
     if (!formData.title || !formData.title.trim()) {
       setError('Activity title is required.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollFormToTop();
       return;
     }
     if (!formData.class_ids || formData.class_ids.length === 0) {
@@ -340,34 +345,53 @@ const ActivityEditor = () => {
       delete payload.allow_paste;
 
       const response = await api.post('/instructors/tasks/', payload);
-      
-      // If expected output was provided, automatically convert it into a global test case
+      const tasks = Array.isArray(response) ? response : [response];
+      const problems = [];
+
+      // Expected output becomes a visible sample test case on each created activity.
       if (formData.expected_output && formData.expected_output.trim() !== "") {
-        const tasks = Array.isArray(response) ? response : [response];
         for (const task of tasks) {
           try {
             await api.post(`/instructors/tasks/${task.task_id}/test-cases`, {
-              name: "Expected Output (Global)",
+              name: "Expected output",
+              standard_input: "",
               expected_output: formData.expected_output,
-              is_hidden: false
+              is_hidden: false,
             });
           } catch (tcErr) {
-            console.error("Failed to save expected output test case:", tcErr);
-            setError('Failed to save test case: ' + (tcErr.message || ''));
+            problems.push(`the sample test case for "${task.title}" (${getErrorMessage(tcErr)})`);
           }
         }
       }
-      
-      // If single classroom was selected, navigate directly to that activity's page
-      if (response && Array.isArray(response) && response.length === 1) {
-        navigate(`/instructor/activities/${response[0].task_id}`);
+
+      // Activities are always created as drafts; publish afterwards when requested.
+      if (formData.is_published) {
+        for (const task of tasks) {
+          try {
+            await api.patch(`/instructors/tasks/${task.task_id}/publication`, { is_published: true });
+          } catch (pubErr) {
+            problems.push(`publishing "${task.title}" (${getErrorMessage(pubErr)})`);
+          }
+        }
+      }
+
+      if (problems.length > 0) {
+        setError(`The activity was created, but these steps failed: ${problems.join("; ")}. You can finish them from the activity page.`);
+        scrollFormToTop();
+        if (tasks.length === 1) {
+          setCreatedTaskId(tasks[0].task_id);
+        }
+        return;
+      }
+
+      if (tasks.length === 1) {
+        navigate(`/instructor/activities/${tasks[0].task_id}`);
       } else {
-        // Multiple activities were created, navigate to dashboard
         navigate('/instructor/dashboard');
       }
     } catch (err) {
-      console.error('Error creating activity:', err);
-      setError(err.message || 'Failed to create activity. Please try again.');
+      setError(getErrorMessage(err, 'The activity could not be created. Please try again.'));
+      scrollFormToTop();
     } finally {
       setLoading(false);
     }
@@ -379,7 +403,7 @@ const ActivityEditor = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
-      <div className="hidden lg:flex h-full">
+      <div className="flex h-full">
         <InstructorSidebar />
       </div>
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
@@ -396,9 +420,14 @@ const ActivityEditor = () => {
             </header>
             
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-text-rose p-4 rounded-xl mb-6 text-sm">
+              <InlineAlert tone="error" className="mb-6">
                 {error}
-              </div>
+                {createdTaskId && (
+                  <button type="button" onClick={() => navigate(`/instructor/activities/${createdTaskId}`)} className="ml-2 font-semibold underline">
+                    Open the activity
+                  </button>
+                )}
+              </InlineAlert>
             )}
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6" noValidate>
@@ -445,7 +474,7 @@ const ActivityEditor = () => {
                           >
                             <div className="flex items-center gap-3">
                               <span className={`text-sm font-medium select-none ${isSelected ? 'text-psu-maroon' : 'text-text-main'}`}>
-                                {cls.subject_code} - {cls.section}
+                                {classLabel(cls)}
                               </span>
                             </div>
                             <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
@@ -533,7 +562,7 @@ const ActivityEditor = () => {
                             onClick={() => handleDifficultyChange(level)}
                             className={`flex-1 py-2 text-xs font-semibold capitalize rounded-lg transition-colors ${
                               formData.difficulty === level 
-                                ? 'bg-bg-glass text-psu-maroon dark:text-psu-maroon shadow-sm border border-border-subtle' 
+                                ? 'bg-bg-glass text-psu-maroon shadow-sm border border-border-subtle'
                                 : 'text-text-muted hover:text-text-main hover:bg-bg-glass/50'
                             }`}
                           >
@@ -559,7 +588,7 @@ const ActivityEditor = () => {
                                   onChange={(e) => handleSelectAllVisible(e.target.checked)}
                                   className="sr-only peer"
                                 />
-                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
                               </div>
                             </label>
                           )}
@@ -628,7 +657,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark"></div>
                         </div>
                         <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Publish immediately</span>
                       </label>
@@ -642,9 +671,9 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400"></div>
+                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark"></div>
                         </div>
-                        <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
+                        <span className="text-xs font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow workspace clipboard paste</span>
                       </label>
                     </div>
 

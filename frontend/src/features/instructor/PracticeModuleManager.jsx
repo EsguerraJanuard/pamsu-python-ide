@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { getErrorMessage } from '../../services/api';
 import InstructorSidebar from '../../components/layout/InstructorSidebar';
 import AlertModal from '../../components/modals/AlertModal';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
+import Modal from '../../components/ui/Modal';
+import { ErrorState, InlineAlert } from '../../components/ui/StateViews';
 
 
 
@@ -133,7 +135,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
         
         <div className="flex items-center gap-3">
           {checkedCount > 0 && (
-            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon dark:text-psu-maroon text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
+            <span className="bg-psu-maroon/10 border border-psu-maroon/20 text-psu-maroon text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap">
               {checkedCount} selected
             </span>
           )}
@@ -167,7 +169,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 onChange={(e) => onToggleCategory(category, e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
             </div>
           </label>
           {category.rules.map(rule => {
@@ -194,7 +196,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                     onChange={(e) => onToggleRule(rule.id, e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-emerald-400 shadow-inner"></div>
+                  <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
                 </div>
               </label>
             );
@@ -209,6 +211,8 @@ export default function PracticeModuleManager() {
     const [modules, setModules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Modals state
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
@@ -255,10 +259,11 @@ export default function PracticeModuleManager() {
   const fetchModules = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const data = await api.get('/practice/instructor/modules');
       setModules(data);
     } catch (err) {
-      setError(err.message || 'Failed to fetch modules');
+      setError(err);
     } finally {
       setIsLoading(false);
     }
@@ -271,21 +276,26 @@ export default function PracticeModuleManager() {
 
   const handleModuleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    if (isSaving) return;
+    setFormError('');
     if (!moduleForm.title.trim()) {
-      setError("Module title is required.");
+      setFormError("Module title is required.");
       return;
     }
+    setIsSaving(true);
     try {
+      const payload = { ...moduleForm, title: moduleForm.title.trim() };
       if (editingModule) {
-        await api.put(`/practice/modules/${editingModule.module_id}`, moduleForm);
+        await api.put(`/practice/modules/${editingModule.module_id}`, payload);
       } else {
-        await api.post('/practice/modules', moduleForm);
+        await api.post('/practice/modules', payload);
       }
       setIsModuleModalOpen(false);
       fetchModules();
     } catch (err) {
-      setAlertConfig({ title: 'Error', message: err.message || 'Failed to save module', isError: true });
+      setFormError(getErrorMessage(err, 'The module could not be saved.'));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -308,17 +318,24 @@ export default function PracticeModuleManager() {
 
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    if (!taskForm.title.trim() || !taskForm.starter_code.trim()) {
-      setError("Task title and starter code are required.");
+    if (isSaving) return;
+    setFormError('');
+    const missing = [];
+    if (!taskForm.title.trim()) missing.push("a title");
+    if (!(taskForm.instructions || "").trim()) missing.push("instructions");
+    if (!editingTask && !(taskForm.expected_output || "").trim()) missing.push("the expected output");
+    if (missing.length) {
+      setFormError(`Please provide ${new Intl.ListFormat("en", { type: "conjunction" }).format(missing)}.`);
       return;
     }
+    setIsSaving(true);
     try {
       const payload = {
         ...taskForm,
         expected_ast_patterns: Object.keys(taskForm.expected_ast_patterns).length > 0 ? taskForm.expected_ast_patterns : null
       };
-
+      // The stored expected output isn't returned when editing; only send it when re-entered.
+      if (!(payload.expected_output || "").trim()) delete payload.expected_output;
       if (editingTask) {
         await api.put(`/practice/tasks/${editingTask.task_id}`, payload);
       } else {
@@ -327,7 +344,9 @@ export default function PracticeModuleManager() {
       setIsTaskModalOpen(false);
       fetchModules();
     } catch (err) {
-      setAlertConfig({ title: 'Error', message: err.message || 'Failed to save task. Ensure Expected AST Patterns is valid JSON (e.g. {"FunctionDef": 1})', isError: true });
+      setFormError(getErrorMessage(err, 'The task could not be saved.'));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -349,6 +368,7 @@ export default function PracticeModuleManager() {
   };
 
   const openModuleModal = (mod = null) => {
+    setFormError('');
     if (mod) {
       setEditingModule(mod);
       setModuleForm({ title: mod.title, description: mod.description || '', order_index: mod.order_index });
@@ -360,6 +380,7 @@ export default function PracticeModuleManager() {
   };
 
   const openTaskModal = (moduleId, task = null) => {
+    setFormError('');
     setSelectedModuleId(moduleId);
     if (task) {
       setEditingTask(task);
@@ -367,7 +388,7 @@ export default function PracticeModuleManager() {
         title: task.title,
         instructions: task.instructions,
         starter_code: task.starter_code || '',
-        expected_output: task.expected_output,
+        expected_output: '',
         order_index: task.order_index,
         expected_ast_patterns: task.expected_ast_patterns || {}
       });
@@ -387,7 +408,7 @@ export default function PracticeModuleManager() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       <InstructorSidebar />
       <div className="animate-page-fade flex min-w-0 flex-1 flex-col overflow-y-auto px-5 py-6 sm:px-8">
         <div className="mx-auto max-w-6xl w-full space-y-6">
@@ -415,12 +436,7 @@ export default function PracticeModuleManager() {
               </div>
             </div>
           ) : error ? (
-            <div className="rounded-xl border border-red-900/50 bg-red-900/10 p-6 text-center text-sm text-psu-red">
-              <svg className="mx-auto mb-2 h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              {error}
-            </div>
+            <ErrorState error={error} resource="practice modules" onRetry={fetchModules} />
           ) : modules.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border-subtle p-12 text-center">
               <div className="mb-4 rounded-full bg-bg-glass p-4 text-psu-maroon">
@@ -469,7 +485,7 @@ export default function PracticeModuleManager() {
                       <button
                         onClick={() => handleDeleteModule(mod.module_id)}
                         disabled={mod.instructor_id === null}
-                        className="rounded-lg border border-red-900/30 bg-red-900/10 px-3 py-1.5 text-xs font-semibold text-psu-red transition hover:bg-red-900/30 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="rounded-lg border border-psu-red/25 bg-psu-red/[0.05] px-3 py-1.5 text-xs font-semibold text-psu-red transition hover:bg-psu-red/10 disabled:opacity-30 disabled:cursor-not-allowed"
                         title={mod.instructor_id === null ? "Protected baseline modules cannot be deleted" : "Delete Module"}
                       >
                         Delete
@@ -506,7 +522,7 @@ export default function PracticeModuleManager() {
                               <button
                                 onClick={() => handleDeleteTask(task.task_id)}
                                 disabled={mod.instructor_id === null}
-                                className="rounded-md p-1.5 text-text-muted hover:bg-red-900/20 hover:text-psu-red transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="rounded-md p-1.5 text-text-muted hover:bg-psu-red/10 hover:text-psu-red transition disabled:opacity-30 disabled:cursor-not-allowed"
                                 title={mod.instructor_id === null ? "Cannot delete tasks in protected modules" : "Delete Task"}
                               >
                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -541,22 +557,14 @@ export default function PracticeModuleManager() {
       </div>
 
       {/* Module Modal */}
-      {isModuleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <button 
-              onClick={() => setIsModuleModalOpen(false)}
-              className="absolute right-4 top-4 text-text-muted hover:text-text-main transition"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <div className="border-b border-border-subtle p-5">
-              <h2 className="text-lg font-bold text-text-main">
-                {editingModule ? 'Edit Module Details' : 'Create New Module'}
-              </h2>
-            </div>
-            
-            <form onSubmit={handleModuleSubmit} className="p-5 space-y-4" noValidate>
+      <Modal
+        isOpen={isModuleModalOpen}
+        onClose={() => setIsModuleModalOpen(false)}
+        title={editingModule ? 'Edit module' : 'Create module'}
+        dismissible={!isSaving}
+      >
+            {formError && <InlineAlert tone="error" className="mb-4">{formError}</InlineAlert>}
+            <form onSubmit={handleModuleSubmit} className="space-y-4" noValidate>
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1.5">Module Title</label>
                 <input required type="text" value={moduleForm.title} onChange={e => setModuleForm({...moduleForm, title: e.target.value})} placeholder="e.g. Introduction to Python" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition" />
@@ -572,27 +580,26 @@ export default function PracticeModuleManager() {
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle mt-6">
                 <button type="button" onClick={() => setIsModuleModalOpen(false)} className="rounded-lg border border-border-subtle bg-transparent px-4 py-2 text-sm font-semibold text-text-main hover:bg-bg-glass transition">Cancel</button>
-                <button type="submit" className="rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-psu-maroon transition">Save Module</button>
+                <button type="submit" disabled={isSaving} className="btn-primary">{isSaving ? 'Saving…' : 'Save module'}</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {/* Task Modal */}
-      {isTaskModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-2xl border border-border-subtle bg-bg-panel shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-border-subtle p-5 shrink-0">
-              <h2 className="text-lg font-bold text-text-main">
-                {editingTask ? 'Edit Practice Task' : 'Create Practice Task'}
-              </h2>
-              <button onClick={() => setIsTaskModalOpen(false)} className="text-text-muted hover:text-text-main transition">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-
-            <div className="overflow-y-auto p-5 shrink">
+      <Modal
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+        title={editingTask ? 'Edit practice task' : 'Create practice task'}
+        size="xl"
+        dismissible={!isSaving}
+        footer={
+          <>
+            <button type="button" onClick={() => setIsTaskModalOpen(false)} disabled={isSaving} className="btn-secondary">Cancel</button>
+            <button type="submit" form="task-form" disabled={isSaving} className="btn-primary">{isSaving ? 'Saving…' : 'Save task'}</button>
+          </>
+        }
+      >
+              {formError && <InlineAlert tone="error" className="mb-4">{formError}</InlineAlert>}
               <form id="task-form" onSubmit={handleTaskSubmit} className="space-y-5" noValidate>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
@@ -627,12 +634,12 @@ export default function PracticeModuleManager() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-main mb-1.5 flex items-center">
-                      Expected Output
+                      {editingTask ? 'Expected Output (leave blank to keep the current one)' : 'Expected Output'}
                       <InfoTooltip title="Expected Output">
                         The exact console output the student's code must produce to pass. Trailing whitespaces and empty newlines at the end are ignored, but exact casing and spelling are required.
                       </InfoTooltip>
                     </label>
-                    <textarea required value={taskForm.expected_output} onChange={e => setTaskForm({...taskForm, expected_output: e.target.value})} placeholder="Hello World" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-amber-400 placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition font-mono whitespace-pre" rows="5" />
+                    <textarea required value={taskForm.expected_output} onChange={e => setTaskForm({...taskForm, expected_output: e.target.value})} placeholder="Hello World" className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main placeholder-text-muted focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition font-mono whitespace-pre" rows="5" />
                   </div>
                 </div>
 
@@ -660,15 +667,7 @@ export default function PracticeModuleManager() {
                   </div>
                 </div>
               </form>
-            </div>
-
-            <div className="flex justify-end gap-3 p-5 border-t border-border-subtle shrink-0">
-              <button type="button" onClick={() => setIsTaskModalOpen(false)} className="rounded-lg border border-border-subtle bg-transparent px-4 py-2 text-sm font-semibold text-text-main hover:bg-bg-glass transition">Cancel</button>
-              <button type="submit" form="task-form" className="rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-psu-maroon transition">Save Task</button>
-            </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     
       <AlertModal 
         isOpen={!!alertConfig} 

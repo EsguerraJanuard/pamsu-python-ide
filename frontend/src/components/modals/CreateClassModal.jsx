@@ -1,141 +1,127 @@
 import { useState } from "react";
-import api from "../../services/api";
+import api, { getErrorMessage } from "../../services/api";
+import Modal from "../ui/Modal";
+import { FieldError, InlineAlert } from "../ui/StateViews";
+
+const EMPTY_FORM = { name: "", subject_code: "", section: "" };
+
+const FIELDS = [
+  { name: "name", label: "Class name", placeholder: "e.g. Computer Programming 1" },
+  { name: "subject_code", label: "Subject code", placeholder: "e.g. CCS101" },
+  { name: "section", label: "Section", placeholder: "e.g. BSCS 1A" },
+];
+
 export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
-  const [formData, setFormData] = useState({ name: "", subject_code: "", section: "" });
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [generatedCode, setGeneratedCode] = useState(null);
+  const [created, setCreated] = useState(null);
+  const [copied, setCopied] = useState(false);
 
-  if (!isOpen) return null;
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleClose = () => {
+    if (isLoading) return;
+    setFormData(EMPTY_FORM);
+    setFieldErrors({});
+    setError("");
+    setCreated(null);
+    setCopied(false);
+    onClose();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    if (!formData.name.trim() || !formData.subject_code.trim() || !formData.section.trim()) {
-      setError("Please fill out all required fields.");
-      return;
-    }
-    setIsLoading(true);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const errors = {};
+    FIELDS.forEach((field) => {
+      if (!formData[field.name].trim()) errors[field.name] = `${field.label} is required.`;
+    });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
 
+    setIsLoading(true);
+    setError("");
     try {
-      const data = await api.post("/classrooms/", formData);
-      setGeneratedCode(data.class_code); 
-      onSuccess(); 
+      const data = await api.post("/classrooms/", {
+        name: formData.name.trim(),
+        subject_code: formData.subject_code.trim(),
+        section: formData.section.trim(),
+      });
+      setCreated(data);
+      onSuccess?.(data);
     } catch (err) {
-      setError(err.message || "Failed to create class. Please try again.");
+      setError(getErrorMessage(err, "The class could not be created."));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResetAndClose = () => {
-    setFormData({ name: "", subject_code: "", section: "" });
-    setGeneratedCode(null);
-    setError(null);
-    onClose();
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(created.class_code);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl">
-        {!generatedCode ? (
-          <>
-            <h2 className="mb-2 text-lg font-bold text-text-main">Create New Class</h2>
-            <p className="mb-6 text-sm text-text-muted">
-              Initialize a new class section for automated grading.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-text-muted">Course Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="e.g. Object-Oriented Programming"
-                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-text-muted">Subject Code</label>
-                <input
-                  type="text"
-                  name="subject_code"
-                  value={formData.subject_code}
-                  onChange={handleChange}
-                  placeholder="e.g. CCS101"
-                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-text-muted">Section / Schedule</label>
-                <input
-                  type="text"
-                  name="section"
-                  value={formData.section}
-                  onChange={handleChange}
-                  placeholder="e.g. Block A"
-                  className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main focus:border-psu-maroon focus:outline-none"
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-text-rose">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleResetAndClose}
-                  className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted hover:bg-bg-panel hover:text-text-main"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading || !formData.name || !formData.subject_code || !formData.section}
-                  className="rounded-lg bg-psu-maroon px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-psu-maroon"
-                >
-                  {isLoading ? "Creating..." : "Create Class"}
-                </button>
-              </div>
-            </form>
-          </>
-        ) : (
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/20 text-text-emerald">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <h2 className="mb-2 text-lg font-bold text-text-main">Class Created!</h2>
-            <p className="mb-4 text-sm text-text-muted">
-              Share this code with your students so they can join the class.
-            </p>
-            <div className="mb-6 rounded-lg border border-psu-maroon/30 bg-psu-maroon/10 p-4">
-              <span className="font-mono text-2xl font-bold tracking-wider text-text-emerald">
-                {generatedCode}
-              </span>
-            </div>
-            <button
-              onClick={handleResetAndClose}
-              className="w-full rounded-lg bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-text-main hover:bg-border-subtle"
-            >
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={created ? "Class created" : "Create a class"}
+      description={created ? undefined : "Students join using the enrollment code generated for the class."}
+      dismissible={!isLoading}
+    >
+      {created ? (
+        <div className="text-center">
+          <p className="text-sm text-text-muted">Share this enrollment code with the students of {created.name}.</p>
+          <p className="mt-4 rounded-xl border border-psu-gold/50 bg-psu-gold/10 px-4 py-4 font-mono text-3xl font-bold tracking-[0.3em] text-psu-maroon">
+            {created.class_code}
+          </p>
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
+            <button type="button" className="btn-secondary" onClick={copyCode}>
+              {copied ? "Copied" : "Copy code"}
+            </button>
+            <button type="button" className="btn-primary" onClick={handleClose}>
               Done
             </button>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          {error && <InlineAlert tone="error">{error}</InlineAlert>}
+          {FIELDS.map((field) => (
+            <div key={field.name}>
+              <label htmlFor={`create-class-${field.name}`} className="field-label">
+                {field.label}
+              </label>
+              <input
+                id={`create-class-${field.name}`}
+                type="text"
+                value={formData[field.name]}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, [field.name]: e.target.value }));
+                  setFieldErrors((prev) => ({ ...prev, [field.name]: "" }));
+                }}
+                placeholder={field.placeholder}
+                aria-invalid={Boolean(fieldErrors[field.name])}
+                aria-describedby={fieldErrors[field.name] ? `create-class-${field.name}-error` : undefined}
+                disabled={isLoading}
+                className="input-field"
+              />
+              <FieldError id={`create-class-${field.name}-error`}>{fieldErrors[field.name]}</FieldError>
+            </div>
+          ))}
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <button type="button" onClick={handleClose} disabled={isLoading} className="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" disabled={isLoading} className="btn-primary">
+              {isLoading ? "Creating…" : "Create class"}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }

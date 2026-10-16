@@ -1,8 +1,8 @@
-﻿/**
+/**
  * Login.jsx
  * Connects to POST /login using OAuth2 FormData format.
  *
- * The backend controls role assignment ΓÇö no role selector here.
+ * The backend controls role assignment — no role selector here.
  * After successful login, the user is redirected based on their role.
  *
  * API: POST /login
@@ -12,50 +12,49 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useAuth, homePathForRole, consumeSessionExpiredNotice } from "./AuthContext";
 import { api, ApiError } from "../../services/api";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const features = [
   {
     label: "AST-driven structural feedback",
-    color: "#22c55e",
+    color: "#eaae19",
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="7" stroke="#22c55e" strokeWidth="1.5" />
-        <path d="M5 8l2 2 4-4" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="8" cy="8" r="7" stroke="#eaae19" strokeWidth="1.5" />
+        <path d="M5 8l2 2 4-4" stroke="#eaae19" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
   {
     label: "Privacy-conscious behavioral indicators",
-    color: "#38bdf8",
+    color: "#eaae19",
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="3" stroke="#38bdf8" strokeWidth="1.5" />
-        <circle cx="8" cy="8" r="6.5" stroke="#38bdf8" strokeWidth="1" strokeDasharray="2 2" />
+        <circle cx="8" cy="8" r="3" stroke="#eaae19" strokeWidth="1.5" />
+        <circle cx="8" cy="8" r="6.5" stroke="#eaae19" strokeWidth="1" strokeDasharray="2 2" />
       </svg>
     ),
   },
   {
     label: "Instructor activity monitoring",
-    color: "#a78bfa",
+    color: "#eaae19",
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <rect x="1" y="3" width="14" height="9" rx="1.5" stroke="#a78bfa" strokeWidth="1.5" />
-        <path d="M5 7h6M5 9.5h4" stroke="#a78bfa" strokeWidth="1.2" strokeLinecap="round" />
+        <rect x="1" y="3" width="14" height="9" rx="1.5" stroke="#eaae19" strokeWidth="1.5" />
+        <path d="M5 7h6M5 9.5h4" stroke="#eaae19" strokeWidth="1.2" strokeLinecap="round" />
       </svg>
     ),
   },
   {
     label: "Jaccard similarity review indicators",
-    color: "#fbbf24",
+    color: "#eaae19",
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5 8 2z" stroke="#fbbf24" strokeWidth="1.3" strokeLinejoin="round" />
+        <path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5 8 2z" stroke="#eaae19" strokeWidth="1.3" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -67,20 +66,21 @@ function isValidSchoolEmail(email) {
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+  const [notice] = useState(() => {
+    if (location.state?.registrationSuccess) return "Your account is verified. Sign in with your new password.";
+    if (location.state?.passwordReset) return "Your password was reset. Sign in with your new password.";
+    if (consumeSessionExpiredNotice()) return "Your session ended. Please sign in again.";
+    return "";
+  });
 
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: location.state?.email || "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [capsLock, setCapsLock] = useState(false);
 
-
-  // Lock Login page to Light Mode
-  useEffect(() => {
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("pamsu_theme", "light");
-  }, []);
 
   useEffect(() => {
     const handler = (e) => {
@@ -101,15 +101,29 @@ export default function Login() {
     if (error) setError("");
   };
 
+  const redirectAfterLogin = (role) => {
+    const from = location.state?.from?.pathname;
+    const home = homePathForRole(role);
+    // Only return to the attempted page when it belongs to the same role area.
+    const target = from && from.startsWith(home.split("/").slice(0, 2).join("/") + "/") ? from + (location.state.from.search || "") : home;
+    navigate(target, { replace: true });
+  };
+
   const handleGuestLogin = async () => {
     setIsLoading(true);
-    setError(null);
+    setError("");
     try {
-      const response = await api.post("/auth/guest");
-      const { access_token, user } = response.data || response;
-      login(access_token, user, user.role);
+      const data = await api.post("/guest");
+      login(data.access_token, data.user, data.user.role);
+      redirectAfterLogin(data.user.role);
     } catch (err) {
-      setError(err.response?.data?.detail || "Guest login failed.");
+      if (err instanceof ApiError && err.status === 0) {
+        setError("Cannot reach the server. Check your connection and try again.");
+      } else if (err instanceof ApiError && err.status >= 500) {
+        setError("Guest access is temporarily unavailable. Please sign in with your university account.");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Guest access failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +149,7 @@ export default function Login() {
     setError("");
 
     try {
-      // Login uses OAuth2PasswordRequestForm ΓÇö must send as FormData, NOT JSON
+      // Login uses OAuth2PasswordRequestForm — must send as FormData, NOT JSON
       // The backend reads "username" field for the email address
       const formData = new FormData();
       formData.append("username", normalizedEmail);
@@ -147,20 +161,19 @@ export default function Login() {
       // login() stores in localStorage under pamsu_access_token, pamsu_user_role, pamsu_user_data
       login(data.access_token, data.user, data.user.role);
 
-      // Redirect based on role returned by the backend
-      if (data.user.role === "instructor") {
-        navigate("/instructor/dashboard", { replace: true });
-      } else {
-        navigate("/student/dashboard", { replace: true });
-      }
+      redirectAfterLogin(data.user.role);
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 401) {
+        if (err.status === 0) {
+          setError("Cannot reach the server. Check your connection and try again.");
+        } else if (err.status === 401) {
           setError("Invalid email or password.");
+        } else if (err.status === 429) {
+          setError("Too many sign-in attempts. Please wait a minute and try again.");
         } else if (err.status === 403) {
-          setError(err.data?.detail || "Your account is inactive or not verified.");
+          setError(typeof err.data?.detail === "string" ? err.data.detail : "Your account is inactive or not verified.");
         } else {
-          setError(err.data?.detail || err.message || "Login failed. Please try again.");
+          setError(err.status >= 500 ? "The server ran into a problem. Please try again shortly." : err.message || "Sign-in failed. Please try again.");
         }
       } else if (!navigator.onLine) {
         setError("Cannot connect to the server. Check your internet connection.");
@@ -258,14 +271,20 @@ export default function Login() {
             </p>
           </div>
 
+          {notice && !error && (
+            <div role="status" className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-cream p-4 text-sm font-medium text-psu-maroon">
+              {notice}
+            </div>
+          )}
+
           {/* Error message */}
           {error && (
             <div
               role="alert"
               aria-live="polite"
-              className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-text-rose shadow-sm"
+              id="login-error" className="mb-6 flex items-start gap-3 rounded-xl border border-psu-red/25 bg-psu-red/[0.06] p-4 text-sm text-psu-red"
             >
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <p>{error}</p>
@@ -279,7 +298,7 @@ export default function Login() {
                 School email
               </label>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
                 <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -292,10 +311,11 @@ export default function Login() {
                   onChange={(e) => updateField("email", e.target.value)}
                   placeholder="name@pampangastateu.edu.ph"
                   autoComplete="email"
-                  required
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "login-error" : undefined}
                   disabled={isLoading}
                   className="flex-1 bg-transparent text-[15px] font-medium text-text-main outline-none placeholder:text-text-muted/50 disabled:opacity-50"
-                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
                 />
               </div>
             </div>
@@ -308,7 +328,7 @@ export default function Login() {
                 </label>
               </div>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-slate-300 cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -322,10 +342,11 @@ export default function Login() {
                   onChange={(e) => updateField("password", e.target.value)}
                   placeholder="********"
                   autoComplete="current-password"
-                  required
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "login-error" : undefined}
                   disabled={isLoading}
                   className="flex-1 bg-transparent text-base font-medium tracking-widest text-text-main outline-none placeholder:text-text-muted/50 placeholder:tracking-normal disabled:opacity-50"
-                  style={{ caretColor: "var(--color-psu-gold, #eeb319)" }}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
                 />
                 <button
                   type="button"
@@ -349,12 +370,12 @@ export default function Login() {
                 </button>
               </div>
               <div className="mt-3 flex justify-end">
-                <Link to="/forgot-password" className="text-[13px] font-bold text-psu-maroon hover:text-psu-gold transition-colors">
+                <Link to="/forgot-password" className="text-[13px] font-bold text-psu-maroon hover:underline transition-colors">
                   Forgot password?
                 </Link>
               </div>
               {capsLock && (
-                <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-500">
+                <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-text-amber" role="status">
                   <svg width="10" height="10" viewBox="0 0 10 12" fill="none" aria-hidden="true">
                     <path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/>
                     <rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/>
@@ -394,10 +415,17 @@ export default function Login() {
                 type="button"
                 onClick={handleGuestLogin}
                 disabled={isLoading}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-white px-5 py-4 text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-bg-alt hover:shadow active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 Continue as Guest Student
               </button>
+
+              <p className="mt-6 text-center text-sm text-text-muted">
+                New student?{" "}
+                <Link to="/register" className="font-semibold text-psu-maroon hover:underline">
+                  Create your account
+                </Link>
+              </p>
             </div>
           </form>
         </div>

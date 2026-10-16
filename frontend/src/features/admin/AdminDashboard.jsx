@@ -1,896 +1,711 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
-import { useAuth } from '../auth/AuthContext';
-import { useInView } from 'react-intersection-observer';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import SignOutModal from "../../components/layout/SignOutModal";
+import ConfirmationModal from "../../components/modals/ConfirmationModal";
+import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../components/ui/StateViews";
+import api, { getErrorMessage } from "../../services/api";
+import { formatDateTime, humanize } from "../../utils/format";
+import { useAuth } from "../auth/AuthContext";
+
+const PAGE_SIZE = 50;
+const SCHOOL_EMAIL = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
+const SCHOOL_ID = /^(\d{10}|\d{4}-\d{5})$/;
+
+const TABS = [
+  { id: "overview", label: "Overview", icon: "M3 12l2-2 7-7 7 7 2 2M5 10v10h4v-6h6v6h4V10" },
+  { id: "faculty", label: "Faculty", icon: "M12 14l9-5-9-5-9 5 9 5zm0 0v6m-6-9.5v5.5l6 3 6-3v-5.5" },
+  { id: "students", label: "Students", icon: "M17 20h5v-2a3 3 0 00-5.36-1.86M9 20H4v-2a4 4 0 017-2.65M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
+  { id: "audit", label: "Audit trail", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
+  { id: "settings", label: "Settings", icon: "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.82 1.17V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 003 15.08V15a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6V4a2 2 0 114 0v.09a1.65 1.65 0 001.03 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.4.16.84.24 1.28.24H21a2 2 0 110 4h-.09c-.44 0-.88.08-1.28.24z" },
+];
+
+const STRICTNESS = [
+  ["lax", "Lenient", "Focus on execution output; structural checks are relaxed."],
+  ["moderate", "Moderate", "Balanced structural checks (recommended)."],
+  ["strict", "Strict", "Required structures are enforced rigidly."],
+];
+
+/** Random temporary password (letters, digits, symbol) shown once to the admin. */
+function generateTempPassword() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = new Uint32Array(10);
+  crypto.getRandomValues(bytes);
+  const core = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+  return `${core.slice(0, 5)}-${core.slice(5)}!`;
+}
+
+/** Admin endpoints may be missing on a server; explain that plainly. */
+function AdminErrorState({ error, resource, onRetry }) {
+  if (error?.status === 404) {
+    return (
+      <ErrorState
+        error={error}
+        title="Administration service unavailable"
+        message="This server does not expose the administration API, so this information can't be loaded. Contact the system maintainer."
+      />
+    );
+  }
+  return <ErrorState error={error} resource={resource} onRetry={onRetry} />;
+}
+
+function useAdminList(endpoint) {
+  const [items, setItems] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.get(`${endpoint}?skip=0&limit=${PAGE_SIZE}`);
+      const list = Array.isArray(data) ? data : [];
+      setItems(list);
+      setHasMore(list.length === PAGE_SIZE);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [endpoint]);
+
+  const loadMore = async () => {
+    setIsLoadingMore(true);
+    try {
+      const data = await api.get(`${endpoint}?skip=${items.length}&limit=${PAGE_SIZE}`);
+      const list = Array.isArray(data) ? data : [];
+      setItems((prev) => [...prev, ...list]);
+      setHasMore(list.length === PAGE_SIZE);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  return { items, setItems, hasMore, isLoading, isLoadingMore, error, load, loadMore };
+}
+
+function TextField({ id, label, error, ...props }) {
+  return (
+    <div>
+      <label htmlFor={id} className="field-label">
+        {label}
+      </label>
+      <input
+        id={id}
+        className="input-field"
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
+        {...props}
+      />
+      <FieldError id={`${id}-error`}>{error}</FieldError>
+    </div>
+  );
+}
+
+function ProvisionForm({ role, onCreated }) {
+  const isStudent = role === "student";
+  const empty = { email: "", first_name: "", last_name: "", school_id: "", password: generateTempPassword() };
+  const [form, setForm] = useState(empty);
+  const [errors, setErrors] = useState({});
+  const [result, setResult] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const set = (field) => (e) => {
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const next = {};
+    if (!SCHOOL_EMAIL.test(form.email.trim())) next.email = "Use an @pampangastateu.edu.ph email address.";
+    if (!form.first_name.trim()) next.first_name = "First name is required.";
+    if (!form.last_name.trim()) next.last_name = "Last name is required.";
+    if (isStudent && !SCHOOL_ID.test(form.school_id.trim())) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
+    if (form.password.length < 8) next.password = "Use at least 8 characters.";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setIsSaving(true);
+    setResult(null);
+    try {
+      const payload = {
+        email: form.email.trim().toLowerCase(),
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        password: form.password,
+        ...(isStudent ? { school_id: form.school_id.trim() } : {}),
+      };
+      await api.post(isStudent ? "/admin/students" : "/admin/instructors", payload);
+      setResult({ tone: "success", text: `Account created for ${payload.email}. Temporary password: ${payload.password} — share it securely.` });
+      setForm({ ...empty, password: generateTempPassword() });
+      onCreated?.();
+    } catch (err) {
+      setResult({ tone: "error", text: getErrorMessage(err, "The account could not be created.") });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const prefix = `provision-${role}`;
+  return (
+    <form onSubmit={handleSubmit} noValidate className="card space-y-4 p-5">
+      <h2 className="text-sm font-semibold">{isStudent ? "Create student account" : "Create faculty account"}</h2>
+      {result && (
+        <InlineAlert tone={result.tone} onDismiss={() => setResult(null)}>
+          {result.text}
+        </InlineAlert>
+      )}
+      <TextField id={`${prefix}-email`} label="University email" type="email" autoComplete="off" value={form.email} onChange={set("email")} error={errors.email} disabled={isSaving} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <TextField id={`${prefix}-first`} label="First name" value={form.first_name} onChange={set("first_name")} error={errors.first_name} disabled={isSaving} />
+        <TextField id={`${prefix}-last`} label="Last name" value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} />
+      </div>
+      {isStudent && (
+        <TextField id={`${prefix}-school-id`} label="School ID" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />
+      )}
+      <div>
+        <label htmlFor={`${prefix}-password`} className="field-label">
+          Temporary password
+        </label>
+        <div className="flex gap-2">
+          <input
+            id={`${prefix}-password`}
+            type="text"
+            value={form.password}
+            onChange={set("password")}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? `${prefix}-password-error` : undefined}
+            className="input-field font-mono"
+            disabled={isSaving}
+            autoComplete="off"
+          />
+          <button type="button" className="btn-secondary shrink-0" onClick={() => setForm((p) => ({ ...p, password: generateTempPassword() }))} disabled={isSaving}>
+            Generate
+          </button>
+        </div>
+        <FieldError id={`${prefix}-password-error`}>{errors.password}</FieldError>
+      </div>
+      <button type="submit" disabled={isSaving} className="btn-primary w-full">
+        {isSaving ? "Creating…" : "Create account"}
+      </button>
+    </form>
+  );
+}
+
+function UserTable({ users, emptyMessage, onAction }) {
+  if (users.length === 0) return <EmptyState className="py-10" title="No accounts" message={emptyMessage} />;
+  return (
+    <div className="card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[620px] text-left text-sm">
+          <thead className="border-b border-border-subtle bg-bg-alt text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+            <tr>
+              <th scope="col" className="px-4 py-3">Name</th>
+              <th scope="col" className="px-4 py-3">School ID</th>
+              <th scope="col" className="px-4 py-3">Status</th>
+              <th scope="col" className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-subtle">
+            {users.map((user) => (
+              <tr key={user.user_id}>
+                <td className="px-4 py-3">
+                  <p className="font-medium text-text-main">{user.name}</p>
+                  <p className="text-xs text-text-muted">{user.email}</p>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-text-muted">{user.school_id || "—"}</td>
+                <td className="px-4 py-3">
+                  <span className={`badge ${user.is_active ? "badge-success" : "badge-neutral"}`}>{user.is_active ? "Active" : "Suspended"}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-1">
+                    <button type="button" className="btn-ghost btn-sm" onClick={() => onAction(user, "reset")}>
+                      Reset password
+                    </button>
+                    <button type="button" className={`btn-ghost btn-sm ${user.is_active ? "hover:text-psu-red" : ""}`} onClick={() => onAction(user, "status")}>
+                      {user.is_active ? "Suspend" : "Activate"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
-  const { logout } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [stats, setStats] = useState({ total_instructors: 0, total_students: 0, total_classrooms: 0 });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-
-  const showMessage = (msg, isError = false) => {
-    isError ? setError(msg) : setSuccess(msg);
-    setTimeout(() => { setError(null); setSuccess(null); }, 5000);
-  };
-
-  const [users, setUsers] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [settings, setSettings] = useState({
-
-    maintenance_mode: false,
-    default_ast_strictness: 'moderate'
-  });
-  
-  const [usersSkip, setUsersSkip] = useState(0);
-  const [logsSkip, setLogsSkip] = useState(0);
-  const [hasMoreUsers, setHasMoreUsers] = useState(true);
-  const [hasMoreLogs, setHasMoreLogs] = useState(true);
-  
-  const { ref: userRef, inView: userInView } = useInView();
-  const { ref: logRef, inView: logInView } = useInView();
-  
-  
-  const loadMoreUsers = async () => {
-    if (!hasMoreUsers) return;
-    const newSkip = usersSkip + 50;
-    try {
-      const res = await api.get(`/admin/users?skip=${newSkip}&limit=50`);
-      const resData = res.data || res;
-      if (resData.length < 50) setHasMoreUsers(false);
-      setUsers(prev => [...prev, ...resData]);
-      setUsersSkip(newSkip);
-    } catch (err) {
-        console.error(err);
-        showMessage("An error occurred during fetch.", true);
-      }
-  };
-  
-  const loadMoreLogs = async () => {
-    if (!hasMoreLogs) return;
-    const newSkip = logsSkip + 50;
-    try {
-      const res = await api.get(`/admin/audit-logs?skip=${newSkip}&limit=50`);
-      if (res.data.length < 50) setHasMoreLogs(false);
-      setAuditLogs(prev => [...prev, ...(res.data || res)]);
-      setLogsSkip(newSkip);
-    } catch (err) {
-        console.error(err);
-        showMessage("An error occurred during fetch.", true);
-      }
-  };
-  
-  useEffect(() => {
-    if (userInView) loadMoreUsers();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userInView]);
-  
-  useEffect(() => {
-    if (logInView) loadMoreLogs();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logInView]);
-
+  const { logout } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
   const [pendingTab, setPendingTab] = useState(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  const [initialSettings, setInitialSettings] = useState({
-    registration_enabled: false,
-    default_ast_strictness: 'moderate',
-    maintenance_mode: false
-  });
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
+  const [stats, setStats] = useState(null);
+  const [statsError, setStatsError] = useState(null);
+  const users = useAdminList("/admin/users");
+  const logs = useAdminList("/admin/audit-logs");
 
-  
-  // Data States
-  const [form, setForm] = useState({ email: '', first_name: '', last_name: '', password: '' });
-  const [studentForm, setStudentForm] = useState({ email: '', first_name: '', last_name: '', school_id: '', password: 'Pass@123' });
-  const [masterlist, setMasterlist] = useState(null);
-  const [searchStudent, setSearchStudent] = useState('');
-  const [searchAudit, setSearchAudit] = useState('');
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const [settings, setSettings] = useState(null);
+  const [savedSettings, setSavedSettings] = useState(null);
+  const [settingsError, setSettingsError] = useState(null);
+  const [settingsMessage, setSettingsMessage] = useState(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  // Modal State
-  const [modalConfig, setModalConfig] = useState(null);
+  const [search, setSearch] = useState("");
+  const [userAction, setUserAction] = useState(null);
+  const [isActing, setIsActing] = useState(false);
+  const [actionMessage, setActionMessage] = useState(null);
+  const [bulkMessage, setBulkMessage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileRef = useRef(null);
 
-  const fetchData = async () => {
-    try {        
-      const [statsRes, usersRes, logsRes, settingsRes] = await Promise.all([
-        api.get("/admin/stats").catch(() => ({ data: { total_instructors: 0, total_students: 0, total_classrooms: 0 }})),
-        api.get("/admin/users?skip=0&limit=50").catch(() => ({ data: [] })),
-        api.get("/admin/audit-logs?skip=0&limit=50").catch(() => ({ data: [] })),
-        api.get("/admin/settings").catch(() => ({ data: { maintenance_mode: false, default_ast_strictness: 'moderate' } }))
-      ]);
-      const usersList = usersRes.data || usersRes;
-      if (usersList.length < 50) setHasMoreUsers(false);
-      const logsList = logsRes.data || logsRes;
-      if (logsList.length < 50) setHasMoreLogs(false);
-      
-      setStats(statsRes.data || statsRes);
-      setUsers(usersRes.data || usersRes);
-      setAuditLogs(logsRes.data || logsRes);
-      setSettings(settingsRes.data || settingsRes);
-      setInitialSettings(settingsRes.data || settingsRes);
+  const loadStats = useCallback(async () => {
+    setStatsError(null);
+    try {
+      setStats(await api.get("/admin/stats"));
     } catch (err) {
-        console.error("Dashboard error:", err);
-        showMessage("Dashboard error occurred.", true);
-      }
-  };
-
-  useEffect(() => {
-    fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      setStatsError(err);
+    }
   }, []);
 
-  const handleTabChange = (tabId) => {
-    if (activeTab === 'settings') {
-      const isDirty = 
-        settings.maintenance_mode !== initialSettings.maintenance_mode || 
-        settings.default_ast_strictness !== initialSettings.default_ast_strictness || 
-        settings.registration_enabled !== initialSettings.registration_enabled;
-      if (isDirty) {
-        setPendingTab(tabId);
-        return;
-      }
+  const loadSettings = useCallback(async () => {
+    setSettingsError(null);
+    try {
+      const data = await api.get("/admin/settings");
+      setSettings(data);
+      setSavedSettings(data);
+    } catch (err) {
+      setSettingsError(err);
     }
-    setActiveTab(tabId);
-  };
+  }, []);
 
-  const toggleTheme = () => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-      setIsDark(false);
-    } else {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-      setIsDark(true);
-    }
-  };
+  const { load: loadUsers } = users;
+  const { load: loadLogs } = logs;
+  useEffect(() => {
+    loadStats();
+    loadUsers();
+    loadLogs();
+    loadSettings();
+  }, [loadStats, loadUsers, loadLogs, loadSettings]);
 
-  
-  const handleCreateStudent = async (e) => {
-    e.preventDefault();
-    if (!studentForm.first_name.trim() || !studentForm.last_name.trim() || !studentForm.email.trim() || !studentForm.school_id.trim()) {
-      showMessage("Please fill out all required student fields.", true);
+  const settingsDirty =
+    settings && savedSettings && ["maintenance_mode", "registration_enabled", "default_ast_strictness"].some((k) => settings[k] !== savedSettings[k]);
+
+  const changeTab = (tab) => {
+    if (activeTab === "settings" && settingsDirty && tab !== "settings") {
+      setPendingTab(tab);
       return;
     }
-    setIsLoading(true);
-    try {
-      await api.post("/admin/students", studentForm);
-      showMessage(`Student account for ${studentForm.email} provisioned successfully!`);
-      setStudentForm({ email: '', first_name: '', last_name: '', school_id: '', password: 'Pass@123' });
-      await fetchData();
-    } catch (err) {
-      showMessage(err.response?.data?.detail || err.message, true);
-    } finally {
-      setIsLoading(false);
-    }
+    setActiveTab(tab);
   };
 
-  const handleCreateFaculty = async (e) => {
-    e.preventDefault();
-    if (!form.email.trim() || !form.first_name.trim() || !form.last_name.trim() || !form.password.trim()) {
-      showMessage("Please fill out all required faculty fields.", true);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await api.post("/admin/instructors", form);
-      showMessage(`Faculty account for ${form.email} provisioned successfully!`);
-      setForm({ email: '', first_name: '', last_name: '', password: '' });
-      await fetchData();
-    } catch (err) {
-      showMessage(err.response?.data?.detail || err.message, true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFileUpload = async (e) => {
-    if (!e.target.files[0]) return;
-    const file = e.target.files[0];
-    setMasterlist(file);
-    const formData = new FormData();
-    formData.append("file", file);
-    setIsLoading(true);
-    try {
-      const res = await api.post("/admin/students/bulk-register/file", formData);
-      showMessage(`Successfully provisioned ${res.data?.registered || res.registered} students!`);
-      await fetchData();
-    } catch (err) {
-      showMessage(err.response?.data?.detail || err.message, true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const exportMasterlist = () => {
-    const headers = ["User ID", "First Name", "Last Name", "Email", "School ID", "Role", "Active"];
-    const rows = users.map(u => [u.user_id, u.first_name, u.last_name, u.email, u.school_id, u.role, u.is_active]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "pamsu_users_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleSaveSettings = async (e) => {
-    e.preventDefault();
-    try {
-      await api.patch("/admin/settings", settings);
-      showMessage("Global settings successfully saved.");
-        setInitialSettings(settings);
-    } catch (err) {
-      showMessage(err.response?.data?.detail || err.message, true);
-    }
-  };
-
-  const handleAction = (user, actionType) => {
-    if (actionType === 'status') {
-      setModalConfig({
-        title: user.is_active ? 'Suspend Account' : 'Activate Account',
-        message: `Are you sure you want to ${user.is_active ? 'suspend' : 'activate'} ${user.first_name} ${user.last_name}? ${user.is_active ? 'They will not be able to log in.' : 'They will regain access.'}`,
-        danger: user.is_active,
-        onConfirm: async () => {
-          try {
-            await api.patch(`/admin/users/${user.user_id}/status`);
-            showMessage(`Status updated for ${user.email}`);
-            await fetchData();
-          } catch (err) {
-            showMessage(err.response?.data?.detail || err.message, true);
-          }
-          setModalConfig(null);
-        }
-      });
-    } else if (actionType === 'reset') {
-      setModalConfig({
-        title: 'Reset Password',
-        message: `Are you sure you want to reset the password for ${user.first_name} ${user.last_name} to the default "Pass@123"?`,
-        danger: false,
-        onConfirm: async () => {
-          try {
-            await api.patch(`/admin/users/${user.user_id}/password`, { new_password: 'Pass@123' });
-            showMessage(`Password reset to Pass@123 for ${user.email}`);
-          } catch (err) {
-            showMessage(err.response?.data?.detail || err.message, true);
-          }
-          setModalConfig(null);
-        }
-      });
-    }
-  };
-
-  const instructors = users.filter(u => u.role === 'instructor');
-  const students = users.filter(u => u.role === 'student');
-  
-  const filteredStudents = students.filter(stu => 
-    stu.email.toLowerCase().includes(searchStudent.toLowerCase()) || 
-    stu.first_name.toLowerCase().includes(searchStudent.toLowerCase()) || 
-    stu.last_name.toLowerCase().includes(searchStudent.toLowerCase())
+  const faculty = users.items.filter((u) => u.role === "instructor");
+  const students = users.items.filter((u) => u.role === "student");
+  const query = search.trim().toLowerCase();
+  const filteredStudents = useMemo(
+    () => (query ? students.filter((s) => [s.name, s.email, s.school_id].some((v) => v && v.toLowerCase().includes(query))) : students),
+    [students, query],
   );
 
-  const filteredLogs = auditLogs.filter(log => 
-    (log.action_type || '').toLowerCase().includes(searchAudit.toLowerCase()) || 
-    (log.actor_name || '').toLowerCase().includes(searchAudit.toLowerCase()) ||
-    (log.resource_type || '').toLowerCase().includes(searchAudit.toLowerCase())
+  const runUserAction = async () => {
+    if (!userAction || isActing) return;
+    const { user, type, password } = userAction;
+    setIsActing(true);
+    try {
+      if (type === "status") {
+        const res = await api.patch(`/admin/users/${user.user_id}/status`);
+        users.setItems((prev) => prev.map((u) => (u.user_id === user.user_id ? { ...u, is_active: res?.is_active ?? !u.is_active } : u)));
+        setActionMessage({ tone: "success", text: `${user.name} is now ${(res?.is_active ?? !user.is_active) ? "active" : "suspended"}.` });
+      } else {
+        await api.patch(`/admin/users/${user.user_id}/password`, { new_password: password });
+        setActionMessage({ tone: "success", text: `Password for ${user.email} was reset to ${password} — share it securely.` });
+      }
+    } catch (err) {
+      setActionMessage({ tone: "error", text: getErrorMessage(err, "The action could not be completed.") });
+    } finally {
+      setIsActing(false);
+      setUserAction(null);
+    }
+  };
+
+  const handleBulkUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    setIsUploading(true);
+    setBulkMessage(null);
+    try {
+      const res = await api.post("/admin/students/bulk-register/file", formData);
+      setBulkMessage({ tone: "success", text: `${res?.registered ?? 0} students registered, ${res?.invalid ?? 0} rows skipped.` });
+      users.load();
+      loadStats();
+    } catch (err) {
+      setBulkMessage({ tone: "error", text: getErrorMessage(err, "The file could not be processed.") });
+    } finally {
+      setIsUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const exportStudents = () => {
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["User ID", "Name", "Email", "School ID", "Active"], ...students.map((u) => [u.user_id, u.name, u.email, u.school_id, u.is_active])];
+    const blob = new Blob([rows.map((r) => r.map(escape).join(",")).join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "pamsu_students.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const saveSettings = async (event) => {
+    event.preventDefault();
+    setIsSavingSettings(true);
+    setSettingsMessage(null);
+    try {
+      await api.patch("/admin/settings", {
+        maintenance_mode: Boolean(settings.maintenance_mode),
+        registration_enabled: Boolean(settings.registration_enabled),
+        default_ast_strictness: settings.default_ast_strictness || "moderate",
+      });
+      setSavedSettings(settings);
+      setSettingsMessage({ tone: "success", text: "Settings saved." });
+    } catch (err) {
+      setSettingsMessage({ tone: "error", text: getErrorMessage(err, "Settings could not be saved.") });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const tabButton = (tab, compact = false) => (
+    <button
+      key={tab.id}
+      type="button"
+      onClick={() => changeTab(tab.id)}
+      aria-current={activeTab === tab.id ? "page" : undefined}
+      className={`flex items-center gap-2.5 rounded-lg text-sm transition-colors ${compact ? "shrink-0 px-3 py-2" : "w-full px-3 py-2.5"} ${
+        activeTab === tab.id
+          ? "bg-psu-cream font-semibold text-psu-maroon shadow-[inset_3px_0_0_var(--color-psu-gold)]"
+          : "font-medium text-text-muted hover:bg-bg-alt hover:text-text-main"
+      }`}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={tab.icon} />
+      </svg>
+      {tab.label}
+    </button>
   );
 
   return (
-    <div className="min-h-screen bg-bg-base text-text-main font-sans selection:bg-psu-maroon selection:text-white">
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-sm rounded-3xl border border-border-strong bg-bg-base p-8 shadow-2xl animate-scale-in">
-            <h3 className="mb-2 text-xl font-black text-text-main tracking-tight">Sign Out?</h3>
-            <p className="mb-8 text-sm text-text-muted">Are you sure you want to end your administration session?</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowLogoutModal(false)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-text-muted transition-colors hover:bg-bg-glass hover:text-text-main border border-border-strong">Cancel</button>
-              <button onClick={logout} className="rounded-xl bg-psu-maroon px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-psu-red">Sign Out</button>
-            </div>
+    <div className="flex min-h-screen flex-col bg-bg-base text-text-main">
+      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-panel px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <img src="/school_logo.png" alt="Pampanga State University logo" className="h-10 w-10 object-contain" />
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-bold tracking-tight sm:text-base">Pampanga State University</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-text-brand">MIS Administration</p>
           </div>
         </div>
-      )}
-      {modalConfig && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-md rounded-3xl bg-bg-base border border-border-strong shadow-2xl p-8 animate-fade-in-up">
-            <h3 className="text-2xl font-black mb-2 tracking-tight">{modalConfig.title}</h3>
-            <p className="text-sm text-text-muted mb-8">{modalConfig.message}</p>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setModalConfig(null)} className="px-6 py-2.5 rounded-xl text-sm font-bold border border-border-strong text-text-muted hover:text-text-main hover:bg-bg-glass transition-colors">
-                Cancel
-              </button>
-              <button onClick={modalConfig.onConfirm} className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:scale-105 ${modalConfig.danger ? 'bg-red-500 shadow-red-500/20' : 'bg-psu-maroon shadow-psu-maroon/20'}`}>
-                Confirm Action
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <header className="sticky top-0 z-50 flex h-16 sm:h-20 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-glass px-4 sm:px-8 shadow-sm backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-sm" />
-          <div className="hidden sm:block">
-            <h1 className="text-xl font-black text-text-main tracking-tight">Pampanga State University</h1>
-            <p className="text-xs font-bold text-psu-maroon dark:text-psu-gold uppercase tracking-widest">MIS Administration</p>
-          </div>
-        </div>
-        <button onClick={() => setShowLogoutModal(true)} className="rounded-xl border border-border-subtle bg-bg-base px-5 py-2.5 text-sm font-bold shadow-sm transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-md">
-          Sign Out
+        <button type="button" onClick={() => setIsSignOutOpen(true)} className="btn-secondary btn-sm">
+          Sign out
         </button>
       </header>
 
-      <div className="flex min-h-[calc(100vh-80px)]">
-        <aside className="w-64 shrink-0 border-r border-border-subtle p-6 space-y-2 bg-bg-base hidden lg:block">
-          <NavButton active={activeTab === 'overview'} onClick={() => handleTabChange('overview')} label="System Overview" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            {activeTab === 'faculty' && (
-              <div className="flex flex-col gap-8 animate-fade-in w-full mx-auto max-w-6xl">
-                <header className="border-b border-border-subtle pb-6 w-full">
-                  <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">MANAGEMENT</p>
-                  <h1 className="text-3xl font-black text-text-main tracking-tight">Faculty Management</h1>
-                  <p className="mt-2 text-sm text-text-muted">Provision new instructor accounts and manage existing computer science faculty.</p>
-                </header>
+      <nav aria-label="Administration sections" className="flex gap-1 overflow-x-auto border-b border-border-subtle bg-bg-panel px-3 py-2 lg:hidden">
+        {TABS.map((tab) => tabButton(tab, true))}
+      </nav>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 w-full">
-                    <div className="xl:col-span-1">
-                      <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm relative overflow-hidden sticky top-6">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
-                  <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
-                  <form onSubmit={handleCreateFaculty} className="space-y-5" noValidate>
-                    <Input label="Official PSU Email" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input label="First Name" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} />
-                      <Input label="Last Name" value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} />
-                    </div>
-                    <Input label="Initial Password" type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-                    <button disabled={isLoading} type="submit" className="w-full mt-2 rounded-xl bg-psu-maroon py-3 text-sm font-bold text-white shadow-lg shadow-psu-maroon/20 hover:scale-[1.02] hover:shadow-psu-maroon/40 transition-all disabled:opacity-50">
-                      Create Faculty Account
-                    </button>
-                  </form>
-                </div>
-                      </div>
-                    </div>
-                    <div className="xl:col-span-2">
-                      <div className="bg-bg-glass border border-border-subtle rounded-2xl w-full shadow-md overflow-hidden flex flex-col">
-                  <div className="px-6 py-5 border-b border-border-subtle bg-bg-base/30">
-                    <h3 className="text-lg font-bold tracking-tight">CS Department Faculty</h3>
-                    <p className="text-xs text-text-muted mt-1">Manage instructor accounts</p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                      <thead className="text-xs font-semibold text-text-muted uppercase bg-bg-panel border-b border-border-subtle tracking-wider">
-                        <tr>
-                          <th className="px-4 py-3 w-[35%]">Name</th>
-                            <th className="px-4 py-3 w-[40%]">Email</th>
-                            <th className="px-4 py-3 w-[15%]">Status</th>
-                            <th className="px-4 py-3 w-[10%] text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {instructors.length === 0 && (
-                          <tr>
-                            <td colSpan="4" className="px-8 py-20 text-center text-text-muted bg-bg-base/30">
-                              <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                                <div className="p-4 bg-bg-glass rounded-full mb-4 shadow-sm border border-border-subtle">
-                                  <svg className="w-8 h-8 text-text-muted opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                </div>
-                                <p className="font-bold text-text-main text-base">No faculty members found</p>
-                                <p className="text-sm mt-1">Use the provision form on the left to add a new instructor to this department.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                        {instructors.map((inst) => (
-                          <tr key={inst.user_id} className="border-b border-border-subtle hover:bg-bg-panel transition-colors group">
-                            <td className="px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-psu-maroon/10 text-text-brand flex items-center justify-center font-bold text-xs border border-psu-maroon/20">
-                                    {inst.first_name[0]}{inst.last_name[0]}
-                                  </div>
-                                  <span className="font-bold text-text-main group-hover:text-text-brand transition-colors">{inst.first_name} {inst.last_name}</span>
-                                </div>
-                            </td>
-                            <td className="px-4 py-4 text-text-muted font-medium">{inst.email}</td>
-                            <td className="px-4 py-4">
-                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-psu-maroon/10 text-psu-maroon border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border-border-strong'}`}>
-                                {inst.is_active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-right space-x-2">
-                              <ActionBtn onClick={() => handleAction(inst, 'reset')} text="Reset" />
-                              <ActionBtn onClick={() => handleAction(inst, 'status')} text={inst.is_active ? "Suspend" : "Activate"} danger={inst.is_active} />
-                            </td>
-                          </tr>
-                        ))}
-                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-text-muted">Loading more faculty...</td></tr>}
-                      </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-          <NavButton active={activeTab === 'students'} onClick={() => handleTabChange('students')} label="Student Database" icon="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          <NavButton active={activeTab === 'audit'} onClick={() => handleTabChange('audit')} label="Global Audit Trail" icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          <NavButton active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} label="System Settings" icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <div className="flex min-h-0 flex-1">
+        <aside className="hidden w-60 shrink-0 border-r border-border-subtle bg-bg-panel p-4 lg:block">
+          <nav aria-label="Administration sections" className="space-y-1">
+            {TABS.map((tab) => tabButton(tab))}
+          </nav>
         </aside>
 
-        <main className="flex-1 min-w-0 p-4 lg:p-10 overflow-x-hidden">
-          <div className="w-full max-w-6xl lg:px-4 mx-auto">
-            
-            <div className="mb-4 empty:hidden">
-              {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-medium text-psu-red shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{error}</div>}
-              {success && <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-sm font-medium text-psu-maroon shadow-sm flex items-center gap-2 mb-4"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{success}</div>}
-            </div>
-
-            {activeTab === 'overview' && (
-              <div className="space-y-6 animate-fade-in">
-                <header className="border-b border-border-subtle pb-6">
-                  <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">METRICS</p>
-                  <h1 className="text-3xl font-black text-text-main tracking-tight">System Overview</h1>
-                  <p className="mt-2 text-sm text-text-muted">High-level statistics across the entire Python IDE platform.</p>
-                </header>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <StatCard title="Total Instructors" value={stats.total_instructors} colorClass="text-psu-maroon dark:text-psu-gold" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>} />
-                  <StatCard title="Registered Students" value={stats.total_students} colorClass="text-psu-maroon dark:text-psu-gold" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>} />
-                  <StatCard title="Active Classrooms" value={stats.total_classrooms} colorClass="text-psu-maroon dark:text-psu-gold" icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>} />
-                </div>
-              </div>
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8">
+          <div className="animate-page-fade mx-auto w-full max-w-6xl">
+            {actionMessage && (
+              <InlineAlert tone={actionMessage.tone} onDismiss={() => setActionMessage(null)} className="mb-5">
+                {actionMessage.text}
+              </InlineAlert>
             )}
 
-            {activeTab === 'faculty' && (
-              <div className="flex flex-col gap-8 animate-fade-in w-full mx-auto max-w-6xl">
-                <header className="border-b border-border-subtle pb-6 w-full">
-                  <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">MANAGEMENT</p>
-                  <h1 className="text-3xl font-black text-text-main tracking-tight">Faculty Management</h1>
-                  <p className="mt-2 text-sm text-text-muted">Provision new instructor accounts and manage existing computer science faculty.</p>
-                </header>
-                
-                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 w-full">
-                    <div className="xl:col-span-1">
-                      <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm relative overflow-hidden sticky top-6">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
-                  <h3 className="text-lg font-black mb-6 tracking-tight">Provision Faculty</h3>
-                  <form onSubmit={handleCreateFaculty} className="space-y-5" noValidate>
-                    <Input label="Official PSU Email" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input label="First Name" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} />
-                      <Input label="Last Name" value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} />
-                    </div>
-                    <Input label="Initial Password" type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-                    <button disabled={isLoading} type="submit" className="w-full mt-2 rounded-xl bg-psu-maroon py-3 text-sm font-bold text-white shadow-lg shadow-psu-maroon/20 hover:scale-[1.02] hover:shadow-psu-maroon/40 transition-all disabled:opacity-50">
-                      Create Faculty Account
+            {activeTab === "overview" && (
+              <>
+                <PageHeader eyebrow="Metrics" title="System overview" description="Accounts and classrooms across the platform." />
+                {statsError ? (
+                  <AdminErrorState error={statsError} resource="platform statistics" onRetry={loadStats} />
+                ) : !stats ? (
+                  <LoadingState label="Loading statistics…" />
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {[
+                      ["Instructors", stats.total_instructors],
+                      ["Students", stats.total_students],
+                      ["Classrooms", stats.total_classrooms],
+                    ].map(([label, value]) => (
+                      <div key={label} className="card p-5">
+                        <p className="text-3xl font-bold tracking-tight">{value ?? 0}</p>
+                        <p className="mt-1 text-sm font-medium text-text-muted">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === "faculty" && (
+              <>
+                <PageHeader eyebrow="Accounts" title="Faculty" description="Create instructor accounts and manage access." />
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+                  <ProvisionForm role="instructor" onCreated={() => { users.load(); loadStats(); }} />
+                  <div className="min-w-0">
+                    {users.error ? (
+                      <AdminErrorState error={users.error} resource="faculty accounts" onRetry={users.load} />
+                    ) : users.isLoading ? (
+                      <LoadingState label="Loading accounts…" />
+                    ) : (
+                      <UserTable users={faculty} emptyMessage="No faculty accounts have been created yet." onAction={(user, type) => setUserAction({ user, type, password: generateTempPassword() })} />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === "students" && (
+              <>
+                <PageHeader
+                  eyebrow="Accounts"
+                  title="Students"
+                  description="Create student accounts individually or from a masterlist file."
+                  actions={
+                    <button type="button" className="btn-secondary" onClick={exportStudents} disabled={students.length === 0}>
+                      Export CSV
                     </button>
-                  </form>
-                </div>
-                      </div>
-                    </div>
-                    <div className="xl:col-span-2">
-                      <div className="bg-bg-glass border border-border-subtle rounded-2xl w-full shadow-md overflow-hidden flex flex-col">
-                  <div className="px-6 py-5 border-b border-border-subtle bg-bg-base/30">
-                    <h3 className="text-lg font-bold tracking-tight">CS Department Faculty</h3>
-                    <p className="text-xs text-text-muted mt-1">Manage instructor accounts</p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                      <thead className="text-xs font-semibold text-text-muted uppercase bg-bg-panel border-b border-border-subtle tracking-wider">
-                        <tr>
-                          <th className="px-4 py-3 w-[35%]">Name</th>
-                            <th className="px-4 py-3 w-[40%]">Email</th>
-                            <th className="px-4 py-3 w-[15%]">Status</th>
-                            <th className="px-4 py-3 w-[10%] text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {instructors.length === 0 && (
-                          <tr>
-                            <td colSpan="4" className="px-8 py-20 text-center text-text-muted bg-bg-base/30">
-                              <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                                <div className="p-4 bg-bg-glass rounded-full mb-4 shadow-sm border border-border-subtle">
-                                  <svg className="w-8 h-8 text-text-muted opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                </div>
-                                <p className="font-bold text-text-main text-base">No faculty members found</p>
-                                <p className="text-sm mt-1">Use the provision form on the left to add a new instructor to this department.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                        {instructors.map((inst) => (
-                          <tr key={inst.user_id} className="border-b border-border-subtle hover:bg-bg-panel transition-colors group">
-                            <td className="px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-psu-maroon/10 text-text-brand flex items-center justify-center font-bold text-xs border border-psu-maroon/20">
-                                    {inst.first_name[0]}{inst.last_name[0]}
-                                  </div>
-                                  <span className="font-bold text-text-main group-hover:text-text-brand transition-colors">{inst.first_name} {inst.last_name}</span>
-                                </div>
-                            </td>
-                            <td className="px-4 py-4 text-text-muted font-medium">{inst.email}</td>
-                            <td className="px-4 py-4">
-                              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${inst.is_active ? 'bg-psu-maroon/10 text-psu-maroon border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border-border-strong'}`}>
-                                {inst.is_active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-right space-x-2">
-                              <ActionBtn onClick={() => handleAction(inst, 'reset')} text="Reset" />
-                              <ActionBtn onClick={() => handleAction(inst, 'status')} text={inst.is_active ? "Suspend" : "Activate"} danger={inst.is_active} />
-                            </td>
-                          </tr>
-                        ))}
-                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-text-muted">Loading more faculty...</td></tr>}
-                      </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            {activeTab === 'students' && (
-              <div className="flex flex-col gap-8 animate-fade-in w-full mx-auto max-w-6xl">
-                <header className="border-b border-border-subtle pb-6 w-full">
-                  <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">PROVISIONING</p>
-                  <h1 className="text-3xl font-black text-text-main tracking-tight">Student Masterlist</h1>
-                  <p className="mt-2 text-sm text-text-muted">Bulk upload student emails or export the current masterlist.</p>
-                </header>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
-                    <h3 className="text-lg font-black mb-6 tracking-tight">Pre-Register Masterlist</h3>
-                    <p className="text-sm text-text-muted mb-4">Upload an Excel/CSV file with student emails to auto-provision accounts.</p>
-                    
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border-strong rounded-xl cursor-pointer bg-bg-base hover:bg-bg-glass transition-colors group">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-3 text-text-muted group-hover:text-psu-maroon dark:group-hover:text-psu-gold transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                        <p className="mb-2 text-sm text-text-muted"><span className="font-semibold text-text-main group-hover:text-psu-maroon dark:group-hover:text-psu-gold transition-colors">Click to upload</span></p>
-                        <p className="text-xs text-text-muted/70">CSV or Excel files only</p>
-                      </div>
-                      <input type="file" accept=".csv, .xlsx" onChange={handleFileUpload} className="hidden" />
-                    </label>
-                  </div>
-                  
-                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
-                      <h3 className="text-lg font-black mb-6 tracking-tight">Export Data</h3>
-                      <p className="text-sm text-text-muted mb-4">Download the full user masterlist to CSV.</p>
-                      
-                      <button onClick={exportMasterlist} className="flex flex-col items-center justify-center w-full h-32 border-2 border-border-strong rounded-xl cursor-pointer bg-bg-base hover:bg-bg-glass hover:border-psu-maroon dark:hover:border-psu-gold transition-all group">
-                        <svg className="w-8 h-8 mb-3 text-text-muted group-hover:text-psu-maroon dark:group-hover:text-psu-gold transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <p className="mb-2 text-sm font-semibold text-text-main group-hover:text-psu-maroon dark:group-hover:text-psu-gold transition-colors">Download CSV</p>
-                        <p className="text-xs text-text-muted/70">Export all records</p>
-                      </button>
-                    </div>
-                </div>
-
-                <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl shadow-sm relative overflow-hidden mt-4">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-psu-maroon to-psu-red dark:from-psu-gold dark:to-yellow-500"></div>
-                    <h3 className="text-lg font-black mb-6 tracking-tight">Manual Provisioning</h3>
-                    <form onSubmit={handleCreateStudent} className="space-y-4" noValidate>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <input type="text" placeholder="First Name" required value={studentForm.first_name} onChange={e => setStudentForm({...studentForm, first_name: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
-                        <input type="text" placeholder="Last Name" required value={studentForm.last_name} onChange={e => setStudentForm({...studentForm, last_name: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
-                        <input type="email" placeholder="PSU Email" required value={studentForm.email} onChange={e => setStudentForm({...studentForm, email: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
-                        <input type="text" placeholder="School ID (e.g. 2020-0001)" required value={studentForm.school_id} onChange={e => setStudentForm({...studentForm, school_id: e.target.value})} className="rounded-xl border border-border-subtle bg-bg-base px-4 py-2.5 text-sm focus:border-psu-maroon focus:outline-none" />
-                      </div>
-                      <button type="submit" disabled={isLoading} className="w-full rounded-xl bg-psu-maroon px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-psu-maroon/90 disabled:opacity-50">
-                        {isLoading ? "Provisioning..." : "Provision Student"}
-                      </button>
-                    </form>
-                  </div>
-                  
-                  <div className="bg-bg-glass border border-border-subtle p-6 rounded-2xl w-full shadow-sm mt-4">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-black tracking-tight">Student Database</h3>
-                    <div className="relative group w-72">
-                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-psu-maroon dark:group-focus-within:text-psu-gold transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                      <input type="text" placeholder="Search students..." value={searchStudent} onChange={(e) => setSearchStudent(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-bg-base border border-border-strong rounded-xl text-sm focus:outline-none focus:border-psu-maroon dark:focus:border-psu-gold transition-colors shadow-sm" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-bg-glass border border-border-subtle rounded-2xl w-full shadow-md overflow-hidden flex flex-col mt-6">
-                  <div className="px-6 py-5 border-b border-border-subtle bg-bg-base/30 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold tracking-tight">Student Directory</h3>
-                      <p className="text-xs text-text-muted mt-1">Manage provisioned student accounts</p>
-                    </div>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                      <thead className="text-xs font-semibold text-text-muted uppercase bg-bg-panel border-b border-border-subtle tracking-wider">
-                        <tr>
-                          <th className="px-4 py-3 w-[35%]">Name</th>
-                            <th className="px-4 py-3 w-[40%]">PSU Email</th>
-                            <th className="px-4 py-3 w-[15%]">Status</th>
-                            <th className="px-4 py-3 w-[10%] text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredStudents.length === 0 && (
-                          <tr>
-                            <td colSpan="4" className="px-8 py-20 text-center text-text-muted bg-bg-base/30">
-                              <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                                <div className="p-4 bg-bg-glass rounded-full mb-4 shadow-sm border border-border-subtle">
-                                  <svg className="w-8 h-8 text-text-muted opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                </div>
-                                <p className="font-bold text-text-main text-base">No students found</p>
-                                <p className="text-sm mt-1">Upload a masterlist or use the provision form above to add students.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                        {filteredStudents.map((stu) => (
-                          <tr key={stu.user_id} className="border-b border-border-subtle hover:bg-bg-panel transition-colors group">
-                            <td className="px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-bg-panel text-text-muted flex items-center justify-center font-bold text-xs border border-border-strong group-hover:border-psu-maroon/30 group-hover:text-text-brand transition-colors">
-                                    {stu.first_name[0]}{stu.last_name[0]}
-                                  </div>
-                                  <span className="font-bold text-text-main transition-colors">{stu.first_name} {stu.last_name}</span>
-                                </div>
-                            </td>
-                            <td className="px-4 py-4 text-text-muted font-medium">{stu.email}</td>
-                            <td className="px-4 py-4">
-                              <span className={`px-2.5 py-1 font-bold rounded-full text-[10px] uppercase tracking-widest ${stu.is_active ? 'bg-psu-maroon/10 text-psu-maroon border border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
-                                {stu.is_active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-right space-x-2">
-                              <ActionBtn onClick={() => handleAction(stu, 'reset')} text="Reset" />
-                              <ActionBtn onClick={() => handleAction(stu, 'status')} text={stu.is_active ? "Suspend" : "Activate"} danger={stu.is_active} />
-                            </td>
-                          </tr>
-                        ))}
-                        {hasMoreUsers && <tr ref={userRef}><td colSpan="5" className="text-center py-4 text-text-muted">Loading more students...</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-              </div>
-            )}
-
-            {activeTab === 'audit' && (
-              <div className="h-full flex flex-col space-y-6 animate-fade-in w-full">
-                <header className="border-b border-border-subtle pb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-                  <div>
-                    <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">SECURITY</p>
-                    <h1 className="text-3xl font-black text-text-main tracking-tight">Global Audit Trail</h1>
-                    <p className="mt-2 text-sm text-text-muted">Immutable log of all critical system actions.</p>
-                  </div>
-                  <div className="w-full md:w-80 relative group">
-                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-psu-maroon transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <input type="text" placeholder="Search logs..." value={searchAudit} onChange={(e) => setSearchAudit(e.target.value)} className="w-full pl-9 pr-4 py-3 bg-bg-glass border border-border-strong rounded-xl text-sm font-medium focus:outline-none focus:border-psu-maroon transition-colors shadow-sm" />
-                  </div>
-                </header>
-
-                <div className="bg-bg-glass border border-border-subtle rounded-2xl shadow-sm flex-1 overflow-hidden flex flex-col min-h-[600px]">
-                  <div className="overflow-x-auto overflow-y-auto flex-1">
-                    <table className="w-full text-left text-sm relative">
-                      <thead className="sticky top-0 text-[11px] font-bold tracking-widest text-text-muted uppercase bg-bg-base border-b border-border-subtle shadow-sm z-10">
-                        <tr>
-                          <th className="px-4 py-3">Timestamp</th>
-                          <th className="px-4 py-3">Actor</th>
-                          <th className="px-4 py-3">Action</th>
-                          <th className="px-4 py-3">Resource</th>
-                          <th className="px-4 py-3 text-right">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredLogs.length === 0 && (
-                          <tr>
-                            <td colSpan="5" className="px-4 py-32 text-center text-text-muted">
-                              <div className="flex flex-col items-center justify-center">
-                                <svg className="w-10 h-10 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                                <p className="font-semibold text-text-main">No audit logs available</p>
-                                <p className="text-xs mt-1">Actions taken on the system will appear here.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                        {filteredLogs.map((log, index) => (
-                          <tr key={log.audit_id || index} className="border-b border-border-subtle hover:bg-bg-base/50 transition-colors">
-                            <td className="px-4 py-4 text-text-muted whitespace-nowrap">{new Date(log.occurred_at).toLocaleString()}</td>
-                            <td className="px-4 py-4">
-                              <div className="font-bold text-text-main">{log.actor_name || 'System Administrator'}</div>
-                              <div className="text-[10px] text-text-muted uppercase tracking-widest mt-0.5">{log.actor_role || 'ADMIN'}</div>
-                            </td>
-                            <td className="px-4 py-4 font-bold text-psu-maroon dark:text-psu-gold">{log.action_type}</td>
-                            <td className="px-4 py-4 text-text-muted">{log.resource_type}</td>
-                            <td className="px-4 py-4 text-right">
-                              <span className={`px-2 py-1 font-bold rounded text-[10px] uppercase tracking-wider ${log.outcome === 'succeeded' || log.status === 'success' ? 'bg-psu-maroon/10 text-psu-maroon border border-psu-maroon/20 dark:text-psu-maroon' : 'bg-bg-base text-text-muted border border-border-strong'}`}>
-                                {log.outcome || log.status || 'succeeded'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                        {hasMoreLogs && <tr ref={logRef}><td colSpan="3" className="text-center py-4 text-text-muted">Loading more logs...</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'settings' && (
-              <div className="space-y-6 animate-fade-in w-full mx-auto max-w-6xl">
-                <header className="border-b border-border-subtle pb-6 mb-6">
-                  <p className="mb-1 font-mono text-xs text-text-brand tracking-widest">CONFIGURATION</p>
-                  <h1 className="text-3xl font-black text-text-main tracking-tight">System Settings</h1>
-                  <p className="mt-2 text-sm text-text-muted">Manage global policies, appearance, and maintenance state.</p>
-                </header>
-                
-                <div className="bg-bg-glass border border-border-subtle p-8 rounded-2xl shadow-sm relative overflow-hidden">
-                  
-                  <form onSubmit={handleSaveSettings} className="space-y-10" noValidate>
-                    
-                    {/* UI Toggle */}
-                    <div className="flex items-center justify-between border-b border-border-subtle pb-8">
-                      <div className="pr-8">
-                        <h4 className="font-black text-lg tracking-tight">Platform Theme</h4>
-                        <p className="text-sm text-text-muted mt-1">Toggle dark mode appearance for the dashboard.</p>
-                      </div>
-                      <label className="relative inline-flex cursor-pointer items-center shrink-0">
-                        <input type="checkbox" className="peer sr-only" checked={isDark} onChange={toggleTheme} />
-                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-psu-maroon dark:peer-checked:bg-psu-gold after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                  }
+                />
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+                  <div className="space-y-4">
+                    <ProvisionForm role="student" onCreated={() => { users.load(); loadStats(); }} />
+                    <div className="card p-5">
+                      <h2 className="text-sm font-semibold">Bulk register from masterlist</h2>
+                      <p className="mt-1 text-xs text-text-muted">Upload a CSV or Excel file of student emails.</p>
+                      {bulkMessage && (
+                        <InlineAlert tone={bulkMessage.tone} onDismiss={() => setBulkMessage(null)} className="mt-3">
+                          {bulkMessage.text}
+                        </InlineAlert>
+                      )}
+                      <label htmlFor="admin-bulk-file" className="btn-secondary mt-3 w-full cursor-pointer">
+                        {isUploading ? "Uploading…" : "Choose file"}
                       </label>
+                      <input ref={fileRef} id="admin-bulk-file" type="file" accept=".csv,.xlsx,.xls" className="sr-only" onChange={handleBulkUpload} disabled={isUploading} />
                     </div>
-
-                    {/* Maintenance Mode */}
-                    <div className="flex items-center justify-between border-b border-border-subtle pb-8">
-                      <div className="pr-8">
-                        <h4 className="font-black text-lg tracking-tight">Maintenance Mode</h4>
-                        <p className="text-sm text-text-muted mt-1">Suspend all student logins and task execution. Only MIS and Instructors can access the platform while this is on.</p>
-                      </div>
-                      <label className="relative inline-flex cursor-pointer items-center shrink-0">
-                        <input type="checkbox" className="peer sr-only" checked={settings.maintenance_mode} onChange={e => setSettings({...settings, maintenance_mode: e.target.checked})} />
-                        <div className="h-8 w-14 rounded-full bg-border-strong peer-checked:bg-psu-maroon dark:peer-checked:bg-psu-gold after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="mb-3 w-full sm:w-80">
+                      <label htmlFor="admin-student-search" className="sr-only">
+                        Search students
                       </label>
+                      <input id="admin-student-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email or ID…" className="input-field" />
                     </div>
-
-                    <div className="pb-4">
-                      <h4 className="font-black text-lg tracking-tight mb-2">Default AST Strictness</h4>
-                      <p className="text-sm text-text-muted mb-6">Global strictness level for structural code feedback.</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'lenient' ? 'border-border-focus bg-bg-panel shadow-sm shadow-border-focus/20 ring-1 ring-border-focus' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
-                          <input type="radio" name="ast_strictness" value="lenient" checked={settings.default_ast_strictness === 'lenient'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'lenient' ? 'border-psu-maroon dark:border-psu-gold' : 'border-border-strong'}`}>
-                              {settings.default_ast_strictness === 'lenient' && <div className="w-2 h-2 rounded-full bg-psu-maroon dark:bg-psu-gold"></div>}
-                            </div>
-                            <span className="font-black text-text-main">Lenient</span>
-                          </div>
-                          <p className="text-xs text-text-muted leading-relaxed">Allows standard variations & formatting differences.</p>
-                        </label>
-
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'moderate' ? 'border-border-focus bg-bg-panel shadow-sm shadow-border-focus/20 ring-1 ring-border-focus' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
-                          <input type="radio" name="ast_strictness" value="moderate" checked={settings.default_ast_strictness === 'moderate'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'moderate' ? 'border-psu-maroon dark:border-psu-gold' : 'border-border-strong'}`}>
-                              {settings.default_ast_strictness === 'moderate' && <div className="w-2 h-2 rounded-full bg-psu-maroon dark:bg-psu-gold"></div>}
-                            </div>
-                            <span className="font-black text-text-main">Moderate</span>
-                          </div>
-                          <p className="text-xs text-text-muted leading-relaxed">Standard university policy with balanced checks.</p>
-                        </label>
-
-                        <label className={`cursor-pointer rounded-2xl border-2 p-5 transition-all ${settings.default_ast_strictness === 'strict' ? 'border-border-focus bg-bg-panel shadow-sm shadow-border-focus/20 ring-1 ring-border-focus' : 'border-border-strong bg-bg-glass hover:border-border-strong hover:bg-bg-panel'}`}>
-                          <input type="radio" name="ast_strictness" value="strict" checked={settings.default_ast_strictness === 'strict'} onChange={e => setSettings({...settings, default_ast_strictness: e.target.value})} className="hidden" />
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${settings.default_ast_strictness === 'strict' ? 'border-psu-maroon dark:border-psu-gold' : 'border-border-strong'}`}>
-                              {settings.default_ast_strictness === 'strict' && <div className="w-2 h-2 rounded-full bg-psu-maroon dark:bg-psu-gold"></div>}
-                            </div>
-                            <span className="font-black text-text-main">Strict</span>
-                          </div>
-                          <p className="text-xs text-text-muted leading-relaxed">Requires exact structural AST match for submission.</p>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-border-subtle">
-                      <button type="submit" className="rounded-2xl bg-psu-maroon px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-psu-maroon/20 hover:scale-[1.02] hover:shadow-psu-maroon/40 transition-all">
-                        Save Global Settings
+                    {users.error ? (
+                      <AdminErrorState error={users.error} resource="student accounts" onRetry={users.load} />
+                    ) : users.isLoading ? (
+                      <LoadingState label="Loading accounts…" />
+                    ) : (
+                      <UserTable
+                        users={filteredStudents}
+                        emptyMessage={query ? "No students match your search." : "No student accounts yet."}
+                        onAction={(user, type) => setUserAction({ user, type, password: generateTempPassword() })}
+                      />
+                    )}
+                    {users.hasMore && !users.error && (
+                      <button type="button" className="btn-secondary mt-4 w-full" onClick={users.loadMore} disabled={users.isLoadingMore}>
+                        {users.isLoadingMore ? "Loading…" : "Load more accounts"}
                       </button>
-                    </div>
-
-                  </form>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
+            {activeTab === "audit" && (
+              <>
+                <PageHeader eyebrow="Security" title="Global audit trail" description="Recorded account, classroom and academic events." />
+                {logs.error ? (
+                  <AdminErrorState error={logs.error} resource="the audit trail" onRetry={logs.load} />
+                ) : logs.isLoading ? (
+                  <LoadingState label="Loading audit trail…" />
+                ) : logs.items.length === 0 ? (
+                  <EmptyState title="No audit events" message="Recorded actions will appear here." />
+                ) : (
+                  <div className="card overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-left text-sm">
+                        <thead className="border-b border-border-subtle bg-bg-alt text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                          <tr>
+                            <th scope="col" className="px-4 py-3">When</th>
+                            <th scope="col" className="px-4 py-3">Actor</th>
+                            <th scope="col" className="px-4 py-3">Event</th>
+                            <th scope="col" className="px-4 py-3">Resource</th>
+                            <th scope="col" className="px-4 py-3 text-right">Outcome</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border-subtle">
+                          {logs.items.map((log) => (
+                            <tr key={log.log_id}>
+                              <td className="whitespace-nowrap px-4 py-3 text-xs text-text-muted">{formatDateTime(log.occurred_at)}</td>
+                              <td className="px-4 py-3">
+                                <p className="font-medium text-text-main">{log.actor_name}</p>
+                                <p className="text-xs text-text-muted">{humanize(log.actor_role)}</p>
+                              </td>
+                              <td className="px-4 py-3 text-text-main">{humanize(log.action_type)}</td>
+                              <td className="px-4 py-3 text-text-muted">{humanize(log.resource_type)}</td>
+                              <td className="px-4 py-3 text-right">
+                                <span className={`badge ${log.status === "succeeded" ? "badge-success" : log.status === "failed" ? "badge-danger" : "badge-gold"}`}>
+                                  {humanize(log.status)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+                {logs.hasMore && !logs.error && (
+                  <button type="button" className="btn-secondary mt-4 w-full" onClick={logs.loadMore} disabled={logs.isLoadingMore}>
+                    {logs.isLoadingMore ? "Loading…" : "Load older events"}
+                  </button>
+                )}
+              </>
+            )}
+
+            {activeTab === "settings" && (
+              <>
+                <PageHeader eyebrow="Configuration" title="System settings" description="Platform-wide policies." />
+                {settingsError ? (
+                  <AdminErrorState error={settingsError} resource="system settings" onRetry={loadSettings} />
+                ) : !settings ? (
+                  <LoadingState label="Loading settings…" />
+                ) : (
+                  <form onSubmit={saveSettings} noValidate className="card max-w-3xl space-y-6 p-6">
+                    {settingsMessage && (
+                      <InlineAlert tone={settingsMessage.tone} onDismiss={() => setSettingsMessage(null)}>
+                        {settingsMessage.text}
+                      </InlineAlert>
+                    )}
+                    {[
+                      ["maintenance_mode", "Maintenance mode", "Blocks student sign-in. Instructors and MIS keep access."],
+                      ["registration_enabled", "Student self-registration", "Allow students to create accounts with their university email."],
+                    ].map(([key, label, help]) => (
+                      <div key={key} className="flex items-start justify-between gap-4">
+                        <div>
+                          <p id={`setting-${key}-label`} className="text-sm font-semibold text-text-main">
+                            {label}
+                          </p>
+                          <p className="text-xs text-text-muted">{help}</p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={Boolean(settings[key])}
+                          aria-labelledby={`setting-${key}-label`}
+                          onClick={() => setSettings((prev) => ({ ...prev, [key]: !prev[key] }))}
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${settings[key] ? "bg-psu-maroon" : "bg-border-strong"}`}
+                        >
+                          <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings[key] ? "translate-x-[22px]" : "translate-x-0.5"}`} aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                    <fieldset>
+                      <legend className="text-sm font-semibold text-text-main">Default AST strictness</legend>
+                      <p className="mb-3 text-xs text-text-muted">Used for instructors who haven&apos;t chosen their own level.</p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        {STRICTNESS.map(([value, label, help]) => (
+                          <label key={value} className="cursor-pointer rounded-xl border border-border-strong p-4 transition-colors has-[:checked]:border-psu-maroon has-[:checked]:bg-psu-cream">
+                            <input
+                              type="radio"
+                              name="default-strictness"
+                              value={value}
+                              checked={settings.default_ast_strictness === value}
+                              onChange={() => setSettings((prev) => ({ ...prev, default_ast_strictness: value }))}
+                              className="accent-psu-maroon"
+                            />
+                            <span className="ml-2 text-sm font-semibold text-text-main">{label}</span>
+                            <span className="mt-1 block text-xs text-text-muted">{help}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <div className="flex items-center justify-end gap-3 border-t border-border-subtle pt-5">
+                      {settingsDirty && <span className="text-xs text-text-muted">Unsaved changes</span>}
+                      <button type="submit" className="btn-primary" disabled={isSavingSettings || !settingsDirty}>
+                        {isSavingSettings ? "Saving…" : "Save settings"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </>
+            )}
           </div>
         </main>
       </div>
 
-      {pendingTab && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md rounded-3xl border border-border-strong bg-bg-base p-8 shadow-2xl animate-fade-in-up">
-            <h3 className="mb-2 text-2xl font-black text-text-main">Unsaved Changes</h3>
-            <p className="mb-8 text-sm text-text-muted">
-              You have unsaved changes in your System Settings. If you leave this tab, your changes will be discarded.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setPendingTab(null)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-text-muted transition-colors hover:bg-bg-glass hover:text-text-main">
-                Cancel
-              </button>
-              <button onClick={() => {
-                setSettings(initialSettings);
-                setActiveTab(pendingTab);
-                setPendingTab(null);
-              }} className="rounded-xl bg-psu-maroon px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-psu-maroon/20 hover:scale-105 transition-all">
-                Discard & Leave
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      <ConfirmationModal
+        isOpen={Boolean(userAction)}
+        title={
+          userAction?.type === "reset"
+            ? "Reset password?"
+            : userAction?.user?.is_active
+              ? "Suspend account?"
+              : "Activate account?"
+        }
+        message={
+          userAction?.type === "reset"
+            ? `${userAction?.user?.name}'s password will be replaced with a new temporary password, which will be shown to you once.`
+            : userAction?.user?.is_active
+              ? `${userAction?.user?.name} will not be able to sign in until the account is activated again.`
+              : `${userAction?.user?.name} will be able to sign in again.`
+        }
+        confirmText={userAction?.type === "reset" ? "Reset password" : userAction?.user?.is_active ? "Suspend" : "Activate"}
+        isDanger={userAction?.type === "reset" || Boolean(userAction?.user?.is_active)}
+        isLoading={isActing}
+        onConfirm={runUserAction}
+        onCancel={() => setUserAction(null)}
+      />
+      <ConfirmationModal
+        isOpen={Boolean(pendingTab)}
+        title="Discard unsaved settings?"
+        message="You changed system settings without saving. Leaving this section discards those changes."
+        confirmText="Discard changes"
+        isDanger
+        onConfirm={() => {
+          setSettings(savedSettings);
+          setActiveTab(pendingTab);
+          setPendingTab(null);
+        }}
+        onCancel={() => setPendingTab(null)}
+      />
+      <SignOutModal
+        isOpen={isSignOutOpen}
+        onClose={() => setIsSignOutOpen(false)}
+        onConfirm={() => {
+          setIsSignOutOpen(false);
+          logout();
+          navigate("/login", { replace: true });
+        }}
+      />
     </div>
-  );
-}
-
-function NavButton({ active, onClick, label, icon }) {
-  return (
-    <button onClick={onClick} className={`flex w-full items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-bold transition-all ${active ? 'bg-psu-maroon text-white shadow-md shadow-psu-maroon/20 scale-[1.02]' : 'text-text-muted hover:bg-bg-glass-hover hover:text-text-main hover:scale-[1.01]'}`}>
-      <svg className="h-5 w-5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d={icon} /></svg>
-      {label}
-    </button>
-  );
-}
-
-function StatCard({ title, value, icon, colorClass = "text-text-brand" }) {
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 cursor-default">
-      <div className={`absolute -right-6 -top-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity scale-150 ${colorClass}`}>
-        {icon}
-      </div>
-      <div className="flex items-center gap-4 mb-4 relative z-10">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-bg-base border border-border-strong shadow-md ${colorClass}`}>
-          {icon}
-        </div>
-        <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-widest leading-tight">{title}</h3>
-      </div>
-      <p className="text-4xl font-black text-text-main relative z-10 tracking-tight">{value}</p>
-    </div>
-  );
-}
-
-function QuickActionCard({ title, desc, icon, onClick }) {
-  return (
-    <button onClick={onClick} className="group flex flex-col items-start p-6 rounded-2xl bg-bg-glass border border-border-subtle hover:bg-bg-panel hover:border-psu-maroon/50 dark:hover:border-psu-gold/50 hover:shadow-md transition-all text-left w-full h-full">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-bg-base border border-border-strong text-psu-maroon dark:text-psu-gold mb-4 group-hover:scale-110 group-hover:shadow-sm transition-all">
-        {icon}
-      </div>
-      <h4 className="font-bold text-text-main text-sm mb-1">{title}</h4>
-      <p className="text-xs text-text-muted">{desc}</p>
-    </button>
-  );
-}
-
-function Input({ label, ...props }) {
-  return (
-    <div>
-      <label className="mb-2 block text-[10px] font-bold text-text-muted uppercase tracking-widest">{label}</label>
-      <input required className="w-full rounded-xl border border-border-strong bg-bg-base px-4 py-3 text-sm font-medium outline-none transition-all focus:border-border-focus focus:ring-1 focus:ring-border-focus" {...props} />
-    </div>
-  );
-}
-
-function ActionBtn({ onClick, text, danger }) {
-  return (
-    <button onClick={onClick} className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 shadow-sm ${danger ? 'border-red-500/30 text-psu-red hover:bg-red-500/10 dark:text-psu-red dark:hover:bg-red-500/20' : 'border-border-strong text-text-muted hover:text-text-main hover:border-border-subtle hover:bg-bg-base'}`}>
-      {text}
-    </button>
   );
 }

@@ -1,582 +1,461 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../../services/api';
-import InstructorSidebar from '../../../components/layout/InstructorSidebar';
-import { DiffEditor } from '@monaco-editor/react';
-import AlertModal from '../../../components/modals/AlertModal';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { DiffEditor } from "@monaco-editor/react";
 
-const SplitPaneGradingWorkspace = () => {
-  const { classId, taskId } = useParams();
-  const navigate = useNavigate();
-  const [students, setStudents] = useState([]);
-  const [submissions, setSubmissions] = useState({});
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [detailedSub, setDetailedSub] = useState(null);
-  const [loading, setLoading] = useState(true);
+import PageShell from "../../../components/layout/PageShell";
+import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../../components/ui/StateViews";
+import api, { API_BASE_URL, getErrorMessage } from "../../../services/api";
+import { classLabel, formatDateTime, humanize } from "../../../utils/format";
 
-  // Grade form state
-  const [gradeScore, setGradeScore] = useState('');
-  const [feedbackText, setFeedbackText] = useState('');
-  const [savingGrade, setSavingGrade] = useState(false);
-  const [alertConfig, setAlertConfig] = useState(null);
+const MAX_SCORE = 100;
+
+const STATUS_BADGE = {
+  graded: { label: "Graded", badge: "badge-success" },
+  rejected: { label: "Returned", badge: "badge-danger" },
+  submitted: { label: "Submitted", badge: "badge-brand" },
+  awaiting_review: { label: "Awaiting review", badge: "badge-brand" },
+};
+
+async function loadAllQueueItems(taskId) {
+  const items = [];
+  let page = 1;
+  let totalPages;
+  do {
+    const response = await api.get(`/instructors/review-queue?task_id=${taskId}&page=${page}&page_size=100`);
+    items.push(...(response?.items || []));
+    totalPages = response?.total_pages || 1;
+    page += 1;
+  } while (page <= totalPages && page <= 20);
+  return items;
+}
+
+/** One representative attempt per student: the official one, else the newest. */
+function pickSubmissions(items) {
+  const byStudent = {};
+  items.forEach((item) => {
+    const studentId = item.student?.student_id;
+    if (!studentId) return;
+    const current = byStudent[studentId];
+    if (!current || (item.is_official && !current.is_official) ||
+      (item.is_official === current.is_official && new Date(item.submitted_at) > new Date(current.submitted_at))) {
+      byStudent[studentId] = item;
+    }
+  });
+  return byStudent;
+}
+
+function SubmissionReview({ submission, task, onGraded }) {
+  const [details, setDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [score, setScore] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [release, setRelease] = useState(false);
+  const [scoreError, setScoreError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState(null);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [evaluation, record, executions] = await Promise.all([
+        api.get(`/evaluation/submissions/${submission.sub_id}`),
+        api.get(`/instructors/submissions/${submission.sub_id}`),
+        api
+          .get(`/instructors/tasks/${submission.activity.task_id}/execution-requests?student_id=${submission.student.student_id}&request_kind=submit`)
+          .catch(() => []),
+      ]);
+      let session = null;
+      if (record?.coding_session_id) {
+        session = await api.get(`/instructors/coding-sessions/${record.coding_session_id}`).catch(() => null);
+      }
+      const execution = (Array.isArray(executions) ? executions : []).find((e) => e.submission_id === submission.sub_id) || null;
+      setDetails({ evaluation, session, execution, sourceCode: record?.raw_code || execution?.source_code || "" });
+
+      const grade = evaluation?.instructor_grade;
+      setScore(grade ? String(grade.score) : "");
+      setFeedback(grade?.feedback || "");
+      setRelease(Boolean(grade?.is_released));
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [submission]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch roster
-        const rosterRes = await api.get(`/classrooms/${classId}/members`);
-        const roster = Array.isArray(rosterRes) ? rosterRes : (rosterRes?.data || []);
-        setStudents(roster);
+    load();
+  }, [load]);
 
-        // Fetch submissions for this task
-        // We append task_id to URL directly since custom fetch api wrapper ignores params object
-        const subsRes = await api.get(`/instructors/review-queue?task_id=${taskId}`);
-        // Map submissions by student_id
-        const subsMap = {};
-        if (subsRes && Array.isArray(subsRes.items)) {
-          subsRes.items.forEach(sub => {
-              if (sub.activity?.task_id === parseInt(taskId)) {
-                 subsMap[sub.student.student_id] = sub;
-              }
-          });
-        }
-        setSubmissions(subsMap);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (classId && taskId) {
-      fetchData();
+  const handleSave = async (event) => {
+    event.preventDefault();
+    const value = Number(score);
+    if (score.trim() === "" || Number.isNaN(value)) {
+      setScoreError("Enter a score.");
+      return;
+    }
+    if (value < 0 || value > MAX_SCORE) {
+      setScoreError(`The score must be between 0 and ${MAX_SCORE}.`);
+      return;
+    }
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      const saved = await api.put(`/evaluation/submissions/${submission.sub_id}/grade`, {
+        score: value,
+        max_score: details?.evaluation?.instructor_grade?.max_score || MAX_SCORE,
+        feedback: feedback.trim() || null,
+        is_released: release,
+      });
+      setDetails((prev) => ({ ...prev, evaluation: { ...prev.evaluation, instructor_grade: saved } }));
+      setSaveMessage({ tone: "success", text: release ? "Grade saved and released to the student." : "Grade saved. It is not visible to the student until released." });
+      onGraded?.(Boolean(saved?.is_released ?? release));
+    } catch (err) {
+      setSaveMessage({ tone: "error", text: getErrorMessage(err, "The grade could not be saved.") });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) return <LoadingState label="Loading submission…" />;
+  if (error) return <ErrorState error={error} resource="this submission" onRetry={load} />;
+
+  const { evaluation, session, execution, sourceCode } = details;
+  const analysis = (evaluation?.ast_analyses || []).slice(-1)[0] || null;
+  const findings = analysis?.findings || [];
+  const status = STATUS_BADGE[submission.status] || STATUS_BADGE.submitted;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`badge ${status.badge}`}>{status.label}</span>
+        <span className="badge badge-neutral">Attempt {submission.attempt_number}</span>
+        {submission.is_official && <span className="badge badge-brand">Official</span>}
+        <span className="text-xs text-text-muted">Submitted {formatDateTime(submission.submitted_at)}</span>
+      </div>
+
+      <section className="card p-5" aria-labelledby="indicators-heading">
+        <h3 id="indicators-heading" className="text-sm font-semibold">
+          Review indicators
+        </h3>
+        <p className="mb-4 text-xs text-text-muted">
+          Signals to inform your review. They are not evidence of misconduct and do not set the grade.
+        </p>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            ["Similarity", typeof evaluation?.jaccard_score === "number" ? `${evaluation.jaccard_score.toFixed(1)}%` : "Not computed"],
+            ["Tab switches", session ? session.tab_switch_count : "—"],
+            ["Blocked pastes", session ? session.blocked_paste_count : "—"],
+            ["Pointer exits", session ? session.mouseleave_count : "—"],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-border-subtle p-3">
+              <dt className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">{label}</dt>
+              <dd className="mt-1 text-lg font-semibold text-text-main">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        {!session && <p className="mt-3 text-xs text-text-muted">No coding-session record is linked to this submission.</p>}
+
+        <h4 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-text-muted">Structure check (AST)</h4>
+        {!analysis ? (
+          <p className="text-sm text-text-muted">No structure analysis has been recorded for this submission.</p>
+        ) : analysis.syntax_error ? (
+          <p className="text-sm text-psu-red">Syntax error: {analysis.syntax_error.message || "the code could not be parsed."}</p>
+        ) : findings.length === 0 ? (
+          <p className="text-sm text-text-muted">The activity has no required structures to check.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {findings.map((finding) => (
+              <li key={finding.finding_id || finding.rule_key} className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle px-3 py-2 text-sm">
+                <span className="text-text-main">{finding.label || humanize(finding.rule_key)}</span>
+                <span className={`badge ${finding.passed ? "badge-success" : finding.passed === false ? "badge-gold" : "badge-neutral"}`}>
+                  {finding.passed ? "Found" : finding.passed === false ? "Missing" : "Not evaluated"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <form onSubmit={handleSave} noValidate className="card space-y-4 p-5" aria-labelledby="grade-heading">
+        <h3 id="grade-heading" className="text-sm font-semibold">
+          Grade
+        </h3>
+        {saveMessage && (
+          <InlineAlert tone={saveMessage.tone} onDismiss={() => setSaveMessage(null)}>
+            {saveMessage.text}
+          </InlineAlert>
+        )}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+          <div>
+            <label htmlFor="grade-score" className="field-label">
+              Score (out of {details?.evaluation?.instructor_grade?.max_score || MAX_SCORE})
+            </label>
+            <input
+              id="grade-score"
+              type="text"
+              inputMode="decimal"
+              value={score}
+              onChange={(e) => {
+                setScore(e.target.value.replace(/[^\d.]/g, ""));
+                setScoreError("");
+              }}
+              aria-invalid={Boolean(scoreError)}
+              aria-describedby={scoreError ? "grade-score-error" : undefined}
+              className="input-field"
+              disabled={isSaving}
+            />
+            <FieldError id="grade-score-error">{scoreError}</FieldError>
+          </div>
+          <div>
+            <label htmlFor="grade-feedback" className="field-label">
+              Feedback for the student
+            </label>
+            <textarea
+              id="grade-feedback"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              maxLength={5000}
+              className="input-field h-24 resize-y"
+              disabled={isSaving}
+            />
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-main">
+            <input type="checkbox" checked={release} onChange={(e) => setRelease(e.target.checked)} className="h-4 w-4 accent-psu-maroon" disabled={isSaving} />
+            Release grade to the student
+          </label>
+          <button type="submit" disabled={isSaving} className="btn-primary">
+            {isSaving ? "Saving…" : "Save grade"}
+          </button>
+        </div>
+      </form>
+
+      <section className="card overflow-hidden" aria-labelledby="code-heading">
+        <div className="border-b border-border-subtle px-5 py-3">
+          <h3 id="code-heading" className="text-sm font-semibold">
+            Submitted code
+          </h3>
+          <p className="text-xs text-text-muted">Left: starter code · Right: submitted code</p>
+        </div>
+        {sourceCode ? (
+          <>
+            <div className="h-[420px]">
+              <DiffEditor
+                height="100%"
+                language="python"
+                theme="light"
+                original={task?.starter_code || ""}
+                modified={sourceCode}
+                loading={<LoadingState label="Loading code…" />}
+                options={{ readOnly: true, minimap: { enabled: false }, scrollBeyondLastLine: false, renderSideBySide: true, wordWrap: "on" }}
+              />
+            </div>
+            {execution && (
+              <div className="border-t border-border-subtle p-4">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                  Submission run · {humanize(execution.status)}
+                </p>
+                <pre className="max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs text-text-main">
+                  {[execution.stdout, execution.stderr].filter(Boolean).join("\n") || "(no output recorded)"}
+                </pre>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="p-5 text-sm text-text-muted">
+            The source code for this attempt isn&apos;t available from the review service.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default function SplitPaneGradingWorkspace() {
+  const { classId, taskId } = useParams();
+  const [students, setStudents] = useState([]);
+  const [submissions, setSubmissions] = useState({});
+  const [task, setTask] = useState(null);
+  const [classroom, setClassroom] = useState(null);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [exportError, setExportError] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [members, items, taskRes, classRes] = await Promise.all([
+        api.get(`/classrooms/${classId}/members`),
+        loadAllQueueItems(taskId),
+        api.get(`/instructors/tasks/${taskId}`),
+        api.get(`/classrooms/${classId}`),
+      ]);
+      setStudents((Array.isArray(members) ? members : []).filter((m) => m.status !== "removed"));
+      setSubmissions(pickSubmissions(items.filter((i) => String(i.activity?.task_id) === String(taskId))));
+      setTask(taskRes);
+      setClassroom(classRes);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
     }
   }, [classId, taskId]);
 
-  const handleSelectStudent = async (student) => {
-    setSelectedStudent(student);
-    setDetailedSub(null); // Clear previous
-    setGradeScore('');
-    setFeedbackText('');
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    const sub = submissions[student.student_id];
-    if (sub && sub.sub_id) {
-      try {
-        // 1. Fetch the raw code from the instructor submissions endpoint
-        const codeRes = await api.get(`/instructors/submissions/${sub.sub_id}`);
-        
-        // 2. Fetch the evaluation details (which contains the AST analyses and the instructor grade)
-        const evalRes = await api.get(`/evaluation/submissions/${sub.sub_id}`);
-        
-        setDetailedSub(codeRes);
-        
-        // Pre-fill grade if it exists
-        const manualGrade = evalRes.instructor_grade;
-        if (manualGrade) {
-          setGradeScore(manualGrade.score);
-          setFeedbackText(manualGrade.feedback || '');
-        }
-      } catch (err) {
-        console.error("Failed to fetch submission details", err);
-        setAlertConfig({ title: "Error", message: "Failed to fetch submission details.", isError: true });
-      }
-    }
-  };
-
-  const handleSubmitGrade = async (e) => {
-    e.preventDefault();
-    if (!selectedStudent) return;
-    const sub = submissions[selectedStudent.id];
-    if (!sub || !sub.sub_id) return;
-
-    setSavingGrade(true);
-      try {
-      // MUST send 'score' and 'feedback' to match InstructorGradeUpdate Pydantic schema
-      const res = await api.patch(`/evaluation/submissions/${sub.sub_id}/grade`, {
-        score: parseFloat(gradeScore),
-        feedback: feedbackText
-      });
-      
-      // Update local state so the badge updates immediately
-      setSubmissions(prev => ({
-        ...prev,
-        [selectedStudent.id]: {
-          ...prev[selectedStudent.id],
-          has_manual_grade: true,
-          status: 'graded'
-        }
-      }));
-      setAlertConfig({ title: 'Success', message: 'Grade saved successfully', isError: false });
-    } catch (error) {
-      console.error('Error saving grade:', error);
-      setAlertConfig({ title: 'Error', message: 'Failed to save grade', isError: true });
-    } finally {
-      setSavingGrade(false);
-    }
-  };
+  const selectedStudent = students.find((s) => s.student_id === selectedStudentId) || null;
+  const selectedSubmission = selectedStudent ? submissions[selectedStudent.student_id] : null;
+  const submittedCount = useMemo(() => students.filter((s) => submissions[s.student_id]).length, [students, submissions]);
 
   const handleExport = async () => {
+    setIsExporting(true);
+    setExportError("");
     try {
-      const token = localStorage.getItem('pamsu_access_token');
-      const baseUrl = import.meta.env.VITE_API_BASE_URL ;
-      const response = await fetch(`${baseUrl}/reports/classrooms/${classId}/gradebook.csv?task_id=${taskId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const token = localStorage.getItem("pamsu_access_token");
+      const response = await fetch(`${API_BASE_URL}/reports/classrooms/${classId}/gradebook.csv?task_id=${taskId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error("Failed to export grades from server");
-      }
-      
-      // Get filename from Content-Disposition header if possible
-      let filename = `class_${classId}_task_${taskId}_grades.xlsx`;
-      const disposition = response.headers.get('Content-Disposition');
-      if (disposition && disposition.includes('filename="')) {
-        filename = disposition.split('filename="')[1].split('"')[0];
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      if (!response.ok) throw new Error(`Export failed (${response.status})`);
+      let filename = `class_${classId}_activity_${taskId}_grades.csv`;
+      const disposition = response.headers.get("Content-Disposition");
+      if (disposition && disposition.includes('filename="')) filename = disposition.split('filename="')[1].split('"')[0];
+      const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
+      link.href = url;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Export Error:", err);
-      setAlertConfig({ title: 'Export Failed', message: 'Failed to export Excel gradebook. Please try again.', isError: true });
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError("The gradebook could not be exported. Please try again.");
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
-        <InstructorSidebar />
-        <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1">
-            <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 flex flex-col">
-              <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
-                <div className="mb-6">
-            <button onClick={() => navigate(-1)} className="text-sm text-text-muted hover:text-text-main flex items-center gap-2 transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-              Back to Activities
-            </button>
-          </div>
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold text-text-main mb-2">Activity Grading Workspace</h1>
-            <p className="text-text-muted">Task ID: {taskId} • Loading data...</p>
-          </header>
-          <div className="flex min-h-0 flex-1 flex-row border border-border-subtle rounded-xl overflow-hidden shadow-sm">
-            {/* Left Panel Skeleton */}
-            <div className="w-1/3 border-r border-border-subtle flex flex-col bg-bg-panel/30">
-              <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-glass animate-pulse">
-                <div className="h-6 bg-border-subtle rounded w-24"></div>
-                <div className="h-8 bg-border-subtle rounded w-32"></div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 animate-pulse">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="p-4 border border-border-subtle rounded-lg flex justify-between items-center">
-                    <div>
-                      <div className="h-5 bg-border-subtle rounded w-32 mb-2"></div>
-                      <div className="h-4 bg-border-subtle rounded w-40"></div>
-                    </div>
-                    <div className="h-6 w-16 bg-border-subtle rounded-full"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Right Panel Skeleton */}
-            <div className="w-2/3 p-6 flex flex-col gap-6 bg-bg-base animate-pulse">
-              <div className="h-8 bg-border-subtle rounded w-64 mb-4"></div>
-              <div className="bg-bg-glass border border-border-subtle rounded-lg p-4 h-64">
-                <div className="h-6 bg-border-subtle rounded w-40 mb-4"></div>
-                <div className="h-4 bg-border-subtle rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-border-subtle rounded w-1/2"></div>
-              </div>
-              <div className="bg-bg-glass border border-border-subtle rounded-lg p-4 h-48">
-                <div className="h-6 bg-border-subtle rounded w-48 mb-4"></div>
-                <div className="h-4 bg-border-subtle rounded w-full"></div>
-              </div>
-            </div>
-          </div>
-              </div>
-            </main>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const selectedSub = selectedStudent ? submissions[selectedStudent.id] : null;
-
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
-  <InstructorSidebar />
-  <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-    <div className="flex min-h-0 flex-1">
-      <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 flex flex-col">
-        <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
-          <div className="mb-6 flex justify-between items-start shrink-0">
-      <div>
-        <button onClick={() => navigate(-1)} className="text-sm text-text-muted hover:text-text-main flex items-center gap-2 transition-colors mb-6">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Back to Activities
-        </button>
-        <header className="mb-4">
-          <h1 className="text-3xl font-bold text-text-main mb-2">Activity Grading Workspace</h1>
-          <p className="text-text-muted">Class {classId} • Task {taskId}</p>
-        </header>
-      </div>
-      <div className="mt-10">
-        <button 
-          onClick={handleExport}
-          className="rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:bg-psu-maroon hover:shadow-psu-maroon/20 active:scale-95 flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          Export Grades
-        </button>
-      </div>
-    </div>
-    <div className="flex min-h-0 flex-1 flex-row border border-border-subtle rounded-xl overflow-hidden shadow-sm bg-bg-base">
-      {/* Left Panel: Master List */}
-      <div className="w-1/3 border-r border-border-subtle flex flex-col bg-bg-panel/30">
-        <div className="px-5 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-glass shadow-sm z-0">
-          <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase">Student Submissions</h2>
-          <span className="text-xs font-mono text-emerald-400 bg-psu-maroon/10 px-2 py-0.5 rounded-full border border-psu-maroon/20">{students.length}</span>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {students.map(student => {
-            const sub = submissions[student.student_id];
-            let badgeText = 'Missing';
-            let badgeColor = 'bg-red-900/50 text-red-400 border border-red-800';
-            
-            if (sub) {
-              if (sub.has_manual_grade || sub.status === 'graded') {
-                badgeText = 'Graded';
-                badgeColor = 'bg-green-900/50 text-green-400 border border-green-800';
-              } else if (sub.status === 'late') {
-                badgeText = 'Late';
-                badgeColor = 'bg-yellow-900/50 text-yellow-400 border border-yellow-800';
-              } else {
-                badgeText = 'Submitted';
-                badgeColor = 'bg-blue-900/50 text-blue-400 border border-blue-800';
-              }
+    <PageShell role="instructor" maxWidth="max-w-7xl" statusContext={classroom?.name}>
+      <Link
+        to={`/instructor/bench/${classId}`}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-text-main"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {classroom ? `Back to ${classroom.name}` : "Back to activities"}
+      </Link>
+
+      {error ? (
+        <ErrorState error={error} resource="the grading workspace" onRetry={fetchData} />
+      ) : isLoading ? (
+        <LoadingState label="Loading submissions…" />
+      ) : (
+        <>
+          <PageHeader
+            eyebrow={classLabel(classroom)}
+            title={task?.title || "Activity"}
+            description={`${submittedCount} of ${students.length} students have submitted.`}
+            actions={
+              <button type="button" onClick={handleExport} disabled={isExporting} className="btn-secondary">
+                {isExporting ? "Exporting…" : "Export grades (CSV)"}
+              </button>
             }
-
-            return (
-              <div 
-                key={student.student_id}
-                onClick={() => handleSelectStudent(student)}
-                className={`p-4 border-b border-border-subtle cursor-pointer hover:bg-bg-glass transition-colors flex justify-between items-center ${selectedStudent?.student_id === student.student_id ? 'bg-bg-glass-hover' : ''}`}
-              >
-                <div>
-                  <p className="font-medium text-text-main">{student.name || student.email || `Student ${student.student_id}`}</p>
-                  <p className="text-sm text-text-muted">{student.email}</p>
-                </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${badgeColor}`}>
-                  {badgeText}
-                </span>
-              </div>
-            );
-          })}
-          {students.length === 0 && (
-            <div className="p-4 text-text-muted text-center">No students found.</div>
+          />
+          {exportError && (
+            <InlineAlert tone="error" onDismiss={() => setExportError("")} className="mb-4">
+              {exportError}
+            </InlineAlert>
           )}
-        </div>
-      </div>
 
-      {/* Right Panel: Detail View */}
-      <div className="w-2/3 flex flex-col bg-bg-base overflow-y-auto">
-        {selectedStudent ? (
-          <div className="flex-1 p-8 flex flex-col gap-8 max-w-5xl mx-auto w-full">
-            <div className="flex items-center gap-4 pb-4 border-b border-border-subtle">
-              <div className="w-12 h-12 rounded-full bg-psu-maroon/10 border border-psu-maroon/20 flex items-center justify-center text-emerald-400 font-bold text-lg uppercase shadow-sm">
-                {(selectedStudent.name || selectedStudent.email || '?').charAt(0)}
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+            <section className={`card h-fit overflow-hidden ${selectedStudent ? "hidden lg:block" : ""}`} aria-label="Students">
+              <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
+                <h2 className="text-sm font-semibold">Students</h2>
+                <span className="badge badge-neutral">{students.length}</span>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-text-main">
-                  {selectedStudent.name || selectedStudent.email || `Student ${selectedStudent.id}`}
-                </h2>
-                                  <p className="text-sm text-text-muted mt-0.5">Student ID: {selectedStudent.student_id || selectedStudent.id}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Academic Integrity:</span>
-                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                      (selectedStudent.academic_integrity_score ?? 100) >= 90 ? "bg-psu-maroon/10 text-emerald-400 ring-psu-maroon/20" : 
-                      (selectedStudent.academic_integrity_score ?? 100) >= 70 ? "bg-amber-500/10 text-amber-400 ring-amber-500/20" : 
-                      "bg-rose-500/10 text-rose-400 ring-rose-500/20"
-                    }`}>
-                      {Math.round(selectedStudent.academic_integrity_score ?? 100)}%
-                    </span>
-                  </div>
-              </div>
-            </div>
-
-            {/* NEW LAYOUT: Violations -> Grading -> Code */}
-              {selectedSub ? (
-                <>
-                  {/* TOP SECTION: Student Violations & Activity Analysis */}
-                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-6 shadow-sm mb-6">
-                     <h3 className="text-lg font-bold text-psu-red dark:text-psu-gold mb-4 flex items-center gap-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        Student Violations & Analysis
-                     </h3>
-                     
-                     <div className="space-y-6">
-                        {/* Telemetry Indicators */}
-                                                  <div className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-6">
-                            {(detailedSub?.jaccard_score !== undefined && detailedSub?.jaccard_score !== null) && (
-                              <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.jaccard_score >= 70) ? 'bg-psu-maroon/10 border-psu-maroon/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Similarity</span>
-                                <span className="text-2xl font-black">{detailedSub?.jaccard_score.toFixed(1)}%</span>
-                              </div>
-                            )}
-                            {detailedSub?.coding_session && (
-                              <>
-                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.tab_switch_count > 3) ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Tab Switches</span>
-                                  <span className="text-2xl font-black">{detailedSub?.coding_session.tab_switch_count}</span>
-                                </div>
-                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.blocked_paste_count > 0) ? 'bg-psu-maroon/10 border-psu-maroon/30 text-psu-red' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Blocked Pastes</span>
-                                  <span className="text-2xl font-black">{detailedSub?.coding_session.blocked_paste_count}</span>
-                                </div>
-                                <div className={`flex flex-col items-center justify-center p-4 rounded-xl border ${(detailedSub?.coding_session.mouseleave_count > 5) ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-bg-panel border-border-strong text-text-main'}`}>
-                                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1">Mouse Leaves</span>
-                                  <span className="text-2xl font-black">{detailedSub?.coding_session.mouseleave_count}</span>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          {/* AST Analysis & Execution Logs */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div className="flex flex-col h-full">
-                                 <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">AST Analysis</h4>
-                               <div className="flex-1 bg-bg-panel p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto shadow-inner">
-                                 {detailedSub?.ast_feedback && detailedSub.ast_feedback.length > 0 ? (
-                                   <ul className="space-y-3">
-                                     {detailedSub.ast_feedback.map((fb, idx) => {
-                                        const isPass = fb.includes("PASSED");
-                                        const cleanText = fb.replace(/\[.*?\]\s*PASSED\s*-\s*/, '').replace(/\[.*?\]\s*FAILED\s*-\s*/, '').replace(/\[.*?\]\s*/, '');
-                                        return (
-                                          <li key={idx} className={`flex items-start gap-2 text-sm ${isPass ? 'text-text-main opacity-80' : 'text-psu-red font-semibold'}`}>
-                                            <svg className={`w-4 h-4 mt-0.5 shrink-0 ${isPass ? 'text-text-brand' : 'text-psu-red'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                              {isPass ? (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                              ) : (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                              )}
-                                            </svg>
-                                            <span className="leading-snug font-mono text-[11px]">{cleanText}</span>
-                                          </li>
-                                        );
-                                     })}
-                                   </ul>
-                                 ) : (
-                                   <div className="flex flex-col items-center gap-2 text-text-brand h-full justify-center opacity-80 py-6">
-                                      <svg className="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                      </svg>
-                                      <span className="text-xs font-semibold uppercase tracking-widest text-text-main mt-1">Perfect Structure</span>
-                                      <span className="text-[10px] text-text-muted">Passed all AST requirements.</span>
-                                   </div>
-                                 )}
-                               </div>
-                             </div>
-                             <div className="flex flex-col h-full">
-                                 <h4 className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Execution Logs</h4>
-                               <div className="flex-1 bg-[#0a0a0f] p-4 rounded-lg border border-border-strong min-h-[120px] max-h-[250px] overflow-y-auto font-mono text-[11px] leading-relaxed shadow-inner">
-                                 {detailedSub?.execution_log ? (
-                                   <span className="text-slate-300 whitespace-pre-wrap">{detailedSub.execution_log}</span>
-                                 ) : (
-                                   <div className="flex items-center justify-center h-full text-slate-500 italic py-6">
-                                     ~ Execution logs empty or unavailable ~
-                                   </div>
-                                 )}
-                               </div>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-  
-                    {/* MIDDLE SECTION: Grading Form */}
-                  <form onSubmit={handleSubmitGrade} className="bg-bg-glass border border-border-subtle rounded-xl p-6 shadow-sm flex flex-col gap-6 mb-6">
-                    <h3 className="text-lg font-bold text-text-main border-b border-border-subtle pb-4">Activity Grading Assessment</h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       {/* Suggested Grade */}
-                       <div className="bg-psu-maroon/5 border border-psu-maroon/20 dark:bg-psu-gold/5 dark:border-psu-gold/20 rounded-lg p-5 flex flex-col justify-center">
-                          <label className="block text-xs font-bold text-text-brand mb-2 uppercase tracking-wider">Suggested Grade</label>
-                          <div className="text-5xl font-black text-text-main tracking-tight">
-                            {(() => {
-                                if (!detailedSub) return '0';
-                                if (detailedSub.jaccard_score >= 70) return '0';
-                                
-                                let score = 100;
-                                if (detailedSub.ast_feedback && detailedSub.ast_feedback.length > 0) {
-                                    const fails = detailedSub.ast_feedback.filter(f => f.includes('missing') || f.includes('failed') || f.includes('Missing'));
-                                    score -= (fails.length * 20);
-                                }
-                                if (detailedSub.execution_log && detailedSub.execution_log.toLowerCase().includes('error')) {
-                                    score -= 30; 
-                                }
-                                if (score < 0) score = 0;
-                                return score;
-                            })()}
-                          </div>
-                          <p className="text-xs text-text-muted mt-3">Calculated from AST rule satisfaction and syntax validation.</p>
-                       </div>
-
-                       {/* Manual Grade */}
-                       <div className="flex flex-col justify-center">
-                          <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Manual Score</label>
-                                                      <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              value={gradeScore}
-                              onChange={(e) => {
-                                let val = e.target.value;
-                                if (val === '') {
-                                  setGradeScore('');
-                                  return;
-                                }
-                                let num = parseFloat(val);
-                                if (num < 0) val = '0';
-                                if (num > 100) val = '100';
-                                setGradeScore(val);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
-                                  e.preventDefault();
-                                }
-                              }}
-                              className="w-full bg-bg-panel border border-border-strong rounded-lg px-4 py-3 text-2xl font-bold text-text-main focus:outline-none focus:border-psu-maroon focus:ring-2 focus:ring-psu-maroon/30 transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none m-0"
-                              placeholder="e.g. 95"
-                            />
-                          <p className="text-xs text-text-muted mt-3">Override the suggested grade manually here.</p>
-                       </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Instructor Feedback</label>
-                      <textarea
-                        value={feedbackText}
-                        onChange={(e) => setFeedbackText(e.target.value)}
-                        className="w-full bg-bg-panel border border-border-strong rounded-lg p-4 text-text-main h-32 focus:outline-none focus:border-psu-maroon focus:ring-2 focus:ring-psu-maroon/30 transition-all shadow-sm"
-                        placeholder="Provide constructive feedback for the student..."
-                      />
-                    </div>
-
-                    <div className="flex gap-4 pt-4 border-t border-border-subtle mt-2">
-                      <button 
-                        type="submit" 
-                        disabled={savingGrade}
-                        className="px-6 py-3 bg-psu-maroon hover:bg-psu-red text-white font-bold rounded-lg shadow-sm transition-all disabled:opacity-50 flex-1 flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                        {savingGrade ? 'Saving Grade...' : 'Save Final Grade'}
-                      </button>
-                      
-                      {detailedSub?.retake_requested && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
-                            try {
-                              await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
-                              alert("Retake approved! Student can now resubmit.");
-                              setDetailedSub({...detailedSub, retake_allowed: true, retake_requested: false});
-                              window.location.reload();
-                            } catch (err) {
-                              alert("Failed to approve retake.");
-                            }
-                          }}
-                          className="px-6 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold rounded-lg transition-all hover:bg-amber-500/20"
-                        >
-                          Approve Retake
-                        </button>
-                      )}
-                      
-                      {!detailedSub?.retake_requested && !detailedSub?.retake_allowed && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!window.confirm("Are you sure you want to allow a retake? The student workspace will be unlocked.")) return;
-                            try {
-                              await api.patch(`/submissions/${detailedSub.sub_id || detailedSub.id}/allow-retake`);
-                              alert("Retake allowed! Student can now resubmit.");
-                              setDetailedSub({...detailedSub, retake_allowed: true});
-                              window.location.reload();
-                            } catch (err) {
-                              alert("Failed to allow retake.");
-                            }
-                          }}
-                          className="px-4 py-3 bg-bg-base border border-border-strong text-text-muted text-sm font-bold rounded-lg transition-all hover:bg-bg-glass-hover hover:text-text-main"
-                        >
-                          Allow Retake
-                        </button>
-                      )}
-                    </div>
-                  </form>
-
-                  {/* BOTTOM SECTION: Submitted Code */}
-                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-6 shadow-sm flex flex-col">
-                    <h3 className="text-lg font-bold text-text-main mb-4 border-b border-border-subtle pb-4">Submitted Code vs Starter Code</h3>
-                    <div className="h-[500px] border border-border-strong rounded-lg overflow-hidden shadow-sm">
-                      {!detailedSub ? (
-                         <div className="flex items-center justify-center h-full text-sm text-text-muted animate-pulse">Loading submission code...</div>
-                      ) : (
-                        <DiffEditor
-                          height="100%"
-                          language="python"
-                          theme={'vs-dark'}
-                          original={detailedSub?.activity?.starter_code || detailedSub?.coding_session?.initial_code || '# No starter code available'}
-                          modified={detailedSub?.raw_code || detailedSub?.code || '# No code provided'}
-                          options={{
-                            readOnly: true,
-                            minimap: { enabled: false },
-                            scrollBeyondLastLine: false,
-                            renderSideBySide: true,
-                            wordWrap: "on"
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </>
+              {students.length === 0 ? (
+                <p className="p-4 text-sm text-text-muted">No students are enrolled in this class.</p>
               ) : (
-              <div className="text-text-muted italic bg-bg-panel p-6 rounded border border-border-subtle text-center">
-                No submission found for this student.
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-text-muted bg-bg-base bg-blend-overlay">
-            <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4 border border-border-subtle shadow-lg">
-              <svg className="w-8 h-8 text-psu-maroon/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-            </div>
-            <h3 className="text-lg font-medium text-text-main mb-1">No Submission Selected</h3>
-            <p className="text-sm max-w-sm text-center">Select a student from the left panel to review their code and provide a grade.</p>
-          </div>
-        )}
-      </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-  <AlertModal 
-        isOpen={!!alertConfig} 
-        title={alertConfig?.title} 
-        message={alertConfig?.message} 
-        isError={alertConfig?.isError} 
-        onClose={() => setAlertConfig(null)} 
-      />
-</div>
-  );
-};
+                <ul className="max-h-[70vh] divide-y divide-border-subtle overflow-y-auto">
+                  {students.map((student) => {
+                    const sub = submissions[student.student_id];
+                    const badge = !sub
+                      ? { label: "No submission", cls: "badge-neutral" }
+                      : sub.has_manual_grade
+                        ? { label: sub.grade_is_released ? "Released" : "Graded", cls: "badge-success" }
+                        : { label: "To review", cls: "badge-brand" };
+                    const isSelected = selectedStudentId === student.student_id;
+                    return (
+                      <li key={student.student_id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudentId(student.student_id)}
+                          aria-current={isSelected ? "true" : undefined}
+                          className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+                            isSelected ? "bg-psu-cream" : "hover:bg-bg-alt"
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-text-main">{student.name}</span>
+                            <span className="block truncate text-xs text-text-muted">{student.school_id || student.email}</span>
+                          </span>
+                          <span className={`badge shrink-0 ${badge.cls}`}>{badge.label}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
 
-export default SplitPaneGradingWorkspace;
+            <section className={`min-w-0 ${selectedStudent ? "" : "hidden lg:block"}`} aria-label="Submission review">
+              {!selectedStudent ? (
+                <EmptyState title="Select a student" message="Choose a student on the left to review their submission and record a grade." />
+              ) : (
+                <>
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-bold tracking-tight">{selectedStudent.name}</h2>
+                      <p className="text-xs text-text-muted">{[selectedStudent.school_id, selectedStudent.email].filter(Boolean).join(" · ")}</p>
+                    </div>
+                    <button type="button" onClick={() => setSelectedStudentId(null)} className="btn-ghost btn-sm lg:hidden">
+                      All students
+                    </button>
+                  </div>
+                  {selectedSubmission ? (
+                    <SubmissionReview
+                      key={selectedSubmission.sub_id}
+                      submission={selectedSubmission}
+                      task={task}
+                      onGraded={(released) =>
+                        setSubmissions((prev) => ({
+                          ...prev,
+                          [selectedStudent.student_id]: {
+                            ...prev[selectedStudent.student_id],
+                            has_manual_grade: true,
+                            grade_is_released: released,
+                          },
+                        }))
+                      }
+                    />
+                  ) : (
+                    <EmptyState title="No submission yet" message="This student hasn't submitted this activity." />
+                  )}
+                </>
+              )}
+            </section>
+          </div>
+        </>
+      )}
+    </PageShell>
+  );
+}

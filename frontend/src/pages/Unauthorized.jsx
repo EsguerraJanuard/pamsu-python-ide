@@ -1,42 +1,46 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/auth/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth, homePathForRole } from '../features/auth/AuthContext';
 
 export const Unauthorized = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { isAuthenticated, role, logout } = useAuth();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-bg-glass p-6 text-center text-text-main selection:bg-psu-maroon selection:text-white">
-      <div className="max-w-md space-y-6 rounded-3xl border border-red-900/50 bg-bg-base/90 p-10 shadow-2xl backdrop-blur-md animate-fade-in-up">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-psu-red/10 text-psu-red border border-psu-red/20 shadow-inner">
-          <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    <main className="flex min-h-screen items-center justify-center bg-bg-base p-6 text-text-main">
+      <div className="card w-full max-w-md p-8 text-center">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-psu-red/10 text-psu-red">
+          <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0 1 10 0v4M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z" />
           </svg>
         </div>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-text-main mb-2">Access Denied</h1>
-          <p className="text-sm leading-relaxed text-text-muted">
-            You do not have the security permissions to view this workspace. This area is restricted to authorized role personnel only.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 pt-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex w-full items-center justify-center rounded-xl border border-border-strong bg-bg-glass px-4 py-3 text-sm font-bold text-text-muted transition-all hover:text-text-main hover:bg-bg-glass-hover hover:border-border-subtle hover:-translate-y-0.5"
-          >
-            Return to Previous Page
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              navigate('/login');
-            }}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-psu-maroon px-4 py-3 text-sm font-bold text-white shadow-lg shadow-psu-maroon/20 transition-all hover:scale-[1.02] hover:shadow-psu-maroon/40"
-          >
-            Switch Account (Log In)
-          </button>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-text-brand">Access restricted</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">You don&apos;t have access to this page</h1>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          This area is available to a different account type. If you believe this is a mistake, contact your
+          instructor or the MIS office.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          {isAuthenticated ? (
+            <>
+              <Link to={homePathForRole(role)} className="btn-primary w-full">
+                Go to my dashboard
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  navigate('/login', { replace: true });
+                }}
+                className="btn-secondary w-full"
+              >
+                Sign in with a different account
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className="btn-primary w-full">
+              Go to sign in
+            </Link>
+          )}
         </div>
       </div>
     </main>

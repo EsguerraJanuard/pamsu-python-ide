@@ -1,87 +1,90 @@
 import { useState } from "react";
-import api from "../../services/api";
+import api, { getErrorMessage } from "../../services/api";
+import Modal from "../ui/Modal";
+import { FieldError } from "../ui/StateViews";
+
 export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    if (isLoading) return;
+    setCode("");
+    setError("");
+    onClose();
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const trimmed = code.trim();
 
-    // Basic validation: must be at least 6 characters
-    if (code.trim().length < 6) {
-      setError("Class code must be at least 6 characters.");
+    if (trimmed.length < 6) {
+      setError("Enter the class code from your instructor (at least 6 characters).");
       return;
     }
 
     setIsLoading(true);
-
+    setError("");
     try {
-      await api.post("/classrooms/join", {
-        class_code: code.trim(),
-      });
-
+      await api.post("/classrooms/join", { class_code: trimmed });
       setCode("");
-      if (onSuccess) onSuccess(); // Triggers the parent to refresh the class list
+      onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err.message || "Invalid class code or class is full.");
+      if (err?.status === 404) {
+        setError("No class matches that code. Check the code and try again.");
+      } else if (err?.status === 409) {
+        setError(getErrorMessage(err, "You are already enrolled in this class, or it is no longer active."));
+      } else {
+        setError(getErrorMessage(err, "We couldn't join the class. Please try again."));
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl">
-        <h2 className="mb-2 text-lg font-bold text-text-main">Join a Class</h2>
-        <p className="mb-6 text-sm text-text-muted">
-          Ask your instructor for the class code and enter it below.
-        </p>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Join a class"
+      description="Ask your instructor for the class code and enter it below."
+      size="sm"
+      dismissible={!isLoading}
+    >
+      <form id="join-class-form" onSubmit={handleSubmit} noValidate>
+        <label htmlFor="class-code" className="field-label">
+          Class code
+        </label>
+        <input
+          id="class-code"
+          type="text"
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase());
+            if (error) setError("");
+          }}
+          placeholder="e.g. QATEST1"
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck="false"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? "class-code-error" : undefined}
+          className="input-field font-mono tracking-widest"
+          disabled={isLoading}
+        />
+        <FieldError id="class-code-error">{error}</FieldError>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-text-muted">
-              Class Code
-            </label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="e.g. CCS101-XYZ"
-              className="w-full rounded-lg border border-border-subtle bg-bg-base px-4 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-[#3b82f6] focus:outline-none"
-              autoFocus
-            />
-          </div>
-
-          {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-text-rose">
-              {error}
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isLoading}
-              className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted transition hover:bg-bg-panel hover:text-text-main"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading || !code}
-              className="rounded-lg bg-[#3b82f6] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#2563eb] disabled:opacity-50"
-            >
-              {isLoading ? "Joining..." : "Join Class"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={handleClose} disabled={isLoading} className="btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" disabled={isLoading || !code.trim()} className="btn-primary">
+            {isLoading ? "Joining…" : "Join class"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
