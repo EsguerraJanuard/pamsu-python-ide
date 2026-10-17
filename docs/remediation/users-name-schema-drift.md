@@ -1,0 +1,165 @@
+# `users` name-column drift: draft migration and risks
+
+Status: **draft for review, not applied to any database.** Follows up on
+`audit-status.md` → "Backend Remediation Results" → Remaining blockers #1.
+
+Migration: `backend/alembic/versions/c25114413200_reconcile_users_unified_name.py`
+(revises head `7a1b8c2d3e4f`; it becomes the new single head).
+
+## What is wrong
+The ORM (`app/models/domain_models.py`) has one name column,
+`name = Column(String(150), nullable=False)`. The migration chain agrees: the
+baseline `18d3ef8f020d` creates `name VARCHAR(150) NOT NULL`, and nothing after
+it touches the name columns. `c5d2f62cc22e` is an empty `pass`.
+
+The local PostgreSQL database (checked read-only on 2026-10-17, Alembic version
+`7a1b8c2d3e4f`, 21 users) has a different `users` table:
+
+| column | local DB | ORM / migration chain |
+|---|---|---|
+| `first_name` | `varchar(100) NOT NULL` | none |
+| `middle_name` | `varchar(100)` nullable | none |
+| `last_name` | `varchar(100) NOT NULL` | none |
+| `name` | `varchar(255)` **nullable** (all 21 rows filled) | `varchar(150) NOT NULL` |
+
+No views or triggers depend on these columns. The ORM never writes
+`first_name`/`last_name` (`User.__init__` folds them into `name`, and the
+properties are computed). So every user insert fails with `NotNullViolation`.
+
+**Likely origin:** the untracked helper script `backend/write_migration.py` in the
+main checkout. It once rewrote `c5d2f62cc22e` to add the three columns, fill
+them from `name`, make `first_name`/`last_name` NOT NULL, and **drop `name`**.
+The file was later reverted to `pass`, but a database that had already run it
+stayed changed. `name` was then re-added by hand or by a script, as nullable
+`varchar(255)`. `backend/update_model.py` is the matching model rewrite. Running
+either script again would bring the drift back.
+
+## What the migration does
+Every step reads `information_schema.columns` first and only acts when needed.
+It only runs on PostgreSQL; on any other dialect it does nothing.
+
+1. `first_name` / `middle_name` / `last_name` → nullable (if present).
+2. Adds `name VARCHAR(150)` if the column is missing (the state
+   `write_migration.py` left behind).
+3. Fills in `name` where it is NULL or blank:
+   `concat_ws(' ', NULLIF(btrim(first_name),''), NULLIF(btrim(middle_name),''), NULLIF(btrim(last_name),''))`.
+   This uses the same order as `User.__init__`.
+4. **Stops with an error, changing nothing** (the transaction rolls back) if:
+   any row still has no name, or a joined legacy name is longer than
+   `users.name`. It never makes up a placeholder name.
+5. Changes `name` to `VARCHAR(150)`, but only if every stored value fits.
+   Otherwise it keeps the wider type and logs a warning.
+6. `name` → NOT NULL.
+
+It sets `SET LOCAL lock_timeout = '10s'`, so it fails fast instead of queueing
+behind long transactions on `users`. The SQL it runs on the local schema is,
+in effect:
+
+```sql
+ALTER TABLE users ALTER COLUMN first_name DROP NOT NULL;
+ALTER TABLE users ALTER COLUMN last_name DROP NOT NULL;
+UPDATE users SET name = concat_ws(' ', ...) WHERE (name IS NULL OR btrim(name) = '') AND concat_ws(' ', ...) <> '';
+ALTER TABLE users ALTER COLUMN name TYPE VARCHAR(150);
+ALTER TABLE users ALTER COLUMN name SET NOT NULL;
+```
+
+**Legacy columns are kept.** Dropping them is a commented block at the end of
+`upgrade()`. Enable it only in a separate, reviewed change, after a backup:
+the split values are then lost for good.
+
+**Downgrade** never drops a column, never deletes data, and never re-imposes
+the legacy NOT NULLs. It fills NULL `first_name`/`last_name` from `name`, split
+the way the `User.first_name`/`last_name` properties do, so old code reading
+those columns sees values. It leaves `name` NOT NULL, because that is what every
+revision up to `7a1b8c2d3e4f` declares. It does not widen `name` back to 255.
+The upgrade records no "before" state, so a drifted state cannot be restored
+exactly (nor should it be). Re-adding dropped columns and restoring the NOT
+NULLs are commented options there; restoring the NOT NULLs is marked "not
+recommended".
+
+## How it was validated (nothing real touched)
+- The local DB was only read: one `SET TRANSACTION READ ONLY` inspection
+  plus a `pg_dump --schema-only`. No user rows were copied.
+- A throwaway PostgreSQL 18 cluster (`initdb` in the session scratchpad, port
+  55432, since stopped) was loaded from that schema dump. The migration's
+  `upgrade()`/`downgrade()` were called directly through Alembic `Operations`.
+  The Alembic CLI was not used, and `env.py`/`.env` were never read.
+- Scenarios, all passing:
+  - **exact local drift:** reproduces the ORM insert failure before the
+    upgrade; the backfill gives `Ana B. Cruz` and `Solo`; ORM inserts succeed
+    afterwards; a second upgrade does nothing; downgrade → downgrade →
+    upgrade all work;
+  - **`name` column missing:** the column is added and filled, and inserts work;
+  - **clean schema:** upgrade and downgrade both do nothing;
+  - **NULL name with no legacy parts:** stops with an error and rolls back;
+  - **joined name > 150:** stops with an error and rolls back;
+  - **existing name > 150:** the type is kept at 255, NOT NULL is applied, and
+    the data is intact.
+- `ScriptDirectory` shows the single head `c25114413200`, and pyflakes is clean.
+- **Not validated:** a real production copy, row counts beyond test size, and
+  the Alembic CLI path through `env.py`.
+
+## Risks
+- **Production may or may not have this drift.** It depends on whether the
+  `write_migration.py` version of `c5d2f62cc22e` ever ran there. The migration
+  handles three states (clean, same as local, `name` missing). Any other shape
+  (for example, different column names, or views/triggers on these columns)
+  is not covered. **Run the check below before deploying.**
+- If production is clean, the migration does nothing. If production has the
+  drift, production user creation is broken today, and this migration fixes it.
+- A table rewrite and lock: `SET NOT NULL` scans the table, and the
+  `VARCHAR(255)→150` change validates every row. Both hold an ACCESS EXCLUSIVE
+  lock on `users`. This is fine for a few thousand rows; run it in a quiet window.
+- Blank names (`''` or whitespace) are not NULL, so they pass. The migration
+  logs a count but does not change them (the local DB has 0).
+- `lock_timeout` stays set for the rest of the Alembic transaction (this is the
+  last migration, so nothing else is affected).
+- The downgrade is deliberately not an exact inverse (see above).
+
+## Read-only production check
+Run as a read-only user or inside a read-only transaction:
+
+```sql
+BEGIN TRANSACTION READ ONLY;
+
+SELECT version_num FROM alembic_version;
+
+SELECT column_name, data_type, character_maximum_length, is_nullable
+FROM information_schema.columns
+WHERE table_schema = current_schema() AND table_name = 'users'
+  AND column_name IN ('name', 'first_name', 'middle_name', 'last_name')
+ORDER BY column_name;
+
+-- Anything that would block dropping or altering these columns
+SELECT DISTINCT v.relname AS dependent_view
+FROM pg_depend d
+JOIN pg_rewrite rw ON rw.oid = d.objid
+JOIN pg_class v ON v.oid = rw.ev_class
+JOIN pg_attribute a ON a.attrelid = d.refobjid AND a.attnum = d.refobjsubid
+WHERE d.refobjid = 'users'::regclass
+  AND a.attname IN ('name', 'first_name', 'middle_name', 'last_name');
+
+SELECT count(*) AS users,
+       count(*) FILTER (WHERE name IS NULL) AS null_name,
+       count(*) FILTER (WHERE btrim(name) = '') AS blank_name,
+       max(length(name)) AS longest_name
+FROM users;
+-- If "name" does not exist, the last query errors; that means the
+-- "name missing" state. Then count rows with empty first_name/last_name instead.
+
+ROLLBACK;
+```
+
+How to read the result:
+- only `name`, `varchar(150)`, `NO` → clean; the migration is a no-op.
+- `first_name`/`last_name` `NO` and `name` `YES` → same drift as local.
+- no `name` row → the "name missing" state.
+- `null_name` > 0 with empty legacy parts, or `longest_name` > 150 → the
+  migration will stop or keep the wide type; fix the data first.
+
+## Before applying (for the reviewer)
+1. Run the check above on production (and staging), and record the output.
+2. Back up `users`.
+3. Apply on staging first, then confirm `POST /guest` and `POST /admin/instructors`.
+4. Decide separately whether to drop the legacy columns, and whether to delete
+   or archive `backend/write_migration.py` / `backend/update_model.py`.
