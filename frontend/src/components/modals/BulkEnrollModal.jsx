@@ -75,7 +75,7 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
       isOpen={isOpen}
       onClose={handleClose}
       title="Bulk enroll students"
-      description="Only @pampangastateu.edu.ph addresses are accepted. Students without an account are queued until they register."
+      description="Only @pampangastateu.edu.ph addresses are accepted. Students need an MIS-provisioned account to be enrolled; addresses without one are saved as pending and are not enrolled automatically."
       dismissible={!isSubmitting}
     >
       {result ? (
@@ -84,7 +84,7 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
           <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
             {[
               ["Enrolled", result.enrolled ?? 0, "text-text-emerald"],
-              ["Queued", result.queued ?? 0, "text-text-amber"],
+              ["Pending (no account)", result.queued ?? 0, "text-text-amber"],
               ["Invalid", result.invalid ?? 0, "text-psu-red"],
             ].map(([label, value, tone]) => (
               <div key={label} className="rounded-lg border border-border-subtle p-3">
@@ -93,6 +93,12 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
               </div>
             ))}
           </dl>
+          {result.queued > 0 && (
+            <InlineAlert tone="warning" className="mt-4">
+              {result.queued === 1 ? "1 address has" : `${result.queued} addresses have`} no student account yet. Once MIS
+              creates the account, enroll the student again to add them to this class.
+            </InlineAlert>
+          )}
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button type="button" className="btn-secondary" onClick={reset}>
               Enroll more

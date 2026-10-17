@@ -297,7 +297,7 @@ export default function AdminDashboard() {
   }, [loadStats, loadUsers, loadLogs, loadSettings]);
 
   const settingsDirty =
-    settings && savedSettings && ["maintenance_mode", "registration_enabled", "default_ast_strictness"].some((k) => settings[k] !== savedSettings[k]);
+    settings && savedSettings && ["maintenance_mode", "default_ast_strictness"].some((k) => settings[k] !== savedSettings[k]);
 
   const changeTab = (tab) => {
     if (activeTab === "settings" && settingsDirty && tab !== "settings") {
@@ -375,7 +375,9 @@ export default function AdminDashboard() {
     try {
       await api.patch("/admin/settings", {
         maintenance_mode: Boolean(settings.maintenance_mode),
-        registration_enabled: Boolean(settings.registration_enabled),
+        // Required by the API but no longer editable here: send back the
+        // stored value unchanged so saving never flips it.
+        registration_enabled: Boolean(savedSettings?.registration_enabled),
         default_ast_strictness: settings.default_ast_strictness || "moderate",
       });
       setSavedSettings(settings);
@@ -607,7 +609,6 @@ export default function AdminDashboard() {
                     )}
                     {[
                       ["maintenance_mode", "Maintenance mode", "Blocks student sign-in. Instructors and MIS keep access."],
-                      ["registration_enabled", "Student self-registration", "Allow students to create accounts with their university email."],
                     ].map(([key, label, help]) => (
                       <div key={key} className="flex items-start justify-between gap-4">
                         <div>
@@ -628,6 +629,23 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     ))}
+                    {/* Public self-registration is retired; this reports the stored
+                        legacy flag (it still gates POST /registration/start) instead
+                        of offering a toggle. */}
+                    <div>
+                      <p className="text-sm font-semibold text-text-main">Student self-registration</p>
+                      {savedSettings?.registration_enabled ? (
+                        <InlineAlert tone="warning" className="mt-2">
+                          Public sign-up has been removed from the app, but the legacy self-registration setting is still
+                          enabled on the server, so its registration API remains open. Student accounts are provisioned by
+                          MIS; ask the system maintainer to turn this setting off.
+                        </InlineAlert>
+                      ) : (
+                        <p className="text-xs text-text-muted">
+                          Student self-registration is disabled. Student accounts are provisioned by MIS.
+                        </p>
+                      )}
+                    </div>
                     <fieldset>
                       <legend className="text-sm font-semibold text-text-main">Default AST strictness</legend>
                       <p className="mb-3 text-xs text-text-muted">Used for instructors who haven&apos;t chosen their own level.</p>

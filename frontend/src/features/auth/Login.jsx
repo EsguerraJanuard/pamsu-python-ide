@@ -69,7 +69,6 @@ export default function Login() {
   const location = useLocation();
   const { login } = useAuth();
   const [notice] = useState(() => {
-    if (location.state?.registrationSuccess) return "Your account is verified. Sign in with your new password.";
     if (location.state?.passwordReset) return "Your password was reset. Sign in with your new password.";
     if (consumeSessionExpiredNotice()) return "Your session ended. Please sign in again.";
     return "";

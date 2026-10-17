@@ -185,7 +185,7 @@ export default function ForgotPassword() {
         )}
 
         {step === 1 && (
-          <form onSubmit={handleStartReset} className="animate-[registerFadeUp_400ms_ease-out_both] space-y-6" noValidate>
+          <form onSubmit={handleStartReset} className="animate-fade-in-up space-y-6" noValidate>
             <div>
               <label htmlFor="email" className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
                 University Email Address
@@ -227,7 +227,7 @@ export default function ForgotPassword() {
         )}
 
         {step === 2 && (
-          <form onSubmit={handleCompleteReset} className="animate-[registerFadeUp_400ms_ease-out_both] space-y-6" noValidate>
+          <form onSubmit={handleCompleteReset} className="animate-fade-in-up space-y-6" noValidate>
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <label className="text-[13px] font-bold text-text-muted uppercase tracking-wider">
@@ -339,7 +339,7 @@ export default function ForgotPassword() {
         )}
 
         {step === 3 && (
-          <div className="animate-[registerFadeUp_400ms_ease-out_both] flex flex-col items-center pt-2">
+          <div className="animate-fade-in-up flex flex-col items-center pt-2">
             <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-600/10 text-text-emerald ring-8 ring-emerald-600/5">
               <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
