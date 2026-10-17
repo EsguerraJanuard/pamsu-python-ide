@@ -140,8 +140,18 @@ function ProvisionForm({ role, onCreated }) {
         password: form.password,
         ...(isStudent ? { school_id: form.school_id.trim() } : {}),
       };
-      await api.post(isStudent ? "/admin/students" : "/admin/instructors", payload);
-      setResult({ tone: "success", text: `Account created for ${payload.email}. Temporary password: ${payload.password} — share it securely.` });
+      const created = await api.post(isStudent ? "/admin/students" : "/admin/instructors", payload);
+      const pending = created?.pending_enrollments;
+      const joined = pending?.enrolled_class_ids?.length ?? 0;
+      const waiting = pending?.skipped?.length ?? 0;
+      const enrollmentNote = [
+        joined > 0 && `Added to ${joined} class${joined === 1 ? "" : "es"} that had queued this email.`,
+        waiting > 0 && `${waiting} queued class${waiting === 1 ? " is" : "es are"} inactive or could not be joined and stay${waiting === 1 ? "s" : ""} pending.`,
+      ].filter(Boolean).join(" ");
+      setResult({
+        tone: waiting > 0 ? "warning" : "success",
+        text: `Account created for ${payload.email}. Temporary password: ${payload.password} — share it securely.${enrollmentNote ? ` ${enrollmentNote}` : ""}`,
+      });
       setForm({ ...empty, password: generateTempPassword() });
       onCreated?.();
     } catch (err) {
@@ -345,7 +355,15 @@ export default function AdminDashboard() {
     setBulkMessage(null);
     try {
       const res = await api.post("/admin/students/bulk-register/file", formData);
-      setBulkMessage({ tone: "success", text: `${res?.registered ?? 0} students registered, ${res?.invalid ?? 0} rows skipped.` });
+      const fromPending = res?.enrolled_from_pending ?? 0;
+      const pendingLeft = res?.pending_left ?? 0;
+      setBulkMessage({
+        tone: pendingLeft > 0 ? "warning" : "success",
+        text:
+          `${res?.registered ?? 0} students registered, ${res?.invalid ?? 0} rows skipped.` +
+          (fromPending > 0 ? ` ${fromPending} queued class enrollment${fromPending === 1 ? " was" : "s were"} completed.` : "") +
+          (pendingLeft > 0 ? ` ${pendingLeft} stay${pendingLeft === 1 ? "s" : ""} pending because the class is inactive or could not be joined.` : ""),
+      });
       users.load();
       loadStats();
     } catch (err) {

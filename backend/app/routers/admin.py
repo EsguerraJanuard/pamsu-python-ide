@@ -6,8 +6,12 @@ from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
 from app.core.system_settings import get_all_system_settings, set_system_setting
 from app.models.domain_models import AuditRecord, Classroom, User
+from app.schemas.enrollment_schema import PendingEnrollmentResult
+from app.services.classroom_service import (StudentNotEligibleForEnrollmentError,
+                                            apply_pending_enrollments)
 from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, computed_field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.services.email_service import send_provisioning_email
 
@@ -48,6 +52,10 @@ class UserResponse(BaseModel):
         parts = self.name.split()
         return " ".join(parts[1:]) if len(parts) > 1 else ""
 
+class StudentCreateResponse(UserResponse):
+    pending_enrollments: PendingEnrollmentResult
+
+
 class PasswordReset(BaseModel):
     new_password: str
 
@@ -78,7 +86,7 @@ def get_system_stats(
         "total_classrooms": total_classrooms
     }
 
-@router.post("/students", response_model=UserResponse)
+@router.post("/students", response_model=StudentCreateResponse)
 def create_student(
     request: StudentCreate,
     db: Session = Depends(get_db),
@@ -94,12 +102,65 @@ def create_student(
         role="student",
         password_hash=get_password_hash(request.password),
         school_id=request.school_id,
-        email_verified=True
+        email_verified=True,
+        is_active=True,
     )
-    db.add(new_student)
-    db.commit()
+    try:
+        db.add(new_student)
+        db.flush()
+        # Classes that queued this email are joined in the same transaction;
+        # any class that cannot be joined stays pending without blocking the account.
+        pending_result = apply_pending_enrollments(
+            db=db,
+            student=new_student,
+            actor_user_id=current_admin.user_id,
+        )
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Student with this email or school ID already exists") from exc
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(new_student)
-    return new_student
+    return StudentCreateResponse(
+        **UserResponse.model_validate(new_student).model_dump(),
+        pending_enrollments=pending_result,
+    )
+
+
+@router.post(
+    "/students/{user_id}/pending-enrollments/apply",
+    response_model=PendingEnrollmentResult,
+)
+def apply_student_pending_enrollments(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    """Retry pending enrollments for an existing student account.
+
+    Safe to repeat: consumed rows are gone and existing enrollments are never
+    duplicated or changed. Covers accounts created before pending enrollments
+    were applied on creation, and classes reactivated after the account was made.
+    """
+    student = db.query(User).filter(User.user_id == user_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        result = apply_pending_enrollments(
+            db=db,
+            student=student,
+            actor_user_id=current_admin.user_id,
+        )
+        db.commit()
+    except StudentNotEligibleForEnrollmentError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception:
+        db.rollback()
+        raise
+    return result
 
 
 class GuestCreate(BaseModel):
@@ -264,24 +325,44 @@ async def bulk_register_students_file(
     existing_emails = {u.email for u in existing_users}
     
     registered_count = 0
+    enrolled_from_pending = 0
+    pending_left = 0
     
-    for email in valid_emails:
-        if email not in existing_emails:
-            student_name = f"{email.split('@')[0].replace('.', ' ').title()} Student"
-            new_user = User(
-                email=email,
-                name=student_name,
-                role="student",
-                password_hash=get_password_hash("PamsU@2026"),
-                school_id=str(random.randint(1000000000, 9999999999)),
-                email_verified=True
-            )
-            db.add(new_user)
-            registered_count += 1
-            background_tasks.add_task(send_provisioning_email, new_user.email, student_name.split()[0], 'PamsU@2026', 'Student')
-            
-    db.commit()
-    return {"registered": registered_count, "invalid": len(emails) - len(valid_emails)}
+    try:
+        for email in valid_emails:
+            if email not in existing_emails:
+                student_name = f"{email.split('@')[0].replace('.', ' ').title()} Student"
+                new_user = User(
+                    email=email,
+                    name=student_name,
+                    role="student",
+                    password_hash=get_password_hash("PamsU@2026"),
+                    school_id=str(random.randint(1000000000, 9999999999)),
+                    email_verified=True,
+                    is_active=True,
+                )
+                db.add(new_user)
+                db.flush()
+                pending_result = apply_pending_enrollments(
+                    db=db,
+                    student=new_user,
+                    actor_user_id=current_admin.user_id,
+                )
+                enrolled_from_pending += len(pending_result.enrolled_class_ids)
+                pending_left += len(pending_result.skipped)
+                registered_count += 1
+                background_tasks.add_task(send_provisioning_email, new_user.email, student_name.split()[0], 'PamsU@2026', 'Student')
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return {
+        "registered": registered_count,
+        "invalid": len(emails) - len(valid_emails),
+        "enrolled_from_pending": enrolled_from_pending,
+        "pending_left": pending_left,
+    }
 
 @router.get("/settings")
 def get_settings(

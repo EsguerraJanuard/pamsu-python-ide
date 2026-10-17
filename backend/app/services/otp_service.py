@@ -543,18 +543,16 @@ def verify_registration_otp(
         db.add(new_user)
         db.flush()
         
-        # Process pending enrollments
-        from app.models.domain_models import Enrollment, PendingEnrollment
-        pending_enrollments = db.query(PendingEnrollment).filter(PendingEnrollment.email == new_user.email).all()
-        for pe in pending_enrollments:
-            # Add enrollment
-            enrollment = Enrollment(
-                class_id=pe.class_id,
-                student_id=new_user.user_id,
-                status="active",
+        # Same rules as MIS provisioning; instructor accounts are never
+        # enrolled as students.
+        if new_user.role == "student":
+            from app.services.classroom_service import \
+                apply_pending_enrollments
+            apply_pending_enrollments(
+                db=db,
+                student=new_user,
+                actor_user_id=new_user.user_id,
             )
-            db.add(enrollment)
-            db.delete(pe)
 
         db.delete(pending_registration)
 

@@ -137,8 +137,56 @@ class BulkEnrollmentRequest(BaseModel):
 
 class BulkEnrollmentResponse(BaseModel):
     enrolled: int = Field(..., description="Number of students successfully enrolled.")
-    queued: int = Field(..., description="Number of students queued pending registration.")
+    queued: int = Field(
+        ...,
+        description=(
+            "Number of addresses with no account yet, saved as pending. "
+            "They are enrolled when MIS creates a student account with the "
+            "same university email, provided the classroom is still active."
+        ),
+    )
     invalid: int = Field(..., description="Number of invalid emails ignored.")
+    already_enrolled: int = Field(
+        default=0,
+        description="Number of students who already had an enrollment record in this classroom.",
+    )
+    ineligible: int = Field(
+        default=0,
+        description="Number of addresses that belong to a non-student account and were not enrolled.",
+    )
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+
+PendingEnrollmentSkipReason = Literal[
+    "classroom_inactive",
+    "enrollment_conflict",
+    "audit_failed",
+]
+
+
+class PendingEnrollmentSkip(BaseModel):
+    class_id: int
+    reason: PendingEnrollmentSkipReason
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+
+class PendingEnrollmentResult(BaseModel):
+    """
+    Outcome of applying a student's pending enrollments.
+
+    Skipped rows stay pending so they can be retried; enrolled and
+    already-enrolled rows are consumed.
+    """
+
+    enrolled_class_ids: list[int] = Field(default_factory=list)
+    already_enrolled_class_ids: list[int] = Field(default_factory=list)
+    skipped: list[PendingEnrollmentSkip] = Field(default_factory=list)
 
     model_config = ConfigDict(
         extra="forbid",

@@ -75,17 +75,19 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
       isOpen={isOpen}
       onClose={handleClose}
       title="Bulk enroll students"
-      description="Only @pampangastateu.edu.ph addresses are accepted. Students need an MIS-provisioned account to be enrolled; addresses without one are saved as pending and are not enrolled automatically."
+      description="Only @pampangastateu.edu.ph addresses are accepted. Students who already have an account are enrolled now. Addresses without one are saved as pending and enrolled when MIS creates a student account with that exact email."
       dismissible={!isSubmitting}
     >
       {result ? (
         <div>
           <InlineAlert tone="success">Enrollment processed.</InlineAlert>
-          <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-3">
             {[
               ["Enrolled", result.enrolled ?? 0, "text-text-emerald"],
               ["Pending (no account)", result.queued ?? 0, "text-text-amber"],
               ["Invalid", result.invalid ?? 0, "text-psu-red"],
+              ...(result.already_enrolled > 0 ? [["Already in class", result.already_enrolled, "text-text-main"]] : []),
+              ...(result.ineligible > 0 ? [["Not a student account", result.ineligible, "text-text-amber"]] : []),
             ].map(([label, value, tone]) => (
               <div key={label} className="rounded-lg border border-border-subtle p-3">
                 <dd className={`text-2xl font-bold ${tone}`}>{value}</dd>
@@ -95,8 +97,15 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
           </dl>
           {result.queued > 0 && (
             <InlineAlert tone="warning" className="mt-4">
-              {result.queued === 1 ? "1 address has" : `${result.queued} addresses have`} no student account yet. Once MIS
-              creates the account, enroll the student again to add them to this class.
+              {result.queued === 1 ? "1 address has" : `${result.queued} addresses have`} no student account yet. They
+              will be added to this class when MIS creates a student account with the same university email, as long as
+              this class is still active. A misspelled address will not match, so check it with the student.
+            </InlineAlert>
+          )}
+          {result.ineligible > 0 && (
+            <InlineAlert tone="warning" className="mt-4">
+              {result.ineligible === 1 ? "1 address belongs" : `${result.ineligible} addresses belong`} to a faculty or
+              admin account and {result.ineligible === 1 ? "was" : "were"} not enrolled.
             </InlineAlert>
           )}
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

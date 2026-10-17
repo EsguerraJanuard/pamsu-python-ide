@@ -274,6 +274,15 @@ def update_enrollment_status_endpoint(
 
 
 
+BULK_ENROLL_SERVICE_ERRORS = (
+    ClassroomNotFoundError,
+    ClassroomAccessDeniedError,
+    ClassroomInactiveError,
+    EnrollmentConflictError,
+    ClassroomAuditWorkflowError,
+)
+
+
 @router.post(
     "/{class_id}/bulk-enroll",
     response_model=BulkEnrollmentResponse,
@@ -288,12 +297,15 @@ def bulk_enroll_json_endpoint(
     current_instructor: User = Depends(get_current_instructor),
 ) -> BulkEnrollmentResponse:
     from app.services.classroom_service import bulk_enroll_students
-    return bulk_enroll_students(
-        db=db,
-        instructor_id=current_instructor.user_id,
-        class_id=class_id,
-        emails=request.emails,
-    )
+    try:
+        return bulk_enroll_students(
+            db=db,
+            instructor_id=current_instructor.user_id,
+            class_id=class_id,
+            emails=request.emails,
+        )
+    except BULK_ENROLL_SERVICE_ERRORS as exc:
+        raise_classroom_service_http_exception(exc)
 
 @router.post(
     "/{class_id}/bulk-enroll/file",
@@ -338,12 +350,15 @@ async def bulk_enroll_file_endpoint(
     # Extract all emails using regex
     emails = re.findall(r'[a-zA-Z0-9_.+-]+@pampangastateu\.edu\.ph', text.lower())
     
-    return bulk_enroll_students(
-        db=db,
-        instructor_id=current_instructor.user_id,
-        class_id=class_id,
-        emails=emails,
-    )
+    try:
+        return bulk_enroll_students(
+            db=db,
+            instructor_id=current_instructor.user_id,
+            class_id=class_id,
+            emails=emails,
+        )
+    except BULK_ENROLL_SERVICE_ERRORS as exc:
+        raise_classroom_service_http_exception(exc)
 
 @router.get(
     "/{class_id}/members",

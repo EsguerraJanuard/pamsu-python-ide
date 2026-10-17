@@ -460,3 +460,91 @@ No application code was changed. The test scripts, logs and throwaway clusters l
      - Check what the audit log covers.
      - Fix or retire the 40 known test failures, stub out Celery and Redis in tests, add PostgreSQL integration tests for user creation, and make the alembic test always clean up after itself.
 4. Items 2–8 of the previous wrap-up's pending list remain open (Redis/worker/Judge0 run, retake policy, admin-role review, smaller backend items, test cleanup, frontend follow-ups, rotating the SMTP key, removing ad-hoc scripts).
+
+---
+
+## MIS account creation and pending enrollment (2026-10-17)
+
+_Branch: `dev` · Base commit: `bb242b8` · Nothing committed or pushed. No schema change, no migration, and no real database was touched._
+
+### Overall progress
+- **Pending class enrollments are now completed when MIS creates the student account.** An instructor can bulk-enroll an address that has no account yet. When MIS creates a student account with the same university email, the student is enrolled in that class in the same transaction.
+- **Root cause:** `pending_enrollments` rows were only used by `verify_registration_otp`, which is part of the retired self-registration flow. The MIS endpoints (`POST /admin/students` and `POST /admin/students/bulk-register/file`) never read them, so with registration disabled, pending enrollments were never completed. The old OTP code also enrolled students in archived classes, enrolled instructors from the allowlist as students, and wrote no audit record.
+- **Other defects found and fixed in the same workflow:**
+  - A non-owner or a missing class got an unhandled exception (500) from both bulk-enroll routes. Now they get 403 and 404.
+  - Archived classes accepted bulk enrollment. Now they return 409, the same rule as joining by class code.
+  - Existing accounts were looked up case-sensitively, unlike login, so a mixed-case account was queued as pending instead of enrolled.
+  - Faculty and admin addresses were queued as pending and stayed there forever. They are now reported as "not a student account".
+  - "Already enrolled" was counted nowhere.
+  - A failure partway through rolled nothing back explicitly.
+- **No schema change was needed.** The `pending_enrollments` table (`2cd5c3a3ee9a`) already exists. The single Alembic head is still `c25114413200`.
+
+### Verified behaviour
+| Situation | Behaviour now |
+|---|---|
+| Bulk enroll, the account already exists | Enrolled straight away and audited. Any stale pending row for that class is removed. A record that already exists (including `removed` or `disabled`) is left as the instructor set it and counted as `already_enrolled`. |
+| Bulk enroll, no account yet | One pending row per class and email, deduplicated. Counted as `queued`. |
+| Bulk enroll, faculty or admin address | Not enrolled and not queued. Counted as `ineligible`. |
+| Bulk enroll into an archived class | 409. Nothing is stored. |
+| MIS creates the account | `apply_pending_enrollments` runs inside the account's transaction. Each class has its own savepoint. Each enrollment is audited as `student_enrolled` with MIS as the actor and `source: pending_enrollment`. The response includes `pending_enrollments: {enrolled_class_ids, already_enrolled_class_ids, skipped[]}`. |
+| One class can't be completed (archived, audit failure, or a concurrent conflict) | Only that class's savepoint is rolled back, and its row stays pending with a reason. The account and the other enrollments are still committed. |
+| Processed again | Idempotent. A completed row is consumed in the same savepoint that creates the enrollment, and `uq_enrollment_class_student` is a second guard. On PostgreSQL the pending rows are locked with `FOR UPDATE`. |
+| Retry | New admin-only `POST /admin/students/{user_id}/pending-enrollments/apply`. It covers students that MIS created before this fix, and classes that were reactivated later. A non-student or deactivated account gets 409; an unknown user gets 404. |
+
+Matching uses **only the exact university email**, compared case-insensitively as at login. A pending row stores nothing else; names are never used. The test suite proves that a different email with the same name does not match.
+
+### Files modified (tracked)
+```
+backend/app/routers/admin.py                 (MIS create/bulk-register apply pending enrollments; new retry endpoint; StudentCreateResponse)
+backend/app/routers/classrooms.py            (bulk-enroll routes map service errors to 403/404/409/503)
+backend/app/schemas/enrollment_schema.py     (BulkEnrollmentResponse.already_enrolled/ineligible; PendingEnrollmentResult)
+backend/app/services/classroom_service.py    (bulk_enroll_students hardened; new apply_pending_enrollments)
+backend/app/services/otp_service.py          (retired OTP path reuses apply_pending_enrollments; students only)
+frontend/src/components/modals/BulkEnrollModal.jsx  (accurate pending/MIS copy; already-enrolled and not-a-student counts)
+frontend/src/features/admin/AdminDashboard.jsx      (shows classes joined / still pending after account creation and bulk registration)
+audit-status.md                              (this section)
+```
+
+### Files created
+```
+backend/tests/test_pending_enrollment_workflow.py   (16 regression tests; untracked until explicitly added)
+```
+
+### Test evidence
+- **New suite `test_pending_enrollment_workflow.py`: 16/16 pass.** It covers:
+  - existing students, with mixed-case email;
+  - pending enrollment, then MIS creation through a single account and through bulk registration;
+  - a non-matching email with the same name;
+  - retry and duplicate processing, at both the API and the service level;
+  - several pending classes for one student;
+  - archived classes;
+  - authorization: another instructor's class, an unknown class, a student caller, no token, the file route, and the admin-only endpoints;
+  - a non-student or deactivated account on the retry endpoint;
+  - one class failing while the account and the other classes commit, then the retry;
+  - a failed bulk enroll rolling back completely;
+  - preservation of `removed` enrollments, submissions and the student's identity.
+- **Related suites** (classroom workflow, classroom release candidate, classroom OpenAPI, OTP registration and service, OpenAPI contracts, schemas, audit, alembic): **153 passed, 6 failed.** The same 6 fail on a clean `git archive HEAD` copy, so they are not caused by this work. They are `test_openapi_contracts` ×3, `test_schemas` ×2 and `test_alembic_migrations` (the known model/migration table drift).
+- **Full backend suite (755 tests, in-memory SQLite, Redis down): 715 passed, 40 failed (25 min 20 s).** The previous baseline was 699 passed / 40 failed out of 739; adding the 16 new tests gives exactly 715 / 40. The 40 failures are the same known set, file by file: Redis ×6, broker ×6, partner-auth/health ×15, old name fields ×2, older field lists ×8, the public-route list, the partner-result schema and the alembic table drift. **New failures: 0.**
+- `npm run lint`: PASS. `npm run build`: PASS. `git diff --check`: clean.
+- **End-to-end in the browser:**
+  - Setup: the real frontend and backend, against a throwaway SQLite database in the session's temporary folder, with throwaway accounts.
+  - As an instructor, a bulk enroll showed 1 enrolled, 1 pending, 0 invalid and 1 not a student account, with the new copy and the PSU theme intact.
+  - As MIS, creating the pending student showed "Added to 1 class that had queued this email."
+  - The database afterwards had the enrollment `active`, no pending row left, and an audit row with the MIS actor and `source: pending_enrollment`.
+  - The temporary `.claude/launch.json` entry used for this was removed again.
+
+### Pending tasks / next steps
+1. **Product decisions (documented; not invented in code):**
+   - **Inactive (suspended) students in bulk enroll:** they are still enrolled directly, as before this change. The retry endpoint refuses them. Should bulk enroll refuse them too?
+   - **Pending rows for archived classes:** they are kept, so they can be applied after reactivation. Should archiving a class discard its pending rows, or should they expire?
+   - **Class capacity:** there is no capacity field in the data model, so none is enforced. Is a seat limit needed? That would need a migration.
+   - **Guests (`POST /admin/guests`)** don't complete pending enrollments, because guests aren't MIS-provisioned students. Confirm this.
+   - **Visibility:** instructors can't list their class's pending addresses, and nothing notifies them when a pending student is enrolled. Is either needed?
+   - **School ID matching:** bulk enroll only collects emails. Matching on school ID as well would need a pending-row column (a migration) and an instructor input.
+2. **Pre-existing issues found while tracing (not changed):**
+   - Bulk registration (`/admin/students/bulk-register/file`) gives every student a **random, made-up `school_id`** and the hardcoded password `PamsU@2026`. A random ID collision fails the whole batch with a 500.
+   - `POST /admin/students` checks for an existing email case-sensitively and doesn't lowercase the email it stores.
+   - `Classroom.section` and `subject_code` can be null in the model, but `ClassroomResponse` requires `section`. A classroom created outside the API makes `GET /classrooms/mine` return 500.
+   - `DELETE /admin/users/{id}` on a student with enrollments hits a `RESTRICT` foreign key.
+3. **Frontend:** there's no admin UI for the retry endpoint yet. Add a "Re-apply pending enrollments" action on the student row if MIS needs it.
+4. **Deploy note:** students that MIS created before this change may have pending rows that were never applied. After deploying, call the retry endpoint for them. You can find them with a read-only query that joins `pending_enrollments.email` to `lower(users.email)` where `role = 'student'`.
