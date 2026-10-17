@@ -17,7 +17,12 @@ def get_smtp_config():
         "sender_email": os.getenv("SMTP_SENDER_EMAIL", "noreply@pampangastateu.edu.ph")
     }
 
-def send_provisioning_email(recipient_email: str, first_name: str, temp_password: str, role: str):
+def send_provisioning_email(recipient_email: str, first_name: str, temp_password: str | None, role: str):
+    """Send the account-provisioned email.
+
+    With temp_password=None no credential is sent: the recipient is told to
+    set their own password through "Forgot password?" (the OTP reset flow).
+    """
     config = get_smtp_config()
     
     # If no credentials, just log and return (for local dev)
@@ -27,12 +32,32 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
 
     safe_first_name = html.escape(first_name)
     safe_role = html.escape(role)
-    safe_temp_password = html.escape(temp_password)
     safe_recipient_email = html.escape(recipient_email)
 
     subject = f"Welcome to PAMSU Python IDE - Your {safe_role} Account"
     
     frontend_url = os.getenv("FRONTEND_URL", "https://pamsu-python-ide.vercel.app")
+
+    if temp_password is None:
+        access_html = f"""
+                <div class="credentials-box">
+                    <p style="margin-top: 0; font-weight: 600; color: #555;">Set up your password:</p>
+                    <p>School Email: <span class="highlight">{safe_recipient_email}</span></p>
+                    <p>On the sign-in page, choose <strong>Forgot password?</strong> and enter your school email. We will send a one-time code to this mailbox so you can create your own password.</p>
+                </div>
+                <p>No password is included in this email. PAMSU staff will never ask you for your password or code.</p>
+        """
+    else:
+        safe_temp_password = html.escape(temp_password)
+        access_html = f"""
+                <div class="credentials-box">
+                    <p style="margin-top: 0; font-weight: 600; color: #555;">Your Login Credentials:</p>
+                    <p>School Email: <span class="highlight">{safe_recipient_email}</span></p>
+                    <p>Temporary Password: <span class="highlight">{safe_temp_password}</span></p>
+                </div>
+
+                <p>For your security, please log in immediately and update your password in your Account Settings.</p>
+        """
     
     html_content = f"""
     <!DOCTYPE html>
@@ -127,13 +152,7 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
                 <p>Hello <strong>{safe_first_name}</strong>,</p>
                 <p>Your official {safe_role} account for the <strong>PAMSU Python IDE</strong> has been successfully provisioned by the MIS Administrator.</p>
                 
-                <div class="credentials-box">
-                    <p style="margin-top: 0; font-weight: 600; color: #555;">Your Login Credentials:</p>
-                    <p>School Email: <span class="highlight">{safe_recipient_email}</span></p>
-                    <p>Temporary Password: <span class="highlight">{safe_temp_password}</span></p>
-                </div>
-                
-                <p>For your security, please log in immediately and update your password in your Account Settings.</p>
+                {access_html}
                 
                 <div class="btn-container">
                     <a href="{frontend_url}" class="btn">Log In to Your Workspace</a>

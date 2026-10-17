@@ -245,11 +245,17 @@ def test_mis_bulk_registration_completes_pending_enrollments(client, db_session,
     response = client.post(
         "/admin/students/bulk-register/file",
         headers=auth(actors["admin"]),
-        files={"file": ("masterlist.csv", f"email\n{email}\n".encode(), "text/csv")},
+        files={
+            "file": (
+                "masterlist.csv",
+                f"email,school_id,name\n{email},2026000035,Masterlist Student\n".encode(),
+                "text/csv",
+            )
+        },
     )
 
     assert response.status_code == 200
-    assert response.json()["registered"] == 1
+    assert response.json()["created"] == 1
     assert response.json()["enrolled_from_pending"] == 1
     assert response.json()["pending_left"] == 0
     assert [e.class_id for e in enrollments_for(db_session, email)] == [actors["classroom"].class_id]

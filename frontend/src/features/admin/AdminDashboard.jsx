@@ -357,12 +357,16 @@ export default function AdminDashboard() {
       const res = await api.post("/admin/students/bulk-register/file", formData);
       const fromPending = res?.enrolled_from_pending ?? 0;
       const pendingLeft = res?.pending_left ?? 0;
+      const created = res?.created ?? 0;
+      const failedRows = (res?.rows ?? []).filter((row) => row.status === "failed");
       setBulkMessage({
-        tone: pendingLeft > 0 ? "warning" : "success",
+        tone: failedRows.length > 0 || pendingLeft > 0 ? "warning" : "success",
         text:
-          `${res?.registered ?? 0} students registered, ${res?.invalid ?? 0} rows skipped.` +
+          `${created} account${created === 1 ? "" : "s"} created, ${res?.skipped ?? 0} already existed, ${failedRows.length} row${failedRows.length === 1 ? "" : "s"} failed.` +
+          (created > 0 ? " Students set their own password with “Forgot password?” on the sign-in page." : "") +
           (fromPending > 0 ? ` ${fromPending} queued class enrollment${fromPending === 1 ? " was" : "s were"} completed.` : "") +
           (pendingLeft > 0 ? ` ${pendingLeft} stay${pendingLeft === 1 ? "s" : ""} pending because the class is inactive or could not be joined.` : ""),
+        rows: failedRows,
       });
       users.load();
       loadStats();
@@ -519,16 +523,28 @@ export default function AdminDashboard() {
                     <ProvisionForm role="student" onCreated={() => { users.load(); loadStats(); }} />
                     <div className="card p-5">
                       <h2 className="text-sm font-semibold">Bulk register from masterlist</h2>
-                      <p className="mt-1 text-xs text-text-muted">Upload a CSV or Excel file of student emails.</p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        Upload a CSV or .xlsx masterlist with the columns <code>email</code>, <code>school_id</code> and <code>name</code> (or <code>first_name</code> and <code>last_name</code>). No password is set or emailed.
+                      </p>
                       {bulkMessage && (
                         <InlineAlert tone={bulkMessage.tone} onDismiss={() => setBulkMessage(null)} className="mt-3">
                           {bulkMessage.text}
+                          {bulkMessage.rows?.length > 0 && (
+                            <ul className="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-4 text-xs">
+                              {bulkMessage.rows.map((row) => (
+                                <li key={row.row}>
+                                  Row {row.row}
+                                  {row.email ? ` (${row.email})` : ""}: {row.reason}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </InlineAlert>
                       )}
                       <label htmlFor="admin-bulk-file" className="btn-secondary mt-3 w-full cursor-pointer">
                         {isUploading ? "Uploading…" : "Choose file"}
                       </label>
-                      <input ref={fileRef} id="admin-bulk-file" type="file" accept=".csv,.xlsx,.xls" className="sr-only" onChange={handleBulkUpload} disabled={isUploading} />
+                      <input ref={fileRef} id="admin-bulk-file" type="file" accept=".csv,.xlsx" className="sr-only" onChange={handleBulkUpload} disabled={isUploading} />
                     </div>
                   </div>
                   <div className="min-w-0">

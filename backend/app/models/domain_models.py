@@ -39,7 +39,7 @@ class User(Base):
         nullable=False,
         default="student",
     )
-    academic_integrity_score = Column(Float, default=100.0, nullable=False)
+    academic_integrity_score = Column(Float, default=100.0, nullable=False, server_default="100.0")
     password_hash = Column(
         String(255),
         nullable=False,
@@ -828,6 +828,21 @@ class Submission(Base):
     accepted_at = Column(
         DateTime(timezone=True),
         nullable=True,
+    )
+    # Created by migration 9ff2d118b666 and present in applied databases.
+    # Mapped only so the model matches the schema; no workflow reads or
+    # writes them until the retake policy is decided.
+    retake_requested = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+    retake_allowed = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
     )
 
     # Compatibility fields for the current evaluation endpoints.

@@ -1,5 +1,4 @@
 import random
-import re
 from typing import List
 
 from app.core.database import get_db
@@ -14,6 +13,10 @@ from pydantic import BaseModel, ConfigDict, computed_field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.services.email_service import send_provisioning_email
+from app.services.student_provisioning_service import (MasterlistConflictError,
+                                                      MasterlistFileError,
+                                                      MasterlistImportResult,
+                                                      import_masterlist)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -296,73 +299,37 @@ def get_global_audit_logs(
         })
     return result
 
-@router.post("/students/bulk-register/file")
+@router.post("/students/bulk-register/file", response_model=MasterlistImportResult)
 async def bulk_register_students_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    content = await file.read()
-    text = content.decode("utf-8")
-    
-    emails = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or "@" not in line:
-            continue
-        match = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', line)
-        if match:
-            emails.append(match.group(0).lower())
-            
-    emails = list(set(emails))
-    valid_emails = [e for e in emails if e.endswith("@pampangastateu.edu.ph")]
-    
-    if not valid_emails:
-        return {"registered": 0, "invalid": len(emails)}
-        
-    existing_users = db.query(User).filter(User.email.in_(valid_emails)).all()
-    existing_emails = {u.email for u in existing_users}
-    
-    registered_count = 0
-    enrolled_from_pending = 0
-    pending_left = 0
-    
-    try:
-        for email in valid_emails:
-            if email not in existing_emails:
-                student_name = f"{email.split('@')[0].replace('.', ' ').title()} Student"
-                new_user = User(
-                    email=email,
-                    name=student_name,
-                    role="student",
-                    password_hash=get_password_hash("PamsU@2026"),
-                    school_id=str(random.randint(1000000000, 9999999999)),
-                    email_verified=True,
-                    is_active=True,
-                )
-                db.add(new_user)
-                db.flush()
-                pending_result = apply_pending_enrollments(
-                    db=db,
-                    student=new_user,
-                    actor_user_id=current_admin.user_id,
-                )
-                enrolled_from_pending += len(pending_result.enrolled_class_ids)
-                pending_left += len(pending_result.skipped)
-                registered_count += 1
-                background_tasks.add_task(send_provisioning_email, new_user.email, student_name.split()[0], 'PamsU@2026', 'Student')
+    """Create student accounts from an MIS masterlist (CSV or .xlsx).
 
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    return {
-        "registered": registered_count,
-        "invalid": len(emails) - len(valid_emails),
-        "enrolled_from_pending": enrolled_from_pending,
-        "pending_left": pending_left,
-    }
+    Each row needs email, school_id and a name. Rows are reported as
+    created, skipped (account already exists) or failed (with a reason).
+    No password is set or sent: students set one through the password-reset
+    OTP flow on the sign-in page.
+    """
+    content = await file.read()
+    try:
+        result, new_users = import_masterlist(
+            db=db,
+            content=content,
+            filename=file.filename,
+            actor_user_id=current_admin.user_id,
+        )
+    except MasterlistFileError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except MasterlistConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    # Only committed accounts are notified, and no credential is included.
+    for new_user in new_users:
+        background_tasks.add_task(send_provisioning_email, new_user.email, new_user.name.split()[0], None, 'Student')
+    return result
 
 @router.get("/settings")
 def get_settings(

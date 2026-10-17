@@ -41,6 +41,25 @@ def override_get_db():
 
 
 @pytest.fixture(autouse=True)
+def block_real_smtp(monkeypatch):
+    # backend/.env may hold real SMTP credentials; tests must never send mail.
+    from app.services import email_service
+
+    monkeypatch.setattr(
+        email_service,
+        "get_smtp_config",
+        lambda: {
+            "host": "",
+            "port": 0,
+            "user": "",
+            "password": "",
+            "sender_name": "PAMSU Python IDE",
+            "sender_email": "noreply@pampangastateu.edu.ph",
+        },
+    )
+
+
+@pytest.fixture(autouse=True)
 def reset_test_database():
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)

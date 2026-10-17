@@ -548,3 +548,270 @@ backend/tests/test_pending_enrollment_workflow.py   (16 regression tests; untrac
    - `DELETE /admin/users/{id}` on a student with enrollments hits a `RESTRICT` foreign key.
 3. **Frontend:** there's no admin UI for the retry endpoint yet. Add a "Re-apply pending enrollments" action on the student row if MIS needs it.
 4. **Deploy note:** students that MIS created before this change may have pending rows that were never applied. After deploying, call the retry endpoint for them. You can find them with a read-only query that joins `pending_enrollments.email` to `lower(users.email)` where `role = 'student'`.
+
+---
+
+## Bulk registration security fix and migration test diagnosis (2026-10-17)
+
+_Branch: `dev` · Base commit: `9d5b732` (pending-enrollment work, already pushed) · Nothing committed or pushed. No real database was altered; the only real-database access was one read-only check of the local schema._
+
+### Summary
+| # | Finding | Status |
+|---|---------|--------|
+| P0 | Bulk registration made up school IDs and names, and gave every account the shared password `PamsU@2026`, which was emailed in plaintext | **Fixed and verified** (tests, PostgreSQL, browser) |
+| P1 | `test_alembic_migrations` failed | **Diagnosed.** Two causes fixed (a stale test list and ORM drift). A third, a defect in the downgrade of an applied revision, **needs your approval** to fix; the test still fails at that step |
+| — | Five enrollment product decisions | **Recorded as PROPOSED — AWAITING APPROVAL.** None implemented |
+| — | Test runs could send real email | **Fixed** (SMTP blocked in all tests). See the incident note |
+
+### P0. Bulk registration (`POST /admin/students/bulk-register/file`)
+**Root cause:** the endpoint pulled only an email address out of each line of the file. Then:
+- the **name** was made up from the email (`"Juan Delacruz Student"`);
+- the **school ID** was `random.randint(1000000000, 9999999999)`, so it was not the student's real ID and a collision failed the whole batch with a 500;
+- every account got the **same password**, `PamsU@2026`, which was emailed in plaintext;
+- existing accounts were skipped silently and never counted;
+- `.xlsx` and `.xls` uploads, which the UI allowed, crashed with `UnicodeDecodeError` (500).
+
+**Fix:** the logic moved into the new `backend/app/services/student_provisioning_service.py`. The router now only calls it.
+- **Input:** a CSV or `.xlsx` file with a header row containing `email`, `school_id` and either `name` or `first_name` + `last_name` (`middle_name` is optional). Headers are not case-sensitive. A file without these columns, an empty file, an old `.xls` file, a file that isn't UTF-8 or a file with more than 500 rows is rejected as a whole with a 400. Nothing is created in that case. The 500-row ceiling is the same as instructor bulk enrollment.
+- **Each row is checked with the existing `UserBase` rules**: a university email, a school ID of 10 digits or `####-#####`, and a name of at most 150 characters. A failing row is reported with its spreadsheet row number and the reason. **Nothing is derived or generated.** Excel numeric IDs that lost a leading zero are rejected, with a hint to format the column as text.
+- **Duplicates and conflicts:**
+  - The same email or school ID on several rows of the file: every copy fails, because there is no way to tell which row is correct.
+  - The same email and school ID as an existing account: the row is **skipped**, and the account is not changed.
+  - An email that already exists with a different school ID, or the reverse: the row **fails**.
+  - Emails are compared case-insensitively, as at login.
+- **Transactions:** the existing all-or-nothing behaviour for database writes is kept, because it was safe. Valid rows are created in one transaction. Pending enrollments are still applied per class inside savepoints. If the database rejects the batch (for example, a concurrent import used the same school ID), everything is rolled back and the endpoint returns **409** "No accounts were created". A row is reported as `created` only after the commit succeeds. The response is `{created, skipped, failed, enrolled_from_pending, pending_left, rows: [{row, email, status, reason}]}`.
+- **Credentials:** there is **no shared password and no emailed password.** Each account's password hash comes from its own random 32-byte secret, which is never stored, logged or returned, so nobody can sign in to the account. The student sets their own password through the **existing** password-reset OTP flow ("Forgot password?" calls `/users/password-reset/start|complete`, and the code goes only to the university mailbox). This adds no new authentication method. The provisioning email sent after the commit now says how to set a password and contains no credential. `send_provisioning_email` accepts `temp_password=None` for this; instructor provisioning is unchanged.
+- **Unchanged:** password hashing (bcrypt), login, role checks (`get_current_admin`), `email_verified=True` for accounts MIS creates (same as `POST /admin/students`), and the pending-enrollment integration.
+- **Admin UI** (`AdminDashboard.jsx`, bulk upload card only): it lists the required columns, accepts `.csv,.xlsx`, reports "N created, N already existed, N failed" with each failed row and its reason, and tells MIS that students set their own password with "Forgot password?".
+
+### P1. Migration test (`test_alembic_upgrade_downgrade_and_reupgrade`)
+Reproduced on disposable PostgreSQL. **Diagnosis, in the order the causes appear:**
+1. **A stale expected table list in the test (fixed).**
+   - The test expected `practice_test_cases`, which no model, migration or code defines. Commit `d5f6e21` removed it as a "model hallucination", and the revert `7748c49` ("restore main to exactly 65d1e05") brought it back.
+   - The test was missing `system_settings`, which `7a1b8c2d3e4f` creates and the `SystemSetting` model uses.
+   - The tables at head equal the ORM tables exactly (26, with nothing extra on either side). Only the test's list was wrong, so the list was corrected. The explicit-list assertion is kept, not weakened.
+2. **ORM drift from applied migrations (fixed in the ORM; no migration).** With the table list corrected, `alembic check` (the column, default and constraint comparison) found exactly 3 differences:
+   - `submissions.retake_requested` and `submissions.retake_allowed`: created by `9ff2d118b666` (BOOLEAN NOT NULL DEFAULT false), but not mapped in the model.
+   - `users.academic_integrity_score`: the migration (`06d1a312becc`) sets a server default of `100.0`, but the model had only a Python default.
+   - A **read-only** check of the local `pamsu_ide_db` (at revision `c25114413200`) confirmed that it has exactly these definitions. The migrations are what was really applied, so the **models were changed to declare them**. Dropping the columns would lose data and would also decide the open retake policy. The retake columns are mapped only; no workflow reads them.
+   - Result: **0 differences**, and `alembic check` is clean.
+3. **A downgrade defect in applied revision `2cd5c3a3ee9a` (NOT fixed; needs approval).** Its `downgrade()` runs `op.drop_constraint(None, 'practice_modules', type_='foreignkey')`. The upgrade created that foreign key without a name (PostgreSQL named it `practice_modules_instructor_id_fkey`), so Alembic cannot emit the DROP, and `downgrade base` fails at that revision. Upgrades are not affected.
+   - **Evidence:** with only that one line changed, in a **scratch copy** of the migrations (the repository was not touched), the full test sequence passes on disposable PostgreSQL: upgrade, check, downgrade to base, re-upgrade, check. This is the only unnamed drop in the chain.
+   - **Options:**
+     - (a) Change only `downgrade()` of `2cd5c3a3ee9a` to drop `'practice_modules_instructor_id_fkey'`. The upgrade path, the revision ID and every applied schema stay the same, but it edits the file of an applied revision.
+     - (b) Leave it, and accept that you can't downgrade below `2cd5c3a3ee9a`. The test then can't pass without being weakened, and that option is not acceptable.
+   - **Recommendation:** (a), after you approve it. A forward-only migration can't fix this, because the defect is in the older revision's own downgrade.
+   - **Also noted:** a downgrade below `7a1b8c2d3e4f` fails on a database that has `admin` users, because the older `ck_users_role` allows only student and instructor. This is expected for a role-removing downgrade, and the test downgrades an empty database.
+
+**Other ORM checks on a fresh PostgreSQL database built from migrations (16/16 PASS):**
+- tables equal the ORM;
+- `users.name` is NOT NULL varchar(150), with no legacy split-name columns;
+- bulk enroll creates a pending row;
+- a masterlist import creates 1 row and fails 1 row, and completes the pending enrollment through a savepoint;
+- the student is saved with the identity from the masterlist;
+- re-importing the same file skips the row instead of duplicating it;
+- `system_settings` can be read and written.
+
+**Uncertainty:**
+- The project targets **PostgreSQL 15** (`postgres:15-alpine` in docker-compose), but only PostgreSQL **18.4** is installed here, and there is no Docker. All checks ran on 18.4.
+- The **staging and production schemas were not inspected.** Before deploying, compare their `submissions` retake columns and the `users.academic_integrity_score` default with the migrations, using a read-only query.
+- A database named `pamsu_ide_alembic_test` exists on the local server. It wasn't created in this session and was left alone.
+
+### Incident note: real email from test runs
+`backend/.env` holds working SMTP credentials, and the test suite didn't stub email. The bulk-registration test added in the previous session (`test_mis_bulk_registration_completes_pending_enrollments`) therefore probably tried to send a real provisioning email each time it ran (about 3 runs). The email went to the made-up address `from.masterlist@pampangastateu.edu.ph` and contained the old shared password `PamsU@2026`. **Whether the relay accepted it can't be confirmed from the logs**; check the SMTP provider's sent log. Fix: `tests/conftest.py` now has an autouse fixture that blanks the SMTP configuration for every test. The verification server used in the browser also had SMTP blanked, and its log shows "Mock email" only. Together with the earlier note that the SMTP key appeared in session output, this is another reason to rotate the key.
+
+### Files modified (tracked)
+```
+backend/app/routers/admin.py                       (bulk-register endpoint delegates to the provisioning service; removed shared password, random IDs, unused `re`)
+backend/app/services/email_service.py              (send_provisioning_email accepts temp_password=None: credential-free setup notice)
+backend/app/models/domain_models.py                (map submissions.retake_requested/retake_allowed; users.academic_integrity_score server_default — match applied migrations)
+backend/tests/conftest.py                          (autouse fixture: never send real SMTP mail in tests)
+backend/tests/test_alembic_migrations.py           (expected table list: drop practice_test_cases, add system_settings)
+backend/tests/test_pending_enrollment_workflow.py  (bulk-registration test uses the new masterlist format)
+frontend/src/features/admin/AdminDashboard.jsx     (bulk upload card only: required columns, row-level results)
+audit-status.md                                    (this section)
+```
+
+### Files created
+```
+backend/app/services/student_provisioning_service.py   (masterlist parsing, validation, all-or-nothing creation)
+backend/tests/test_masterlist_import.py                (23 tests)
+```
+No migration was added or edited. No other frontend component was changed. No database table was added or changed: the model changes only declare columns and a default that the applied migrations already create.
+
+### Test results
+| Test / check | Result |
+|---|---|
+| `test_masterlist_import.py` (23): student number and email kept separate and never inferred from each other; missing, invalid or blank school ID / name / email rejected with a row number; duplicates inside the file; existing accounts skipped or rejected, never overwritten; no shared or emailed password; the email has no credential; a password set through the reset OTP flow lets the student sign in; a database failure creates nothing and reports nothing as created; `.xlsx` support and leading-zero rejection; unreadable files; the row limit; admin-only access | **PASS** 23/23 |
+| `test_pending_enrollment_workflow.py` (16) | **PASS** 16/16 |
+| Disposable-PostgreSQL ORM and migration checks (scratch script) | **PASS** 16/16 |
+| Downgrade proof with the one-line patch in a scratch copy | **PASS** (upgrade, check, downgrade base, re-upgrade, check) |
+| `test_alembic_migrations.py` (repository as it is) | 2 PASS, 1 **FAIL**. Now fails only at the `2cd5c3a3ee9a` downgrade, which needs your approval (option a) |
+| Full backend suite (777 tests, in-memory SQLite, Redis fast-fail `REDIS_URL=redis://0.0.0.0:6379/0`) | 737 **PASS**, 40 **FAIL** (4 min 45 s). The previous run had 715 + 22 new tests. The 40 failing test IDs are **identical** to the previous full run: 0 new failures. All 40 are known environment or stale-test failures (Redis ×6 **BLOCKED**, broker ×6 **BLOCKED**, partner-auth/health ×15, stale contracts and name fields ×11, partner-result schema ×1), plus the alembic downgrade above |
+| `pyflakes app/` | 9 warnings, the same count as before; none in changed files. `tests/conftest.py` keeps its existing `noqa` import warning |
+| `npm run lint` / `npm run build` | **PASS** / **PASS** |
+| `git diff --check` | **PASS** |
+| Browser (throwaway SQLite backend, SMTP blanked): masterlist upload as MIS | **PASS**: "1 account created, 1 already existed, 1 row failed" plus "Row 4 …: Missing school ID". The database had exactly one new student with the masterlist's school ID; the existing account was unchanged |
+
+### Enrollment product decisions: PROPOSED — AWAITING APPROVAL
+These are recommendations. **None was implemented in this session.**
+
+| # | Decision | Proposed default | What the code does today | Change needed if approved |
+|---|---|---|---|---|
+| 1 | Suspended (inactive) students | Refuse enrollment and report the reason | Instructor bulk enroll **still enrolls** inactive students directly. The pending-enrollment retry endpoint refuses them (409) | Bulk enroll: count inactive students under a reported reason instead of enrolling them |
+| 2 | Pending enrollments for archived classes | Keep the records for audit, but block fulfilment | **Already the case:** rows are kept and skipped as `classroom_inactive`, and bulk enroll into an archived class returns 409 | None (confirm only). Fulfilment resumes if the class is reactivated and the retry endpoint is called; confirm that this is intended |
+| 3 | Class capacity | Defer until institutional requirements justify a schema change | No capacity field and no limit | None now. A migration would be needed later |
+| 4 | Guest accounts created by an admin | Don't complete pending enrollments until the account has a verified regular-student identity | `POST /admin/guests` doesn't apply pending enrollments. **Gaps:** guests have role `student`, so the retry endpoint would apply pending rows to a guest whose email matches; and if an admin creates a guest with a university email, instructor bulk enroll would enroll it directly | Exclude guest accounts in `apply_pending_enrollments` and in bulk enroll. That needs a reliable guest marker (today only the `GST` school-ID prefix or the `guest_` email prefix) |
+| 5 | Instructor access to pending email addresses | Keep raw addresses visible only to authorized MIS/admin staff; show instructors only the status they need | No endpoint lists pending addresses to anyone. Instructors see only the counts from their own submission | If approved: an admin-only pending list, plus a count-only status for instructors |
+
+### Pending tasks / next steps
+1. **`2cd5c3a3ee9a` downgrade: FIX B APPLIED (owner approved, 2026-10-17; not committed).** It was deferred earlier, then approved after the review in "Fix B: pre-approval review". The outcome is in "Fix B: applied and verified" at the end of this file. Until it's fixed, `test_alembic_upgrade_downgrade_and_reupgrade` keeps failing at the downgrade step, and `alembic downgrade` can't go below `2cd5c3a3ee9a`. Upgrades are not affected. The evidence for the approval decision is in "Downgrade of 2cd5c3a3ee9a: investigation" below.
+2. **Approve the five product decisions above** (items 1 and 4 need code changes).
+3. **Before deploying:**
+   - Compare the staging and production `submissions` and `users` columns with the migrations, using a read-only query.
+   - Validate against PostgreSQL 15.
+   - Check the SMTP provider's sent log for the test emails described above, and rotate the SMTP key.
+   - Tell MIS about the new masterlist format, and that students set their password with "Forgot password?".
+4. **Outside this task, still open:**
+   - Instructor provisioning (`POST /admin/instructors`) still makes up a random `school_id` and emails a plaintext temporary password.
+   - `POST /admin/students` still has MIS choose a temporary password that is shown on screen.
+   - `/users/password-reset/start` (service level) reports "No account found", although the router hides this from callers.
+   - Items 2–4 of the previous section.
+
+### Masterlist column mapping: confirmation (2026-10-17)
+- `school_id` means the official student number the university issues, as listed in the MIS masterlist (example format: `2023304120`). `email` is the university address (for example `2023304120@pampangastateu.edu.ph`). **They are separate fields.** Each is read only from its own column (`email`, and `school_id` or `School ID`), validated separately, and stored exactly as given.
+- **Nothing is inferred.** A missing school ID is not taken from a numeric email, and a missing email is not built from the student number. Both rows fail with a row-level reason. There are no random or generated IDs.
+- **Duplicate student numbers:** every row that repeats a number in the file fails, and so does a number that already belongs to another account. The database's unique `users.school_id` constraint is the final guard: a concurrent import gets 409 and nothing is created.
+- **Credentials:** no shared password. Students set their own password through the existing "Forgot password?" OTP flow on their university mailbox.
+- New regression test: `test_student_number_and_email_are_separate_and_never_inferred`, using made-up student numbers. `test_masterlist_import.py` now passes 23/23.
+- **Needs the real masterlist header (open):** the actual MIS file's column names haven't been seen. A file whose headers differ (for example "Student Number") is **rejected whole** with the list of required columns. It is never guessed or mapped by position. To add an alias such as `student_number` → `school_id`, share the header row only, with no student data.
+- **Possible check (not implemented; needs approval):** require the email's local part to equal the student number when the local part is numeric. Only add this if MIS confirms that every student email follows `<student number>@pampangastateu.edu.ph`. Older or name-based addresses (for example `juan.delacruz@…`) would otherwise be rejected.
+
+### Downgrade of 2cd5c3a3ee9a: investigation (2026-10-17, nothing modified)
+- **Failing line:** `backend/alembic/versions/2cd5c3a3ee9a_add_pendingenrollment_and_practicemodule_instructor_id.py:45`, `op.drop_constraint(None, 'practice_modules', type_='foreignkey')`.
+- **Root cause:**
+  - The upgrade (line 38) creates the foreign key with `op.create_foreign_key(None, …)`. This is unedited autogenerate output.
+  - No `naming_convention` is set on `Base.metadata`.
+  - PostgreSQL therefore names the key itself (`practice_modules_instructor_id_fkey`).
+  - Alembic can't emit `DROP CONSTRAINT` for a constraint whose name is `None`, and raises `CompileError` before any SQL runs. The rest of the downgrade (lines 46–47 and the `pending_enrollments` drops) is never reached.
+- **History:**
+  - **Committed and shared.** It was added by `65d1e05` ("Release Practice Modules, Bulk Enrollment, and AST Integrations (#29)", 2026-09-23, from a teammate's PR). It is on `origin/main` and `origin/dev`.
+  - The file content has never changed since (`2e26d8e` emptied it and `1bf8b43` restored it byte for byte).
+- **Applied:**
+  - **Local:** yes. `pamsu_ide_db` is at `c25114413200`, which comes after this revision. The key there is `practice_modules_instructor_id_fkey` (checked read-only). The table has 6 rows, none with an instructor.
+  - **Production:** very likely, but **not confirmed.** `render.yaml` starts the service with `bash start.sh`, and `start.sh` runs `alembic upgrade head` on every start. Any deploy of `main` since 2026-09-23 would therefore have applied it. Confirming needs a read-only `SELECT version_num FROM alembic_version` and a check of the key name on the production database.
+  - **Staging:** none is defined in the repository.
+- **Can't be fixed forward-only.** Alembic always runs this revision's own `downgrade()` when stepping below it, so a new revision can't replace that line. Any fix to the automated downgrade must edit this function. The alternative is a manual runbook: drop the key by hand, then `alembic stamp 9ee0a4c7ee5e`. That leaves the automated downgrade and the migration test broken.
+- **Why changing only `downgrade()` is safe for history:**
+  - Alembic stores only `version_num` in each database. It keeps no file checksums.
+  - The revision ID, `down_revision` and `upgrade()` all stay the same, so no database's state or upgrade path changes.
+  - Teammates' copies keep the old downgrade until they pull, which is harmless.
+  - A real downgrade across this revision still destroys data (`practice_modules.instructor_id` and the `pending_enrollments` table) whichever fix is used. Take a backup first.
+- **Candidates tested on disposable PostgreSQL 18.4** (`scratchpad/evaluate_downgrade_fixes.py`; each candidate used its own scratch copy, and the repository was not touched; every temporary database was dropped):
+
+  | Check | A: hard-code `'practice_modules_instructor_id_fkey'` | B: look up the key name with `sa.inspect(op.get_bind())` | C: delete the line; `DROP COLUMN` drops the key |
+  |---|---|---|---|
+  | `upgrade()` AST-identical; all other revision files byte-identical | PASS | PASS | PASS |
+  | Migration-test sequence (upgrade, check, downgrade base, re-upgrade, check) | PASS | PASS | PASS |
+  | `2cd5c3a3ee9a → 9ee0a4c7ee5e` with rows present: column and key removed, rows kept, re-upgrade recreates the key | PASS | PASS | PASS |
+  | Key has a non-default name (another DB's history) | **FAIL** (`UndefinedObject`) | PASS | PASS |
+
+  The unchanged repository revision fails the downgrade with the reported `CompileError`.
+- **Recommendation: B.** It is explicit about dropping the key and works whatever name a given database assigned. A depends on the name PostgreSQL happened to assign. C depends on an implicit PostgreSQL behaviour (DROP COLUMN cascading to constraints on that column) that a later reader could easily miss.
+- **Limitation of B:** it can't run in offline `--sql` mode, because it needs a live connection. Offline downgrade from head is already refused by `c25114413200`, so this changes nothing in practice.
+- **Proposed change for approval (B), replacing line 45 only:**
+  ```python
+  # The upgrade created this foreign key without a name; look up the
+  # name the database assigned instead of assuming it.
+  for foreign_key in sa.inspect(op.get_bind()).get_foreign_keys('practice_modules'):
+      if foreign_key['constrained_columns'] == ['instructor_id'] and foreign_key['name']:
+          op.drop_constraint(foreign_key['name'], 'practice_modules', type_='foreignkey')
+  ```
+  After approval: apply it, run `pytest tests/test_alembic_migrations.py` on a disposable database, and also check against PostgreSQL 15 (the project's target; only 18.4 is available here).
+
+### Fix B: pre-approval review (2026-10-17, nothing modified; still DEFERRED)
+**Exact diff.** The repository file uses LF line endings, and the change must keep them.
+```diff
+@@ -42,7 +42,11 @@ def upgrade() -> None:
+ def downgrade() -> None:
+     """Downgrade schema."""
+     # ### commands auto generated by Alembic - please adjust! ###
+-    op.drop_constraint(None, 'practice_modules', type_='foreignkey')
++    # The upgrade created this foreign key without a name; look up the
++    # name the database assigned instead of assuming it.
++    for foreign_key in sa.inspect(op.get_bind()).get_foreign_keys('practice_modules'):
++        if foreign_key['constrained_columns'] == ['instructor_id'] and foreign_key['name']:
++            op.drop_constraint(foreign_key['name'], 'practice_modules', type_='foreignkey')
+     op.drop_index(op.f('ix_practice_modules_instructor_id'), table_name='practice_modules')
+     op.drop_column('practice_modules', 'instructor_id')
+```
+`sa` is already imported. Nothing else changes: not `upgrade()`, the revision ID, `down_revision`, or any other file.
+
+**Why B is safer than A and C:**
+- **A (hard-coded name)** assumes every database got PostgreSQL's default name. It failed the test where the key has another name, with `UndefinedObject`, which aborts the downgrade partway. A database whose history differs (restored, hand-repaired, or created with `create_all` under a naming convention) would hit this.
+- **C (delete the line)** works because PostgreSQL's `DROP COLUMN` removes constraints on that column. That's implicit: a reader sees an FK created in `upgrade()` and never dropped in `downgrade()`, and it depends on database-specific behaviour.
+- **B** drops the key explicitly by its real name and matches only a key on `instructor_id`. If no such key exists, it skips the drop, and `DROP COLUMN` still succeeds. It passed every scenario, including the non-default name.
+
+**Committed, pushed, applied (read-only checks; `git fetch --prune` only refreshed local remote-tracking refs):**
+- **Committed and pushed:** yes. It was introduced by `65d1e05` (PR #29, by Errol, 2026-09-23). It's on `origin/main` and `origin/dev`, and the file is byte-identical on both (blob `c6c2a6e`). No tag contains it.
+- **Local `pamsu_ide_db`:** applied. A read-only session shows `alembic_version` = `c25114413200` (the code head), and the key is `practice_modules_instructor_id_fkey`.
+- **Production:** **very probably applied, not verified directly.** No production credentials are available here; `render.yaml` has `DATABASE_URL: sync: false`. The evidence:
+  - `start.sh` runs `alembic upgrade head` on every start.
+  - Teammate commit `968e574` (2026-10-13, "add bridge migration for 333fed79e9f7 to unblock production upgrade") shows that a production database recorded `333fed79e9f7`, which comes after the merge of `2cd5c3a3ee9a`.
+  - The production URL was **deliberately not requested**. On Render's free plan a request can wake the service, and its `start.sh` would run `alembic upgrade head` against the production database.
+- **Staging:** none is defined in the repository.
+- **To verify production without changing it:** connect with a read-only role and run:
+  ```sql
+  SET default_transaction_read_only = on;
+  SELECT version_num FROM alembic_version;
+  SELECT conname FROM pg_constraint WHERE conrelid = 'practice_modules'::regclass AND contype = 'f';
+  ```
+
+**Disposable-PostgreSQL results for B (18.4; the repository was not touched; every temporary database was dropped). 8/8 PASS:**
+- A database built **and populated** with the current repository migrations:
+  - `upgrade head` with fix B is a no-op; the revision and the schema-plus-data fingerprint are unchanged;
+  - `alembic check` is clean;
+  - downgrade to base works, then the repository's own upgrade to head works, and `check` is clean again.
+- Fresh upgrade to head with and without fix B: identical schema (tables, columns, types, defaults, key names). Fresh databases are compared ignoring timestamp columns, because seeded `system_settings.updated_at` uses `CURRENT_TIMESTAMP`. A table-by-table control diff showed no differences.
+- Stepping across the revision with data present (`2cd5c3a3ee9a → 9ee0a4c7ee5e`) removes only what that revision added (`practice_modules.instructor_id`, its key and index, and `pending_enrollments`). Other rows are kept, and the repository upgrade back to head works.
+- The earlier candidate run also passed for B: the migration-test sequence, and the non-default key name.
+
+**Recommendation:** approve B, when you choose to. It changes only downgrade behaviour. The upgrade path and every applied database are untouched, and databases at head need no action.
+
+**Remaining risks:**
+1. **It edits a revision file that is already applied and shared.** Teammates' copies keep the old downgrade until they pull (harmless). There is precedent: `968e574` changed `9ff2d118b666`'s `upgrade()`, and `c5d2f62cc22e` was emptied. B is narrower than either, because it touches only `downgrade()`.
+2. **Any real downgrade across this revision still destroys data**: `practice_modules.instructor_id` and every pending enrollment. B makes the downgrade possible; it doesn't make it harmless. Take a backup first.
+3. **Downgrades below `7a1b8c2d3e4f` still fail on a database that has `admin` users**, because of the older two-role `ck_users_role`. B doesn't change this.
+4. **Not run in offline `--sql` mode** (it needs a connection). Offline mode is already refused at head.
+5. **Tested on PostgreSQL 18.4 only**; the target is 15. `get_foreign_keys` and `DROP CONSTRAINT` behave the same on 15, but this wasn't run.
+6. **Production's real key name and revision aren't verified** (use the read-only SQL above). B doesn't depend on the name, which is why it's preferred.
+
+**Separate deployment finding (outside fix B; needs attention):**
+- `origin/main` is missing three migration files that `dev` has: `333fed79e9f7_bridge_migration.py`, `7a1b8c2d3e4f_phase3_business_logic_and_settings.py` and `c25114413200_reconcile_users_unified_name.py`.
+- On `main`, `9ff2d118b666` names `333fed79e9f7` as its parent, but that file doesn't exist there. Alembic can't load the revision map (`KeyError: '333fed79e9f7'`).
+- Because `start.sh` uses `set -e`, a production deploy of `main`'s current tip (`e271aa9`) would stop at `alembic upgrade head` before the API starts.
+- The fix is to merge `dev`'s migrations into `main` (or deploy from a branch that has them) **after** the read-only production check above. Nothing was changed for this.
+
+### Fix B: applied and verified (2026-10-17, not committed)
+- **Change:** `backend/alembic/versions/2cd5c3a3ee9a_add_pendingenrollment_and_practicemodule_instructor_id.py`, `downgrade()` only. Line 45 was replaced by the 5-line foreign-key lookup shown in the pre-approval review (+5 / −1). The file is still LF-only. Its blob is `da0bc31`, the same as the scratch copy tested before approval.
+- **Unchanged (verified):**
+  - `upgrade()` is AST-identical to `HEAD`.
+  - Module-level code is identical (revision `2cd5c3a3ee9a`, `down_revision` `9ee0a4c7ee5e`, imports).
+  - `alembic heads` is still `c25114413200` alone.
+  - No other file under `backend/alembic/` changed.
+- **Tests on disposable PostgreSQL 18.4** (every temporary database was dropped):
+
+  | Test | Result |
+  |---|---|
+  | `pytest tests/test_alembic_migrations.py` | **PASS 3/3**, including `test_alembic_upgrade_downgrade_and_reupgrade` (upgrade, check, downgrade base, re-upgrade, check). This test was failing before the change |
+  | Fresh upgrade to head, repository vs a copy holding the original file | **PASS**: identical schema (tables, columns, types, defaults, key names) |
+  | Downgrade scenarios (`verify_fix_b.py`) | **PASS 8/8**: on a database migrated with the original chain and holding data, `upgrade head` is a no-op; downgrade to base and re-upgrade work and `check` is clean; stepping `2cd5c3a3ee9a → 9ee0a4c7ee5e` with rows removes only what that revision added and keeps other rows |
+
+- **Real databases:** none migrated. `pamsu_ide_db` was only read through a read-only session and is still at `c25114413200`. Production was not contacted.
+- **Remaining risks:** unchanged from the pre-approval review, items 2–6:
+  - a real downgrade across this revision still destroys `practice_modules.instructor_id` and all pending enrollments, so back up first;
+  - downgrades below `7a1b8c2d3e4f` fail when admin users exist;
+  - offline `--sql` downgrade isn't supported;
+  - only PostgreSQL 18.4 was tested, not 15;
+  - production's revision and key name are unverified.
+- Teammates get the corrected downgrade when this commit is pulled. The `main` branch problem (missing migration files) is separate and still open.
