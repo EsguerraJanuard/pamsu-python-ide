@@ -14,7 +14,7 @@ from app.services.submission_service import (
     SubmissionTaskUnavailableError, create_student_submission,
     get_student_official_submission, get_student_submission,
     list_student_submissions)
-from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException, Query,
+from fastapi import (APIRouter, Depends, HTTPException, Query,
                      status)
 from sqlalchemy.orm import Session
 

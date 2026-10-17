@@ -1,10 +1,33 @@
+import os
+
 from app.core.database import SessionLocal
 from app.core.security import get_password_hash
 from app.models.domain_models import User
 from sqlalchemy import text
 from datetime import datetime, timezone
 
+def ensure_reset_is_allowed() -> None:
+    """
+    This script TRUNCATEs the users table with CASCADE, which empties every
+    table that references users: the whole database. It runs only when the
+    environment is explicitly development or test and the reset is
+    explicitly allowed, never against a production DATABASE_URL.
+    """
+
+    environment = os.getenv("PAMSU_ENVIRONMENT", "").strip().lower()
+    allowed = os.getenv("PAMSU_ALLOW_DATABASE_RESET", "").strip().lower()
+
+    if environment not in {"development", "test"} or allowed != "true":
+        raise SystemExit(
+            "Refusing to seed: seed.py deletes ALL data. Set "
+            "PAMSU_ENVIRONMENT=development and PAMSU_ALLOW_DATABASE_RESET=true "
+            "on a disposable local database to run it."
+        )
+
+
 def seed_database():
+    ensure_reset_is_allowed()
+
     db = SessionLocal()
     try:
         # Clear any old placeholder users using CASCADE to handle foreign keys

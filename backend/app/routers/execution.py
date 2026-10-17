@@ -3,6 +3,7 @@ from typing import NoReturn
 from uuid import UUID
 
 from app.core.database import get_db
+from app.core.rate_limit import limit_per_user
 from app.core.security import get_current_student, get_current_user
 from app.integrations.partner_auth import (PartnerExecutionIdentity,
                                            get_authenticated_execution_partner)
@@ -673,18 +674,22 @@ def apply_judge0_callback_endpoint(
     # 5 = Time Limit Exceeded -> timed_out
     # 6 = Compile Error, 7-12 = Runtime Errors -> runtime_error
     # Others -> failed
-    status_id = payload.status.get("id", 1) if payload.status else 1
-    
-    mapped_status = "completed"
+    raw_status_id = payload.status.get("id") if isinstance(payload.status, dict) else None
+    # Only an explicit Accepted (3) counts as completed. A missing,
+    # malformed or still-queued status (1, 2) is a failed callback.
+    status_id = raw_status_id if isinstance(raw_status_id, int) else None
+
     limit_reason = None
-    if status_id == 5:
+    if status_id == 3:
+        mapped_status = "completed"
+    elif status_id == 5:
         mapped_status = "timed_out"
         limit_reason = "time_limit_exceeded"
     elif status_id in [6, 7, 8, 9, 10, 11, 12]:
         mapped_status = "runtime_error"
-    elif status_id > 3 and status_id != 5:
+    else:
         mapped_status = "failed"
-        
+
     def decode_b64(val: str | None) -> str:
         if not val:
             return ""
@@ -831,6 +836,16 @@ from app.schemas.lint_schema import LintRequest, LintResult
 from app.services.lint_service import lint_python_code
 
 
-@router.post("/lint", response_model=LintResult)
-async def lint_endpoint(request: LintRequest):
+@router.post(
+    "/lint",
+    response_model=LintResult,
+    dependencies=[Depends(limit_per_user("lint", limit=60, window_seconds=60))],
+)
+def lint_endpoint(
+    request: LintRequest,
+    _current_user: User = Depends(get_current_user),
+) -> LintResult:
+    # Static analysis only (pyflakes parses, never runs, the code). A plain
+    # def runs in the threadpool so CPU-bound linting cannot stall the event
+    # loop, and authentication keeps it from being an open compute endpoint.
     return lint_python_code(request.code)

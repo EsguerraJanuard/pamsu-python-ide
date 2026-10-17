@@ -1,5 +1,5 @@
-import random
-from typing import List
+import secrets
+from typing import List, Literal
 
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
@@ -8,30 +8,61 @@ from app.models.domain_models import AuditRecord, Classroom, User
 from app.schemas.enrollment_schema import PendingEnrollmentResult
 from app.services.classroom_service import (StudentNotEligibleForEnrollmentError,
                                             apply_pending_enrollments)
-from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, UploadFile
-from pydantic import BaseModel, ConfigDict, computed_field
+from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
+from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, Query, UploadFile
+from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.services.email_service import send_provisioning_email
-from app.services.student_provisioning_service import (MasterlistConflictError,
+from app.services.student_provisioning_service import (MAX_MASTERLIST_BYTES,
+                                                      MasterlistConflictError,
                                                       MasterlistFileError,
                                                       MasterlistImportResult,
                                                       import_masterlist)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-class InstructorCreate(BaseModel):
-    email: str
-    first_name: str
-    last_name: str
-    password: str
+def _validate_university_email(value: str) -> str:
+    normalized_email = value.strip().lower()
+    local_part = normalized_email.removesuffix(UNIVERSITY_EMAIL_DOMAIN)
 
-class StudentCreate(BaseModel):
-    email: str
-    first_name: str
-    last_name: str
-    school_id: str
-    password: str
+    if (
+        not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN)
+        or not local_part
+        or "@" in local_part
+    ):
+        raise ValueError("Email must be a valid @pampangastateu.edu.ph address.")
+
+    return normalized_email
+
+
+class _AccountCreateBase(BaseModel):
+    email: str = Field(..., min_length=1, max_length=255)
+    first_name: str = Field(..., min_length=1, max_length=70)
+    last_name: str = Field(..., min_length=1, max_length=70)
+    password: str = Field(..., min_length=8, max_length=128)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return _validate_university_email(value)
+
+    @property
+    def full_name(self) -> str:
+        return " ".join(f"{self.first_name} {self.last_name}".split())
+
+
+class InstructorCreate(_AccountCreateBase):
+    pass
+
+
+class StudentCreate(_AccountCreateBase):
+    school_id: str = Field(..., pattern=r"^(\d{10}|\d{4}-\d{5})$")
+
 
 class UserResponse(BaseModel):
     user_id: int
@@ -60,19 +91,35 @@ class StudentCreateResponse(UserResponse):
 
 
 class PasswordReset(BaseModel):
-    new_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 class SettingsUpdate(BaseModel):
     maintenance_mode: bool
-    default_ast_strictness: str
+    default_ast_strictness: Literal["lax", "moderate", "strict"]
     registration_enabled: bool
 
-# Global mock settings for MVP
-global_system_settings = {
-    "maintenance_mode": False,
-    "default_ast_strictness": "moderate",
-    "registration_enabled": False
-}
+
+def _email_taken(db: Session, email: str) -> bool:
+    # Case-insensitive, as at login.
+    return db.query(User.user_id).filter(func.lower(User.email) == email).first() is not None
+
+
+def _generate_unused_school_id(db: Session, prefix: str) -> str:
+    """
+    A placeholder school_id for accounts the school does not number.
+
+    The letter prefix keeps placeholders from ever matching a real
+    all-digit student number from an MIS masterlist.
+    """
+
+    digits = 10 - len(prefix)
+
+    for _ in range(10):
+        candidate = prefix + "".join(secrets.choice("0123456789") for _ in range(digits))
+        if db.query(User.user_id).filter(User.school_id == candidate).first() is None:
+            return candidate
+
+    raise HTTPException(status_code=503, detail="Could not allocate an account ID. Please try again.")
 
 @router.get("/stats")
 def get_system_stats(
@@ -95,13 +142,12 @@ def create_student(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    existing = db.query(User).filter((User.email == request.email) | (User.school_id == request.school_id)).first()
-    if existing:
+    if _email_taken(db, request.email) or db.query(User.user_id).filter(User.school_id == request.school_id).first():
         raise HTTPException(status_code=400, detail="Student with this email or school ID already exists")
     
     new_student = User(
         email=request.email,
-        name=f"{request.first_name} {request.last_name}".strip(),
+        name=request.full_name,
         role="student",
         password_hash=get_password_hash(request.password),
         school_id=request.school_id,
@@ -166,11 +212,8 @@ def apply_student_pending_enrollments(
     return result
 
 
-class GuestCreate(BaseModel):
-    email: str
-    first_name: str
-    last_name: str
-    password: str
+class GuestCreate(_AccountCreateBase):
+    pass
 
 @router.post("/guests", response_model=UserResponse)
 def create_guest(
@@ -178,20 +221,23 @@ def create_guest(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    existing = db.query(User).filter(User.email == request.email).first()
-    if existing:
+    if _email_taken(db, request.email):
         raise HTTPException(status_code=400, detail="Guest with this email already exists")
     
     new_guest = User(
         email=request.email,
-        name=f"{request.first_name} {request.last_name}".strip(),
+        name=request.full_name,
         role="student",
         password_hash=get_password_hash(request.password),
-        school_id=f"GST{random.randint(1000000, 9999999)}",
+        school_id=_generate_unused_school_id(db, prefix="GST"),
         email_verified=True
     )
-    db.add(new_guest)
-    db.commit()
+    try:
+        db.add(new_guest)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Guest with this email already exists") from exc
     db.refresh(new_guest)
     return new_guest
 
@@ -202,28 +248,31 @@ def create_instructor(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    existing = db.query(User).filter(User.email == request.email).first()
-    if existing:
+    if _email_taken(db, request.email):
         raise HTTPException(status_code=400, detail="User already exists")
     
     new_instructor = User(
         email=request.email,
-        name=f"{request.first_name} {request.last_name}".strip(),
+        name=request.full_name,
         role="instructor",
         password_hash=get_password_hash(request.password),
-        school_id=str(random.randint(1000000000, 9999999999)),
+        school_id=_generate_unused_school_id(db, prefix="FAC"),
         email_verified=True
     )
-    db.add(new_instructor)
-    db.commit()
+    try:
+        db.add(new_instructor)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="User already exists") from exc
     db.refresh(new_instructor)
     background_tasks.add_task(send_provisioning_email, new_instructor.email, request.first_name, request.password, 'Instructor')
     return new_instructor
 
 @router.get("/users", response_model=List[UserResponse])
 def list_users(
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=500),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -256,8 +305,17 @@ def delete_user(
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
-    db.commit()
+    try:
+        db.delete(user)
+        db.commit()
+    except IntegrityError as exc:
+        # Classrooms, submissions, grades and audit records reference the
+        # account and are kept (RESTRICT). Such accounts are deactivated.
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="This account has academic or audit records and cannot be deleted. Deactivate it instead.",
+        ) from exc
     return {"message": "User deleted"}
 
 @router.patch("/users/{user_id}/password")
@@ -277,8 +335,8 @@ def reset_user_password(
 
 @router.get("/audit-logs")
 def get_global_audit_logs(
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -313,9 +371,12 @@ async def bulk_register_students_file(
     No password is set or sent: students set one through the password-reset
     OTP flow on the sign-in page.
     """
-    content = await file.read()
+    # Read one byte past the limit so an oversized file is rejected without
+    # buffering all of it; parsing and database work run off the event loop.
+    content = await file.read(MAX_MASTERLIST_BYTES + 1)
     try:
-        result, new_users = import_masterlist(
+        result, new_users = await run_in_threadpool(
+            import_masterlist,
             db=db,
             content=content,
             filename=file.filename,
@@ -336,9 +397,7 @@ def get_settings(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    settings = get_all_system_settings(db)
-    global_system_settings.update(settings)
-    return settings
+    return get_all_system_settings(db)
 
 @router.patch("/settings")
 def update_settings(
@@ -349,8 +408,5 @@ def update_settings(
     set_system_setting(db, "maintenance_mode", request.maintenance_mode)
     set_system_setting(db, "default_ast_strictness", request.default_ast_strictness)
     set_system_setting(db, "registration_enabled", request.registration_enabled)
-    global_system_settings["maintenance_mode"] = request.maintenance_mode
-    global_system_settings["default_ast_strictness"] = request.default_ast_strictness
-    global_system_settings["registration_enabled"] = request.registration_enabled
     return get_all_system_settings(db)
 

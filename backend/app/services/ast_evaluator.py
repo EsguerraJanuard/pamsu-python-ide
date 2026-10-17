@@ -2,6 +2,8 @@ import ast
 from collections.abc import Callable
 from typing import Any, TypedDict
 
+from app.services.ast_safety import parse_python_source
+
 
 class ASTRuleDefinition(TypedDict):
     label: str
@@ -359,7 +361,7 @@ def evaluate_ast_details(
         return result
 
     try:
-        syntax_tree = ast.parse(raw_code)
+        syntax_tree = parse_python_source(raw_code)
     except SyntaxError as error:
         result["syntax_error"] = {
             "message": error.msg,

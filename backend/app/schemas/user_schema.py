@@ -6,6 +6,9 @@ from pydantic import (BaseModel, ConfigDict, Field, field_validator,
 
 UNIVERSITY_EMAIL_DOMAIN = "@pampangastateu.edu.ph"
 
+# Values understood by ast_evaluator.evaluate_ast_details().
+AstStrictnessLevel = Literal["lax", "moderate", "strict"]
+
 
 class UserBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
@@ -74,6 +77,10 @@ class UserCreate(UserBase):
 
 
 class UserResponse(UserBase):
+    # Output only: guest and faculty accounts carry letter-prefixed
+    # placeholders ("GST…", "FAC…") that the student-number pattern on
+    # UserBase rejects; validating them here made PATCH /users/me return 500.
+    school_id: str = Field(..., min_length=1, max_length=10)
     user_id: int
     role: Literal["student", "instructor", "admin"]
     email_verified: bool
@@ -89,7 +96,7 @@ class UserResponse(UserBase):
 
 class UserUpdate(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
-    ast_strictness_level: str | None = Field(default=None, max_length=20)
+    ast_strictness_level: AstStrictnessLevel | None = None
 
     model_config = ConfigDict(
         extra="forbid",

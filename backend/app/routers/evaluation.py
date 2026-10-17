@@ -1,6 +1,7 @@
 from typing import Any, NoReturn
 
 from app.core.database import get_db
+from app.core.rate_limit import limit_per_user
 from app.core.security import get_current_instructor, get_current_user
 from app.models.domain_models import User
 from app.schemas.evaluation_schema import (
@@ -18,7 +19,6 @@ from app.services.evaluation_service import (
     get_instructor_evaluation_details, get_student_evaluation_details,
     patch_grade, update_submission_status)
 from fastapi import APIRouter, Depends, HTTPException, Path, status
-from fastapi_limiter.depends import RateLimiter
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
@@ -201,7 +201,7 @@ def raise_evaluation_service_http_exception(
 @router.post(
     "/submissions/{sub_id}",
     response_model=EvaluationResponse,
-    dependencies=[Depends(RateLimiter(times=3, seconds=10))],
+    dependencies=[Depends(limit_per_user("evaluation_run", limit=3, window_seconds=10))],
     status_code=status.HTTP_200_OK,
     operation_id="evaluate_submission",
     summary="Evaluate a submission",

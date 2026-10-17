@@ -372,6 +372,7 @@ def read_authenticated_student_progress(
                 "text/csv": {
                     "schema": {
                         "type": "string",
+                        "format": "binary",
                     },
                 },
             },

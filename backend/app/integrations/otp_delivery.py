@@ -7,6 +7,10 @@ from typing import NoReturn
 from app.integrations.otp_email import OTPEmailAdapter as OTPDeliveryAdapter
 from app.integrations.otp_email import OTPEmailAdapterRejectedError
 
+# Bounds every SMTP connect and command so a stalled relay cannot hold a
+# worker thread indefinitely.
+SMTP_TIMEOUT_SECONDS = 15
+
 
 class OTPDeliveryUnavailableError(RuntimeError):
     """Raised when no working OTP email adapter is configured."""
@@ -88,7 +92,7 @@ This code will expire in {minutes} minutes. If you did not request this code, yo
         msg.attach(part2)
 
         try:
-            with smtplib.SMTP(self.host, self.port) as server:
+            with smtplib.SMTP(self.host, self.port, timeout=SMTP_TIMEOUT_SECONDS) as server:
                 server.starttls()
                 server.login(self.user, self.password)
                 server.sendmail(self.sender_email, recipient_email, msg.as_string())

@@ -27,7 +27,9 @@ from app.schemas.task_schema import (ActivityType, TaskCreate,
 from app.schemas.task_test_case_schema import (InstructorTaskTestCaseResponse,
                                                TaskTestCaseCreate,
                                                TaskTestCaseUpdate)
+from app.core.pagination import MAX_PAGE_SIZE
 from app.services.ast_analyzer import analyze_reference_solution
+from app.services.ast_safety import MAX_ANALYZED_SOURCE_LENGTH
 from app.services.coding_session_service import (
     CodingSessionAccessDeniedError, CodingSessionNotFoundError,
     CodingSessionPersistenceError, CodingSessionServiceError,
@@ -52,6 +54,7 @@ from app.services.gradebook_service import (GradebookAccessDeniedError,
                                             GradebookServiceError,
                                             GradebookTaskNotFoundError,
                                             list_instructor_gradebook)
+from app.services.reporting_service import _sanitize_csv_cell
 from app.services.review_queue_service import (ReviewQueueAccessDeniedError,
                                                ReviewQueueClassNotFoundError,
                                                ReviewQueueFilterConflictError,
@@ -89,8 +92,11 @@ from app.services.task_service import update_task_test_case
 from fastapi import (APIRouter, Depends, HTTPException, Path, Query, Response,
                      status)
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
+REVIEW_QUEUE_EXPORT_PAGE_SIZE = MAX_PAGE_SIZE
+REVIEW_QUEUE_EXPORT_MAX_ROWS = 10_000
 
 router = APIRouter(
     prefix="/instructors",
@@ -1487,7 +1493,7 @@ def get_student_growth_for_instructor(
         .filter(
             Classroom.instructor_id == current_instructor.user_id,
             Enrollment.student_id == student_id,
-            Enrollment.status == "enrolled",
+            Enrollment.status == "active",
         )
         .first()
     )
@@ -1501,68 +1507,79 @@ def get_student_growth_for_instructor(
 
 @router.get("/review-queue/export")
 def export_instructor_review_queue_csv(
-    class_id: int | None = Query(default=None),
-    task_id: int | None = Query(default=None),
+    class_id: int | None = Query(default=None, gt=0),
+    task_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor)
 ):
+    """Download the instructor's own review queue as CSV (summary fields only)."""
+
+    items: list[dict] = []
+    page = 1
+
     try:
-        # Fetch up to 10000 records for the export
-        result = list_instructor_review_queue(
-            db,
-            instructor_id=current_instructor.user_id,
-            page=1,
-            page_size=10000,
-            class_id=class_id,
-            task_id=task_id,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-        
-    items = result.get("items", [])
-    
+        while True:
+            result = list_instructor_review_queue(
+                db,
+                instructor_id=current_instructor.user_id,
+                page=page,
+                page_size=REVIEW_QUEUE_EXPORT_PAGE_SIZE,
+                class_id=class_id,
+                task_id=task_id,
+            )
+            items.extend(result["items"])
+
+            if page >= result["total_pages"] or len(items) >= REVIEW_QUEUE_EXPORT_MAX_ROWS:
+                break
+
+            page += 1
+    except ReviewQueueServiceError as exc:
+        raise_review_queue_service_http_exception(exc)
+
     def iter_csv():
         output = io.StringIO()
         writer = csv.writer(output)
-        
-        # Headers
+
         writer.writerow([
-            "Submission ID", "Student Name", "Task Title", "Classroom", 
-            "Status", "Similarity Score", "Instructor Grade", "Submitted At"
+            "Submission ID", "Student Name", "School ID", "Activity", "Classroom",
+            "Attempt", "Status", "Official", "Submitted At", "Graded", "Grade Released",
         ])
         yield output.getvalue()
         output.seek(0)
         output.truncate(0)
-        
-        for item in items:
+
+        for item in items[:REVIEW_QUEUE_EXPORT_MAX_ROWS]:
             writer.writerow([
-                item.sub_id,
-                item.student_name,
-                item.task_title,
-                item.classroom_name,
-                item.status,
-                item.similarity_score if item.similarity_score is not None else "",
-                item.instructor_grade if item.instructor_grade is not None else "",
-                item.submitted_at.isoformat() if item.submitted_at else ""
+                _sanitize_csv_cell(value)
+                for value in (
+                    item["sub_id"],
+                    item["student"]["name"],
+                    item["student"]["school_id"],
+                    item["activity"]["title"],
+                    item["activity"]["class_name"],
+                    item["attempt_number"],
+                    item["status"],
+                    item["is_official"],
+                    item["submitted_at"],
+                    item["has_manual_grade"],
+                    item["grade_is_released"],
+                )
             ])
             yield output.getvalue()
             output.seek(0)
             output.truncate(0)
 
-    # Generate filename
-    filename = "gradebook_export.csv"
-    if class_id:
-        filename = f"gradebook_class_{class_id}.csv"
-        
+    filename = f"review_queue_class_{class_id}.csv" if class_id else "review_queue.csv"
+
     return StreamingResponse(
-        iter_csv(), 
-        media_type="text/csv", 
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        iter_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
 
 class SolutionAnalysisRequest(BaseModel):
-    reference_code: str
+    reference_code: str = Field(..., max_length=MAX_ANALYZED_SOURCE_LENGTH)
 
 @router.post("/tasks/analyze-solution", status_code=status.HTTP_200_OK)
 def analyze_solution(

@@ -1,5 +1,7 @@
 import ast
 
+from app.services.ast_safety import parse_python_source
+
 
 class ASTFingerprinter(ast.NodeVisitor):
     def __init__(self):
@@ -33,7 +35,7 @@ def generate_ast_fingerprint(raw_code: str) -> list[str]:
     if not isinstance(raw_code, str) or not raw_code.strip():
         return []
         
-    tree = ast.parse(raw_code)
+    tree = parse_python_source(raw_code)
     fingerprinter = ASTFingerprinter()
     fingerprinter.visit(tree)
     return fingerprinter.fingerprint

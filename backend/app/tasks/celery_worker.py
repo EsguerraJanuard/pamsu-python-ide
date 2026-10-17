@@ -117,14 +117,20 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
 
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to dispatch to partner: {e}")
+        logger.error(
+            "Failed to dispatch execution %s to Judge0 (attempt %s): %s",
+            execution_request_id,
+            self.request.retries + 1,
+            type(e).__name__,
+        )
         if self.request.retries >= self.max_retries:
             try:
                 db.begin()
                 req = db.query(ExecutionRequest).filter(ExecutionRequest.execution_id == execution_request_id).first()
                 if req:
                     req.status = "failed"
-                    req.stderr = f"System Error: Failed to contact Judge0 - {str(e)}"
+                    # Shown to the student: no provider URL or error detail.
+                    req.stderr = "System error: the code execution service could not be reached. Please try again."
                     db.commit()
             except Exception:
                 db.rollback()
@@ -146,7 +152,7 @@ def evaluate_submission_background_task(self, sub_id: int) -> None:
     try:
         evaluate_submission_by_id(db=db, sub_id=sub_id, instructor_id=None)
     except Exception as e:
-        logger.error(f"Background evaluation failed for submission {sub_id}: {e}")
+        logger.error("Background evaluation failed for submission %s: %s", sub_id, type(e).__name__)
         raise self.retry(exc=e, countdown=5)
     finally:
         db.close()

@@ -789,6 +789,15 @@ def test_execution_requests_increment_backend_session_counter(
 
     submission = submission_response.json()
 
+    # POST /submissions/ queues its own "submit" execution request (the
+    # Workspace relies on this), which counts as the third attempt.
+    after_submission_response = client.get(
+        (f"/activities/coding-sessions/{session_id}"),
+        headers=bearer_header(setup["student_token"]),
+    )
+
+    assert after_submission_response.json()["run_attempt_count"] == 3
+
     end_response = end_coding_session(
         client,
         student_token=setup["student_token"],
@@ -815,7 +824,7 @@ def test_execution_requests_increment_backend_session_counter(
     )
 
     assert after_submit_response.status_code == 200
-    assert after_submit_response.json()["run_attempt_count"] == 3
+    assert after_submit_response.json()["run_attempt_count"] == 4
 
     stored_session = db_session.get(
         CodingSession,
@@ -826,7 +835,7 @@ def test_execution_requests_increment_backend_session_counter(
 
     db_session.refresh(stored_session)
 
-    assert stored_session.run_attempt_count == 3
+    assert stored_session.run_attempt_count == 4
 
     forged_counter_response = client.patch(
         (f"/activities/coding-sessions/{session_id}/activity"),
@@ -840,7 +849,7 @@ def test_execution_requests_increment_backend_session_counter(
 
     db_session.refresh(stored_session)
 
-    assert stored_session.run_attempt_count == 3
+    assert stored_session.run_attempt_count == 4
 
 
 def test_instructor_can_review_only_owned_coding_sessions(

@@ -518,17 +518,20 @@ def get_student_activity_endpoint(
 
 
 
-from pydantic import BaseModel
+from app.core.rate_limit import limit_per_user
+from app.schemas.execution_schema import MAX_SOURCE_CODE_LENGTH
+from pydantic import BaseModel, Field
 
 
 class AstCheckRequest(BaseModel):
-    source_code: str
+    source_code: str = Field(..., max_length=MAX_SOURCE_CODE_LENGTH)
 
 @router.post(
     "/{task_id}/analyze-ast",
     status_code=status.HTTP_200_OK,
     operation_id="analyze_student_ast",
     summary="Analyze student AST",
+    dependencies=[Depends(limit_per_user("analyze_ast", limit=30, window_seconds=60))],
 )
 def analyze_student_ast_endpoint(
     request: AstCheckRequest,

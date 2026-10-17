@@ -269,6 +269,7 @@ def create_task(
         description=task_data.description,
         instructions=task_data.instructions,
         activity_type=task_data.activity_type,
+        difficulty=task_data.difficulty,
         required_ast_rules=task_data.required_ast_rules,
         starter_code=task_data.starter_code,
         paste_policy=task_data.paste_policy,
@@ -276,6 +277,7 @@ def create_task(
         is_published=False,
         due_at=task_data.due_at,
         published_at=None,
+        scheduled_publish_at=task_data.scheduled_publish_at,
     )
 
     try:
@@ -518,6 +520,9 @@ def set_task_publication(
         if is_published:
             task.is_published = True
             task.published_at = occurred_at
+            # A schedule is consumed once the task is published, so a later
+            # unpublish is not undone by the past schedule time.
+            task.scheduled_publish_at = None
             action_type = "activity_published"
         else:
             task.is_published = False
@@ -727,6 +732,57 @@ def delete_task_test_case(
         raise
 
 
+def publish_due_scheduled_tasks(
+    *,
+    db: Session,
+    student_id: int,
+) -> int:
+    """
+    Publish draft tasks whose scheduled_publish_at has passed, for the
+    classrooms the student is actively enrolled in.
+
+    There is no scheduler process, so schedules are applied when students
+    open their activities. Each task goes through the same validation and
+    audit record as a manual publish, attributed to the owning instructor.
+    A task that can no longer be published (archived class, past due date)
+    stays a draft for the instructor to fix.
+    """
+
+    due_tasks = (
+        db.query(Task)
+        .join(Enrollment, Enrollment.class_id == Task.class_id)
+        .filter(
+            Enrollment.student_id == student_id,
+            Enrollment.status == "active",
+            Task.is_published.is_(False),
+            Task.scheduled_publish_at.isnot(None),
+            Task.scheduled_publish_at <= get_utc_now(),
+        )
+        .all()
+    )
+
+    published = 0
+
+    for task in due_tasks:
+        try:
+            set_task_publication(
+                db=db,
+                task_id=task.task_id,
+                instructor_id=task.instructor_id,
+                is_published=True,
+            )
+            published += 1
+        except TaskServiceError as error:
+            db.rollback()
+            logger.info(
+                "Scheduled publication of task %s skipped: %s",
+                task.task_id,
+                error,
+            )
+
+    return published
+
+
 def get_student_task_query(
     *,
     db: Session,
@@ -758,6 +814,8 @@ def list_student_tasks(
     class_id: int | None = None,
     activity_type: str | None = None,
 ) -> list[Task]:
+    publish_due_scheduled_tasks(db=db, student_id=student_id)
+
     query = get_student_task_query(
         db=db,
         student_id=student_id,
@@ -782,6 +840,8 @@ def get_student_task(
     task_id: int,
     student_id: int,
 ) -> Task:
+    publish_due_scheduled_tasks(db=db, student_id=student_id)
+
     task = (
         get_student_task_query(
             db=db,

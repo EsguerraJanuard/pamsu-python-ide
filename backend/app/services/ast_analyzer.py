@@ -1,6 +1,8 @@
 import ast
 from typing import Any, Dict
 
+from app.services.ast_safety import parse_python_source
+
 
 class SolutionAnalyzer(ast.NodeVisitor):
     def __init__(self):
@@ -58,7 +60,7 @@ def analyze_reference_solution(code: str) -> Dict[str, Any]:
     the activity difficulty and recommended AST validation rules.
     """
     try:
-        tree = ast.parse(code)
+        tree = parse_python_source(code)
     except SyntaxError as e:
         return {
             "success": False,

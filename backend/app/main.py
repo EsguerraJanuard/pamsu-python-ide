@@ -9,11 +9,10 @@ from app.integrations.partner_auth import PARTNER_EXECUTION_TOKEN_HEADER
 from app.routers import (activities, admin, registration, audit_records, auth, classrooms,
                          evaluation, execution, instructor, logs,
                          notifications, practice, reporting, submissions,
-                         users, ws_execution)
+                         users)
 from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi_limiter import FastAPILimiter
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -258,7 +257,9 @@ if settings.cors_allowed_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
-        allow_origin_regex=r"https://.*\.vercel\.app",
+        # Production and preview deployments of this project only; a bare
+        # *.vercel.app pattern would trust every site hosted on Vercel.
+        allow_origin_regex=r"https://pamsu-python-ide(-[a-z0-9-]+)?\.vercel\.app",
         allow_credentials=(settings.cors_allow_credentials),
         allow_methods=[
             "GET",
@@ -311,20 +312,11 @@ app.include_router(admin.router)
 @app.on_event("startup")
 async def startup_event():
     import anyio.to_thread
-    try:
-        limiter = anyio.to_thread.current_default_thread_limiter()
-        limiter.total_tokens = 200
-    except Exception:
-        pass
-        
-    try:
-        # Use the same REDIS_URL as the rest of the backend instead of a
-        # hard-coded Docker hostname, so rate limiting reaches the
-        # configured Redis outside docker-compose as well.
-        from app.core.redis_async import async_redis_client
-        await FastAPILimiter.init(async_redis_client)
-    except Exception as e:
-        print("Could not initialize FastAPILimiter:", e)
+    # Sync endpoints run in this threadpool; the default of 40 threads is
+    # too small for a classroom of concurrent requests.
+    limiter = anyio.to_thread.current_default_thread_limiter()
+    limiter.total_tokens = 200
+
 
 
 def utc_now() -> datetime:

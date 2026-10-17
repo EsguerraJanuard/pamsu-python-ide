@@ -204,6 +204,7 @@ def test_task_update_schema_excludes_publication_and_ownership_fields():
         "description",
         "instructions",
         "activity_type",
+        "difficulty",
         "required_ast_rules",
         "starter_code",
         "paste_policy",

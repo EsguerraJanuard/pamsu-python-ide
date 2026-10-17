@@ -3,7 +3,10 @@ import os
 from typing import List
 
 import httpx
+import logging
+
 from app.core.database import get_db
+from app.core.rate_limit import limit_per_user
 from app.core.security import get_current_instructor, get_current_student
 from app.models.domain_models import (PracticeAttempt, PracticeModule,
                                       PracticeProgress, PracticeTask, User)
@@ -22,9 +25,10 @@ from app.schemas.practice_schema import (GrowthAnalyticsResponse,
 from app.services.ai_tutor_service import generate_pedagogical_hint
 from app.services.ast_evaluator import evaluate_ast_details
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from fastapi_limiter.depends import RateLimiter
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/practice", tags=["Solo Practice"])
 
@@ -88,7 +92,12 @@ def get_practice_modules(
 
     return response_modules
 
-@router.post("/tasks/{task_id}/submit", response_model=PracticeSubmissionResponse, dependencies=[Depends(RateLimiter(times=3, seconds=10))])
+@router.post(
+    "/tasks/{task_id}/submit",
+    response_model=PracticeSubmissionResponse,
+    # Each submission is a paid Judge0 call.
+    dependencies=[Depends(limit_per_user("practice_submit", limit=3, window_seconds=10))],
+)
 def submit_practice_task(
     task_id: int,
     request: PracticeSubmissionRequest,
@@ -148,12 +157,14 @@ def submit_practice_task(
                     # decode base64
                     try:
                         execution_feedback = base64.b64decode(err_b64).decode('utf-8')
-                    except:
+                    except (ValueError, UnicodeDecodeError):
                         execution_feedback = str(err_b64)
                 else:
                     execution_feedback = "Execution failed or output did not match expected output."
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Execution service unavailable: {str(e)}")
+    except (httpx.HTTPError, ValueError) as e:
+        # The provider URL and response are not shown to students.
+        logger.error("Practice execution via Judge0 failed: %s", type(e).__name__)
+        raise HTTPException(status_code=503, detail="The code execution service is unavailable. Please try again shortly.") from e
 
     ast_feedback_msgs = []
     # 2. Gate 2: AST Structural Analysis
@@ -172,8 +183,9 @@ def submit_practice_task(
                 is_successful = False
                 if not execution_feedback:
                     execution_feedback = "Code runs successfully but does not meet the structural requirements of this lesson."
-        except Exception as e:
-            ast_feedback_msgs = [f"AST Parsing error: {str(e)}"]
+        except Exception:
+            logger.exception("Practice AST evaluation failed for task %s.", task_id)
+            ast_feedback_msgs = ["The structure check could not be completed. Please try again."]
             is_successful = False
 
     # 3. Update Progress and Record Attempt
@@ -503,18 +515,17 @@ def _generate_hint_bg(attempt_id: int):
         
         attempt.ai_hint = hint
         db.commit()
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"AI Hint Background Task failed: {e}")
-        try:
-            attempt.ai_hint = f"AI Tutor encountered an error: {str(e)}"
-            db.commit()
-        except:
-            db.rollback()
+    except Exception:
+        logger.exception("AI hint generation failed for practice attempt %s.", attempt_id)
+        db.rollback()
     finally:
         db.close()
 
-@router.post("/attempts/{attempt_id}/ai-hint", response_model=PracticeAiHintResponse)
+@router.post(
+    "/attempts/{attempt_id}/ai-hint",
+    response_model=PracticeAiHintResponse,
+    dependencies=[Depends(limit_per_user("practice_ai_hint", limit=10, window_seconds=300))],
+)
 def get_ai_hint(
     attempt_id: int,
     background_tasks: BackgroundTasks,
@@ -531,21 +542,19 @@ def get_ai_hint(
     if attempt.ai_hint:
         return PracticeAiHintResponse(ai_hint=attempt.ai_hint, status="completed")
         
-    # Check if a task was recently kicked off? 
-    # To keep it simple, we kick off if it's missing, but if frontend polls, it will keep kicking off.
-    # Actually, we can use a Redis key or just kick it off if it's not present.
-    # A cleaner way is: if frontend calls GET, we return status. But this is a POST endpoint.
-    # If it's called multiple times, we might spawn multiple generation tasks.
-    # Let's use Redis to prevent duplicate generation.
+    # Repeated polls must not start a generation each time.
     from app.core.redis_client import redis_client
     lock_key = f"ai_hint_generating:{attempt_id}"
-    
-    is_generating = redis_client.get(lock_key)
-    if is_generating:
-        return PracticeAiHintResponse(ai_hint=None, status="processing")
-        
-    # Kick off generation
-    redis_client.setex(lock_key, 30, "1")
+
+    try:
+        # SET NX: only the first caller in 30 s starts a generation.
+        if not redis_client.set(lock_key, "1", ex=30, nx=True):
+            return PracticeAiHintResponse(ai_hint=None, status="processing")
+    except Exception:
+        # Without Redis a duplicate generation is possible but harmless:
+        # _generate_hint_bg stops if a hint was already saved.
+        logger.warning("AI hint lock unavailable; Redis is unreachable.")
+
     background_tasks.add_task(_generate_hint_bg, attempt_id)
     
     return PracticeAiHintResponse(ai_hint=None, status="processing")

@@ -815,3 +815,54 @@ These are recommendations. **None was implemented in this session.**
   - only PostgreSQL 18.4 was tested, not 15;
   - production's revision and key name are unverified.
 - Teammates get the corrected downgrade when this commit is pulled. The `main` branch problem (missing migration files) is separate and still open.
+
+---
+
+## Full backend audit (2026-10-17)
+
+_Branch: `dev` · Base commit: `0eb9c17` · Nothing committed or pushed. No real database, Redis, SMTP relay or Judge0 was contacted._
+
+### Production blocker found first
+`HEAD` (also pushed to `origin/dev`) **could not start**: `app/routers/admin.py` imports `app.services.student_provisioning_service`, which commit `c285f54` describes but never added. `test_masterlist_import.py` was missing too. Both were re-created from the behaviour recorded in that commit and the "Bulk registration security fix" section above.
+
+### Fixed
+| Pri | Finding | Fix |
+|---|---|---|
+| P0 | Backend fails to import (missing provisioning module) | Re-created `services/student_provisioning_service.py`; accounts get an unusable password marker (no bcrypt cost, no shared password) |
+| P1 | `routers/ws_execution.py` ran student code with `exec` in a subprocess on the API host (unregistered, one line from live) | Deleted |
+| P1 | `POST /execution/lint` unauthenticated, unbounded, CPU work on the event loop | Auth + per-user limit + size limit + threadpool |
+| P1 | AST endpoints crashed (MemoryError/RecursionError) or ran 7.5 s on 100 kB inputs | `services/ast_safety.py` bounded parser used by every analyzer; input size limits |
+| P1 | Password reset: unlimited new challenges (OTP brute force, email bombing); enumeration through response message/values; SMTP sent inside the request (Cloudflare drops >3 s); case-sensitive email match | Per-email and per-IP limits; a new request expires the old code; identical behaviour for unknown emails; delivery in a background task; SMTP timeouts |
+| P1 | Rate limits keyed by IP (all users share the Render proxy IP) and `fastapi-limiter` routes returned 500 when Redis was down | `core/rate_limit.py`: per-user for authenticated routes, fail-open with a warning; `fastapi-limiter` removed |
+| P1 | `seed.py` runs `TRUNCATE users CASCADE` (whole DB) and `entrypoint.sh` runs it on every container start | Refuses unless `PAMSU_ENVIRONMENT` is development/test and `PAMSU_ALLOW_DATABASE_RESET=true` (set only in docker-compose) |
+| P1 | Students' existing tokens kept working during maintenance mode | `get_current_student` returns 503 during maintenance |
+| P1 | Gradebook `.xlsx` turned student-entered names starting with `=` into formulas | Same sanitizer as the CSV export |
+| P1 | Judge0 callback mapped missing/queued/malformed status to `completed` | Only status 3 is `completed`; everything unknown is `failed` |
+| P2 | `create_task` silently dropped `difficulty` and `scheduled_publish_at`; scheduled publishing never happened | Fields saved; due schedules publish (with audit record) when students open activities; publishing clears the schedule |
+| P2 | Admin create endpoints had no validation (any email/password), case-sensitive duplicate check, random-ID collision 500, delete → 500, unbounded `limit` | Validated schemas, lowercase emails, `GST`/`FAC` placeholder IDs, 409 on delete with records, bounded paging |
+| P2 | `PATCH /users/me` returned 500 for guests (and new instructors) | Response schema no longer applies the input pattern |
+| P2 | Instructor growth analytics always 403 (`status == "enrolled"`); review-queue CSV export always 500 | Fixed |
+| P2 | Partner auth advertised env var `PARTNER_EXECUTION_TOKEN`; settings read `PAMSU_PARTNER_EXECUTION_TOKEN` | One name (`PAMSU_…`) |
+| P2 | Tests read the developer's `.env` (real DATABASE_URL, SMTP) and waited on Redis/broker timeouts (20 min) | `conftest.py` forces SQLite/unreachable Redis, stubs Celery `.delay` |
+| P2 | Student-visible error text leaked Judge0/AI exception strings; AI tutor fell back to models other than `gemini-3.8-flash` | Generic messages, server-side logging; single model |
+| P3 | CORS regex trusted every `*.vercel.app` site | Only `pamsu-python-ide[-…].vercel.app` |
+| P3 | bcrypt default 12 rounds (AGENTS.md caps at 8 for Render) | `BCRYPT_ROUNDS = 8`; old hashes still verify |
+| P3 | `seed_admin.py` used non-existent fields and a hardcoded password | Takes identity and password from env vars |
+
+### Tests
+- Before: 716 passed, 39 failed, 5 errors (≈20 min). After: **811 passed, 5 skipped, 0 failed (≈70 s)**.
+- New: `test_masterlist_import.py` (26), `test_backend_audit_regressions.py` (35).
+- Updated stale tests to the current, intentional contracts (unified `name`, `mouseleave_*`, `difficulty`, public routes, auto-queued submit request, completed-with-non-zero-exit).
+- Skipped: the 5 PostgreSQL-only suites (migrations, concurrency). Run them with `PAMSU_TEST_DATABASE_URL=postgresql://…` (they create and drop their own temporary database).
+
+### Still open (not changed)
+1. PostgreSQL migration chain and concurrency tests not run here (no PostgreSQL). Single head `c25114413200`; migrations do not run on SQLite.
+2. Admin actions (deactivate, delete, password reset, settings) write no audit record: `audit_records.action_type` has a DB CHECK constraint, so this needs a migration.
+3. Token revocation and rate limits fail open while Redis is down (documented choice).
+4. Guest accounts: unlimited creation behind one shared proxy IP, never cleaned up, can join any class whose code they know, sandbox class is owned by whichever instructor row comes first.
+5. `POST /practice/tasks/{id}/submit` waits on Judge0 synchronously (up to 15 s), against the AGENTS.md 3-second rule.
+6. AI tutor: `google-generativeai` is not in `requirements.txt` and the frontend never calls `/practice/attempts/{id}/ai-hint` (no `attempt_id` returned).
+7. Legacy `POST /execution/submissions/` creates submissions without the audit record/notification of `POST /submissions/`.
+8. Admin `default_ast_strictness` setting is stored but never applied.
+9. Retake workflow (columns only), enrollment product decisions above, instructor temp-password email.
+10. `rediss://` connections use `ssl_cert_reqs=none`.

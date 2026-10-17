@@ -1622,13 +1622,16 @@ def build_gradebook_excel_export(
 
     for row in rows:
         has_manual_grade = row.grade_id is not None
+        # Names and titles are user-entered; openpyxl stores a string that
+        # starts with "=" as a formula, so text cells get the same
+        # spreadsheet-injection guard as the CSV export.
         ws.append([
-            row.student_name,
-            row.school_id,
-            row.class_name,
-            row.subject_code,
-            row.section,
-            row.activity_title,
+            _sanitize_csv_cell(row.student_name),
+            _sanitize_csv_cell(row.school_id),
+            _sanitize_csv_cell(row.class_name),
+            _sanitize_csv_cell(row.subject_code),
+            _sanitize_csv_cell(row.section),
+            _sanitize_csv_cell(row.activity_title),
             row.activity_type,
             row.attempt_number,
             row.submission_status,

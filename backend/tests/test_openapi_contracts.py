@@ -22,6 +22,14 @@ PUBLIC_OPERATIONS = {
     ("post", "/registration/start"),
     ("post", "/registration/verify"),
     ("post", "/registration/resend"),
+    # Guest sign-in and the password-reset flow are for signed-out users.
+    ("post", "/guest"),
+    ("post", "/users/password-reset/start"),
+    ("post", "/users/password-reset/resend"),
+    ("post", "/users/password-reset/complete"),
+    # Judge0 cannot send our headers; the unguessable correlation_id in the
+    # callback URL authenticates it (see execution router).
+    ("put", "/execution/internal/judge0-callback"),
 }
 
 
@@ -469,6 +477,7 @@ def test_identity_and_server_controlled_fields_come_from_token():
 
     assert set(session_activity_properties) == {
         "tab_switch_increment",
+        "mouseleave_increment",
         "blocked_paste_increment",
         "idle_duration_increment_seconds",
     }
@@ -479,6 +488,7 @@ def test_identity_and_server_controlled_fields_come_from_token():
         "task_id",
         "run_attempt_count",
         "tab_switch_count",
+        "mouseleave_count",
         "blocked_paste_count",
         "idle_duration_seconds",
         "started_at",
@@ -589,6 +599,7 @@ def test_student_coding_session_response_respects_privacy_boundary():
         "ended_at",
         "last_activity_at",
         "tab_switch_count",
+        "mouseleave_count",
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",
@@ -629,6 +640,7 @@ def test_instructor_coding_session_response_is_review_only():
         "ended_at",
         "last_activity_at",
         "tab_switch_count",
+        "mouseleave_count",
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",

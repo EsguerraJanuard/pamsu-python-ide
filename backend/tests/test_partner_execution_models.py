@@ -58,8 +58,7 @@ def create_student(
     email: str = "student@pampangastateu.edu.ph",
 ) -> User:
     student = User(
-        first_name=("Partner Model Student").split()[0] if isinstance("Partner Model Student", str) else "Test",
-        last_name=" ".join(("Partner Model Student").split()[1:]) if isinstance("Partner Model Student", str) and " " in "Partner Model Student" else "User",
+        name="Partner Model Student",
         school_id=school_id,
         email=email,
         role="student",

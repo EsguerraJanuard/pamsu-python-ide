@@ -1,4 +1,7 @@
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 
 def generate_pedagogical_hint(task_instructions: str, student_code: str, error_output: str) -> str:
@@ -9,10 +12,10 @@ def generate_pedagogical_hint(task_instructions: str, student_code: str, error_o
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
+        # The tutor must use models/gemini-3.8-flash (project requirement);
+        # there is deliberately no fallback to older models.
         models_to_try = [
             os.getenv("GEMINI_MODEL", "models/gemini-3.8-flash"),
-            "models/gemini-1.5-flash",
-            "gemini-1.5-flash",
         ]
         
         prompt = f'''You are an AI coding tutor helping a beginner Python student.
@@ -47,5 +50,10 @@ Task Instructions:
                 continue
 
         return "AI Tutor is temporarily unavailable. Please review your code or try again shortly."
-    except Exception as e:
+    except ImportError:
+        # google-generativeai is not listed in requirements.txt.
+        logger.error("AI Tutor SDK (google-generativeai) is not installed.")
+        return "AI Tutor is temporarily unavailable. Please review your code or try again shortly."
+    except Exception:
+        logger.exception("AI Tutor request failed.")
         return "AI Tutor is temporarily unavailable. Please review your code or try again shortly."

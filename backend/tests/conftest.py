@@ -1,3 +1,22 @@
+import os
+
+# Tests must never reach a real database, mail relay, Redis or Celery broker.
+# app.core.config calls load_dotenv(), which would otherwise read the
+# developer's .env (real DATABASE_URL and SMTP credentials); load_dotenv does
+# not override variables that are already set, so these win.
+# PostgreSQL-only suites (migrations, concurrency) create and drop their own
+# temporary database on the server named by PAMSU_TEST_DATABASE_URL; without
+# it they are skipped.
+os.environ["DATABASE_URL"] = os.environ.get("PAMSU_TEST_DATABASE_URL") or "sqlite://"
+os.environ["PAMSU_ENVIRONMENT"] = "test"
+os.environ["JWT_SECRET_KEY"] = "test-only-jwt-secret-key-0123456789abcdef"
+os.environ["OTP_SECRET_KEY"] = "test-only-otp-secret-key-0123456789abcdef"
+# Port 1 refuses connections immediately: Redis-backed features take their
+# documented "Redis unavailable" paths without waiting on timeouts.
+os.environ["REDIS_URL"] = "redis://127.0.0.1:1/0"
+for variable in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS", "GEMINI_API_KEY", "JUDGE0_API_KEY"):
+    os.environ[variable] = ""
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -57,6 +76,25 @@ def block_real_smtp(monkeypatch):
             "sender_email": "noreply@pampangastateu.edu.ph",
         },
     )
+
+
+@pytest.fixture(autouse=True)
+def celery_calls(monkeypatch):
+    """Record Celery enqueues instead of contacting a broker."""
+
+    from app.tasks import celery_worker
+
+    calls: list[tuple[str, tuple]] = []
+
+    for task_name in ("dispatch_to_partner", "evaluate_submission_background_task"):
+        task = getattr(celery_worker, task_name)
+        monkeypatch.setattr(
+            task,
+            "delay",
+            lambda *args, _name=task_name: calls.append((_name, args)),
+        )
+
+    return calls
 
 
 @pytest.fixture(autouse=True)

@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 
+from app.schemas.execution_schema import MAX_SOURCE_CODE_LENGTH
 from pydantic import BaseModel, Field
 
 
@@ -34,7 +35,7 @@ class PracticeModuleList(PracticeModuleBase):
         from_attributes = True
 
 class PracticeSubmissionRequest(BaseModel):
-    code: str
+    code: str = Field(..., min_length=1, max_length=MAX_SOURCE_CODE_LENGTH)
 
 class PracticeSubmissionResponse(BaseModel):
     is_successful: bool

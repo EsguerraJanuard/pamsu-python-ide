@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import Any
 from uuid import uuid4
 
@@ -7,11 +8,14 @@ import redis
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.redis_client import redis_client
+from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -27,6 +31,12 @@ SUPPORTED_JWT_ALGORITHMS = {
 
 
 # Passlib removed in favor of raw bcrypt
+
+# The Render free tier is heavily CPU-throttled: at the bcrypt default of 12
+# rounds a login hash blocks long enough for the proxy to drop the request.
+# The project caps the work factor at 8 (see AGENTS.md). Existing hashes made
+# with more rounds still verify, because bcrypt stores the cost in the hash.
+BCRYPT_ROUNDS = 8
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/login",
@@ -58,7 +68,7 @@ def get_password_hash(
     if not isinstance(password, str) or not password:
         raise ValueError("Password cannot be empty.")
 
-    salt = bcrypt.gensalt()
+    salt = bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
     hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed_bytes.decode("utf-8")
 
@@ -149,8 +159,8 @@ def get_current_user(
                 # If Redis is completely offline, bypass the blacklist check.
                 # The client sets a connect timeout, so an unreachable host
                 # surfaces as TimeoutError rather than a hung ConnectionError.
-                pass
-        
+                logger.warning("Token revocation list unavailable; revoked tokens are accepted until Redis returns.")
+
         pwd_ver = payload.get("pwd_ver", 1)
 
     except (
@@ -204,13 +214,28 @@ def get_current_user(
 
 
 
+MAINTENANCE_MODE_MESSAGE = (
+    "The system is currently undergoing maintenance. Only instructors "
+    "and MIS personnel can log in at this time."
+)
+
+
 def get_current_student(
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> User:
     if current_user.role != "student":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Student access required.",
+        )
+
+    # /login already refuses students during maintenance; tokens issued
+    # before maintenance started are refused here as well.
+    if get_system_setting(db, "maintenance_mode", default=False):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=MAINTENANCE_MODE_MESSAGE,
         )
 
     return current_user

@@ -7,6 +7,10 @@ from email.mime.text import MIMEText
 
 logger = logging.getLogger(__name__)
 
+# Bounds every SMTP connect and command so a stalled relay cannot hold a
+# worker thread indefinitely.
+SMTP_TIMEOUT_SECONDS = 15
+
 def get_smtp_config():
     return {
         "host": os.getenv("SMTP_HOST", "smtp-relay.brevo.com"),
@@ -175,7 +179,7 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
     msg.attach(MIMEText(html_content, "html"))
     
     try:
-        with smtplib.SMTP(config["host"], config["port"]) as server:
+        with smtplib.SMTP(config["host"], config["port"], timeout=SMTP_TIMEOUT_SECONDS) as server:
             server.starttls()
             server.login(config["user"], config["password"])
             server.sendmail(config["sender_email"], recipient_email, msg.as_string())

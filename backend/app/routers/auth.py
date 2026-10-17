@@ -1,47 +1,36 @@
+import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 from uuid import uuid4
 
 from app.core.database import get_db
+from app.core.rate_limit import enforce_rate_limit, limit_per_ip
 from app.core.redis_client import redis_client
 from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
-                               SECRET_KEY, create_access_token, get_password_hash,
+                               MAINTENANCE_MODE_MESSAGE, SECRET_KEY,
+                               create_access_token, get_password_hash,
                                oauth2_scheme, verify_password)
 from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
 from app.schemas.audit_schema import AuditRecordCreateInternal
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.services.audit_service import create_audit_record
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import jwt
+from jose import JWTError, jwt
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-def RateLimiter(times: int = 5, seconds: int = 60):
-    def _limiter(request: Request):
-        try:
-            client_ip = request.client.host if request.client else "unknown"
-            key = f"rate_limit:{request.url.path}:{client_ip}"
-            cnt = redis_client.get(key)
-            if cnt and int(cnt) >= times:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Too many requests. Please try again later.",
-                )
-            new_cnt = redis_client.incr(key)
-            if new_cnt == 1:
-                redis_client.expire(key, seconds)
-        except HTTPException:
-            raise
-        except Exception:
-            pass
-    return _limiter
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Authentication"],
 )
+
+# A valid bcrypt hash of a random value, used only to equalize login timing.
+DUMMY_PASSWORD_HASH = get_password_hash(secrets.token_urlsafe(16))
 
 
 class AuthenticatedUserResponse(BaseModel):
@@ -124,22 +113,14 @@ def login(
 ) -> TokenResponse:
     normalized_email = form_data.username.strip().lower()
 
-    # Rate limiting: max 10 login attempts per minute per email
-    try:
-        login_rl_key = f"rl:login:{normalized_email}"
-        attempts = redis_client.get(login_rl_key)
-        if attempts and int(attempts) >= 10:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many login attempts. Please wait a minute before trying again.",
-            )
-        new_cnt = redis_client.incr(login_rl_key)
-        if new_cnt == 1:
-            redis_client.expire(login_rl_key, 60)
-    except HTTPException:
-        raise
-    except Exception:
-        pass
+    # Per account email, not per IP: every request reaches the app through
+    # the platform proxy, so an IP limit would lock out the whole school.
+    enforce_rate_limit(
+        scope="login",
+        identifier=normalized_email,
+        limit=10,
+        window_seconds=60,
+    )
 
     def raise_invalid(user_obj=None):
         try:
@@ -158,7 +139,7 @@ def login(
                 )
             )
         except Exception:
-            pass
+            logger.exception("Could not record a failed login attempt.")
         raise invalid_credentials_exception()
 
     if not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN):
@@ -170,6 +151,9 @@ def login(
     )
 
     if user is None:
+        # Spend the same hashing work as a real check so response timing
+        # does not reveal which university emails have accounts.
+        verify_password(form_data.password, DUMMY_PASSWORD_HASH)
         raise_invalid(None)
 
     if not verify_password(
@@ -192,7 +176,7 @@ def login(
     if get_system_setting(db, "maintenance_mode", default=False) and user.role == "student":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=("The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time."),
+            detail=MAINTENANCE_MODE_MESSAGE,
         )
 
     if user.role not in {
@@ -263,10 +247,19 @@ def logout(
             ttl = int(exp - now)
             if ttl > 0:
                 redis_client.setex(f"blacklist:{jti}", ttl, "revoked")
+    except JWTError:
+        # An invalid or expired token is already unusable.
+        return
     except Exception:
-        pass
+        # The client discards the token either way; it stays valid until it
+        # expires only if Redis is unreachable right now.
+        logger.warning("Could not record a revoked token; Redis is unavailable.")
 
-@router.post("/guest", response_model=TokenResponse, dependencies=[Depends(RateLimiter(times=2, seconds=60))])
+@router.post(
+    "/guest",
+    response_model=TokenResponse,
+    dependencies=[Depends(limit_per_ip("guest", limit=2, window_seconds=60))],
+)
 def login_guest(db: Session = Depends(get_db)):
     import random
     import secrets
@@ -279,7 +272,7 @@ def login_guest(db: Session = Depends(get_db)):
     if get_system_setting(db, "maintenance_mode", default=False):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=("The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time."),
+            detail=MAINTENANCE_MODE_MESSAGE,
         )
 
     short_id = str(uuid.uuid4())[:6]
