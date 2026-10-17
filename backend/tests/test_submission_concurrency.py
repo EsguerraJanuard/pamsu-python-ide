@@ -164,7 +164,7 @@ def _drop_temporary_database(
             )
 
             cursor.execute(
-                sql.SQL("DROP DATABASE IF EXISTS {}").format(
+                sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
                     sql.Identifier(database_name)
                 )
             )
