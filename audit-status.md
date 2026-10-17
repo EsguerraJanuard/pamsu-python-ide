@@ -398,3 +398,65 @@ This is a copy of the uncommitted `auth.py` changes that were replaced. It is **
 8. **Housekeeping:**
    - Rotate the SMTP key; its value appeared in session output.
    - Clean up the ad-hoc `fix_*.py` / `check_*.py` scripts in the repository root. These kinds of scripts produced the uncommitted `auth.py` regressions.
+
+---
+
+## Users-table migration: verification and local apply (2026-10-17)
+
+_Branch: `dev` · Migration commits `7901146` + `5ae15c4` (already pushed) · Local database only; staging and production were not touched._
+
+### Overall progress
+- **Blocker 1 (users schema drift) is resolved on the local database.** Migration `c25114413200` (`backend/alembic/versions/c25114413200_reconcile_users_unified_name.py`) was verified and then applied to the local `pamsu_ide_db`. The risk note is `docs/remediation/users-name-schema-drift.md`.
+- **Integration check:**
+  - The branch was rebased onto `190837b`, the backend remediation commit.
+  - There is a single Alembic head, `c25114413200`.
+  - Offline mode (`--sql`) now stops with a clear error. Migrations up to `7a1b8c2d3e4f` still generate offline SQL (778 lines).
+  - The real Alembic command was run against throwaway PostgreSQL 18 databases: 124/126 checks passed, and the 2 misses were false alarms in the test harness. Covered starting states: a clean database, the exact local drift, names longer than 150 characters, the "no `name` column" state, rollback cases, and blank names. App checks for guest, admin provisioning, registration and login also passed.
+- **Backup:** `C:\Users\ACER\Downloads\pamsu_ide_db_backup_2026-10-17.backup` (114,450 bytes, custom format, sha256 `c5ad87dc…2528`).
+  - `pg_restore --list` works.
+  - **A restore test was actually performed** into a throwaway cluster. It completed with no errors, and all 27 tables' row counts and the user fingerprints matched the live database. Role ownership and grants were not tested (`--no-owner --no-privileges`).
+- **Local apply:** `pamsu_ide_db` on `localhost:5432` went from `7a1b8c2d3e4f` to **`c25114413200`**.
+  - It was rehearsed first on the restored copy.
+  - The live run made the five expected changes: `first_name` and `last_name` became optional; `name` needed filling on 0 rows; `name` changed from `varchar(255)` to `varchar(150)`; `name` became NOT NULL.
+- **After the migration:**
+  - All 21 users are present, with no NULL or blank names and nothing truncated.
+  - Every user's name and identity/login fields are byte-identical to before, including password hashes and versions.
+  - The legacy name columns are kept and are now optional.
+  - All 27 tables have the same row counts (88 rows).
+- **App checks on the live database (13/13):** run inside a transaction that was rolled back, with email sending disabled. They covered reading users through the ORM, creating users through the ORM (previously `NotNullViolation`), login, `/guest`, admin creation of instructors and students, profile rename, and a wrong password getting 401. **No test rows remain.** Some ID sequences advanced, because PostgreSQL doesn't roll sequences back.
+- **Tests:** 9 migration and authentication suites ran: 131 passed, and 4 failed. All four were already known (the alembic test's table list, the old `first_name` test, the partner-result schema test, and an evaluation test that needs Redis).
+- **Cleanup:** the leftover empty test database `pamsu_ide_alembic_pytest_72e89d699c9b`, left by an earlier run of the alembic test, was dropped with approval. `pamsu_ide_db` was checked again afterwards and is unchanged.
+
+### Files modified or created in this phase
+```
+audit-status.md                                                    (modified: this section)
+backend/alembic/versions/c25114413200_reconcile_users_unified_name.py  (created; committed in 7901146/5ae15c4)
+docs/remediation/users-name-schema-drift.md                        (created; committed in 7901146/5ae15c4)
+```
+No application code was changed. The test scripts, logs and throwaway clusters lived only in the session's temporary folder, and the clusters have been deleted.
+
+### Pending tasks / next steps
+1. **Before staging or production:**
+   - Run the read-only check in `docs/remediation/users-name-schema-drift.md` against each database.
+   - `origin/main` still contains the old split-name version of `c5d2f62cc22e`. A database built from `main` probably has **no `name` column**, which the migration supports.
+   - Back up, apply on staging first, then confirm `POST /guest` and `POST /admin/instructors` work.
+2. **Decisions:**
+   - Drop the legacy `first_name`/`middle_name`/`last_name` columns? That needs a separate, reviewed migration plus a backup.
+   - Remove the tracked `backend/write_migration.py` and `backend/update_model.py`? Running either again would recreate the drift.
+   - How does `main` get the emptied `c5d2f62cc22e`?
+3. **Full backend audit, in priority order:**
+   - **P0, security:**
+     - Bulk-registered students all get the same hardcoded password, `PamsU@2026`, which is also emailed (`admin.py` lines 275/281). Instructor provisioning emails the plaintext password.
+     - `PUT /execution/internal/judge0-callback` needs no login and trusts identifiers in the URL. 15 partner-auth tests get 401.
+     - Revoked tokens are still accepted while Redis is down. Maintenance mode only blocks new logins, not existing tokens.
+     - CORS accepts any `*.vercel.app` origin with credentials. Redis TLS skips certificate checks.
+   - **P1, integrity:**
+     - The alembic test's expected tables differ from the real ones (`system_settings`, `practice_test_cases`). The `retake_*` columns exist but aren't used.
+     - Admins pass the instructor checks. A guest editing their profile gets a 500.
+     - `POST /submissions/` creates an execution request automatically. The strictness setting accepts any text.
+     - Code execution has not been tested end to end with Redis, a Celery worker and Judge0 running.
+   - **P2, contracts and coverage:**
+     - The OpenAPI and contract tests are out of date. The `ws_execution` router is not registered.
+     - Check what the audit log covers.
+     - Fix or retire the 40 known test failures, stub out Celery and Redis in tests, add PostgreSQL integration tests for user creation, and make the alembic test always clean up after itself.
+4. Items 2–8 of the previous wrap-up's pending list remain open (Redis/worker/Judge0 run, retake policy, admin-role review, smaller backend items, test cleanup, frontend follow-ups, rotating the SMTP key, removing ad-hoc scripts).
