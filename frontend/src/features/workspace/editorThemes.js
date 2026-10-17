@@ -1,8 +1,8 @@
 /**
- * Monaco themes for the student IDE. Surfaces mirror the CSS tokens in
+ * Monaco themes for the student IDE and the instructor grading diff view. Surfaces mirror the CSS tokens in
  * index.css (--bg-panel, --text-main, --border-subtle …) and every syntax
  * color was checked for WCAG AA (≥ 4.5:1) against its background.
- * The editor follows the effective student theme; there is no separate
+ * The editor follows the effective app theme; there is no separate
  * editor-theme preference.
  */
 export const EDITOR_THEME_LIGHT = "pamsu-light";
@@ -15,7 +15,7 @@ const rule = (token, foreground, fontStyle) => ({ token, foreground, ...(fontSty
 
 const LIGHT = {
   fg: "1c1917",
-  comment: "6b665f",
+  comment: "5f5a54",
   keyword: "77250b",
   string: "146c35",
   number: "7a5600",
@@ -26,7 +26,7 @@ const LIGHT = {
 
 const DARK = {
   fg: "f3ede6",
-  comment: "9a8f85",
+  comment: "a89d93",
   keyword: "f0b92e",
   string: "86d99b",
   number: "f2a65a",
@@ -63,7 +63,7 @@ export function defineEditorThemes(monaco) {
     colors: {
       "editor.background": "#ffffff",
       "editor.foreground": "#1c1917",
-      "editorLineNumber.foreground": "#6b665f",
+      "editorLineNumber.foreground": "#5f5a54",
       "editorLineNumber.activeForeground": "#1c1917",
       "editor.lineHighlightBackground": "#f7f6f3",
       "editor.lineHighlightBorder": "#00000000",
@@ -84,6 +84,10 @@ export function defineEditorThemes(monaco) {
       "scrollbarSlider.hoverBackground": "#1c19174d",
       "scrollbarSlider.activeBackground": "#1c191766",
       "minimap.background": "#ffffff",
+      "diffEditor.insertedTextBackground": "#15803d1f",
+      "diffEditor.insertedLineBackground": "#15803d10",
+      "diffEditor.removedTextBackground": "#b423181f",
+      "diffEditor.removedLineBackground": "#b4231810",
     },
   });
 
@@ -94,7 +98,7 @@ export function defineEditorThemes(monaco) {
     colors: {
       "editor.background": "#1c1815",
       "editor.foreground": "#f3ede6",
-      "editorLineNumber.foreground": "#9a8f85",
+      "editorLineNumber.foreground": "#a89d93",
       "editorLineNumber.activeForeground": "#f3ede6",
       "editor.lineHighlightBackground": "#241e19",
       "editor.lineHighlightBorder": "#00000000",
@@ -115,6 +119,10 @@ export function defineEditorThemes(monaco) {
       "scrollbarSlider.hoverBackground": "#fff0e15c",
       "scrollbarSlider.activeBackground": "#fff0e17a",
       "minimap.background": "#1c1815",
+      "diffEditor.insertedTextBackground": "#4ade801a",
+      "diffEditor.insertedLineBackground": "#4ade800d",
+      "diffEditor.removedTextBackground": "#ff8a801a",
+      "diffEditor.removedLineBackground": "#ff8a800d",
     },
   });
 }

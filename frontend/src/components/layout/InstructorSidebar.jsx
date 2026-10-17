@@ -1,4 +1,5 @@
 import AppSidebar from "./AppSidebar";
+import ThemeToggle from "../../features/theme/ThemeToggle";
 
 const INSTRUCTOR_NAV = [
   {
@@ -28,5 +29,12 @@ const INSTRUCTOR_NAV = [
 ];
 
 export default function InstructorSidebar() {
-  return <AppSidebar sections={INSTRUCTOR_NAV} ariaLabel="Instructor navigation" roleLabel="Faculty" />;
+  return (
+    <AppSidebar
+      sections={INSTRUCTOR_NAV}
+      ariaLabel="Instructor navigation"
+      roleLabel="Faculty"
+      renderThemeControl={(collapsed) => <ThemeToggle collapsed={collapsed} />}
+    />
+  );
 }

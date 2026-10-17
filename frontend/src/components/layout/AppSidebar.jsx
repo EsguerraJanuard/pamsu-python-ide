@@ -56,7 +56,7 @@ function readStoredCollapse() {
  * `sections`: [{ label, links: [{ icon, label, path, end }] }]
  * `badges`:   { [path]: number } — small counters next to a link
  * `renderThemeControl`: optional (collapsed) => node shown in the profile area
- *             (student sidebar only; other roles stay light-only).
+ *             (student and instructor sidebars; the admin area stays light-only).
  */
 export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}, renderThemeControl }) {
   const navigate = useNavigate();

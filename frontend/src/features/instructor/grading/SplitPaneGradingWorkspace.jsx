@@ -6,6 +6,8 @@ import PageShell from "../../../components/layout/PageShell";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../../components/ui/StateViews";
 import api, { API_BASE_URL, getErrorMessage } from "../../../services/api";
 import { classLabel, formatDateTime, humanize } from "../../../utils/format";
+import { useTheme } from "../../theme/ThemeContext";
+import { defineEditorThemes, editorThemeFor } from "../../workspace/editorThemes";
 
 const MAX_SCORE = 100;
 
@@ -45,6 +47,7 @@ function pickSubmissions(items) {
 }
 
 function SubmissionReview({ submission, task, onGraded }) {
+  const { effectiveTheme } = useTheme();
   const [details, setDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -161,7 +164,7 @@ function SubmissionReview({ submission, task, onGraded }) {
         {!analysis ? (
           <p className="text-sm text-text-muted">No structure analysis has been recorded for this submission.</p>
         ) : analysis.syntax_error ? (
-          <p className="text-sm text-psu-red">Syntax error: {analysis.syntax_error.message || "the code could not be parsed."}</p>
+          <p className="text-sm text-text-rose">Syntax error: {analysis.syntax_error.message || "the code could not be parsed."}</p>
         ) : findings.length === 0 ? (
           <p className="text-sm text-text-muted">The activity has no required structures to check.</p>
         ) : (
@@ -246,7 +249,8 @@ function SubmissionReview({ submission, task, onGraded }) {
               <DiffEditor
                 height="100%"
                 language="python"
-                theme="light"
+                theme={editorThemeFor(effectiveTheme)}
+                beforeMount={defineEditorThemes}
                 original={task?.starter_code || ""}
                 modified={sourceCode}
                 loading={<LoadingState label="Loading code…" />}
@@ -401,7 +405,7 @@ export default function SplitPaneGradingWorkspace() {
                           onClick={() => setSelectedStudentId(student.student_id)}
                           aria-current={isSelected ? "true" : undefined}
                           className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
-                            isSelected ? "bg-psu-cream" : "hover:bg-bg-alt"
+                            isSelected ? "bg-selected" : "hover:bg-bg-alt"
                           }`}
                         >
                           <span className="min-w-0">

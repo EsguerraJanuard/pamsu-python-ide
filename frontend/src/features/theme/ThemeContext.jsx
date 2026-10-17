@@ -22,14 +22,19 @@ function subscribeToSystemTheme(onChange) {
 const getSystemPrefersDark = () => window.matchMedia(DARK_QUERY).matches;
 const getServerSnapshot = () => false;
 
-const isStudentPath = (pathname) => pathname === "/student" || pathname.startsWith("/student/");
+// Roles that have a themed area, and the route prefix that area lives under.
+// Admin and every public page are intentionally absent: they stay light-only.
+const THEMED_AREAS = { student: "/student", instructor: "/instructor" };
+
+const isInArea = (pathname, prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`);
 
 /**
- * Single source of truth for the student theme.
+ * Single source of truth for the app theme (student and instructor areas).
  *
  * Dark mode is active only while an authenticated student is on a /student
- * route. Everywhere else (login, forgot password, instructor, admin,
- * unauthorized, 404, logged-out) the document is forced back to light, even if
+ * route or an authenticated instructor is on an /instructor route. Everywhere
+ * else (login, forgot password, admin, unauthorized, 404, logged-out, or a
+ * role on another role's route) the document is forced back to light, even if
  * a dark preference exists in storage. The preference itself is stored per
  * account (see themeStorage.js); `system` follows prefers-color-scheme live.
  */
@@ -38,7 +43,8 @@ export function StudentThemeProvider({ children }) {
   const { pathname } = useLocation();
 
   const userId = user?.user_id ?? null;
-  const enabled = isAuthenticated && role === "student" && userId != null && isStudentPath(pathname);
+  const areaPrefix = THEMED_AREAS[role];
+  const enabled = isAuthenticated && userId != null && Boolean(areaPrefix) && isInArea(pathname, areaPrefix);
 
   // Preference is tied to the account it was loaded for; switching accounts
   // re-reads storage instead of carrying the previous student's choice over.

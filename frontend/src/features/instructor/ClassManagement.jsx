@@ -118,7 +118,7 @@ export default function ClassManagement() {
               <div className="mt-4 rounded-lg border border-border-subtle bg-bg-alt px-3 py-2.5">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Enrollment code</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className="font-mono text-lg font-bold tracking-widest text-psu-maroon">{cls.class_code}</span>
+                  <span className="font-mono text-lg font-bold tracking-widest text-text-brand">{cls.class_code}</span>
                   <button type="button" onClick={() => copyCode(cls)} className="btn-ghost btn-sm" aria-label={`Copy enrollment code for ${cls.name}`}>
                     {copiedId === cls.class_id ? "Copied" : "Copy"}
                   </button>
@@ -132,7 +132,7 @@ export default function ClassManagement() {
                 <button
                   type="button"
                   onClick={() => setClassToToggle(cls)}
-                  className={`btn-ghost btn-sm ${cls.is_active ? "hover:text-psu-red" : ""}`}
+                  className={`btn-ghost btn-sm ${cls.is_active ? "hover:text-text-rose" : ""}`}
                 >
                   {cls.is_active ? "Archive" : "Restore"}
                 </button>

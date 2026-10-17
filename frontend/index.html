@@ -7,14 +7,18 @@
     <title>PAMSU Python IDE</title>
     <script>
       // Pre-paint theme bootstrap. Dark mode exists only for authenticated
-      // students on /student routes; everything else stays light. This mirrors
+      // students on /student routes and instructors on /instructor routes;
+      // everything else (login, admin, public pages) stays light. This mirrors
       // the storage rules in src/features/theme/themeStorage.js, and
       // StudentThemeProvider re-applies (or resets) the theme once React mounts.
       (function () {
         try {
           var path = location.pathname;
-          if (path !== '/student' && path.indexOf('/student/') !== 0) return;
-          if (!localStorage.getItem('pamsu_access_token') || localStorage.getItem('pamsu_user_role') !== 'student') return;
+          var role = localStorage.getItem('pamsu_user_role');
+          if (role !== 'student' && role !== 'instructor') return;
+          var prefix = '/' + role;
+          if (path !== prefix && path.indexOf(prefix + '/') !== 0) return;
+          if (!localStorage.getItem('pamsu_access_token')) return;
           var user = JSON.parse(localStorage.getItem('pamsu_user_data') || 'null');
           if (!user || user.user_id == null) return;
           var pref = localStorage.getItem('pamsu_theme_pref_v1:' + user.user_id);

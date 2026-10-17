@@ -117,7 +117,7 @@ export default function EditClassModal({ isOpen, onClose, classroom, onSuccess }
       <div className="mt-6 rounded-xl border border-border-subtle bg-bg-alt p-4">
         <p className="text-sm font-semibold text-text-main">Enrollment code</p>
         <p className="mt-0.5 text-xs text-text-muted">Students use this code to join. Generating a new one disables the old code.</p>
-        <p className="mt-3 font-mono text-2xl font-bold tracking-[0.25em] text-psu-maroon">{classCode || "—"}</p>
+        <p className="mt-3 font-mono text-2xl font-bold tracking-[0.25em] text-text-brand">{classCode || "—"}</p>
         {confirmRegenerate ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-text-main">Replace the current code?</span>

@@ -227,7 +227,7 @@ export default function ActivityDetails() {
                         <button
                           type="button"
                           onClick={() => setConfirm({ type: "delete-case", testCase: tc })}
-                          className="btn-ghost btn-sm hover:text-psu-red"
+                          className="btn-ghost btn-sm hover:text-text-rose"
                         >
                           Delete
                         </button>
@@ -353,7 +353,7 @@ export default function ActivityDetails() {
                 ["internal_only", "Workspace clipboard only", "Students can copy/paste within the editor; outside pastes are blocked."],
                 ["disabled", "No pasting", "All paste actions are blocked."],
               ].map(([value, label, help]) => (
-                <label key={value} className="mb-2 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border-subtle p-2.5 has-[:checked]:border-psu-maroon/40 has-[:checked]:bg-psu-cream">
+                <label key={value} className="mb-2 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border-subtle p-2.5 has-[:checked]:border-psu-maroon/40 has-[:checked]:bg-selected">
                   <input
                     type="radio"
                     name="paste-policy"

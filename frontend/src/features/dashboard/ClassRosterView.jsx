@@ -79,7 +79,7 @@ export default function ClassRosterView() {
 
   const tabClass = (tab) =>
     `-mb-px border-b-2 px-1 pb-3 text-sm font-semibold transition-colors ${
-      activeTab === tab ? "border-psu-maroon text-psu-maroon" : "border-transparent text-text-muted hover:text-text-main"
+      activeTab === tab ? "border-psu-maroon text-text-brand" : "border-transparent text-text-muted hover:text-text-main"
     }`;
 
   return (
@@ -210,7 +210,7 @@ export default function ClassRosterView() {
                                     <button
                                       type="button"
                                       onClick={() => setStudentToRemove(student)}
-                                      className="btn-ghost btn-sm hover:text-psu-red"
+                                      className="btn-ghost btn-sm hover:text-text-rose"
                                       aria-label={`Remove ${student.name} from class`}
                                     >
                                       Remove

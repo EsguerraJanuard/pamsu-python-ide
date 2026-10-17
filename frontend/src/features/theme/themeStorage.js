@@ -1,9 +1,9 @@
 /**
- * Theme preference storage for the student area.
+ * Theme preference storage for the themed areas (student and instructor).
  *
  * The preference is "system" | "light" | "dark" and is stored per account
- * (keyed by user_id) so one student's choice never applies to another student
- * who signs in on the same browser. Only the preference string is stored; no
+ * (keyed by user_id) so one user's choice never applies to another account
+ * (or role) that signs in on the same browser. Only the preference string is stored; no
  * tokens or account details. index.html repeats the read logic for pre-paint
  * initialisation — keep the key format in sync.
  */

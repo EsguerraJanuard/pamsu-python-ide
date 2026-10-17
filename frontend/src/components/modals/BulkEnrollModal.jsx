@@ -85,7 +85,7 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
             {[
               ["Enrolled", result.enrolled ?? 0, "text-text-emerald"],
               ["Pending (no account)", result.queued ?? 0, "text-text-amber"],
-              ["Invalid", result.invalid ?? 0, "text-psu-red"],
+              ["Invalid", result.invalid ?? 0, "text-text-rose"],
               ...(result.already_enrolled > 0 ? [["Already in class", result.already_enrolled, "text-text-main"]] : []),
               ...(result.ineligible > 0 ? [["Not a student account", result.ineligible, "text-text-amber"]] : []),
             ].map(([label, value, tone]) => (
@@ -138,7 +138,7 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
             <div>
               <label
                 htmlFor="bulk-enroll-file"
-                className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-strong px-6 py-10 text-center transition-colors hover:border-psu-maroon/40 hover:bg-psu-cream"
+                className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-strong px-6 py-10 text-center transition-colors hover:border-psu-maroon/40 hover:bg-selected"
               >
                 <span className="text-sm font-semibold text-text-main">
                   {isSubmitting ? "Uploading…" : "Choose a CSV or Excel file"}

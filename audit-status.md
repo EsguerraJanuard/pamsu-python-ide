@@ -143,7 +143,7 @@ frontend/src/components/layout/Navbar.jsx
 - Test real code execution, structure checks and grading in a staging environment with Redis and the execution worker running.
 - Fully rebuild `PracticeModuleManager.jsx` and `ActivityEditor.jsx` on `PageShell` and the shared form styles; so far they were only patched.
 - Remove the unused dependencies `xlsx` and `react-intersection-observer` from `package.json`. Removing them will change `package-lock.json`.
-- Student dark mode was restored in Phase 1 (see "Student Theme Restoration — Phase 1"). Instructor and admin dark mode are NOT restored and remain light-only.
+- Student dark mode was restored in Phase 1 (see "Student Theme Restoration — Phase 1"). Instructor dark mode was restored in Phase 2 (see "Instructor Theme Restoration — Phase 2"). Admin dark mode is NOT restored and remains light-only.
 - Optional: a toast system for short success messages. Inline alerts are used today.
 
 ### Local test data created during QA (seeded QA accounts only)
@@ -907,4 +907,37 @@ Run on 2026-10-17 with the Vite dev server and a throwaway mock API (not committ
 Login, Forgot Password, Register (redirects), Unauthorized, NotFound, admin, instructor pages and grading, backend, migrations, auth/route protection, API contracts.
 
 ### Remaining / for later phases
-Instructor and admin dark mode (not started, not complete). Run lint, build and the behavior matrix in a browser.
+Admin dark mode (separate phase, not started). Instructor dark mode: see Phase 2.
+
+## Instructor Theme Restoration — Phase 2
+
+Status: **implemented and verified in a browser against a mock API.** The admin interface remains light-only; admin theming is a separate phase and is not started. Backend-dependent workflows were not tested against a real backend.
+
+### Reused Phase 1 infrastructure (nothing duplicated)
+- One provider (`StudentThemeProvider` in `features/theme/ThemeContext.jsx`, name kept to avoid churn), one storage module (`themeStorage.js`), one token set in `index.css`, one `ThemeToggle`, one pair of Monaco themes (`editorThemes.js`).
+- The provider's enable rule is now a role→route-prefix map: student on `/student/*` and instructor on `/instructor/*`. Anything else (login, forgot password, admin, unauthorized, 404, logged out, a role on another role's route) is forced to light even if a dark preference is stored.
+- The preference is still per account (`pamsu_theme_pref_v1:<user_id>`), so an instructor's choice never applies to a student or admin account in the same browser. No backend, migration or dependency was added.
+- `index.html` pre-paint script now also handles `instructor` on `/instructor/*`.
+
+### Sidebar control
+`InstructorSidebar` passes `ThemeToggle` through `AppSidebar`'s `renderThemeControl` (profile area, expanded: Light/Dark/System radios and status line; collapsed/narrow: single cycling button). The admin area has no control.
+
+### Components touched
+- Brand text classes moved to semantic tokens (`text-text-brand`, `text-text-rose`, `bg-selected`; identical values in light): ActivityDetails, ActivityEditor, ClassManagement, PracticeModuleManager, SplitPaneGradingWorkspace, ClassRosterView, BulkEnrollModal, CreateClassModal, EditClassModal.
+- Grading Bench: the Monaco `DiffEditor` was hard-coded `theme="light"`; it now follows the effective theme (`pamsu-light`/`pamsu-dark`, with added diff insert/remove colors). Grading, payloads and release logic are untouched.
+- Flatpickr (ActivityEditor scheduling): the CSS was hard-coded light; it is now tokenised (calendar surface, border, arrows, weekdays, days, time inputs, popover shadow via `--shadow-popover`).
+- Editor syntax: comment and line-number colors adjusted for AA on diff-highlighted lines (dark `#a89d93`, light `#5f5a54`); this also applies to the student IDE.
+- Already token-based and covered without edits: InstructorDashboard, LiveMonitoring, GradingBenchRoot, GradingClassView, InstructorSettings, StudentGradebookModal, shared Modal/StateViews/CustomSelect (themed in Phase 1).
+
+### Verification (2026-10-18, Vite dev server + mock API; seeded fake sessions)
+- `npm run lint`: exit 0. `npm run build`: passes. `git diff --check`: clean.
+- Rendered-text contrast audit (all visible text nodes vs composited backgrounds, 4.5:1 / 3:1 large; disabled controls exempt) on 13 instructor routes in dark and light: no failures, except (a) the Activity Editor AST checklist, which is intentionally blurred and dimmed (opacity 0.3) until a difficulty is chosen, and (b) two transient readings caught mid-fade-in that passed on re-run. Create class, Remove student and Bulk enroll dialogs and the open date picker also showed no failures in dark. The Create module dialog was reviewed visually in dark.
+- Role isolation: instructor with OS dark and no saved choice → dark; manual dark on OS light kept after reload; System restores following the device (stored key cleared); sign out → login light even though a dark preference is stored; instructor visiting `/student/*` or `/admin/*` lands on a light `/unauthorized`; admin with OS dark and a stored dark preference stays light with no theme control; a student account in the same browser kept its own dark choice and the student theme control still works.
+- Grading Bench: typed a score and feedback, switched Light→Dark; the same input nodes kept their values (no remount, selection kept). Diff editor switched live between light and dark.
+- Live Monitoring: the poll stayed at an exact 10 s cadence across four theme switches (no extra fetches, same card nodes).
+- Mobile 375px (dark): no horizontal overflow on 11 instructor routes; theme button (43px) present on each.
+- **Not verified:** live reaction to an OS theme change (the browser pane emits no `change` events, same as Phase 1); real backend data, grading save/release, activity publish, roster changes, bulk import and monitoring with real sessions; the Activity Editor with validation errors, ActivityDetails modals and Practice Module task modal; Analytics charts (the student Analytics page uses CSS bars, no chart library); other browsers/devices; keyboard-only walkthrough; reduced motion.
+- Diff highlight intensity in the grading diff editor was judged by eye plus computed contrast for syntax colors on highlighted lines (≥ 4.8:1 dark, ≥ 4.8:1 light).
+
+### Remaining
+Admin dark mode (separate phase). `ActivityEditor.jsx.bak` and `.bak2` exist in `features/instructor/` and were not touched.

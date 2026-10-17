@@ -75,7 +75,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
       {created ? (
         <div className="text-center">
           <p className="text-sm text-text-muted">Share this enrollment code with the students of {created.name}.</p>
-          <p className="mt-4 rounded-xl border border-psu-gold/50 bg-psu-gold/10 px-4 py-4 font-mono text-3xl font-bold tracking-[0.3em] text-psu-maroon">
+          <p className="mt-4 rounded-xl border border-psu-gold/50 bg-psu-gold/10 px-4 py-4 font-mono text-3xl font-bold tracking-[0.3em] text-text-brand">
             {created.class_code}
           </p>
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
