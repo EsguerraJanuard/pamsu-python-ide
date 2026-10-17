@@ -9,7 +9,6 @@ import { ThemeProvider } from './features/theme/ThemeContext';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import Login from './features/auth/Login';
-import Register from './features/auth/Register';
 import ForgotPassword from './features/auth/ForgotPassword';
 
 // Route pages are code-split so each area loads only when visited.
@@ -48,7 +47,7 @@ const RootRoute = () => {
   return <Navigate to={homePathForRole(role)} replace />;
 };
 
-// Redirects already-authenticated users away from login/register
+// Redirects already-authenticated users away from the public auth pages
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Outlet />;
@@ -74,9 +73,11 @@ export const App = () => {
               {/* Public authentication routes */}
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
               </Route>
+              {/* Public self-registration is retired (MIS provisions student
+                  accounts); keep old links and bookmarks working. */}
+              <Route path="/register" element={<Navigate to="/login" replace />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
 
               {/* Protected routes — require a valid session */}

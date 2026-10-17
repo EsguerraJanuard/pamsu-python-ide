@@ -186,7 +186,11 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-screen bg-bg-base text-text-main">
+    // Locked to the viewport: 100vh fallback, 100dvh where supported (mobile
+    // browser chrome). Spacing below scales with viewport height via clamp(),
+    // and the form column scrolls internally only as a last resort on very
+    // short screens, so the document itself never scrolls.
+    <main className="flex h-screen w-full overflow-hidden bg-bg-base text-text-main supports-[height:100dvh]:h-dvh">
       <style>{`
         @keyframes loginFade {
           from { opacity: 0; transform: translateY(10px); }
@@ -201,7 +205,7 @@ export default function Login() {
       `}</style>
 
       {/* Left Side: Brand Panel (Hidden on Mobile) */}
-      <div className="relative hidden lg:flex lg:w-[45%] flex-col justify-between bg-psu-maroon overflow-hidden px-14 py-16 text-white shadow-2xl z-10">
+      <div className="relative hidden lg:flex lg:w-[45%] flex-col justify-between bg-psu-maroon overflow-hidden px-14 py-[clamp(2rem,6vh,4rem)] text-white shadow-2xl z-10">
         {/* Subtle Background Pattern / Gradient */}
         <div className="absolute inset-0 z-0 opacity-20">
           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-psu-gold blur-[100px]"></div>
@@ -219,20 +223,21 @@ export default function Login() {
         </div>
 
         <div className="relative z-10 my-auto animate-login-fade delay-100 opacity-0">
-          <span className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-psu-gold border border-white/20 backdrop-blur-md">
+          <span className="mb-[clamp(0.75rem,3vh,1.5rem)] inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-psu-gold border border-white/20 backdrop-blur-md">
             <span className="w-1.5 h-1.5 rounded-full bg-psu-gold animate-pulse"></span>
             Enterprise Platform
           </span>
-          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl xl:text-6xl leading-[1.1]">
+          <h1 className="text-[clamp(2rem,min(6.5vh,4.2vw),3.75rem)] font-black tracking-tight text-white leading-[1.1]">
             Code with<br />
             integrity.<br />
             <span className="text-psu-gold">Learn to think.</span>
           </h1>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-white/80">
+          <p className="mt-[clamp(0.75rem,3vh,1.5rem)] max-w-md text-base leading-relaxed text-white/80">
             An intelligent, browser-based Python workspace built exclusively for the Pampanga State University College of Computing Studies Department.
           </p>
-          
-          <ul className="mt-8 space-y-4">
+
+          {/* Decorative list: dropped on short screens rather than clipped */}
+          <ul className="mt-[clamp(1rem,3.5vh,2rem)] space-y-[clamp(0.5rem,1.6vh,1rem)] [@media(max-height:640px)]:hidden">
             {features.map((feat, idx) => (
               <li key={idx} className="flex items-center gap-3 text-sm font-medium text-white/90">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/5">
@@ -244,16 +249,18 @@ export default function Login() {
           </ul>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0 mt-12">
+        <div className="relative z-10 flex items-center justify-between text-xs font-medium text-white/50 animate-login-fade delay-200 opacity-0 mt-[clamp(1rem,4vh,3rem)]">
           <p>&copy; 2026 Pampanga State University</p>
         </div>
       </div>
 
       {/* Right Side: Login Form */}
-      <div className="flex flex-1 items-center justify-center bg-white px-6 py-12 lg:px-8 relative z-0">
-        
-        {/* Mobile Logo Header */}
-        <div className="absolute top-8 left-6 lg:hidden flex items-center gap-3 animate-login-fade opacity-0">
+      {/* min-h-0 + overflow-y-auto: if content still exceeds a very short
+          viewport, this column scrolls instead of the page or clipping. */}
+      <div className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-white px-6 py-[clamp(0.75rem,3.5vh,3rem)] lg:px-8">
+
+        {/* Mobile Logo Header (in flow so it never overlaps the form) */}
+        <div className="mb-[clamp(0.75rem,2.5vh,2rem)] flex shrink-0 items-center gap-3 lg:hidden animate-login-fade opacity-0">
           <img src="/school_logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
@@ -261,18 +268,20 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="w-full max-w-[440px] animate-login-fade delay-100 opacity-0">
-          <div className="mb-8 text-center sm:text-left">
-            <h2 className="text-4xl sm:text-[40px] font-black tracking-tight text-text-main leading-tight">
+        {/* m-auto centres the form but collapses to 0 when the column overflows,
+            so the top is never cut off. */}
+        <div className="m-auto w-full max-w-[440px] shrink-0 animate-login-fade delay-100 opacity-0">
+          <div className="mb-[clamp(0.75rem,3.5vh,2rem)] text-center sm:text-left">
+            <h2 className="text-[clamp(1.5rem,4.6vh,2.25rem)] sm:text-[clamp(1.5rem,4.6vh,2.5rem)] font-black tracking-tight text-text-main leading-tight">
               Sign in to your workspace
             </h2>
-            <p className="mt-3 text-[15px] text-text-muted">
+            <p className="mt-[clamp(0.375rem,1.2vh,0.75rem)] text-[15px] text-text-muted">
               Use your verified university account
             </p>
           </div>
 
           {notice && !error && (
-            <div role="status" className="mb-6 rounded-xl border border-psu-maroon/20 bg-psu-cream p-4 text-sm font-medium text-psu-maroon">
+            <div role="status" className="mb-[clamp(0.75rem,2.5vh,1.5rem)] rounded-xl border border-psu-maroon/20 bg-psu-cream p-[clamp(0.625rem,1.6vh,1rem)] text-sm font-medium text-psu-maroon">
               {notice}
             </div>
           )}
@@ -282,7 +291,7 @@ export default function Login() {
             <div
               role="alert"
               aria-live="polite"
-              id="login-error" className="mb-6 flex items-start gap-3 rounded-xl border border-psu-red/25 bg-psu-red/[0.06] p-4 text-sm text-psu-red"
+              id="login-error" className="mb-[clamp(0.75rem,2.5vh,1.5rem)] flex items-start gap-3 rounded-xl border border-psu-red/25 bg-psu-red/[0.06] p-[clamp(0.625rem,1.6vh,1rem)] text-sm text-psu-red"
             >
               <svg className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -291,14 +300,14 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-[clamp(0.625rem,2vh,1.25rem)]" noValidate>
             {/* Email */}
             <div>
-              <label htmlFor="school-email" className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
+              <label htmlFor="school-email" className="mb-[clamp(0.25rem,0.8vh,0.5rem)] block text-[13px] font-bold text-text-muted uppercase tracking-wider">
                 School email
               </label>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-[clamp(0.625rem,1.8vh,1rem)] shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text"
                 onClick={(e) => e.currentTarget.querySelector('input').focus()}
               >
                 <svg width="16" height="16" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -322,13 +331,13 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <div className="mb-2 block">
+              <div className="mb-[clamp(0.25rem,0.8vh,0.5rem)] block">
                 <label htmlFor="password" className="text-[13px] font-bold text-text-muted uppercase tracking-wider">
                   Password
                 </label>
               </div>
               <div
-                className="group flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text"
+                className="group flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-[clamp(0.625rem,1.8vh,1rem)] shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text"
                 onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}
               >
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
@@ -369,7 +378,7 @@ export default function Login() {
                   )}
                 </button>
               </div>
-              <div className="mt-3 flex justify-end">
+              <div className="mt-[clamp(0.375rem,1.2vh,0.75rem)] flex justify-end">
                 <Link to="/forgot-password" className="text-[13px] font-bold text-psu-maroon hover:underline transition-colors">
                   Forgot password?
                 </Link>
@@ -390,7 +399,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-5 py-4 text-[15px] font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-5 py-[clamp(0.75rem,1.8vh,1rem)] text-[15px] font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                 {isLoading ? (
@@ -406,7 +415,7 @@ export default function Login() {
                 )}
               </button>
               
-              <div className="relative mt-6 mb-6">
+              <div className="relative my-[clamp(0.625rem,2.2vh,1.5rem)]">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle"></div></div>
                 <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Or</span></div>
               </div>
@@ -415,17 +424,10 @@ export default function Login() {
                 type="button"
                 onClick={handleGuestLogin}
                 disabled={isLoading}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-white px-5 py-4 text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-bg-alt hover:shadow active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-white px-5 py-[clamp(0.75rem,1.8vh,1rem)] text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-bg-alt hover:shadow active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
               >
                 Continue as Guest Student
               </button>
-
-              <p className="mt-6 text-center text-sm text-text-muted">
-                New student?{" "}
-                <Link to="/register" className="font-semibold text-psu-maroon hover:underline">
-                  Create your account
-                </Link>
-              </p>
             </div>
           </form>
         </div>
