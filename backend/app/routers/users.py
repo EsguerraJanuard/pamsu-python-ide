@@ -4,30 +4,8 @@ from app.core.security import (get_current_user, get_password_hash,
 from app.models.domain_models import User
 from app.schemas.user_schema import PasswordUpdate, UserResponse, UserUpdate
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-
-router = APIRouter()
-
-class IntegrityUpdate(BaseModel):
-    is_graded: bool
-    tab_switch_increment: int
-    blocked_paste_increment: int
-    mouseleave_increment: int
-
-@router.patch(
-    "/me/integrity",
-    status_code=status.HTTP_200_OK,
-    summary="Deduct points from academic integrity score",
-)
-def update_integrity_score(
-    payload: IntegrityUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    # Panel Requirement: Telemetry no longer deducts points.
-    return {"academic_integrity_score": current_user.academic_integrity_score}
 
 router = APIRouter(
     prefix="/users",

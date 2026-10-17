@@ -51,6 +51,7 @@ class AuthenticatedUserResponse(BaseModel):
     email: str
     role: str
     email_verified: bool
+    ast_strictness_level: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -268,19 +269,35 @@ def logout(
 @router.post("/guest", response_model=TokenResponse, dependencies=[Depends(RateLimiter(times=2, seconds=60))])
 def login_guest(db: Session = Depends(get_db)):
     import random
+    import secrets
     import uuid
 
     from app.models.domain_models import Classroom, Enrollment
-    
+
+    # Guest accounts are student accounts, so the student maintenance-mode
+    # rule enforced by /login applies here as well.
+    if get_system_setting(db, "maintenance_mode", default=False):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=("The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time."),
+        )
+
     short_id = str(uuid.uuid4())[:6]
     guest_email = f"guest_{short_id}@pampangastateu.edu.ph"
-    
+
     guest = User(
         email=guest_email,
         name=f"Guest {short_id.upper()}",
         role="student",
-        password_hash=get_password_hash("guest"),
+        # Guests sign in only through this endpoint. A random, never-disclosed
+        # password keeps the ephemeral account from being reachable through
+        # /login with a shared, guessable password.
+        password_hash=get_password_hash(secrets.token_urlsafe(32)),
         school_id=f"GST{random.randint(1000000, 9999999)}",
+        # Guests have no university mailbox to verify. Same as
+        # admin-provisioned guests (POST /admin/guests); without it every
+        # authenticated request is rejected by get_current_user.
+        email_verified=True,
     )
     db.add(guest)
     db.commit()

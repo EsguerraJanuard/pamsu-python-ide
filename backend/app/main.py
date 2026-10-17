@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from typing import Literal
 
-import redis.asyncio as redis
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.request_context import (RequestContextMiddleware,
@@ -306,6 +305,7 @@ app.include_router(notifications.router)
 app.include_router(audit_records.router)
 app.include_router(reporting.router)
 app.include_router(practice.router)
+app.include_router(admin.router)
 
 
 @app.on_event("startup")
@@ -318,8 +318,11 @@ async def startup_event():
         pass
         
     try:
-        redis_client = redis.from_url("redis://redis:6379/0", encoding="utf8", decode_responses=True)
-        await FastAPILimiter.init(redis_client)
+        # Use the same REDIS_URL as the rest of the backend instead of a
+        # hard-coded Docker hostname, so rate limiting reaches the
+        # configured Redis outside docker-compose as well.
+        from app.core.redis_async import async_redis_client
+        await FastAPILimiter.init(async_redis_client)
     except Exception as e:
         print("Could not initialize FastAPILimiter:", e)
 

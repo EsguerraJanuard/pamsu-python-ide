@@ -133,8 +133,18 @@ def create_submission_endpoint(
     except SubmissionServiceError as error:
         _raise_submission_service_error(error)
 
-    from app.tasks.celery_worker import evaluate_submission_background_task
-    evaluate_submission_background_task.delay(submission.sub_id)
+    # The attempt is already committed. An unavailable queue must not turn a
+    # saved submission into a 500; the instructor can still run the
+    # evaluation through POST /evaluation/submissions/{sub_id}.
+    try:
+        from app.tasks.celery_worker import \
+            evaluate_submission_background_task
+        evaluate_submission_background_task.delay(submission.sub_id)
+    except Exception:
+        logger.exception(
+            "Failed to enqueue background evaluation for submission %s.",
+            submission.sub_id,
+        )
 
     try:
         from app.schemas.execution_schema import ExecutionRequestCreate

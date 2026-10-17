@@ -6,7 +6,11 @@ from celery import Celery
 
 logger = logging.getLogger(__name__)
 
-redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+# Same default as app.core.redis_client / redis_async. docker-compose and
+# render.yaml always set REDIS_URL explicitly; the old "redis" hostname
+# default only resolved inside docker-compose, so local API processes
+# published to a host that does not exist.
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 # Remove any leftover query params if they were added in Render
 if "?" in redis_url:
     redis_url = redis_url.split("?")[0]
@@ -27,6 +31,20 @@ celery.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    # No caller reads task results (no AsyncResult.get()). Tracking them made
+    # every .delay() subscribe to the Redis result backend, which retries 20
+    # times when Redis is down and blocked the HTTP request for ~70 s.
+    task_ignore_result=True,
+    # Bound how long the API waits to enqueue when the broker is unreachable,
+    # so routes fail fast instead of hanging.
+    broker_connection_timeout=2.0,
+    redis_socket_connect_timeout=2.0,
+    task_publish_retry_policy={
+        "max_retries": 1,
+        "interval_start": 0,
+        "interval_step": 0.2,
+        "interval_max": 0.2,
+    },
 )
 
 @celery.task(bind=True, max_retries=3)

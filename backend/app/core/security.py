@@ -142,8 +142,13 @@ def get_current_user(
             try:
                 if redis_client.get(f"blacklist:{jti}"):
                     raise authentication_error
-            except redis.exceptions.ConnectionError:
-                # If Redis is completely offline, bypass the blacklist check
+            except (
+                redis.exceptions.ConnectionError,
+                redis.exceptions.TimeoutError,
+            ):
+                # If Redis is completely offline, bypass the blacklist check.
+                # The client sets a connect timeout, so an unreachable host
+                # surfaces as TimeoutError rather than a hung ConnectionError.
                 pass
         
         pwd_ver = payload.get("pwd_ver", 1)
@@ -181,9 +186,13 @@ def get_current_user(
             detail=("University email verification is required."),
         )
 
+    # "admin" must be accepted here: get_current_admin and
+    # get_current_instructor build on this dependency, and the login
+    # endpoint already issues tokens to admin accounts.
     if user.role not in {
         "student",
         "instructor",
+        "admin",
     }:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
