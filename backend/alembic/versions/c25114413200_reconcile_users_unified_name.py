@@ -29,11 +29,14 @@ that never drifted and safe to run more than once:
 The legacy columns are kept. Dropping them is an explicit, commented option
 below, to be enabled only after the production schema has been checked and
 backed up.
+
+Offline mode (`alembic upgrade ... --sql`) is refused with a clear error,
+because there is no live schema to inspect.
 """
 import logging
 from typing import Sequence, Union
 
-from alembic import op
+from alembic import context, op
 import sqlalchemy as sa
 
 
@@ -50,6 +53,19 @@ log = logging.getLogger("alembic.runtime.migration")
 LEGACY_NAME_COLUMNS = ("first_name", "middle_name", "last_name")
 # Matches User.name = Column(String(150), nullable=False) and the baseline.
 NAME_LENGTH = 150
+
+
+def _require_online(direction: str) -> None:
+    # Checked before anything else, including the dialect: offline (--sql)
+    # mode has no live connection, and every step here depends on what the
+    # live schema contains, so a rendered script would be wrong or empty.
+    if context.is_offline_mode():
+        raise RuntimeError(
+            f"c25114413200 ({direction}) cannot run in offline (--sql) mode: it "
+            "inspects the live users table to decide what to change. Run it "
+            "online (`alembic upgrade head`). To review what it would do, run the "
+            "read-only SQL check in docs/remediation/users-name-schema-drift.md."
+        )
 
 
 def _users_columns(bind) -> dict[str, dict]:
@@ -81,6 +97,7 @@ def _legacy_full_name_sql(legacy_columns: list[str]) -> str:
 
 
 def upgrade() -> None:
+    _require_online("upgrade")
     bind = op.get_bind()
     if bind.dialect.name != "postgresql":
         # The drift is only known on PostgreSQL. SQLite databases in this
@@ -200,6 +217,7 @@ def downgrade() -> None:
     # so it is the correct state to return to. The upgrade does not record
     # whether a database had drifted, so it cannot restore a drifted state
     # exactly, and should not.
+    _require_online("downgrade")
     bind = op.get_bind()
     if bind.dialect.name != "postgresql":
         return
