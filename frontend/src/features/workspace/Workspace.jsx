@@ -10,10 +10,11 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/ui/StateV
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import api, { getErrorMessage, NETWORK_ERROR_STATUS, TIMEOUT_ERROR_STATUS } from "../../services/api";
 import { classLabel, formatDateTime } from "../student/studentData";
-import { ThemeToggle } from "../theme/ThemeToggle";
+import { useTheme } from "../theme/ThemeContext";
+import ThemeToggle from "../theme/ThemeToggle";
+import { defineEditorThemes, editorThemeFor } from "./editorThemes";
 
 const BLANK_TEMPLATE = "# Write your solution below.\n";
-const EDITOR_THEME_KEY = "pamsu_editor_theme";
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLLS = 20;
 const SUBMIT_TIMEOUT_MS = 45000;
@@ -40,14 +41,6 @@ const STATUS_DISPLAY = {
   error: { label: "Finished with errors", dot: "bg-psu-red" },
   unavailable: { label: "Sandbox unavailable", dot: "bg-psu-red" },
 };
-
-function readEditorTheme() {
-  try {
-    return localStorage.getItem(EDITOR_THEME_KEY) === "vs-dark" ? "vs-dark" : "light";
-  } catch {
-    return "light";
-  }
-}
 
 function readDraft(key) {
   try {
@@ -118,7 +111,7 @@ function ActivityWorkspace({ activityId }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const [code, setCode] = useState(BLANK_TEMPLATE);
-  const [editorTheme, setEditorTheme] = useState(readEditorTheme);
+  const { effectiveTheme } = useTheme();
   const [standardInput, setStandardInput] = useState("");
   const [output, setOutput] = useState("");
   const [astResults, setAstResults] = useState(null);
@@ -198,14 +191,6 @@ function ActivityWorkspace({ activityId }) {
     }, 500);
     return () => window.clearTimeout(timer);
   }, [code, draftStorageKey, activity]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(EDITOR_THEME_KEY, editorTheme);
-    } catch {
-      // Optional preference.
-    }
-  }, [editorTheme]);
 
   // Activity indicators: counts only, never content.
   useEffect(() => {
@@ -485,7 +470,10 @@ function ActivityWorkspace({ activityId }) {
               <span className={`h-2 w-2 rounded-full ${status.dot}`} aria-hidden="true" />
               <span className="text-text-muted">{status.label}</span>
             </div>
-            <ThemeToggle value={editorTheme} onChange={setEditorTheme} />
+            {/* Below lg the navigation rail (and its theme control) is hidden. */}
+            <div className="w-9 shrink-0 lg:hidden">
+              <ThemeToggle collapsed />
+            </div>
             <button type="button" onClick={handleCheck} disabled={isBusy} className="btn-secondary btn-sm">
               Check structure
             </button>
@@ -512,8 +500,8 @@ function ActivityWorkspace({ activityId }) {
             aria-live="polite"
             className={`shrink-0 border-b px-4 py-1.5 text-xs font-medium ${
               notice.tone === "error"
-                ? "border-psu-red/20 bg-psu-red/[0.06] text-psu-red"
-                : "border-psu-maroon/15 bg-psu-cream text-psu-maroon"
+                ? "border-psu-red/20 bg-psu-red/[0.06] text-text-rose"
+                : "border-psu-maroon/15 bg-selected text-text-brand"
             }`}
           >
             {notice.text}
@@ -527,7 +515,7 @@ function ActivityWorkspace({ activityId }) {
               setShowProblemPanel(false);
               setShowReviewPanel(false);
             }}
-            className="fixed inset-0 z-40 bg-slate-900/40 xl:hidden"
+            className="fixed inset-0 z-40 bg-overlay xl:hidden"
             aria-label="Close side panel"
           />
         )}
@@ -603,8 +591,8 @@ function ActivityWorkspace({ activityId }) {
                   )}
                 </section>
 
-                <section className="rounded-lg border border-psu-maroon/15 bg-psu-cream p-3">
-                  <h3 className="text-xs font-bold text-psu-maroon">Clipboard policy</h3>
+                <section className="rounded-lg border border-psu-maroon/15 bg-selected p-3">
+                  <h3 className="text-xs font-bold text-text-brand">Clipboard policy</h3>
                   <p className="mt-1 text-xs leading-relaxed text-text-muted">
                     {activity.pasteDisabled
                       ? "Pasting is turned off for this activity. Type your solution in the editor."
@@ -635,7 +623,7 @@ function ActivityWorkspace({ activityId }) {
                   Paste
                 </button>
                 <span className="mx-1 h-4 w-px bg-border-subtle" aria-hidden="true" />
-                <button type="button" onClick={() => setConfirmAction("reset")} className="btn-ghost btn-sm text-psu-red hover:text-psu-red">
+                <button type="button" onClick={() => setConfirmAction("reset")} className="btn-ghost btn-sm text-text-rose hover:text-text-rose">
                   Reset
                 </button>
               </div>
@@ -661,7 +649,8 @@ function ActivityWorkspace({ activityId }) {
                 <MonacoEditor
                   height="100%"
                   language="python"
-                  theme={editorTheme}
+                  theme={editorThemeFor(effectiveTheme)}
+                  beforeMount={defineEditorThemes}
                   value={code}
                   onChange={(value) => setCode(value ?? "")}
                   onMount={(editor) => {
@@ -708,7 +697,7 @@ function ActivityWorkspace({ activityId }) {
                     aria-selected={activePanel === panel.id}
                     onClick={() => setActivePanel(panel.id)}
                     className={`whitespace-nowrap border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
-                      activePanel === panel.id ? "border-psu-maroon text-psu-maroon" : "border-transparent text-text-muted hover:text-text-main"
+                      activePanel === panel.id ? "border-psu-maroon text-text-brand" : "border-transparent text-text-muted hover:text-text-main"
                     }`}
                   >
                     {panel.label}
@@ -726,7 +715,7 @@ function ActivityWorkspace({ activityId }) {
                 {activePanel === "analysis" && (
                   <div className="space-y-2">
                     {astError ? (
-                      <p className="rounded-lg border border-psu-red/20 bg-psu-red/[0.05] p-3 text-xs text-psu-red" role="alert">
+                      <p className="rounded-lg border border-psu-red/20 bg-psu-red/[0.05] p-3 text-xs text-text-rose" role="alert">
                         {astError}
                       </p>
                     ) : !astResults ? (
@@ -736,7 +725,7 @@ function ActivityWorkspace({ activityId }) {
                       </p>
                     ) : astResults.syntax_error ? (
                       <div className="rounded-lg border border-psu-red/20 bg-psu-red/[0.05] p-3">
-                        <p className="text-xs font-semibold text-psu-red">Syntax error on line {astResults.syntax_error.line}</p>
+                        <p className="text-xs font-semibold text-text-rose">Syntax error on line {astResults.syntax_error.line}</p>
                         <p className="mt-1 font-mono text-xs text-text-main">{astResults.syntax_error.message}</p>
                       </div>
                     ) : (

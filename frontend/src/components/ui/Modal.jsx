@@ -90,7 +90,7 @@ export default function Modal({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
-        className="absolute inset-0 bg-slate-900/45 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
         onClick={() => dismissible && onClose?.()}
         aria-hidden="true"
       />

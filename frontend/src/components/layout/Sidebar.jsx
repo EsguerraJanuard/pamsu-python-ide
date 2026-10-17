@@ -1,4 +1,5 @@
 import AppSidebar from "./AppSidebar";
+import ThemeToggle from "../../features/theme/ThemeToggle";
 
 const STUDENT_NAV = [
   {
@@ -34,6 +35,7 @@ export default function Sidebar({ assignmentCount = 0 }) {
       ariaLabel="Student navigation"
       roleLabel="Student"
       badges={{ "/student/assignments": assignmentCount }}
+      renderThemeControl={(collapsed) => <ThemeToggle collapsed={collapsed} />}
     />
   );
 }

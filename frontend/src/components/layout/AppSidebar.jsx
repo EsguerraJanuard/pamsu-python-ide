@@ -55,8 +55,10 @@ function readStoredCollapse() {
  * Shared navigation rail for student and instructor areas.
  * `sections`: [{ label, links: [{ icon, label, path, end }] }]
  * `badges`:   { [path]: number } — small counters next to a link
+ * `renderThemeControl`: optional (collapsed) => node shown in the profile area
+ *             (student sidebar only; other roles stay light-only).
  */
-export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {} }) {
+export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}, renderThemeControl }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
@@ -166,7 +168,7 @@ export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}
                         className={({ isActive }) =>
                           `${itemBase} ${
                             isActive
-                              ? "bg-psu-cream font-semibold text-psu-maroon shadow-[inset_3px_0_0_var(--color-psu-gold)]"
+                              ? "bg-selected font-semibold text-text-brand shadow-[inset_3px_0_0_var(--color-psu-gold)]"
                               : "font-medium text-text-muted hover:bg-bg-alt hover:text-text-main"
                           }`
                         }
@@ -208,12 +210,13 @@ export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}
               </div>
             )}
           </div>
+          {renderThemeControl?.(isCollapsed)}
           <button
             type="button"
             onClick={() => setIsSignOutOpen(true)}
             title={isCollapsed ? "Sign out" : undefined}
             aria-label={isCollapsed ? "Sign out" : undefined}
-            className={`${itemBase} font-medium text-text-muted hover:bg-psu-red/[0.06] hover:text-psu-red`}
+            className={`${itemBase} font-medium text-text-muted hover:bg-psu-red/[0.06] hover:text-text-rose`}
           >
             <NavIcon name="logout" />
             {!isCollapsed && <span>Sign out</span>}

@@ -3,12 +3,20 @@
 /*
  * PAMSU design tokens.
  *
- * The product ships a single light, PSU-branded theme. Brand colors are
- * psu-maroon (primary actions, emphasis) and psu-gold (secondary highlights).
- * Legacy semantic tokens (text-blue / text-violet / text-amber …) are kept as
- * aliases so older markup resolves to brand-consistent values instead of the
- * previous IDE palette.
+ * Light is the default theme everywhere. The student area additionally
+ * supports dark mode: StudentThemeProvider (features/theme/ThemeContext.jsx)
+ * adds the `dark` class to <html> only while an authenticated student is on a
+ * /student route, so login, instructor and admin pages never see it.
+ *
+ * Components consume semantic tokens (bg-bg-panel, text-text-muted,
+ * text-text-brand, bg-selected …) instead of picking colors per theme. Brand
+ * fills (psu-maroon / psu-red) are re-pointed for dark below; brand *text*
+ * uses text-text-brand / text-text-rose / text-text-amber so it stays legible.
+ * Legacy semantic tokens (text-blue / text-violet …) remain as aliases.
  */
+/* Class-based dark variant: follows the student theme, never the OS directly. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-psu-maroon: #77250b;
   --color-psu-maroon-dark: #5c1c08;
@@ -21,6 +29,8 @@
   --color-bg-base: var(--bg-base);
   --color-bg-panel: var(--bg-panel);
   --color-bg-alt: var(--bg-alt);
+  --color-selected: var(--bg-selected);
+  --color-overlay: var(--bg-overlay);
   --color-bg-glass: var(--bg-glass);
   --color-bg-glass-hover: var(--bg-glass-hover);
   --color-border-subtle: var(--border-subtle);
@@ -47,6 +57,8 @@
   --bg-base: #f7f6f3;
   --bg-panel: #ffffff;
   --bg-alt: #f1efe9;
+  --bg-selected: #fbf6ea;
+  --bg-overlay: rgba(15, 23, 42, 0.45);
   --bg-glass: #ffffff;
   --bg-glass-hover: #faf8f3;
   --border-subtle: rgba(28, 25, 23, 0.1);
@@ -55,6 +67,11 @@
   --text-main: #1c1917;
   --text-muted: #5f5a54;
   --text-brand: #77250b;
+  --text-placeholder: #6b665f;
+  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.04);
+  --scrollbar-thumb: rgba(28, 25, 23, 0.18);
+  --scrollbar-thumb-hover: rgba(28, 25, 23, 0.3);
+  --selection: rgba(119, 37, 11, 0.16);
 
   /* Legacy accent aliases → brand / accessible semantic values */
   --text-blue: #77250b;
@@ -62,6 +79,46 @@
   --text-amber: #8a6200;
   --text-emerald: #15803d;
   --text-rose: #b42318;
+}
+
+/*
+ * Dark theme (student area only). Warm near-black surfaces keep the PSU
+ * identity; maroon fills are lifted so they remain visible against dark
+ * panels, and brand text switches to gold. Contrast (WCAG 2.2 AA) was
+ * computed from these resolved values — see audit-status.md.
+ */
+:root.dark {
+  color-scheme: dark;
+
+  --color-psu-maroon: #b34d27;
+  --color-psu-maroon-dark: #9a3f1d;
+  --color-psu-gold-dark: #f2c14b;
+  --color-psu-red: #c8372d;
+
+  --bg-base: #14110f;
+  --bg-panel: #1c1815;
+  --bg-alt: #26211d;
+  --bg-selected: #2e2417;
+  --bg-overlay: rgba(0, 0, 0, 0.62);
+  --bg-glass: #1c1815;
+  --bg-glass-hover: #26211d;
+  --border-subtle: rgba(255, 240, 225, 0.13);
+  --border-strong: rgba(255, 240, 225, 0.4);
+  --border-focus: #eaae19;
+  --text-main: #f3ede6;
+  --text-muted: #b8ada2;
+  --text-brand: #f0b92e;
+  --text-placeholder: #a39990;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --scrollbar-thumb: rgba(255, 240, 225, 0.22);
+  --scrollbar-thumb-hover: rgba(255, 240, 225, 0.36);
+  --selection: rgba(234, 174, 25, 0.3);
+
+  --text-blue: #f0b92e;
+  --text-violet: #f0b92e;
+  --text-amber: #f2c14b;
+  --text-emerald: #4ade80;
+  --text-rose: #ff8a80;
 }
 
 *,
@@ -86,7 +143,7 @@ body {
 }
 
 ::selection {
-  background: rgba(119, 37, 11, 0.16);
+  background: var(--selection);
 }
 
 /* Visible keyboard focus everywhere, without changing mouse interaction */
@@ -97,8 +154,8 @@ body {
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(28, 25, 23, 0.18); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: rgba(28, 25, 23, 0.3); background-clip: padding-box; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: padding-box; }
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -152,22 +209,22 @@ body {
     @apply px-3 py-1.5 text-xs;
   }
   .card {
-    @apply rounded-xl border border-border-subtle bg-bg-panel shadow-[0_1px_2px_rgba(28,25,23,0.04)];
+    @apply rounded-xl border border-border-subtle bg-bg-panel shadow-[var(--shadow-card)];
   }
   .field-label {
     @apply mb-1.5 block text-xs font-semibold text-text-muted;
   }
   .input-field {
-    @apply w-full rounded-lg border border-border-strong bg-bg-panel px-3 py-2 text-sm text-text-main placeholder:text-text-muted/70 transition-colors focus:border-psu-maroon focus:outline-none focus:ring-2 focus:ring-psu-maroon/15 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/15;
+    @apply w-full rounded-lg border border-border-strong bg-bg-panel px-3 py-2 text-sm text-text-main placeholder:text-[var(--text-placeholder)] transition-colors focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-border-focus/20 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/15;
   }
   .badge {
     @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold;
   }
   .badge-brand {
-    @apply border-psu-maroon/25 bg-psu-maroon/[0.07] text-psu-maroon;
+    @apply border-psu-maroon/25 bg-psu-maroon/[0.07] text-text-brand;
   }
   .badge-gold {
-    @apply border-psu-gold/50 bg-psu-gold/15 text-psu-gold-dark;
+    @apply border-psu-gold/50 bg-psu-gold/15 text-text-amber;
   }
   .badge-neutral {
     @apply border-border-strong bg-bg-alt text-text-muted;
@@ -176,7 +233,7 @@ body {
     @apply border-emerald-600/25 bg-emerald-600/[0.08] text-text-emerald;
   }
   .badge-danger {
-    @apply border-psu-red/25 bg-psu-red/[0.07] text-psu-red;
+    @apply border-psu-red/25 bg-psu-red/[0.07] text-text-rose;
   }
 }
 

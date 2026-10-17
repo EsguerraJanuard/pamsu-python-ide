@@ -72,7 +72,7 @@ export default function SoloPractice() {
                 <div
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${
                     state === "done"
-                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      ? "border-emerald-700 bg-emerald-700 text-white"
                       : state === "locked"
                         ? "border-border-strong bg-bg-alt text-text-muted"
                         : "border-psu-maroon bg-psu-maroon text-white"
@@ -113,7 +113,7 @@ export default function SoloPractice() {
                                 ? "border-emerald-600/25 bg-emerald-600/[0.04] hover:bg-emerald-600/[0.08]"
                                 : taskState === "locked"
                                   ? "cursor-not-allowed border-border-subtle bg-bg-alt text-text-muted"
-                                  : "border-border-subtle bg-bg-panel hover:border-psu-maroon/40 hover:bg-psu-cream"
+                                  : "border-border-subtle bg-bg-panel hover:border-psu-maroon/40 hover:bg-selected"
                             }`}
                           >
                             <span className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-text-muted">
@@ -124,7 +124,7 @@ export default function SoloPractice() {
                                     ? "text-text-emerald"
                                     : taskState === "locked"
                                       ? "text-text-muted"
-                                      : "text-psu-maroon"
+                                      : "text-text-brand"
                                 }
                               >
                                 <StatusIcon state={taskState} />

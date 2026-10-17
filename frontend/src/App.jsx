@@ -5,7 +5,7 @@ import ProtectedRoute from './features/auth/ProtectedRoute';
 import RoleRoute from './features/auth/RoleRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LoadingState } from './components/ui/StateViews';
-import { ThemeProvider } from './features/theme/ThemeContext';
+import { StudentThemeProvider } from './features/theme/ThemeContext';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import Login from './features/auth/Login';
@@ -57,9 +57,9 @@ const GuestRoute = () => {
 export const App = () => {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <Router>
+      <AuthProvider>
+        <Router>
+          <StudentThemeProvider>
             <Suspense
               fallback={
                 <div className="flex min-h-screen items-center justify-center bg-bg-base">
@@ -122,9 +122,9 @@ export const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
+          </StudentThemeProvider>
+        </Router>
+      </AuthProvider>
     </ErrorBoundary>
   );
 };

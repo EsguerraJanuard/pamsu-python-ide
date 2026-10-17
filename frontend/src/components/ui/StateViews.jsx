@@ -92,7 +92,7 @@ export function EmptyState({ icon = "inbox", title, message, action, className =
     <div
       className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-border-strong bg-bg-panel px-6 py-14 text-center ${className}`}
     >
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/[0.07] text-psu-maroon">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-psu-maroon/[0.07] text-text-brand">
         <StateIcon name={icon} />
       </div>
       <h3 className="text-base font-semibold text-text-main">{title}</h3>
@@ -115,7 +115,7 @@ export function ErrorState({ error, resource, onRetry, title, message, action, c
       role="alert"
       className={`flex flex-col items-center justify-center rounded-xl border border-psu-red/20 bg-psu-red/[0.04] px-6 py-12 text-center ${className}`}
     >
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-psu-red/10 text-psu-red">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-psu-red/10 text-text-rose">
         <StateIcon name={KIND_ICON[info.kind] || "alert"} />
       </div>
       <h3 className="text-base font-semibold text-text-main">{title || info.title}</h3>
@@ -135,10 +135,10 @@ export function ErrorState({ error, resource, onRetry, title, message, action, c
 }
 
 const ALERT_TONES = {
-  error: "border-psu-red/25 bg-psu-red/[0.06] text-psu-red",
+  error: "border-psu-red/25 bg-psu-red/[0.06] text-text-rose",
   success: "border-emerald-600/25 bg-emerald-600/[0.07] text-text-emerald",
-  info: "border-psu-gold/40 bg-psu-cream text-text-main",
-  warning: "border-psu-gold/60 bg-psu-gold/[0.14] text-psu-gold-dark",
+  info: "border-psu-gold/40 bg-selected text-text-main",
+  warning: "border-psu-gold/60 bg-psu-gold/[0.14] text-text-amber",
 };
 
 /** Non-blocking inline message (form result, page notice). */
@@ -170,7 +170,7 @@ export function InlineAlert({ tone = "info", children, onDismiss, className = ""
 export function FieldError({ id, children }) {
   if (!children) return null;
   return (
-    <p id={id} className="mt-1.5 text-xs font-medium text-psu-red">
+    <p id={id} className="mt-1.5 text-xs font-medium text-text-rose">
       {children}
     </p>
   );

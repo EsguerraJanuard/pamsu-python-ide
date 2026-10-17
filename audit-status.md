@@ -143,7 +143,7 @@ frontend/src/components/layout/Navbar.jsx
 - Test real code execution, structure checks and grading in a staging environment with Redis and the execution worker running.
 - Fully rebuild `PracticeModuleManager.jsx` and `ActivityEditor.jsx` on `PageShell` and the shared form styles; so far they were only patched.
 - Remove the unused dependencies `xlsx` and `react-intersection-observer` from `package.json`. Removing them will change `package-lock.json`.
-- Decide whether to restore dark mode for the whole app. It is now light-only by design.
+- Student dark mode was restored in Phase 1 (see "Student Theme Restoration — Phase 1"). Instructor and admin dark mode are NOT restored and remain light-only.
 - Optional: a toast system for short success messages. Inline alerts are used today.
 
 ### Local test data created during QA (seeded QA accounts only)
@@ -866,3 +866,45 @@ _Branch: `dev` · Base commit: `0eb9c17` · Nothing committed or pushed. No real
 8. Admin `default_ast_strictness` setting is stored but never applied.
 9. Retake workflow (columns only), enrollment product decisions above, instructor temp-password email.
 10. `rediss://` connections use `ssl_cert_reqs=none`.
+
+## Student Theme Restoration — Phase 1
+
+Status: **implemented and verified in a browser against a mock API** (details under "Verification"). Live OS theme-change events and real-backend flows were not verified.
+
+### What removed dark mode
+Commit `1f2acc5` replaced `ThemeContext` with a constant light value (it also deleted the `pamsu_theme` key), stripped the `.dark` token block from `index.css`, and `index.html` hard-coded `#0f1117 !important` on html/body/#root. The editor kept a separate `light`/`vs-dark` toggle. No old files were restored from history.
+
+### Architecture (single source of truth)
+- `features/theme/ThemeContext.jsx` — `StudentThemeProvider`, mounted inside `AuthProvider` and `Router`. Dark is enabled only when `isAuthenticated && role === "student" && user_id != null && pathname starts with /student`. Otherwise the document is forced to light, regardless of stored values. It applies `class="light|dark"`, `data-theme` and `color-scheme` to `<html>`, so portals (modals) inherit the theme.
+- `features/theme/themeStorage.js` — preference (`system|light|dark`), per-account key `pamsu_theme_pref_v1:<user_id>`; malformed values fall back to `system`; `system` removes the key. Stores only the preference string. No backend, no migration.
+- System mode follows `prefers-color-scheme` live via `useSyncExternalStore` (listener removed on unmount). Other tabs of the same account sync through the `storage` event.
+- `index.html` — small pre-paint script applies the theme for a student on `/student/*` to avoid a flash; the provider then re-applies or resets it. The hard-coded dark `!important` background was replaced by light defaults (`html.dark` gets the dark surface).
+- `index.css` — Tailwind `@custom-variant dark` is class-based (it no longer follows the OS). Light tokens unchanged; new `:root.dark` token set; new tokens `--bg-selected`, `--bg-overlay`, `--text-placeholder`, `--shadow-card`, scrollbar and selection tokens. In dark, `--color-psu-maroon`, `-maroon-dark`, `-red` and `-gold-dark` are re-pointed so existing `bg-psu-*` fills keep working.
+- Brand text moved to semantic tokens: `text-psu-maroon`→`text-text-brand`, `text-psu-red`→`text-text-rose`, `text-psu-gold-dark`→`text-text-amber`, `bg-psu-cream`→`bg-selected`, `bg-slate-900/4x`→`bg-overlay`. In light mode these resolve to identical values.
+
+### Sidebar control
+`ThemeToggle` (rewritten) sits in the profile area of the **student** sidebar only (`Sidebar.jsx` passes it through `AppSidebar`'s `renderThemeControl`; the instructor sidebar does not). Expanded: Light / Dark / System radio group plus a status line. Collapsed (and mobile): one button cycling System → Light → Dark with a descriptive accessible name. The practice workspace has no sidebar, so it shows the collapsed button in its toolbar (same preference).
+
+### IDE
+`features/workspace/editorThemes.js` defines Monaco themes `pamsu-light` / `pamsu-dark` (syntax, selection, caret, line numbers, find matches, widgets, scrollbars, minimap). Workspace and PracticeWorkspace pick the theme from the effective student theme; the separate editor theme toggle and the `pamsu_editor_theme` key are no longer used. Font size, tab size, word wrap and minimap settings are untouched. No execution, terminal or submission code changed.
+
+### Contrast (computed from resolved colors, WCAG ratios)
+Dark text on base/panel/alt/selected surfaces: main 13.1–16.2, muted 6.9–8.5, brand 8.5–10.5, emerald 8.7–10.8, amber 9.1–11.2, rose 6.7–8.2 (all ≥ 4.5). Placeholder 5.2–5.7 (dark). White on dark-mode maroon fill 5.24, on red 5.20. Dark input border vs panel 3.33, maroon fill vs panel 3.37, gold focus ring vs panel 8.87 (≥ 3). Editor syntax colors 5.6–10.4 on both editor backgrounds. Light placeholder raised from 3.36 to 5.69. The SoloPractice completed chip uses `emerald-700` (5.48 with white; `emerald-600` was 3.77). Known pre-existing light-mode miss: `text-emerald` on `bg-alt` is 4.36. Computed contrast (above) plus an in-browser audit of rendered text (below).
+
+### Student surface covered
+Dashboard, Assignments, My Classes, Class details, Solo Practice, Practice workspace, Workspace (IDE), Analytics, Submissions + details, Notifications, Audit history, Settings, sidebar/status bar, Modal, StateViews (alerts, empty/error/loading), CustomSelect, Join/Alert/Confirmation/Sign-out modals. Flatpickr styling is instructor-only (ActivityEditor) and was left light.
+
+### Verification
+Run on 2026-10-17 with the Vite dev server and a throwaway mock API (not committed); seeded student sessions with fake tokens.
+- `npm run lint`: exit 0, no output. `npm run build`: passes. `git diff --check`: clean.
+- Passed in the browser (OS emulated dark unless noted): new student with no preference → follows OS (dark); manual Light on a dark device → light and kept after reload; manual Dark on a light device → dark and kept after reload; "System" → applies current device theme and clears the stored key; second student account in the same browser did not inherit the first's preference; route changes keep the theme; sign out → login is light while a dark preference is still stored; instructor and admin routes stay light with OS dark and a stored dark preference for their ids, and show no theme control; student → `/unauthorized` via client navigation resets to light; expired student token on `/student/*` ends on light login.
+- IDE: Monaco switched live between `pamsu-light` and `pamsu-dark` from the toolbar control, and stayed consistent on workspace reload.
+- Rendered-text contrast audit (every visible text node vs. composited background, 4.5:1 / 3:1 large) on 12 student routes in light and dark: no failures except the disabled "Paste" button (disabled controls are exempt). The Join class dialog (modal, backdrop, input, buttons) was reviewed visually in dark.
+- Mobile 375px (dark): no horizontal overflow on 6 student routes; the collapsed theme button is 43px wide. Added a compact theme button to the IDE header below `lg`, where the sidebar is hidden.
+- **Not verified:** live reaction to an OS theme change (the browser pane's color-scheme emulation fires no `change` events, even for a plain listener; the code uses `matchMedia` + `useSyncExternalStore`, and re-selecting System re-reads the OS value correctly); real backend data and submission/grading flows; real devices; Firefox/Safari; keyboard-only walkthrough; reduced-motion; Monaco find/diagnostic widgets visually.
+
+### Intentionally unchanged (light-only)
+Login, Forgot Password, Register (redirects), Unauthorized, NotFound, admin, instructor pages and grading, backend, migrations, auth/route protection, API contracts.
+
+### Remaining / for later phases
+Instructor and admin dark mode (not started, not complete). Run lint, build and the behavior matrix in a browser.

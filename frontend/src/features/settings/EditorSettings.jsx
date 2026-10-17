@@ -42,7 +42,7 @@ export default function EditorSettings() {
     <SettingsSection
       id="editor-heading"
       title="Code editor preferences"
-      description="Saved in this browser and applied the next time you open a workspace."
+      description="Saved in this browser and applied the next time you open a workspace. The editor follows the app theme, which you can change from the sidebar."
     >
       <div className="space-y-6">
         <div>

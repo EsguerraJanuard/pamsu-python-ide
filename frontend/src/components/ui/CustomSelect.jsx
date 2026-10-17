@@ -131,7 +131,7 @@ export default function CustomSelect({
                 onClick={() => choose(index)}
                 className={`flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-sm ${
                   isActive ? "bg-bg-alt" : ""
-                } ${isSelected ? "font-semibold text-psu-maroon" : "text-text-main"}`}
+                } ${isSelected ? "font-semibold text-text-brand" : "text-text-main"}`}
               >
                 <span>{opt.label}</span>
                 {isSelected && (

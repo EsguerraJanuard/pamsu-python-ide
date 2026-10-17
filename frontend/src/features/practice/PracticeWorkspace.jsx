@@ -9,17 +9,9 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/ui/StateV
 import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import api, { getErrorMessage, NETWORK_ERROR_STATUS, TIMEOUT_ERROR_STATUS } from "../../services/api";
-import { ThemeToggle } from "../theme/ThemeToggle";
-
-const EDITOR_THEME_KEY = "pamsu_editor_theme";
-
-function readEditorTheme() {
-  try {
-    return localStorage.getItem(EDITOR_THEME_KEY) === "vs-dark" ? "vs-dark" : "light";
-  } catch {
-    return "light";
-  }
-}
+import { useTheme } from "../theme/ThemeContext";
+import ThemeToggle from "../theme/ThemeToggle";
+import { defineEditorThemes, editorThemeFor } from "../workspace/editorThemes";
 
 function BackToModules() {
   return (
@@ -75,7 +67,7 @@ function PracticeTask({ taskId }) {
   const [state, setState] = useState({ status: "loading" });
   const [viewMode, setViewMode] = useState("lesson");
   const [code, setCode] = useState("");
-  const [editorTheme, setEditorTheme] = useState(readEditorTheme);
+  const { effectiveTheme } = useTheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [submitError, setSubmitError] = useState("");
@@ -87,14 +79,6 @@ function PracticeTask({ taskId }) {
       isMounted.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(EDITOR_THEME_KEY, editorTheme);
-    } catch {
-      // Optional preference.
-    }
-  }, [editorTheme]);
 
   const loadTask = useCallback(async () => {
     setState({ status: "loading" });
@@ -225,7 +209,10 @@ function PracticeTask({ taskId }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ThemeToggle value={editorTheme} onChange={setEditorTheme} />
+          {/* Same student theme preference as the sidebar (this view has no sidebar). */}
+          <div className="w-9 shrink-0">
+            <ThemeToggle collapsed />
+          </div>
           {feedback?.is_successful && nextTaskId && (
             <button
               type="button"
@@ -245,7 +232,7 @@ function PracticeTask({ taskId }) {
       </header>
 
       {pasteNotice && (
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-psu-maroon/15 bg-psu-cream px-4 py-1.5 text-xs text-psu-maroon" role="status">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-psu-maroon/15 bg-selected px-4 py-1.5 text-xs text-text-brand" role="status">
           <span>Pasting from outside the editor is blocked during practice. Type your solution instead.</span>
           <button type="button" onClick={() => setPasteNotice(false)} className="font-semibold hover:underline">
             Dismiss
@@ -267,7 +254,7 @@ function PracticeTask({ taskId }) {
             </div>
 
             {submitError && (
-              <p className="mt-6 rounded-lg border border-psu-red/20 bg-psu-red/[0.05] p-3 text-sm text-psu-red" role="alert">
+              <p className="mt-6 rounded-lg border border-psu-red/20 bg-psu-red/[0.05] p-3 text-sm text-text-rose" role="alert">
                 {submitError}
               </p>
             )}
@@ -280,7 +267,7 @@ function PracticeTask({ taskId }) {
                 role="status"
                 aria-live="polite"
               >
-                <h3 className={`text-sm font-bold ${feedback.is_successful ? "text-text-emerald" : "text-psu-red"}`}>
+                <h3 className={`text-sm font-bold ${feedback.is_successful ? "text-text-emerald" : "text-text-rose"}`}>
                   {feedback.is_successful ? "Passed" : "Not passed yet"}
                 </h3>
                 <p className="mt-1 text-sm text-text-main">{feedback.message}</p>
@@ -308,7 +295,8 @@ function PracticeTask({ taskId }) {
             <MonacoEditor
               height="100%"
               language="python"
-              theme={editorTheme}
+              theme={editorThemeFor(effectiveTheme)}
+              beforeMount={defineEditorThemes}
               value={code}
               onChange={(value) => setCode(value ?? "")}
               loading={<LoadingState label="Starting editor…" />}

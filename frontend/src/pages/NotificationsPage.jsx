@@ -170,7 +170,7 @@ export default function NotificationsPage({ role = "student" }) {
                           onClick={() => handleSelect(notification)}
                           aria-current={isSelected ? "true" : undefined}
                           className={`flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors ${
-                            isSelected ? "bg-psu-cream" : "hover:bg-bg-alt"
+                            isSelected ? "bg-selected" : "hover:bg-bg-alt"
                           }`}
                         >
                           <span

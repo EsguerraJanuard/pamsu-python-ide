@@ -179,7 +179,7 @@ export default function SubmissionDetails() {
                           to={`/student/submissions/${attempt.sub_id}`}
                           aria-current={attempt.sub_id === submission.sub_id ? "page" : undefined}
                           className={`flex items-center justify-between rounded-lg px-2.5 py-2 text-sm transition-colors ${
-                            attempt.sub_id === submission.sub_id ? "bg-psu-cream font-semibold text-psu-maroon" : "hover:bg-bg-alt"
+                            attempt.sub_id === submission.sub_id ? "bg-selected font-semibold text-text-brand" : "hover:bg-bg-alt"
                           }`}
                         >
                           <span>Attempt {attempt.attempt_number}</span>
