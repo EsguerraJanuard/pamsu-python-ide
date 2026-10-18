@@ -1454,3 +1454,39 @@ The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend 
 ### Next pending backend audit task
 1. **#30:** PostgreSQL 15, the production check, the backup, then merge and deploy.
 2. **"Still open" item 5:** `POST /practice/tasks/{id}/submit` waits on Judge0 synchronously (up to 15 s), against the AGENTS.md 3-second rule.
+
+## Items 5 and 8 (2026-10-19)
+
+Item 4 (guest accounts) is merged as #36.
+
+### Item 5: practice submit waits on Judge0: deferred until after #30 (owner decision, Zithxnm)
+- **Today:** `POST /practice/tasks/{id}/submit` keeps the request open while Judge0 runs (`wait=true`, up to 15 s). The AGENTS.md 3-second rule says longer requests are cut off, and the student then sees "Could not reach the server".
+- **Agreed fix:** run it the way the IDE's Run button does. Submit returns at once; Judge0 runs in the background and calls back; the page polls. The response should also return the `attempt_id`, which item 6 (AI hint) needs.
+- **Why it waits:**
+  - A practice attempt has no "pending" state (`is_successful` is NOT NULL), so the fix needs a migration that adds a status column to `practice_attempts`.
+  - That migration must be chained after #30's `61330560eec5`. Two migrations from the same parent leave two Alembic heads, and `start.sh` (`alembic upgrade head`) fails on deploy.
+- **Rejected alternatives:**
+  - polling Judge0 directly: each check is a paid RapidAPI request;
+  - giving existing columns a "pending" meaning: that would distort the practice statistics.
+
+### Item 8: default AST strictness: decided and implemented (#37)
+- **Before:** the admin "Default AST strictness" setting was saved but never read. Practice-module checks always used "moderate".
+- **Owner decision (Zithxnm):** the setting is the starting level of new instructor accounts and the level used where no instructor applies. Existing instructors keep their own level. No migration.
+- **Change:**
+  - `get_default_ast_strictness()`, with "moderate" for an unknown stored value;
+  - used by `POST /admin/instructors`, practice submit, and the missing-instructor fallback in activity analysis and evaluation;
+  - the admin help text was updated.
+- **Tests:** `tests/test_default_ast_strictness.py` (9, including the first practice-submit tests, with a fake Judge0). With hard-coded "moderate" restored in practice or in instructor creation, its test fails.
+- **Results:**
+  - full SQLite suite 856 passed, 5 skipped on its own;
+  - a scratch merge of #30 + #36 + #37 gave 935 passed, 8 skipped, with a single head;
+  - frontend lint and build pass.
+
+### Next pending backend audit task
+1. **#30:** PostgreSQL 15, the production check and the backup, then merge and deploy.
+2. **Item 5**, right after #30 merges (migration chained after `61330560eec5`).
+3. **Items with no migration still open:**
+   - 6: AI tutor dependency and wiring;
+   - 7: legacy `POST /execution/submissions/`;
+   - 9: retakes, enrollment decisions, instructor temporary-password email;
+   - 10: `rediss://` certificate checks.
