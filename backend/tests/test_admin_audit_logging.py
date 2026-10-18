@@ -463,6 +463,65 @@ def test_audit_log_endpoint_handles_records_from_other_features(client, db_sessi
     assert by_action["grade_released"]["target_exists"] is None
 
 
+TYPED_PASSWORD = "my-secret-pass-123"
+
+
+def test_audit_log_endpoint_masks_stored_unrecognized_login_identifiers(client, db_session, admin, student):
+    # Rows written before the login handler stopped storing unrecognized
+    # identifiers: audit rows are immutable, so the endpoint must mask them.
+    unknown_email = f"no.such.student{DOMAIN}"
+    rows = {
+        "legacy:password": (None, TYPED_PASSWORD, {"email": TYPED_PASSWORD}),
+        "legacy:malformed": (None, f"a b{DOMAIN}", {"email": f"a b{DOMAIN}"}),
+        "legacy:unknown-email": (None, unknown_email, {"email": unknown_email}),
+        "legacy:wrong-password": (student.user_id, str(student.user_id), {"email": student.email}),
+    }
+    for key, (actor, resource_id, data) in rows.items():
+        db_session.add(AuditRecord(audit_key=key, actor_user_id=actor, action_type="login_failed",
+                                   resource_type="user", resource_id=resource_id, outcome="failed", audit_data=data))
+    db_session.commit()
+
+    response = client.get("/admin/audit-logs", headers=auth(admin))
+
+    assert response.status_code == 200
+    assert TYPED_PASSWORD not in response.text
+    assert f"a b{DOMAIN}" not in response.text
+    entries = [(log["resource_id"], log["details"], log["target_user_id"])
+               for log in response.json() if log["action_type"] == "login_failed"]
+    assert sorted(entries, key=str) == sorted([
+        ("unrecognized", {"identifier": "unrecognized"}, None),
+        ("unrecognized", {"identifier": "unrecognized"}, None),
+        (unknown_email, {"email": unknown_email}, None),
+        (str(student.user_id), {"email": student.email}, student.user_id),
+    ], key=str)
+
+    # Masking happens on display only; the immutable rows are unchanged.
+    stored = {record.audit_key: record for record in audits(db_session, "login_failed")}
+    assert stored["legacy:password"].resource_id == TYPED_PASSWORD
+    assert stored["legacy:password"].audit_data == {"email": TYPED_PASSWORD}
+
+
+def test_password_typed_as_login_email_never_reaches_admin_audit_log(client, db_session, admin):
+    assert client.post("/login", data={"username": TYPED_PASSWORD, "password": "x"}).status_code == 401
+
+    response = client.get("/admin/audit-logs", headers=auth(admin))
+
+    (entry,) = [log for log in response.json() if log["action_type"] == "login_failed"]
+    assert (entry["resource_id"], entry["details"]) == ("unrecognized", {"identifier": "unrecognized"})
+    assert TYPED_PASSWORD not in response.text
+
+
+def test_masking_leaves_other_action_types_unchanged(client, db_session, admin):
+    db_session.add(AuditRecord(audit_key="legacy:other", actor_user_id=None, action_type="grade_released",
+                               resource_type="grade", resource_id="not-an-email", audit_data={"note": "kept"}))
+    db_session.commit()
+
+    logs = client.get("/admin/audit-logs", headers=auth(admin)).json()
+
+    (entry,) = [log for log in logs if log["action_type"] == "grade_released"]
+    assert (entry["resource_id"], entry["details"]) == ("not-an-email", {"note": "kept"})
+
+
 # ------------------------------------------------------------ metadata privacy
 
 

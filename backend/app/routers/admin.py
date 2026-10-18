@@ -9,6 +9,8 @@ from app.core.system_settings import (get_all_system_settings,
                                       read_stored_system_settings,
                                       set_system_setting)
 from app.models.domain_models import AuditRecord, Classroom, User
+from app.routers.auth import (UNRECOGNIZED_LOGIN_IDENTIFIER,
+                              recordable_login_identifier)
 from app.schemas.enrollment_schema import PendingEnrollmentResult
 from app.services.classroom_service import (StudentNotEligibleForEnrollmentError,
                                             apply_pending_enrollments)
@@ -51,6 +53,28 @@ def _target_user_id(log: AuditRecord) -> int | None:
     if log.resource_type == "user" and resource_id.isascii() and resource_id.isdigit():
         return int(resource_id)
     return None
+
+
+def _displayed_resource_id_and_details(log: AuditRecord) -> tuple[str, dict]:
+    # Failed logins recorded before the login handler stopped storing
+    # unrecognized identifiers can hold whatever was typed into the email
+    # field, such as a password. Audit rows are immutable, so they are
+    # masked here instead: only well-formed university emails are shown.
+    resource_id = log.resource_id
+    details = log.audit_data or {}
+
+    if log.action_type != "login_failed":
+        return resource_id, details
+
+    if _target_user_id(log) is None and recordable_login_identifier(resource_id) is None:
+        resource_id = UNRECOGNIZED_LOGIN_IDENTIFIER
+
+    email = details.get("email")
+    if email is not None and not (isinstance(email, str) and recordable_login_identifier(email)):
+        details = {key: value for key, value in details.items() if key != "email"}
+        details["identifier"] = UNRECOGNIZED_LOGIN_IDENTIFIER
+
+    return resource_id, details
 
 def _validate_university_email(value: str) -> str:
     normalized_email = value.strip().lower()
@@ -488,11 +512,12 @@ def get_global_audit_logs(
     for log, name, role in logs:
         target_user_id = _target_user_id(log)
         target = targets.get(target_user_id) if target_user_id is not None else None
+        resource_id, details = _displayed_resource_id_and_details(log)
         result.append({
             "log_id": log.audit_id,
             "action_type": log.action_type,
             "resource_type": log.resource_type,
-            "resource_id": log.resource_id,
+            "resource_id": resource_id,
             "occurred_at": log.occurred_at,
             "status": log.outcome,
             "actor_name": name if name else "System",
@@ -501,8 +526,9 @@ def get_global_audit_logs(
             "target_exists": (target is not None) if target_user_id is not None else None,
             "target_name": target[0] if target else None,
             "target_role": target[1] if target else None,
-            # Privacy-validated when the record was written.
-            "details": log.audit_data or {},
+            # Privacy-validated when the record was written; stored login
+            # identifiers are masked by _displayed_resource_id_and_details.
+            "details": details,
         })
     return result
 
