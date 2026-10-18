@@ -13,6 +13,11 @@ the existing password-reset OTP flow on their university mailbox.
 Valid rows are created in one transaction. If the database rejects the
 batch (for example a concurrent import used the same school ID), nothing is
 created and MasterlistConflictError is raised.
+
+Auditing: the same transaction holds one `user_created` record per created
+account and one `masterlist_imported` summary (counts only; no emails, names
+or file contents). Either everything commits or nothing does, so a record
+never claims an account or an import that was rolled back.
 """
 
 import csv
@@ -23,6 +28,7 @@ from typing import Literal
 
 from app.models.domain_models import User
 from app.schemas.user_schema import UserBase
+from app.services.admin_audit_service import record_admin_action
 from app.services.classroom_service import apply_pending_enrollments
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import func, or_
@@ -288,18 +294,28 @@ def _fail(row: _ParsedRow, reason: str) -> None:
     row.result = MasterlistRowResult(row=row.row_number, email=email, status="failed", reason=reason)
 
 
+def masterlist_file_type(filename: str | None) -> str:
+    lowered = (filename or "").strip().lower()
+    for extension in ("xlsx", "xls", "csv"):
+        if lowered.endswith(f".{extension}"):
+            return extension
+    return "other"
+
+
 def import_masterlist(
     *,
     db: Session,
     content: bytes,
     filename: str | None,
     actor_user_id: int,
+    import_id: str,
 ) -> tuple[MasterlistImportResult, list[User]]:
     """
     Validate a masterlist and create the accounts it describes.
 
     Returns the per-row result and the accounts created, which the caller
-    may notify only after this function has committed them.
+    may notify only after this function has committed them. `import_id`
+    identifies this upload in the audit trail.
     """
 
     rows = _parse_masterlist(content, filename)
@@ -316,15 +332,25 @@ def import_masterlist(
 
     valid_rows = [row for row in rows if row.result is None]
 
-    # A value repeated inside the file cannot be resolved, so every copy fails.
-    email_counts = Counter(row.identity.email for row in valid_rows)
-    school_id_counts = Counter(row.identity.school_id for row in valid_rows)
+    # A value repeated inside the file cannot be resolved, so every copy
+    # fails, and each reason names the rows that share the value.
+    rows_by_email: dict[str, list[int]] = {}
+    rows_by_school_id: dict[str, list[int]] = {}
 
     for row in valid_rows:
-        if email_counts[row.identity.email] > 1:
-            _fail(row, "This email appears on more than one row of the file.")
-        elif school_id_counts[row.identity.school_id] > 1:
-            _fail(row, "This school ID appears on more than one row of the file.")
+        rows_by_email.setdefault(row.identity.email, []).append(row.row_number)
+        rows_by_school_id.setdefault(row.identity.school_id, []).append(row.row_number)
+
+    for row in valid_rows:
+        reasons = []
+        for label, shared in (
+            ("email", rows_by_email[row.identity.email]),
+            ("school ID", rows_by_school_id[row.identity.school_id]),
+        ):
+            if len(shared) > 1:
+                reasons.append(f"The same {label} appears on rows {', '.join(map(str, shared))}.")
+        if reasons:
+            _fail(row, " ".join(reasons))
 
     valid_rows = [row for row in rows if row.result is None]
 
@@ -401,6 +427,40 @@ def import_masterlist(
             enrolled_from_pending += len(pending_result.enrolled_class_ids)
             pending_left += len(pending_result.skipped)
             created_users.append((row, new_user))
+
+            record_admin_action(
+                db,
+                actor_user_id=actor_user_id,
+                action_type="user_created",
+                resource_type="user",
+                resource_id=new_user.user_id,
+                audit_data={
+                    "role": "student",
+                    "source": "masterlist_import",
+                    "import_id": import_id,
+                    "row": row.row_number,
+                    "setup_email": "queued_after_commit",
+                },
+            )
+
+        decided = [row.result for row in rows if row.result is not None]
+        record_admin_action(
+            db,
+            actor_user_id=actor_user_id,
+            action_type="masterlist_imported",
+            resource_type="masterlist_import",
+            resource_id=import_id,
+            audit_data={
+                "file_type": masterlist_file_type(filename),
+                "rows": len(rows),
+                "created": len(created_users),
+                "skipped": sum(1 for result in decided if result.status == "skipped"),
+                "failed": sum(1 for result in decided if result.status == "failed"),
+                "enrolled_from_pending": enrolled_from_pending,
+                "pending_left": pending_left,
+            },
+            repeatable=False,
+        )
 
         db.commit()
     except IntegrityError as error:

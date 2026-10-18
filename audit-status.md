@@ -1224,3 +1224,181 @@ An application-only change can't store an action type the DB CHECK constraint re
 3. Then items 3–10 of "Still open" (unchanged).
 
 Cleaning up the worktree when it's no longer needed: `git worktree remove ../pamsu-python-ide-admin-audit-draft`, after saving or committing its files.
+
+## Admin audit logging: implemented on the draft branch (2026-10-18)
+
+_Branch: `draft/admin-audit-action-types`, fast-forwarded to `dev` (`e444596`) before the work started. Worktree: `C:\Users\ACER\Documents\Codes\pamsu-python-ide-admin-audit-draft`. **Nothing committed, pushed or merged. Migration `61330560eec5` was not applied to any real database.** `pamsu_ide_db` was only read, and it was the same before and after every PostgreSQL run: revision `c25114413200`, 37 audit records._
+
+Owner decisions D1–D6 (from the investigation above) were approved and applied as follows.
+
+### Audit events now written (`backend/app/routers/admin.py`)
+| Admin action | Success record (same transaction as the change) | Refused / failed record (separate transaction, after rollback) |
+|---|---|---|
+| `POST /admin/students` | `user_created` (role, `source: admin_student_form`, `enrolled_from_pending`) | Duplicate email or school ID (400): **no record**, because no account exists and it is form validation |
+| `POST /admin/guests` | `user_created` (role, `source: admin_guest_form`, `guest: true`) | Duplicate: no record |
+| `POST /admin/instructors` | `user_created` (role, `source: admin_instructor_form`, `setup_email: queued_after_commit`) | Duplicate: no record |
+| `POST /admin/students/bulk-register/file` | One `user_created` per created account (`source: masterlist_import`, `import_id`, `row`), plus one `masterlist_imported` summary (`file_type`, `rows`, `created`, `skipped`, `failed`, `enrolled_from_pending`, `pending_left`) | `masterlist_imported` `failed` with `reason: invalid_file` (400) or `database_conflict` (409). No `user_created` |
+| `PATCH /admin/users/{id}/status` | `user_status_changed` (role, `previous_is_active`, `is_active`) | Own account: `denied`, `own_account`. Unknown id: `failed`, `not_found` |
+| `PATCH /admin/users/{id}/password` | `user_password_reset` (role, `password_version` only) | Unknown id: `failed`, `not_found` |
+| `DELETE /admin/users/{id}` | `user_deleted` (role, `was_active`); the id is kept in `resource_id` | Own account: `denied`. Unknown id: `failed`, `not_found`. Account with records (409): `failed`, `has_dependent_records`, and **no** success record |
+| `PATCH /admin/settings` | `system_settings_updated` (resource `system_setting`, id `global`, `changes: {key: {from, to}}`, changed keys only; no record when nothing changed) | Database error: `failed`, `database_error`, `requested_keys` |
+| `POST /admin/students/{id}/pending-enrollments/apply` | Already wrote `student_enrolled` per class (unchanged) | — |
+
+- **Actor:** always `current_admin.user_id` from the authenticated token; it is never taken from the request.
+- **Masterlist summary type:** the summary event needed its own type, because none of the five approved ones describes an upload. It uses one added action type, `masterlist_imported`, and one added resource type, `masterlist_import`, both in the same unapplied draft migration. **They need the owner's confirmation**, as the only addition beyond D2.
+
+### Guarantees (each covered by a test)
+- **Atomicity:**
+  - A success record is added with `create_audit_record(commit=False)` in the action's own transaction (`services/admin_audit_service.record_admin_action`).
+  - If the record can't be written (schema validation, audit-service error or database error), the action is **rolled back** and the client gets **503** "The change was not saved because it could not be recorded in the audit log". A change never commits without its record.
+  - The masterlist import writes its per-account records and its summary inside the existing all-or-nothing transaction.
+- **Settings are atomic:**
+  - `set_system_setting(..., commit=False)` flushes; the three keys and the record commit once.
+  - A failure partway leaves **all** settings as they were and returns 503 "Nothing was changed", with a `failed` record.
+  - The old behaviour committed each key separately.
+- **Truthful outcomes:**
+  - Failure records are written only after the rollback, in their own transaction, and are never `succeeded`.
+  - If a failure record can't be written, this is logged with `logger.exception` and the original error response is still returned.
+- **External side effects:** account-creation records say `setup_email: queued_after_commit`. The email is only queued, as a background task after the commit, and its delivery is **not** claimed or audited.
+- **Deleted accounts:**
+  - The record keeps the internal user id (`resource_id`), the role and `was_active`; **no email, school ID or name** (D3).
+  - The audit-log endpoint then shows `target_user_id` with `target_exists: false`.
+- **Unique audit keys:** each `user_created` record has a unique key. A first draft used a deterministic per-user-id key; SQLite can reuse a deleted account's id, which made the next account creation fail with 503. A regression test reproduces that and is shown to fail with deterministic keys.
+
+### Privacy filter (`backend/app/schemas/audit_schema.py`)
+- **Normalization:** keys are split on camelCase, then on any non-alphanumeric character (hyphen, space, dot), then lowercased.
+- **What `is_sensitive_audit_key` rejects:**
+  - the existing exact list;
+  - any key containing `password`, `passwd` or `passphrase` (including split forms like `pass_word`);
+  - the tokens `otp`, `token(s)`, `jwt`, `secret(s)`, `credential(s)`, `cookie(s)` and `pwd`;
+  - `{api, private, secret, signing, encryption, access, session}_key`;
+  - `{reset, verification, otp, auth, confirmation, recovery, security, login, mfa, totp}_code`.
+- **Allowlist:** `password_version`.
+- **Values:** bcrypt-hash and JWT-shaped strings are rejected anywhere in the metadata.
+- **Checked:** 21 credential-like spellings are rejected; 12 useful keys (`class_code`, `subject_code`, `password_version`, `is_active`, …) are kept.
+- **Existing data:** the only `token`-named keys in the code base are similarity counters in `jaccard.py`, which never go to audit metadata, and similarity data is already prohibited there.
+
+### Admin audit-log endpoint (`GET /admin/audit-logs`)
+- **Kept:** every existing key, plus pagination and the admin-only access.
+- **Added:**
+  - `resource_id`;
+  - `target_user_id` (for `user` resources);
+  - `target_exists`;
+  - `target_name` / `target_role` (current values, `null` for a deleted account);
+  - `details` (the privacy-validated `audit_data`).
+- **Ordering:** a tie-break on `audit_id` makes paging deterministic, because records written in one transaction share `occurred_at` on PostgreSQL.
+- **Frontend:** it reads only the old keys and is unchanged. The admin UI doesn't show the target yet (follow-up).
+
+### Masterlist (D6)
+- Duplicate rows name the rows involved again: "The same school ID appears on rows 2, 3." If both values repeat, both are reported. The tracked test now asserts the exact text.
+- **Ported from the preserved originals:**
+  - `test_rendered_setup_email_contains_no_credential`, with the fake SMTP updated to accept `timeout`/`**kwargs`;
+  - `test_student_sets_password_through_reset_code_then_signs_in`.
+- No obsolete implementation code was restored. The preserved folder is untouched.
+
+### Migration `61330560eec5` (draft; not applied anywhere real)
+- **Chain:** `down_revision = c25114413200`, single head, and no historical migration changed (`git diff -- backend/alembic` is empty; the revision file is new).
+- **Allowed values:** 20 baseline + 6 new action types and 7 baseline + 2 new resource types. `AuditRecord`, `AuditActionType`/`AuditResourceType` and the DB constraint agree, and a PostgreSQL test compares DB and ORM values directly.
+- **Downgrade:** it refuses, changing nothing, while any record uses a new type.
+- **Deployment order:** the application code writes the new types, so **it must not run before this migration**: such a write fails, and the admin action rolls back with a 503. `start.sh` runs `alembic upgrade head` before the API starts, so deploying both together is safe. Back up first.
+
+### Files
+Modified:
+```
+backend/app/core/system_settings.py               (commit=False mode; read_stored_system_settings)
+backend/app/models/domain_models.py               (CHECK lists: 6 actions, 2 resources)
+backend/app/routers/admin.py                      (audit records for every mutation; atomic settings; audit-log target fields)
+backend/app/schemas/audit_schema.py               (Literals; normalised sensitive-key and value filter)
+backend/app/services/student_provisioning_service.py  (per-account + summary records; row numbers in duplicate reasons)
+backend/tests/test_masterlist_import.py           (2 ported security tests; duplicate-row assertions)
+audit-status.md                                   (this section)
+```
+Created:
+```
+backend/alembic/versions/61330560eec5_allow_admin_audit_action_types.py
+backend/app/services/admin_audit_service.py
+backend/tests/test_admin_audit_logging.py         (55 tests)
+backend/tests/test_admin_audit_migration.py       (3 PostgreSQL-only tests)
+```
+
+### Tests (Windows, Python 3.13.3, pytest 9.1.1)
+| Suite | Result |
+|---|---|
+| `test_admin_audit_logging.py` (SQLite) | **55 passed** |
+| `test_masterlist_import.py` (SQLite) | **28 passed** (26 + 2 ported) |
+| Audit, pending-enrollment and masterlist suites before the new tests (SQLite) | 159 passed (no regressions from the changes) |
+| Mutation check: success-record writes disabled | 9 success-record tests fail, as they should; failure-path tests unaffected |
+| Mutation check: deterministic `user_created` keys | The id-reuse regression test fails, as it should |
+| **Full backend suite, SQLite (final code)** | **868 passed, 8 skipped, 0 failed** (13 min 38 s). Compared with the 811 baseline: +55 admin audit tests, +2 ported tests. The 8 skips are the 5 existing and 3 new PostgreSQL-only tests. After the run, `test_admin_audit_logging.py` + `test_masterlist_import.py` were re-run on the final files: 83 passed |
+| **PostgreSQL 18.4, temporary databases:** `test_admin_audit_migration` (3), `test_alembic_migrations` (3), 4 concurrency suites (4) | **10 passed** |
+| `alembic heads` / `git diff --check` / pyflakes `backend/app` | single head `61330560eec5` / clean / no warnings (the migration test has the usual pytest fixture-import notice) |
+
+**Not verified:**
+- **PostgreSQL 15** (the project's target version; only 18.4 is installed).
+- **Admin endpoints against a migrated PostgreSQL database end to end.** The SQLite test database is created from the same ORM CHECK constraints, and the PostgreSQL test proves the ORM and migration values are identical, but the HTTP flows themselves ran on SQLite.
+- **Real SMTP delivery.**
+- **The browser admin UI.**
+
+### Remaining / decisions
+1. **Confirm** the added `masterlist_imported` / `masterlist_import` types.
+2. **Refused attempts by non-admins** (403 from `get_current_admin`) are **not** audited: the dependency rejects them before any admin handler runs, and there is no action type for "unauthorized admin attempt". Auditing them needs a design decision about noise and a type.
+3. Duplicate or validation rejections of the account-creation forms are not audited (no target account exists).
+4. **Pre-existing, unchanged:** `POST /admin/instructors` still emails the plaintext initial password (open item 9). The audit record never contains it.
+5. **Frontend follow-up:** show the target and details in the admin audit-log tab.
+
+### Next task
+1. **Owner review** of the draft branch, then a commit on `draft/admin-audit-action-types`, and a PR into `dev` once approved.
+2. **Before merging:**
+   - run the PostgreSQL suites on PostgreSQL 15 if possible;
+   - check production's `audit_records` constraints read-only (SQL in the investigation section).
+3. **Then:** items 3–10 of the backend audit's "Still open" list. **Item 2 (admin audit logging) is done in code on the draft branch; it is not merged or deployed.**
+
+### Pre-commit review (2026-10-18): 2 blocking issues fixed
+An independent review of the full diff against `dev` found two blocking defects and one minor one. All three are fixed and covered by regression tests. **The test numbers below supersede the ones in the section above.**
+
+1. **Blocking: deleting a user rewrote immutable history.** This predates the branch, but the branch exposed it.
+   - `User.audit_records_created` and `User.academic_events_created` had SQLAlchemy's default delete behaviour. Deleting a user who had ever acted (for example, logged in) loaded those rows, set their nullable `actor_user_id` to **NULL**, and deleted the account with 200. This bypassed the database's `ON DELETE RESTRICT` and the immutability rules.
+   - It was reproduced first: the delete returned 200 and `login_succeeded.actor_user_id` became `None`.
+   - **Fix:** `passive_deletes="all"` on both relationships (`domain_models.py`). The ORM no longer touches those rows, `RESTRICT` refuses the delete, and the endpoint returns 409 plus a `failed` `user_deleted` record (`has_dependent_records`). There is no schema change.
+   - **Consequence:** an account that has any audit record or academic event as actor (for example, any login) can't be deleted, only deactivated. That is what the 409 message already said.
+2. **Blocking: audit-failure logging could leak secrets.**
+   - `AdminAuditError` chained the original exception, and the router logged it with `exc_info`.
+   - A pydantic `ValidationError` includes `input_value` (the rejected metadata). A SQLAlchemy error includes flush parameters, and the audit lookup's autoflush can include a pending `password_hash` UPDATE.
+   - **Fix:**
+     - `safe_error_summary()` logs exception class names only;
+     - `AdminAuditError` is raised `from None`;
+     - `record_admin_failure` and the router log without `exc_info`.
+3. **Minor:** target-id parsing in `GET /admin/audit-logs` now requires ASCII digits. `"²".isdigit()` is `True`, and `int("²")` raised an error.
+
+**New regression tests** (in `test_admin_audit_logging.py`, now **60 tests**):
+- deletion is refused, and history is untouched, for an audit record and for an academic event;
+- rejected metadata never reaches the error or its chain;
+- audit failures log none of an injected hash, the new password or a secret;
+- non-ASCII digit resource ids.
+
+Both leak tests were **shown to fail** under a plugin that restores message-text logging.
+
+**Results after the fixes**, on files with recorded `git hash-object` fingerprints that were confirmed unchanged after the runs:
+
+| Suite | Result |
+|---|---|
+| Full backend suite, SQLite | **873 passed, 8 skipped, 0 failed** (12 min 19 s) = 811 baseline + 60 admin audit + 2 ported masterlist. The 8 skips are the PostgreSQL-only tests |
+| PostgreSQL 18.4, temporary databases (`test_admin_audit_migration` 3, `test_alembic_migrations` 3, 4 concurrency suites) | **10 passed**. `pamsu_ide_db` before and after: `c25114413200`, 37 audit records |
+| `alembic heads` / `git diff --check` / `pyflakes backend/app` | `61330560eec5` only / clean / clean |
+
+**Review conclusions (no further blocking issues):**
+- **Actor:** always `current_admin.user_id` from the token.
+- **Access:** every mutation and `GET /admin/audit-logs` return 403 for students and instructors and 401 without a token, with no records written.
+- **Untouched areas:** authentication, role checks and grading code are unchanged.
+- **Migration:**
+  - parent `c25114413200`, one head, no historical file edited;
+  - existing rows are untouched;
+  - downgrade refuses while new types are in use.
+- **Deploy order:** against a database where the migration hasn't run, the new types violate the CHECK constraint. The error is wrapped as `AdminAuditError`, and the action **fails closed with 503**; it is never committed without its record or misreported as a duplicate.
+
+**Remaining risks (not blocking):**
+- **Pre-existing, all endpoints:** a database error raised at `db.commit()` itself (outside the audit write) is logged by FastAPI with SQLAlchemy's statement parameters, which can include a new `password_hash`. Recommended separate change: `create_engine(..., hide_parameters=True)` in `core/database.py`.
+- **PostgreSQL 15 is not verified.**
+- **Admin HTTP flows were tested on SQLite only.** The CHECK constraints there come from the same ORM definitions, and the PostgreSQL test proves the ORM and migration values match.
+- **Non-admin 403 attempts** aren't audited.
+- The added `masterlist_imported` / `masterlist_import` types still need owner confirmation.
