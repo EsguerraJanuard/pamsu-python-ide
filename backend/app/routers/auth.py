@@ -86,6 +86,33 @@ def get_user_by_email(
     return db.query(User).filter(func.lower(User.email) == email).first()
 
 
+# Matches the audit resource_id limit, so a recorded identifier always fits.
+MAX_RECORDED_LOGIN_IDENTIFIER_LENGTH = 100
+UNRECOGNIZED_LOGIN_IDENTIFIER = "unrecognized"
+
+
+def recordable_login_identifier(normalized_email: str) -> str | None:
+    """
+    The login identifier if it is safe to keep in the audit trail.
+
+    Only a well-formed university email is kept. Anything else may be a
+    password typed into the email field, so it is never stored or logged.
+    """
+
+    local_part = normalized_email.removesuffix(UNIVERSITY_EMAIL_DOMAIN)
+
+    if (
+        not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN)
+        or not local_part
+        or "@" in local_part
+        or any(character.isspace() for character in local_part)
+        or len(normalized_email) > MAX_RECORDED_LOGIN_IDENTIFIER_LENGTH
+    ):
+        return None
+
+    return normalized_email
+
+
 @router.post(
     "/login",
     response_model=TokenResponse,
@@ -125,7 +152,18 @@ def login(
     def raise_invalid(user_obj=None):
         try:
             actor_id = user_obj.user_id if user_obj else None
-            res_id = str(user_obj.user_id) if user_obj else normalized_email
+            identifier = recordable_login_identifier(normalized_email)
+
+            if user_obj:
+                res_id = str(user_obj.user_id)
+            else:
+                res_id = identifier or UNRECOGNIZED_LOGIN_IDENTIFIER
+
+            audit_data = (
+                {"email": identifier}
+                if identifier
+                else {"identifier": UNRECOGNIZED_LOGIN_IDENTIFIER}
+            )
             create_audit_record(
                 db=db,
                 payload=AuditRecordCreateInternal(
@@ -135,11 +173,15 @@ def login(
                     resource_type="user",
                     resource_id=res_id,
                     outcome="failed",
-                    audit_data={"email": normalized_email}
+                    audit_data=audit_data,
                 )
             )
-        except Exception:
-            logger.exception("Could not record a failed login attempt.")
+        except Exception as exc:
+            # Class name only: the exception text can echo the rejected input.
+            logger.error(
+                "Could not record a failed login attempt (%s).",
+                type(exc).__name__,
+            )
         raise invalid_credentials_exception()
 
     if not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN):

@@ -3,6 +3,7 @@ from typing import Literal
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.database_errors import handle_unhandled_database_error
 from app.core.request_context import (RequestContextMiddleware,
                                       configure_request_logging)
 from app.integrations.partner_auth import PARTNER_EXECUTION_TOKEN_HEADER
@@ -290,6 +291,10 @@ app.add_middleware(
     correlation_id_header=(settings.correlation_id_header),
     logger=request_logger,
 )
+
+
+# Unhandled database errors are logged without their message (row values).
+app.add_exception_handler(SQLAlchemyError, handle_unhandled_database_error)
 
 
 app.include_router(auth.router)

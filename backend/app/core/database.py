@@ -11,6 +11,7 @@ SQLALCHEMY_DATABASE_URL = settings.database_url.get_secret_value()
 
 engine_options: dict[str, Any] = {
     "pool_pre_ping": True,
+    "hide_parameters": True,
 }
 
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
@@ -63,6 +64,11 @@ def get_db() -> Generator[Session, None, None]:
 # The database URL is unwrapped only when constructing the SQLAlchemy
 # engine. It must never be logged, returned in an API response, or exposed
 # through health and readiness endpoints.
+
+# STATEMENT PARAMETER BOUNDARY:
+# The engine hides bound statement parameters from SQLAlchemy exception
+# messages and SQL logging, so a failed commit cannot write password hashes
+# or personal data into the server log through an unhandled exception.
 
 # SESSION BOUNDARY:
 # Each FastAPI request receives an independent SQLAlchemy session that is
