@@ -8,20 +8,26 @@ would act as one global bucket for the whole school. Anonymous routes are
 limited per submitted identifier (an email, an OTP challenge) and, where an
 IP key is still useful, with limits generous enough for a shared address.
 
-When Redis is unreachable the limiter fails open and logs a warning: the
-platform keeps working, and the same outage already stops the execution
-queue and token revocation, which are reported elsewhere.
+When Redis is unreachable the limiter counts in this process's memory
+instead (core/memory_fallback.py) and logs a warning, so login, password
+reset and the other limits keep working and nobody is locked out. Render
+runs the API as one process, so those counts cover the whole deployment
+until it restarts.
 """
 
 import hashlib
 import logging
 
+from app.core.memory_fallback import ExpiringMemoryStore
 from app.core.redis_client import redis_client
 from fastapi import Depends, HTTPException, Request, status
 
 logger = logging.getLogger(__name__)
 
 RATE_LIMIT_KEY_PREFIX = "rl"
+
+# Used only while Redis is unreachable.
+memory_counters = ExpiringMemoryStore()
 
 
 class RateLimitExceededError(Exception):
@@ -55,7 +61,14 @@ def hit_rate_limit(*, scope: str, identifier: str, limit: int, window_seconds: i
     except RateLimitExceededError:
         raise
     except Exception:
-        logger.warning("Rate limiter unavailable for scope %s; request allowed.", scope)
+        logger.warning("Rate limiter Redis unavailable for scope %s; counting in memory.", scope)
+    else:
+        return
+
+    count, seconds_left = memory_counters.incr(key, window_seconds)
+
+    if count > limit:
+        raise RateLimitExceededError(seconds_left)
 
 
 def too_many_requests(retry_after_seconds: int) -> HTTPException:

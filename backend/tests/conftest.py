@@ -79,6 +79,19 @@ def block_real_smtp(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def reset_redis_memory_fallback():
+    # Redis is unreachable in tests (REDIS_URL above), so rate limits and
+    # token revocation use the in-memory fallback; start each test empty.
+    from app.core import rate_limit, token_revocation
+
+    rate_limit.memory_counters.clear()
+    token_revocation.revoked_in_memory.clear()
+    yield
+    rate_limit.memory_counters.clear()
+    token_revocation.revoked_in_memory.clear()
+
+
+@pytest.fixture(autouse=True)
 def celery_calls(monkeypatch):
     """Record Celery enqueues instead of contacting a broker."""
 

@@ -1358,3 +1358,51 @@ The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend 
 ### Next pending backend audit task
 1. Finish #30 as listed above (#31, #32 and #33 are merged).
 2. Then "Full backend audit" → "Still open" item 3: token revocation and rate limits fail open while Redis is down. Decide fail-open or fail-closed per route.
+
+## Redis outage fallback and #30 decisions (2026-10-19)
+
+### #30 owner decisions (by Zithxnm, recorded in the #30 description)
+- **Masterlist audit types:** keep `masterlist_imported` and `masterlist_import`.
+- **Account deletion:** accepted. An account that has ever acted (for example, logged in) can only be deactivated. Real deletion (for example, anonymising) would be a separate design.
+- **Non-admin 403 attempts on admin endpoints:** not audited for now. The request log already records them (path, status, time).
+- **Also on #30 since the last section:**
+  - `dev` merged in, and the `audit-status.md` conflict resolved by keeping every section (`3b27c52`);
+  - stored `login_failed` identifiers masked in `GET /admin/audit-logs` (`ce86db6`);
+  - full suite 904 passed, 8 skipped.
+- **#30 remaining blockers:** a PostgreSQL 15 run, the read-only production check, and a verified backup. Then deploy (`start.sh` runs the migration).
+
+### "Full backend audit" → "Still open" item 3: decided and implemented
+**Decision (Zithxnm):** in-memory fallback. Neither fail-open (the old behaviour) nor fail-closed.
+- **Fail-open, before:** while Upstash was unreachable, every rate limit was off. That meant unlimited password guessing and password-reset-code guessing, and email flooding. A token that logged out during the outage also kept working until it expired (30 min by default).
+- **Fail-closed, rejected:** nobody could log in or reset a password during an outage, and with revocation every authenticated request would fail.
+
+**Change** (branch `fix/redis-outage-fallback`):
+- **New `core/memory_fallback.py`:**
+  - a thread-safe store whose entries expire;
+  - capped at 100,000 keys: expired keys are dropped first, then the oldest;
+  - keys are the same hashed keys as in Redis, so no raw emails are kept.
+- **`core/rate_limit.py`:** if Redis fails, the request is counted in memory, and the same limits apply. The warning now says "counting in memory".
+- **New `core/token_revocation.py`**, used by `get_current_user` and `/logout`:
+  - every logout is kept in memory until the token expires, as well as in Redis;
+  - a token logged out before or during an outage stays rejected, even if Redis comes back without the key;
+  - if Redis is down, only memory is checked, with a warning.
+- **Why memory is enough:** `start.sh` runs Uvicorn as one process, so in-memory counts cover the whole Render deployment. They reset when it restarts.
+- **Unaffected:** password resets and deactivation are checked in the database.
+
+**Tests:**
+- New `tests/test_redis_outage_fallback.py` (8 tests). The test suite runs with Redis unreachable, so these exercise the real fallback paths:
+  - the login limit gives a 429 on the 11th try;
+  - limits are kept per identifier;
+  - logout → 401 with Redis down;
+  - a memory revocation survives an empty Redis;
+  - Redis is still written and read when it's up;
+  - the store's window expiry and size cap.
+- `conftest.py` now empties both memory stores around every test.
+- `test_rate_limit_is_per_identifier_and_fails_open` became `…_falls_back_to_memory`.
+- **Mutation check:** with both fallbacks switched off (back to fail-open), 4 tests fail.
+- **Full SQLite suite:** 847 passed, 5 skipped, 0 failed (839 + 8).
+- **Not verified:** a real Upstash outage, and multiple Uvicorn workers. The fallback is per process; if the API ever runs several workers, each worker counts separately.
+
+### Next pending backend audit task
+1. #30: PostgreSQL 15, the production check, the backup, then merge and deploy.
+2. "Still open" item 4: guest accounts. Unlimited creation behind the shared proxy IP, no cleanup, they can join any class whose code they know, and the sandbox class belongs to whichever instructor comes first. This needs product decisions.

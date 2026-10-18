@@ -184,7 +184,7 @@ class FakeRedis:
         return 30
 
 
-def test_rate_limit_is_per_identifier_and_fails_open(monkeypatch):
+def test_rate_limit_is_per_identifier_and_falls_back_to_memory(monkeypatch):
     fake = FakeRedis()
     monkeypatch.setattr(rate_limit, "redis_client", fake)
 
@@ -202,7 +202,11 @@ def test_rate_limit_is_per_identifier_and_fails_open(monkeypatch):
             raise ConnectionError("down")
 
     monkeypatch.setattr(rate_limit, "redis_client", DownRedis())
-    rate_limit.hit_rate_limit(scope="t", identifier="user-1", limit=0, window_seconds=60)
+    rate_limit.hit_rate_limit(scope="t", identifier="user-1", limit=1, window_seconds=60)
+
+    # Redis down: the limit is still enforced, counted in memory.
+    with pytest.raises(rate_limit.RateLimitExceededError):
+        rate_limit.hit_rate_limit(scope="t", identifier="user-1", limit=1, window_seconds=60)
 
 
 def test_password_reset_start_is_limited_per_email(client, people, otp_adapter, monkeypatch):

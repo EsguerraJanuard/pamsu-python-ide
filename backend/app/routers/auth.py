@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from app.core.database import get_db
 from app.core.rate_limit import enforce_rate_limit, limit_per_ip
-from app.core.redis_client import redis_client
+from app.core.token_revocation import revoke_token
 from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
                                MAINTENANCE_MODE_MESSAGE, SECRET_KEY,
                                create_access_token, get_password_hash,
@@ -288,14 +288,11 @@ def logout(
             now = datetime.now(timezone.utc).timestamp()
             ttl = int(exp - now)
             if ttl > 0:
-                redis_client.setex(f"blacklist:{jti}", ttl, "revoked")
+                # Kept in memory too, so a Redis outage cannot undo it.
+                revoke_token(jti, ttl)
     except JWTError:
         # An invalid or expired token is already unusable.
         return
-    except Exception:
-        # The client discards the token either way; it stays valid until it
-        # expires only if Redis is unreachable right now.
-        logger.warning("Could not record a revoked token; Redis is unavailable.")
 
 @router.post(
     "/guest",
