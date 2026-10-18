@@ -12,11 +12,11 @@ from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
-from sqlalchemy import and_, func
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.services.email_service import send_provisioning_email
-from app.services.guest_service import self_service_guest_filter
+from app.services.guest_service import not_self_service_guest
 from app.services.student_provisioning_service import (MAX_MASTERLIST_BYTES,
                                                       MasterlistConflictError,
                                                       MasterlistFileError,
@@ -280,7 +280,7 @@ def list_users(
 ):
     query = db.query(User).filter(User.role != "admin")
     if not include_guests:
-        query = query.filter(~and_(*self_service_guest_filter()))
+        query = query.filter(not_self_service_guest())
     users = query.order_by(User.user_id).offset(skip).limit(limit).all()
     return users
 

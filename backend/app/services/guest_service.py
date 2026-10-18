@@ -21,7 +21,7 @@ from app.models.domain_models import Classroom, User
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.services.audit_service import create_audit_record
 from app.services.student_provisioning_service import make_unusable_password_hash
-from sqlalchemy import update
+from sqlalchemy import and_, not_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -62,6 +62,10 @@ def self_service_guest_filter():
         User.email.like(f"%{UNIVERSITY_EMAIL_DOMAIN}"),
         User.school_id.like(f"{GUEST_SCHOOL_ID_PREFIX}%"),
     )
+
+
+def not_self_service_guest():
+    return not_(and_(*self_service_guest_filter()))
 
 
 def _as_utc(value: datetime) -> datetime:
