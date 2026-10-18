@@ -4,10 +4,9 @@ from typing import Any
 from uuid import uuid4
 
 import bcrypt
-import redis
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.redis_client import redis_client
+from app.core.token_revocation import is_token_revoked
 from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
 from fastapi import Depends, HTTPException, status
@@ -148,18 +147,9 @@ def get_current_user(
             raise authentication_error
 
         jti = payload.get("jti")
-        if jti:
-            try:
-                if redis_client.get(f"blacklist:{jti}"):
-                    raise authentication_error
-            except (
-                redis.exceptions.ConnectionError,
-                redis.exceptions.TimeoutError,
-            ):
-                # If Redis is completely offline, bypass the blacklist check.
-                # The client sets a connect timeout, so an unreachable host
-                # surfaces as TimeoutError rather than a hung ConnectionError.
-                logger.warning("Token revocation list unavailable; revoked tokens are accepted until Redis returns.")
+        # Falls back to this server's memory while Redis is unreachable.
+        if jti and is_token_revoked(jti):
+            raise authentication_error
 
         pwd_ver = payload.get("pwd_ver", 1)
 
