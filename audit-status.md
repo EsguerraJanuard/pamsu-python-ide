@@ -1047,3 +1047,180 @@ docs/remediation/preserved-untracked-2026-10-18/                 (the two origin
    - Compare `docs/remediation/preserved-untracked-2026-10-18/` with the committed versions, then delete the folder.
    - `ActivityEditor.jsx.bak`/`.bak2` and the root helper scripts are still untracked.
    - Rotate the SMTP key (still open from earlier sections).
+
+## Preserved-file comparison and admin audit logging investigation (2026-10-18)
+
+_Branch: `dev` at `50bc701` (equal to `origin/dev`; the sidebar commit was made and pushed by the owner during this session) · Nothing committed or pushed by this session. No migration applied anywhere. The only real-database access was read-only._
+
+### 1. Preserved originals vs tracked versions
+Compared `docs/remediation/preserved-untracked-2026-10-18/` (originals from the 2026-10-17 session, never committed) with the tracked files that `e946455` re-created. **Nothing was overwritten, merged or deleted.**
+
+**Empirical check:** the preserved test file (23 tests) was run against the **current tracked service**. The repository was not changed; pytest loaded `tests.conftest` as a plugin. Result: **19 passed, 4 failed.**
+- 2 failures: the duplicate messages no longer name the rows ("appears on rows 5, 6").
+- 1 failure: different email-domain wording.
+- 1 failure: the preserved email test's fake SMTP doesn't accept the new `timeout=` argument. In a scratch copy with only that stub fixed (`**kwargs`), it **passes**: the rendered setup email has no "Temporary Password", says "Forgot password?", and doesn't contain `PamsU@2026`.
+
+**`student_provisioning_service.py`** (preserved 337 lines, tracked 436):
+
+| Topic | Preserved original | Tracked (`e946455`) | Assessment |
+|---|---|---|---|
+| Password for new accounts | bcrypt hash of a random secret (one bcrypt cost per row) | `"!" + token_urlsafe(32)`, not a bcrypt hash; `verify_password` returns False on its `ValueError` | Tracked is better (no hashing cost, can never verify). **Preserved is obsolete** |
+| Reset → sign in | — | Preserved test `test_student_sets_password_through_reset_otp_flow` **passes** on tracked code: the OTP reset replaces the marker and the student can sign in | Behaviour kept |
+| File checks | `.xlsx` detected by extension **or** `PK` magic; anything else read as CSV; no size limit | Requires a `.csv`/`.xlsx` name; 2 MB limit (`MAX_MASTERLIST_BYTES`, used by the router); empty file / no rows / no worksheet rejected; repeated header names rejected; stops reading `.xlsx` after the row limit; closes the workbook | Tracked is stricter and safer |
+| Existing non-student account with the same email and school ID | Reported as **skipped** | **Failed**: "belongs to a non-student account" | Tracked is correct |
+| Excel numeric-ID hint | Always added to a school-ID error | Only when Excel stored the ID as a number | Tracked is more precise |
+| Error detail per row | **All** validation messages, plus "Missing email, school ID, name." in one line | First error only | Preserved is more informative (minor) |
+| Duplicates inside the file | Names the rows ("rows 2, 3"); a row can fail on both email and school ID | Generic message; email checked first (`elif`) | Preserved is more helpful to MIS (minor) |
+| Conflict logging | `logger.warning` on a rolled-back batch | None | Minor |
+| Public names | `parse_masterlist`, `REQUIRED_COLUMNS_MESSAGE` | `_parse_masterlist`, `make_unusable_password_hash`, `UNUSABLE_PASSWORD_PREFIX`, `MAX_MASTERLIST_BYTES` | A repository search finds **no reference** to the preserved-only names. `admin.py` uses `MAX_MASTERLIST_BYTES`, and the tracked tests use `UNUSABLE_PASSWORD_PREFIX` |
+
+**`test_masterlist_import.py`** (preserved 14 functions / 23 cases, tracked 16 functions / 26 cases):
+- **Only in tracked:** non-student email; pending enrollment completed for a created student; unauthenticated import; `.xlsx` numeric-ID hint; sign-in refused before a password reset.
+- **Behaviour only the preserved file covers:**
+  - **(a)** the **rendered** setup email contains no credential. The tracked test only checks that `temp_password=None` is passed to the stubbed sender.
+  - **(b)** the **full** reset-OTP → successful sign-in path. The tracked test only checks that sign-in fails before a reset.
+- The other preserved cases (row limit, split names, `.xlsx`, duplicates, conflicts, invalid rows) have tracked equivalents.
+
+**Recommendation (smallest safe reconciliation; not applied):**
+1. Port the two preserved tests (a) and (b) into `backend/tests/test_masterlist_import.py`, with the fake SMTP accepting `**kwargs`. This is test-only and adds coverage of two security properties.
+2. Optional UX change: name the duplicate row numbers in the duplicate messages. That changes user-facing text; decide with MIS.
+3. Don't port the bcrypt password, the extension-less CSV fallback, or the "skip non-student" behaviour. They are obsolete or less safe.
+4. Then delete `docs/remediation/preserved-untracked-2026-10-18/` (the owner's decision).
+
+### 2. Admin audit logging: root cause
+Item 2 of the full backend audit's "Still open" list: "Admin actions (deactivate, delete, password reset, settings) write no audit record".
+
+**Existing infrastructure (reuse it; nothing new is needed):**
+- `AuditRecord` (`audit_records`): `actor_user_id` FK `RESTRICT`, `action_type`, `resource_type`, `resource_id`, `outcome`, JSON `audit_data`, `occurred_at`, a unique `audit_key`, and an immutability rule.
+- `services/audit_service.create_audit_record(..., commit=False)` flushes inside the caller's transaction, so the domain change and its audit record commit or roll back together. `classroom_service`, `task_service`, `evaluation_service` and `submission_service` all use this through a `_record_audit` helper with a deterministic `audit:{action}:{resource}:{id}` key.
+- `AuditRecordCreateInternal` (strict) runs `validate_audit_data`, which rejects known sensitive keys (`password`, `otp`, code, grades, …).
+
+**What each admin write does today** (`backend/app/routers/admin.py`):
+
+| Endpoint | Operation | Audit record today |
+|---|---|---|
+| `POST /admin/students` | Create student | **None for the account.** Pending enrollments it completes write `student_enrolled` (atomic, per-class savepoint) |
+| `POST /admin/students/bulk-register/file` | Masterlist import | **None for the accounts.** Pending enrollments write `student_enrolled` |
+| `POST /admin/students/{id}/pending-enrollments/apply` | Retry pending enrollments | `student_enrolled` per class: **already correct** |
+| `POST /admin/guests` | Create guest | **None** |
+| `POST /admin/instructors` | Create instructor | **None** (it also emails the plaintext password; pre-existing, item 9) |
+| `PATCH /admin/users/{id}/status` | Activate / deactivate | **None** |
+| `DELETE /admin/users/{id}` | Delete account | **None** |
+| `PATCH /admin/users/{id}/password` | Admin password reset | **None** |
+| `PATCH /admin/settings` | Maintenance mode, default strictness, registration | **None**. Also, `set_system_setting` **commits each key separately**, so a failure partway leaves a partial update |
+| `GET /admin/*` | Reads | Not audited; no read is audited anywhere in the app |
+
+**Root cause:**
+- It is an **architectural gap**: the audit calls were never written. It is not caused by swallowed exceptions or wrong transaction boundaries; none of these handlers call the audit service at all.
+- For deactivation, deletion, password reset and settings, the calls **cannot** be added as things stand. The DB constraints `ck_audit_records_action_type` / `ck_audit_records_resource_type` (baseline `18d3ef8f020d`, never changed since) and the matching `AuditActionType` / `AuditResourceType` `Literal`s allow only the 20 baseline action types and 7 resource types. None of them describes these actions, and there is no resource type for settings.
+- A read-only check of local `pamsu_ide_db` confirmed both constraints exactly match the baseline. It has 37 audit rows, all of existing types (`login_succeeded` 34, `login_failed` 1, `grade_created` 1, `submission_created` 1).
+- **Account creation is the exception:** `user_registered` / `user` are allowed, but **nothing writes them anywhere**, because the self-registration flow was retired. Reusing them for admin provisioning needs no migration, but it changes what "registered" means (decision D1).
+
+**Other findings:**
+- **Sensitive data:** the key blocklist is exact-match, so it misses `new_password`, `temp_password`, `token`, `access_token`, `refresh_token`, `secret` and `api_key`.
+  - No current code writes those keys, and the proposal below never includes a password, hash, OTP or token.
+  - Application-only hardening (no migration): add those keys to `PROHIBITED_AUDIT_KEYS`, and build admin `audit_data` from a fixed per-action set of fields.
+- **Identification:**
+  - The proposed records name the actor (`actor_user_id` = the admin), the action, the target (`resource_type`/`resource_id` = the user id, or `global` for settings), the time (`occurred_at`) and the outcome (`succeeded`).
+  - However, `GET /admin/audit-logs` returns neither `resource_id` nor `audit_data`, so an admin can't see **whom** an action affected. That fix is application-only.
+- **Failed attempts:** a refused delete (409, the account has records) would roll back its own audit row with it. Recording `outcome="failed"` would need a second, separate transaction after the rollback (decision D4).
+- **No back-fill:** historical admin actions were never recorded and won't be fabricated.
+
+### 3. Is a migration necessary? Yes, for 4 of the 5 action groups
+An application-only change can't store an action type the DB CHECK constraint rejects: the insert raises `CheckViolation`, and the admin action rolls back with it. The `Literal`s and model can be widened in code, but the deployed constraint can't. The only alternatives are worse:
+- misusing existing types (for example `enrollment_status_changed` for an account), which corrupts the audit vocabulary;
+- dropping the constraint, which weakens integrity.
+
+### 4. Migration proposal (DRAFT; not applied, not committed)
+**Where:** isolated worktree `C:\Users\ACER\Documents\Codes\pamsu-python-ide-admin-audit-draft`, branch `draft/admin-audit-action-types`, cut from `50bc701`. All files there are **uncommitted**. The worktree has no `backend/.env`, so it can't reach a real database by accident.
+
+1. **Problem:** admin account, status, password, deletion and settings actions can't be audited, because the constraints don't allow their types.
+2. **Why not application-only:** see section 3.
+3. **Schema change:** revision `61330560eec5_allow_admin_audit_action_types.py`, `down_revision = c25114413200`, giving a single head (verified).
+   - `ck_audit_records_action_type` = the 20 baseline values plus `user_created`, `user_status_changed`, `user_password_reset`, `user_deleted` and `system_settings_updated`.
+   - `ck_audit_records_resource_type` = the 7 baseline values plus `system_setting`.
+   - `AuditRecord` (`domain_models.py`) and `AuditActionType` / `AuditResourceType` (`audit_schema.py`) are widened identically. No column, index or other table changes.
+4. **Existing data:** none is touched. The new lists are strict supersets, so every existing row stays valid.
+5. **Forward:** on PostgreSQL, `SET LOCAL lock_timeout = '10s'`, then drop and re-add each constraint; re-adding validates it with a single table scan. Other dialects use `batch_alter_table` (migrations don't run on SQLite in this project).
+6. **Downgrade:**
+   - It restores the exact baseline lists.
+   - It **refuses, changing nothing,** if any row uses a new type, because audit rows are immutable and are never deleted to make it fit. In that case, roll back by restoring the pre-upgrade backup, or simply leave the widened constraint in place, which is harmless.
+   - Offline (`--sql`) downgrade is refused, because the row check needs a connection.
+   - Nothing about it is irreversible.
+7. **Locking:**
+   - `DROP`/`ADD CONSTRAINT` take an `ACCESS EXCLUSIVE` lock on `audit_records`. It is held until the migration transaction commits (Alembic uses transactional DDL on PostgreSQL).
+   - Every audited action (logins, grading, submissions) waits on that table for the duration. That is a scan of a small table (37 rows locally; production size unknown).
+   - The lock timeout makes it fail fast rather than queue behind a long transaction.
+8. **Compatibility:**
+   - The chain is unchanged, there is one head, and no historical migration is edited.
+   - Old application code never writes the new types, so the migration can be deployed before or together with the code that uses them.
+   - Code that writes them **must not** run before the migration: the admin action would fail with a 500 and roll back.
+9. **Tests on disposable PostgreSQL 18.4** (new `backend/tests/test_admin_audit_migration.py`, run in the worktree; temporary databases only): **6/6 PASS** in 26 s, with `test_alembic_migrations.py`. They cover:
+   - the new types are rejected at `c25114413200` and accepted at `61330560eec5`;
+   - an existing row survives the upgrade;
+   - unknown values are still rejected;
+   - the **DB constraint values equal the ORM model's** (`alembic check` doesn't compare CHECK constraints, so this guards against drift);
+   - downgrade refuses while a new type is in use, and the revision, constraint and row are unchanged afterwards;
+   - an unused downgrade restores the baseline lists exactly and keeps old rows, and re-upgrade works;
+   - the full upgrade → downgrade base → re-upgrade passes through the new revision.
+   - **Still needed:** PostgreSQL 15 (the project's target), and the real admin audit writes (not implemented).
+10. **Deployment and rollback:**
+    - `start.sh` runs `alembic upgrade head` **on every start**, so merging this into a deployed branch applies it on the next deploy.
+    - Before deploying:
+      - back up the database;
+      - check the constraints read-only: `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'audit_records'::regclass AND contype = 'c';` (they should match the baseline);
+      - deploy migration, model and audit-writing code together.
+    - **Rollback:** revert the application code and keep the widened constraint, which is harmless. Downgrade only if no new-type rows exist.
+    - The separate `main` branch problem (missing migration files, recorded earlier) still blocks deploys from `main`.
+11. **Decisions needed:** see D1–D6 below.
+
+**Proposed use after approval (not implemented):** add one admin audit helper in `routers/admin.py` (or a small service). It follows the `_record_audit` pattern with `commit=False` before each existing `db.commit()`, so each action and its record are atomic.
+- **`user_created`** (resource `user`, id = the new user): `{"role", "source": "admin_form" | "guest" | "instructor" | "masterlist"}`. The masterlist import writes one record per created row inside its existing all-or-nothing transaction.
+- **`user_status_changed`:** `{"is_active", "previous_is_active"}`.
+- **`user_password_reset`:** `{"password_version"}`; never the password or the hash.
+- **`user_deleted`:** `{"role"}`; identity fields depend on D3.
+- **`system_settings_updated`** (resource `system_setting`, id `global`): `{"changes": {key: {"from", "to"}}}` for changed keys only; the values are booleans or enums. `set_system_setting` gets a `commit=False` mode, so the three keys and the record commit once.
+- **New tests:** `tests/test_admin_audit_logging.py`.
+  - One record per admin action, with the right actor, target and fields.
+  - No secret keys.
+  - A failed action leaves no record.
+  - An audit failure rolls the action back.
+  - Non-admins get 403 and no record.
+
+### 5. Tests executed this session
+| Test | Result |
+|---|---|
+| Full backend suite, SQLite, main checkout (`50bc701` content) | **811 passed, 5 skipped, 0 failed** (15 min 05 s). This is the full re-run the previous session didn't do, so the Windows id fix is confirmed |
+| Preserved `test_masterlist_import.py` against the tracked service | 19 passed, 4 failed (explained in section 1); the email-body test passes with only its stub fixed |
+| Worktree (draft): `test_admin_audit_migration.py` + `test_alembic_migrations.py`, PostgreSQL 18.4, temporary databases | **6/6 PASS** |
+| Worktree (draft): `test_audit_models`, `_router`, `_schemas`, `_service`, `_workflow`, `test_pending_enrollment_workflow`, `test_masterlist_import`, `test_backend_audit_regressions`, `test_admin_audit_migration` on SQLite | **194 passed, 3 skipped** (the PostgreSQL-only migration tests) |
+| Worktree: `git diff --check`, `alembic heads` | Clean; single head `61330560eec5` |
+| Worktree: pyflakes on the new files | Only the expected pytest fixture-import warning in the test (same pattern as `conftest.py`'s `noqa` import) |
+| Read-only checks of `pamsu_ide_db` before and after | Revision `c25114413200`, 37 audit records, unchanged; no temporary databases left |
+
+**Not run:**
+- admin audit-logging behaviour tests (there is nothing to test until the writes are implemented);
+- PostgreSQL 15;
+- the full suite inside the worktree (only the related suites above).
+
+### 6. Decisions needed (owner / security)
+- **D1:** account creation: new `user_created` (as drafted), or reuse the unused `user_registered` (no migration for that part)?
+- **D2:** approve the five new action types, the `system_setting` resource type, and their names.
+- **D3:** `user_deleted`: keep only the user id and role, or also the email / school ID? Those would retain personal data of a deleted account, but without them the id is the only trace.
+- **D4:** record refused or failed admin attempts (`outcome="failed"`, a separate transaction)?
+- **D5:** one summary record per masterlist import, in addition to the per-account records?
+- **D6:** the masterlist reconciliation in section 1 (port the 2 tests; whether to name duplicate rows), and deleting the preserved folder.
+
+### 7. Next pending task
+**Admin audit logging stays open. It is investigated and the migration is drafted, but nothing is implemented.**
+1. Owner reviews the draft in the worktree and decides D1–D5.
+2. After approval, on `draft/admin-audit-action-types`:
+   - implement the audit writes;
+   - make settings updates atomic;
+   - extend `PROHIBITED_AUDIT_KEYS`;
+   - return `resource_id` from `GET /admin/audit-logs`;
+   - add `tests/test_admin_audit_logging.py`;
+   - re-run the full suite and the PostgreSQL suites (also on 15 if available).
+3. Then items 3–10 of "Still open" (unchanged).
+
+Cleaning up the worktree when it's no longer needed: `git worktree remove ../pamsu-python-ide-admin-audit-draft`, after saving or committing its files.
