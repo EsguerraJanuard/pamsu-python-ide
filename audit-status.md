@@ -1269,3 +1269,92 @@ Results: **3 passed**. With the fix temporarily removed, 2 failed and the messag
 ### Next steps
 1. Open and review PRs into `dev` for `claude/nice-faraday-a9cfcd` and for `draft/admin-audit-action-types`.
 2. Then items 3–10 of "Full backend audit" → "Still open". They stay open; the backend audit is **not** complete.
+
+## PR review, #31 merge and follow-up security PRs (2026-10-19)
+
+_Linux checkout, Python 3.14.8, SQLAlchemy 2.0.52 (the pinned version). No `.env` and no PostgreSQL server on this machine. No migration was applied anywhere, and no real database was touched. Handover notes are also in [this comment on #30](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/30#issuecomment-6252988856)._
+
+### PR state
+| PR | Branch @ head | State |
+|---|---|---|
+| [#31](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/31) SQL parameters hidden from errors | `claude/nice-faraday-a9cfcd` @ `d4ea382` | **Merged** into `dev` as `1796da3` (squash, by the owner). Same tree as the reviewed `d4ea382` |
+| [#30](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/30) admin audit logging | `draft/admin-audit-action-types` @ `b661ed8` | **Draft**, open. Since #31 it **conflicts with `dev` in `audit-status.md` only** |
+| [#32](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/32) login identifier | `fix/login-failed-identifier` @ `559d815` | Open, mergeable, not merged |
+| [#33](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/33) database error logging | `fix/db-error-log-details` @ `763bee2` | Open, mergeable, not merged |
+
+The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend tests**; all results below are local.
+
+### Review of #30 and #31 (before #31 was merged)
+- **#31:**
+  - `hide_parameters=True` was added, and every other engine option is unchanged.
+  - The test goes through the application `engine` and `SessionLocal`, and a control case proves the canary assertion is meaningful.
+  - The 2.0.50 vs 2.0.52 discrepancy came from the Windows venv. `hide_parameters` behaves the same in both, so no pin change.
+- **#30:**
+  - The code, the migration (parent `c25114413200`, superset lists, guarded downgrade) and the tests match its description.
+  - **Finding:** a failed login stored the raw text of the email field. #30's new `resource_id`/`details` fields in `GET /admin/audit-logs` then showed it to admins. A scratch test (not committed) reproduced it: the username `my-secret-pass-123` was returned as both `resource_id` and `details.email`.
+  - The cause is fixed by #32. Rows already stored can't be edited, so #30 must still hide them in the endpoint.
+- **#30 PR changes:** title and description replaced (decisions, deploy order, read-only production SQL, the finding), and converted to Draft.
+
+### Tests (full backend suite, SQLite)
+| Tree | Result |
+|---|---|
+| `origin/dev` `e444596` (before #31) | 811 passed, 5 skipped, 0 failed |
+| #31 `d4ea382` | 814 passed, 5 skipped, 0 failed |
+| #30 `b661ed8` | 873 passed, 8 skipped, 0 failed; `alembic heads` = `61330560eec5` |
+| Scratch merge of #30 + #31 (tracker conflict resolved by keeping both sections; never pushed) | 876 passed, 8 skipped, 0 failed; single head; `git diff --check` clean |
+| #32 `559d815` | 834 passed, 5 skipped, 0 failed (814 + 20 new) |
+| #33 `763bee2` | 819 passed, 5 skipped, 0 failed (814 + 5 new) |
+
+**Mutation checks:**
+- #32: with the old behaviour restored, its 7 unrecognized-input tests fail.
+- #33: with the handler removed, 2 of its tests fail.
+
+**Not run:** PostgreSQL of any version, so PostgreSQL 15 stays unverified.
+
+### #32: never store unrecognized login identifiers
+- **`routers/auth.py`:** a failed login keeps the identifier only if it is a well-formed university email: no extra `@`, no whitespace, at most 100 characters (the `resource_id` limit). Anything else is stored as `unrecognized`.
+- **Unchanged:** unknown university emails and wrong passwords for existing accounts are recorded as before.
+- **Logging:** an audit-write failure logs the exception class only. Before, `logger.exception` printed the text, which could echo the typed input; for example, any identifier over 100 characters failed validation and was logged.
+- **Tests:** `tests/test_login_audit_identifier.py`.
+
+### #33: unhandled database errors logged without their message
+- **Problem:** `hide_parameters` doesn't remove the database's own error text. PostgreSQL's `DETAIL: Key (…)=(…)` and `Failing row contains (…)` can carry row values, including a password hash. Unhandled SQLAlchemy errors reached the default server handler, which logs the full traceback.
+- **Fix:**
+  - New `core/database_errors.py`, registered in `main.py` for `SQLAlchemyError`. It logs the error classes, SQLSTATE, constraint name, method, path and correlation ID, and returns `500 {"detail": "Internal server error."}`.
+  - The submission dispatch failure log uses the same summary.
+- **Tests:** `tests/test_database_error_logging.py`, with a psycopg-shaped error carrying a canary value.
+- **Not covered:**
+  - a real PostgreSQL run;
+  - Celery task failure logs;
+  - errors that application code catches and logs itself;
+  - errors raised after a response has started.
+
+### Integration
+- **Conflicts:**
+  - #32 and #33 don't touch `audit-status.md`, and they merge cleanly with each other and with #30.
+  - #30's only conflict is `audit-status.md`: every branch appended a section after the same line.
+  - **Resolution:** keep every section in date order and delete only the conflict markers.
+- **Order:**
+  1. #32 and #33, in either order.
+  2. Update #30 from `dev`, resolve the tracker conflict, and add the endpoint masking of stored `login_failed` identifiers.
+  3. Re-run the full suite and the PostgreSQL suites, on 15 if possible.
+  4. Merge #30.
+  5. Take a backup, run the read-only production check, then do a Render Manual Deploy.
+
+### Still open
+- **#30, before merge or deploy:**
+  - confirm the `masterlist_imported`/`masterlist_import` types;
+  - PostgreSQL 15 run;
+  - read-only production check (`SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'audit_records'::regclass AND contype = 'c';`, expecting the baseline 20 action types and 7 resource types, plus `alembic_version` = `c25114413200`);
+  - verified backup;
+  - deploy order (`start.sh` runs `alembic upgrade head` before the API starts; the code must not run without the migration);
+  - accounts that have logged in can only be deactivated, not deleted;
+  - non-admin attempts on admin endpoints are not audited;
+  - the admin UI doesn't show the target fields;
+  - hide the `login_failed` identifiers already stored.
+- **Backend audit "Still open" items 3–10:** unchanged, each needs a product decision. The backend audit is **not complete**.
+
+### Next pending backend audit task
+1. Review and merge #32 and #33.
+2. Finish #30 as listed above.
+3. Then "Full backend audit" → "Still open" item 3: token revocation and rate limits fail open while Redis is down. Decide fail-open or fail-closed per route.
