@@ -2,6 +2,7 @@ import logging
 from typing import NoReturn
 
 from app.core.database import get_db
+from app.core.database_errors import database_error_summary
 from app.core.security import get_current_student
 from app.models.domain_models import User
 from app.schemas.submission_schema import (StudentSubmissionResponse,
@@ -162,8 +163,13 @@ def create_submission_endpoint(
                 coding_session_id=payload.coding_session_id,
             ),
         )
-    except Exception as e:
-        logger.error(f"Failed to dispatch execution for submission: {e}")
+    except Exception as error:
+        # Summary only: database error text can contain the submitted row.
+        logger.error(
+            "Failed to dispatch execution for submission %s (%s).",
+            submission.sub_id,
+            database_error_summary(error),
+        )
 
     return StudentSubmissionResponse.model_validate(submission)
 
