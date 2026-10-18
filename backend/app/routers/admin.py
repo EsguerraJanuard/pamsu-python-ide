@@ -16,6 +16,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.services.email_service import send_provisioning_email
+from app.services.guest_service import not_self_service_guest
 from app.services.student_provisioning_service import (MAX_MASTERLIST_BYTES,
                                                       MasterlistConflictError,
                                                       MasterlistFileError,
@@ -273,10 +274,14 @@ def create_instructor(
 def list_users(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=500),
+    include_guests: bool = Query(default=False, description="Also list self-service guest accounts."),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    users = db.query(User).filter(User.role != "admin", ~User.email.startswith("guest_")).offset(skip).limit(limit).all()
+    query = db.query(User).filter(User.role != "admin")
+    if not include_guests:
+        query = query.filter(not_self_service_guest())
+    users = query.order_by(User.user_id).offset(skip).limit(limit).all()
     return users
 
 @router.patch("/users/{user_id}/status")

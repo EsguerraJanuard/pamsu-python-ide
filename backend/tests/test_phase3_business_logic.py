@@ -133,16 +133,18 @@ def test_guest_login_enrolls_into_sandbox(db_session):
     from app.routers.auth import login_guest
     from app.models.domain_models import Enrollment
 
-    instructor = User(
-        email="instructor_sandbox@pampangastateu.edu.ph",
-        name="Instructor Sandbox",
-        role="instructor",
+    # The sandbox is owned by an admin, never an instructor (backend audit
+    # item 4), so it does not appear in an instructor's dashboard.
+    admin = User(
+        email="admin_sandbox@pampangastateu.edu.ph",
+        name="Admin Sandbox",
+        role="admin",
         password_hash="hash",
-        school_id="INS0000001",
+        school_id="ADM0000001",
         email_verified=True,
         is_active=True,
     )
-    db_session.add(instructor)
+    db_session.add(admin)
     db_session.commit()
 
     token_resp = login_guest(db=db_session)
@@ -151,6 +153,10 @@ def test_guest_login_enrolls_into_sandbox(db_session):
     sandbox = db_session.query(Classroom).filter(Classroom.class_code == "SANDBOX01").first()
     assert sandbox is not None
     assert sandbox.name == "Guest Sandbox Classroom"
+    assert sandbox.instructor_id == admin.user_id
+    assert db_session.query(Enrollment).filter(
+        Enrollment.class_id == sandbox.class_id, Enrollment.student_id == token_resp.user.user_id
+    ).count() == 1
 
 
 def test_deadline_enforcement_on_submission(db_session):

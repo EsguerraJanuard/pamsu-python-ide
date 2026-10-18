@@ -16,6 +16,10 @@ from app.models.domain_models import User
 from app.schemas.audit_schema import AuditRecordCreateInternal
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.services.audit_service import create_audit_record
+from app.services.guest_service import (GUEST_LIMIT_REACHED_DETAIL,
+                                        create_self_service_guest,
+                                        get_or_create_sandbox_classroom,
+                                        guest_limit_reached)
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -300,11 +304,7 @@ def logout(
     dependencies=[Depends(limit_per_ip("guest", limit=2, window_seconds=60))],
 )
 def login_guest(db: Session = Depends(get_db)):
-    import random
-    import secrets
-    import uuid
-
-    from app.models.domain_models import Classroom, Enrollment
+    from app.models.domain_models import Enrollment
 
     # Guest accounts are student accounts, so the student maintenance-mode
     # rule enforced by /login applies here as well.
@@ -314,51 +314,17 @@ def login_guest(db: Session = Depends(get_db)):
             detail=MAINTENANCE_MODE_MESSAGE,
         )
 
-    short_id = str(uuid.uuid4())[:6]
-    guest_email = f"guest_{short_id}@pampangastateu.edu.ph"
-
-    guest = User(
-        email=guest_email,
-        name=f"Guest {short_id.upper()}",
-        role="student",
-        # Guests sign in only through this endpoint. A random, never-disclosed
-        # password keeps the ephemeral account from being reachable through
-        # /login with a shared, guessable password.
-        password_hash=get_password_hash(secrets.token_urlsafe(32)),
-        school_id=f"GST{random.randint(1000000, 9999999)}",
-        # Guests have no university mailbox to verify. Same as
-        # admin-provisioned guests (POST /admin/guests); without it every
-        # authenticated request is rejected by get_current_user.
-        email_verified=True,
-    )
-    db.add(guest)
-    db.commit()
-    db.refresh(guest)
-    
-    # Auto-enroll guest into dedicated sandbox classroom to avoid polluting real classrooms
-    sandbox_class = (
-        db.query(Classroom)
-        .filter(Classroom.class_code == "SANDBOX01")
-        .first()
-    )
-    if not sandbox_class:
-        sandbox_instructor = (
-            db.query(User)
-            .filter(User.role.in_(["instructor", "admin"]))
-            .first()
+    # Counted in the database, so the cap holds even while Redis is down.
+    if guest_limit_reached(db):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=GUEST_LIMIT_REACHED_DETAIL,
         )
-        if sandbox_instructor:
-            sandbox_class = Classroom(
-                name="Guest Sandbox Classroom",
-                subject_code="DEMO101",
-                section="Sandbox",
-                class_code="SANDBOX01",
-                instructor_id=sandbox_instructor.user_id,
-                is_active=True,
-            )
-            db.add(sandbox_class)
-            db.commit()
-            db.refresh(sandbox_class)
+
+    guest = create_self_service_guest(db)
+
+    # Guests only use the admin-owned sandbox; they cannot join real classes.
+    sandbox_class = get_or_create_sandbox_classroom(db)
 
     if sandbox_class:
         enroll = Enrollment(
