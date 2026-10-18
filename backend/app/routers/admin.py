@@ -9,6 +9,7 @@ from app.schemas.enrollment_schema import PendingEnrollmentResult
 from app.services.classroom_service import (StudentNotEligibleForEnrollmentError,
                                             apply_pending_enrollments)
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
+from app.core.system_settings import get_default_ast_strictness
 from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -257,7 +258,9 @@ def create_instructor(
         role="instructor",
         password_hash=get_password_hash(request.password),
         school_id=_generate_unused_school_id(db, prefix="FAC"),
-        email_verified=True
+        email_verified=True,
+        # New instructors start at the admin's default; they can change it.
+        ast_strictness_level=get_default_ast_strictness(db),
     )
     try:
         db.add(new_instructor)

@@ -25,6 +25,21 @@ def get_system_setting(db: Session, key: str, default: Any = None) -> Any:
     return DEFAULT_SYSTEM_SETTINGS.get(key, default)
 
 
+AST_STRICTNESS_LEVELS = ("lax", "moderate", "strict")
+
+
+def get_default_ast_strictness(db: Session) -> str:
+    """
+    The admin's default AST strictness.
+
+    It is the starting level of new instructor accounts and the level used
+    where no instructor applies (practice modules, or a task whose
+    instructor no longer exists). Instructors keep the level they chose.
+    """
+    value = get_system_setting(db, "default_ast_strictness")
+    return value if value in AST_STRICTNESS_LEVELS else DEFAULT_SYSTEM_SETTINGS["default_ast_strictness"]
+
+
 def set_system_setting(db: Session, key: str, value: Any) -> None:
     """Persist a system setting to the database."""
     val_str = str(value).lower() if isinstance(value, bool) else str(value)

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from app.core.system_settings import get_default_ast_strictness
 from app.models.domain_models import (ASTAnalysis, InstructorGrade,
                                       SimilarityResult, Submission, Task, User)
 from app.schemas.evaluation_schema import (EvaluationStatusUpdate,
@@ -521,7 +522,7 @@ def evaluate_submission_by_id(
     # Fetch instructor to get strictness level
     from app.models.domain_models import User
     instructor = db.query(User).filter(User.user_id == task.instructor_id).first()
-    strictness = instructor.ast_strictness_level if instructor else "moderate"
+    strictness = instructor.ast_strictness_level if instructor else get_default_ast_strictness(db)
 
     ast_details = evaluate_ast_details(
         raw_code=submission.raw_code,

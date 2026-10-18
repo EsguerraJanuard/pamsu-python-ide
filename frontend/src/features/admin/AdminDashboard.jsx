@@ -682,7 +682,7 @@ export default function AdminDashboard() {
                     </div>
                     <fieldset>
                       <legend className="text-sm font-semibold text-text-main">Default AST strictness</legend>
-                      <p className="mb-3 text-xs text-text-muted">Used for instructors who haven&apos;t chosen their own level.</p>
+                      <p className="mb-3 text-xs text-text-muted">Starting level for new instructor accounts and the level used for practice modules. Instructors can change their own level in Settings.</p>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                         {STRICTNESS.map(([value, label, help]) => (
                           <label key={value} className="cursor-pointer rounded-xl border border-border-strong p-4 transition-colors has-[:checked]:border-psu-maroon has-[:checked]:bg-psu-cream">

@@ -8,6 +8,7 @@ import logging
 from app.core.database import get_db
 from app.core.rate_limit import limit_per_user
 from app.core.security import get_current_instructor, get_current_student
+from app.core.system_settings import get_default_ast_strictness
 from app.models.domain_models import (PracticeAttempt, PracticeModule,
                                       PracticeProgress, PracticeTask, User)
 from app.schemas.practice_schema import (GrowthAnalyticsResponse,
@@ -170,7 +171,12 @@ def submit_practice_task(
     # 2. Gate 2: AST Structural Analysis
     if is_successful and task.expected_ast_patterns:
         try:
-            ast_res = evaluate_ast_details(request.code, task.expected_ast_patterns)
+            # Practice tasks have no instructor: the admin default applies.
+            ast_res = evaluate_ast_details(
+                request.code,
+                task.expected_ast_patterns,
+                strictness_level=get_default_ast_strictness(db),
+            )
             
             if ast_res.get("syntax_error"):
                 ast_feedback_msgs.append(f"Syntax Error: {ast_res['syntax_error'].get('message', 'Unknown syntax error')}")
