@@ -228,7 +228,13 @@ def test_lint_requires_authentication(client, people):
     assert response.json()["markers"][0]["severity"] == "warning"
 
 
-@pytest.mark.parametrize("code", ["-" * 99_999 + "1", "a+" * 40_000 + "a"])
+# Short ids: pytest exports the test id in PYTEST_CURRENT_TEST, and Windows
+# rejects environment variables longer than 32767 characters.
+@pytest.mark.parametrize(
+    "code",
+    ["-" * 99_999 + "1", "a+" * 40_000 + "a"],
+    ids=["unary-minus-chain", "long-binop-chain"],
+)
 def test_pathological_code_is_reported_not_crashing(client, people, code):
     response = client.post("/execution/lint", headers=auth(people["student"]), json={"code": code})
 

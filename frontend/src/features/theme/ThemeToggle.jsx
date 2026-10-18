@@ -1,14 +1,16 @@
+import { useId } from "react";
+import Tooltip from "../../components/ui/Tooltip";
 import { useTheme } from "./ThemeContext";
 
 const OPTIONS = [
-  { id: "light", label: "Light" },
-  { id: "dark", label: "Dark" },
-  { id: "system", label: "System" },
+  { id: "light", label: "Light", action: "Use light theme" },
+  { id: "dark", label: "Dark", action: "Use dark theme" },
+  { id: "system", label: "System", action: "Use system theme" },
 ];
 
 const NEXT = { system: "light", light: "dark", dark: "system" };
 
-function ThemeIcon({ name, size = 14 }) {
+function ThemeIcon({ name, size = 14, strokeWidth = 1.4 }) {
   return (
     <svg
       width={size}
@@ -16,7 +18,7 @@ function ThemeIcon({ name, size = 14 }) {
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.4"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -47,62 +49,70 @@ const describe = (preference, effectiveTheme) =>
       : "Light";
 
 /**
- * Student theme control for the sidebar profile area.
- * Expanded: a 3-way radio group (Light / Dark / System) with a status line.
- * Collapsed: one button that cycles System → Light → Dark. Both have a fixed
- * height so changing the selection never shifts the layout.
+ * Theme control for the sidebar profile area (student and instructor).
+ * Expanded: a compact icon toolbar (Light / Dark / System toggle buttons,
+ * `aria-pressed`), with tooltips and an off-screen status for assistive tech.
+ * Collapsed: one icon button that cycles System → Light → Dark.
+ * Both keep a fixed size so changing the selection never shifts the layout.
  */
-export default function ThemeToggle({ collapsed = false }) {
+export default function ThemeToggle({ collapsed = false, tooltipSide = "right" }) {
   const { preference, effectiveTheme, setPreference } = useTheme();
+  const systemDescriptionId = useId();
   const summary = describe(preference, effectiveTheme);
 
   if (collapsed) {
-    const next = NEXT[preference];
-    const nextLabel = OPTIONS.find((option) => option.id === next).label;
+    const nextLabel = OPTIONS.find((option) => option.id === NEXT[preference]).label;
+    const label = `Theme: ${summary}. Switch to ${nextLabel}.`;
+    const current = preference === "system" ? `System (${effectiveTheme})` : summary;
     return (
-      <button
-        type="button"
-        onClick={() => setPreference(next)}
-        title={`Theme: ${summary}. Switch to ${nextLabel}.`}
-        aria-label={`Theme: ${summary}. Switch to ${nextLabel}.`}
-        className="flex h-9 w-full items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-alt hover:text-text-main"
-      >
-        <ThemeIcon name={preference === "system" ? "system" : preference} size={16} />
-      </button>
+      <Tooltip content={`Theme: ${current} · next: ${nextLabel}`} side={tooltipSide}>
+        <button
+          type="button"
+          onClick={() => setPreference(NEXT[preference])}
+          aria-label={label}
+          className="flex h-9 w-full items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-alt hover:text-text-main"
+        >
+          <ThemeIcon name={preference} size={16} />
+        </button>
+      </Tooltip>
     );
   }
 
+  const systemSelected = preference === "system";
+  const systemNote = systemSelected
+    ? `Follows your device setting (currently ${effectiveTheme})`
+    : "Follows your device's light or dark setting";
+
   return (
-    <div className="px-1.5">
-      <div
-        role="radiogroup"
-        aria-label="Color theme"
-        className="grid h-8 grid-cols-3 gap-0.5 rounded-lg border border-border-subtle bg-bg-alt p-0.5"
-      >
-        {OPTIONS.map((option) => {
-          const selected = preference === option.id;
-          return (
+    <div role="group" aria-label="Color theme" className="flex h-8 items-center gap-0.5 rounded-lg bg-bg-alt p-0.5">
+      {OPTIONS.map((option) => {
+        const selected = preference === option.id;
+        const isSystem = option.id === "system";
+        return (
+          <Tooltip key={option.id} content={isSystem && selected ? `${option.action} (device: ${effectiveTheme})` : option.action}>
             <button
-              key={option.id}
               type="button"
-              role="radio"
-              aria-checked={selected}
+              aria-label={option.action}
+              aria-pressed={selected}
+              aria-describedby={isSystem ? systemDescriptionId : undefined}
               onClick={() => setPreference(option.id)}
-              className={`flex items-center justify-center gap-1 rounded-md text-[11px] font-semibold transition-colors ${
+              className={`flex h-7 w-8 items-center justify-center rounded-md transition-colors ${
                 selected
-                  ? "bg-bg-panel text-text-brand shadow-sm"
-                  : "text-text-muted hover:text-text-main"
+                  ? "bg-bg-panel text-text-brand shadow-[var(--shadow-card),inset_0_-2px_0_var(--color-psu-gold)]"
+                  : "text-text-muted hover:bg-bg-panel/60 hover:text-text-main"
               }`}
             >
-              <ThemeIcon name={option.id} size={12} />
-              {option.label}
+              <ThemeIcon name={option.id} size={15} strokeWidth={selected ? 1.7 : 1.4} />
             </button>
-          );
-        })}
-      </div>
-      <p className="mt-1 h-4 truncate text-[10px] text-text-muted" role="status" aria-live="polite">
-        {preference === "system" ? `Following device · ${effectiveTheme}` : `${summary} · set manually`}
-      </p>
+          </Tooltip>
+        );
+      })}
+      <span id={systemDescriptionId} className="sr-only">
+        {systemNote}
+      </span>
+      <span className="sr-only" role="status" aria-live="polite">
+        {systemSelected ? `Theme: ${summary}` : `Theme: ${summary}, set manually`}
+      </span>
     </div>
   );
 }

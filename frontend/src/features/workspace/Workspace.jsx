@@ -472,7 +472,7 @@ function ActivityWorkspace({ activityId }) {
             </div>
             {/* Below lg the navigation rail (and its theme control) is hidden. */}
             <div className="w-9 shrink-0 lg:hidden">
-              <ThemeToggle collapsed />
+              <ThemeToggle collapsed tooltipSide="bottom" />
             </div>
             <button type="button" onClick={handleCheck} disabled={isBusy} className="btn-secondary btn-sm">
               Check structure

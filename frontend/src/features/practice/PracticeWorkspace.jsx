@@ -211,7 +211,7 @@ function PracticeTask({ taskId }) {
         <div className="flex items-center gap-2">
           {/* Same student theme preference as the sidebar (this view has no sidebar). */}
           <div className="w-9 shrink-0">
-            <ThemeToggle collapsed />
+            <ThemeToggle collapsed tooltipSide="bottom" />
           </div>
           {feedback?.is_successful && nextTaskId && (
             <button

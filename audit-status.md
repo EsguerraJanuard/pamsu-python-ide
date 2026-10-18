@@ -941,3 +941,109 @@ Status: **implemented and verified in a browser against a mock API.** The admin 
 
 ### Remaining
 Admin dark mode (separate phase). `ActivityEditor.jsx.bak` and `.bak2` exist in `features/instructor/` and were not touched.
+
+## Sidebar polish and PostgreSQL suite run (2026-10-18)
+
+_Branch: `dev` · Base commit: `f0bc529` (`origin/dev`) · Nothing committed or pushed. No real database was changed._
+
+### Repository-state note (read first)
+- At the start of the session, local `dev` was at `c285f54`, **5 commits behind `origin/dev`** (`0eb9c17`, `e946455`, `44a933d`, `1a80b09`, `f0bc529`, by Zithxnm). Those commits hold the student and instructor theme work (Phase 1 and 2 above) and the full backend audit. There were no tracked modifications.
+- `backend/app/services/student_provisioning_service.py` and `backend/tests/test_masterlist_import.py` were **untracked** locally: `c285f54` described them but never added them. `origin/dev` tracks re-created versions with different content (see "Production blocker found first" above). The local originals would have blocked the fast-forward, so they were **moved, not deleted**, to `docs/remediation/preserved-untracked-2026-10-18/` (untracked, not staged). Then `git merge --ff-only origin/dev` was run with the owner's approval.
+- Untracked helper scripts (`fix_*.py`, `check_*.py`, …), `psu_theme_backups/`, `stash-frontend-diff.txt` and `docs/remediation/auth.py.uncommitted-2026-10-16.diff` were left as they were.
+
+### 1. Sidebar: icon-only theme toolbar and sign-out
+Applies to the student and instructor sidebars (both use `AppSidebar`). Admin has no sidebar theme control and stays light-only. This supersedes the "Sidebar control" description in Phase 1 and Phase 2 (radio group with visible labels plus a status line); the theme architecture is unchanged.
+- **Expanded rail:** the profile row (avatar, name, email) is unchanged. Below it is one 32 px row: a recessed track with three icon toggle buttons (sun, moon, monitor; 32×28 px each), plus an icon-only **Sign out** button (32×32) on the right. The visible labels and the "Following device · …" line were removed. The bottom block went from about 128 px to **85 px** (measured), so the navigation gets more room. Sidebar width and the nav items are unchanged.
+- **Selected state, not colour alone:** the selected button is raised (panel surface plus card shadow) out of the recessed track, has a gold underline (`--color-psu-gold`, the same accent as the active nav item), and its icon is drawn with a heavier stroke and in `text-text-brand`. Unselected icons use `text-text-muted`. Only existing tokens are used, so light and dark both follow the theme.
+- **Accessibility:**
+  - `role="group"` with `aria-label="Color theme"`; buttons have `aria-label` "Use light theme" / "Use dark theme" / "Use system theme" and `aria-pressed`. These replace `role="radio"`, which needed arrow-key handling that was never implemented.
+  - The System button has `aria-describedby` pointing at always-present text ("Follows your device setting (currently dark)").
+  - A visually hidden `role="status"` live region announces changes ("Theme: Light, set manually").
+  - The existing global `:focus-visible` outline (`--border-focus`) is the focus indicator.
+  - Collapsed rail and the IDE toolbars: the existing single cycling button is kept, with its full sentence as the accessible name. Sign out always has `aria-label="Sign out"`.
+- **Tooltips:** new `components/ui/Tooltip.jsx`. It shows on hover and on keyboard focus (`:focus-visible` only, so a mouse click doesn't leave it open), and hides on Escape, blur, scroll or resize. It renders in a portal with fixed positioning, so the rail's `overflow-hidden` can't clip it, and it is clamped to the viewport. It is `aria-hidden` (a visual mirror of the accessible name). Placement: above in the expanded rail, to the right in the collapsed rail, below in the workspace and practice headers (`tooltipSide="bottom"`). The System tooltip includes the device state ("Use system theme (device: dark)").
+- **Unchanged:** `ThemeContext.jsx`, `themeStorage.js` (per-account `pamsu_theme_pref_v1:<user_id>`), `index.css` tokens, the `index.html` pre-paint script, sign-out and logout logic (`SignOutModal` → `logout()` → `/login`), navigation, auth.
+
+### 2. Tracker continuation: PostgreSQL-only backend suites ("Full backend audit", Still open, item 1)
+Phase 1 and Phase 2 of the theme restoration were already complete. The only theme item left is admin dark mode, which is a separate phase that nobody has approved, so it was **not started**. The earliest open item that needs no decision is item 1 of the full backend audit's "Still open" list: the PostgreSQL migration and concurrency suites had not been run (the audit had no PostgreSQL). This machine has PostgreSQL 18.4, so they were run here.
+- **Setup (no real database touched):** `PAMSU_TEST_DATABASE_URL` was set to the local server's `postgres` maintenance database, using the credentials from `backend/.env`; the URL was never printed. The suites only use it to `CREATE` and `DROP` their own `pamsu_ide_*_pytest_<uuid>` databases. Only these 5 files were run with the variable set, not the whole suite.
+- **Result: 7/7 PASS (22 s).**
+  - `test_alembic_migrations.py` 3/3: no URL in `alembic.ini`; one baseline and one head; full upgrade, check, **downgrade to base**, re-upgrade, check (this confirms the committed Fix B on a fresh database).
+  - `test_execution_request_idempotency_concurrency`, `test_grade_concurrency`, `test_partner_execution_concurrency` and `test_submission_concurrency`: 1/1 each.
+- **After the run:** the only `pamsu_ide%` databases on the server are the pre-existing `pamsu_ide_alembic_test` (not created by this session, left alone) and `pamsu_ide_db`. `pamsu_ide_db` is still at `c25114413200` with 21 users (checked through a read-only session).
+- **Still not covered:** PostgreSQL 15, the project's target version (only 18.4 is installed).
+
+### 3. Directly related fix: Windows test-id limit
+- **Full SQLite suite on this Windows machine (before the fix):** 809 passed, 5 skipped, **4 errors** (13 min 28 s).
+- **Cause:** all 4 errors came from `test_backend_audit_regressions.py::test_pathological_code_is_reported_not_crashing`. Its two parametrized inputs (100 kB strings) became part of the test id. Pytest exports the id in `PYTEST_CURRENT_TEST`, and Windows rejects environment variables over 32,767 characters (`ValueError`), failing setup and teardown of each case. This is not an application defect, and on Linux the suite passes.
+- **Fix:** short `ids=` on that parametrize, with a comment. The inputs and assertions are unchanged.
+- **After the fix:** the file passes 35/35, so the full suite is 811 passed and 5 skipped, matching the audit's Linux result. The full suite was not re-run end to end after this one-line change.
+- **Timing note:** on Windows the suite takes about 13 minutes, compared with about 70 s in the audit. A connection to the refused port `redis://127.0.0.1:1` is retried by Windows for about 2 s instead of failing at once. This was not changed.
+
+### Files modified (tracked)
+```
+audit-status.md                                    (this section)
+backend/tests/test_backend_audit_regressions.py    (short parametrize ids; Windows env-var limit)
+frontend/src/components/layout/AppSidebar.jsx      (theme toolbar + icon sign-out in one row; tooltips)
+frontend/src/features/theme/ThemeToggle.jsx        (icon-only toggle buttons, aria-pressed, sr-only status, tooltips)
+frontend/src/features/practice/PracticeWorkspace.jsx  (tooltipSide="bottom" on the header theme button)
+frontend/src/features/workspace/Workspace.jsx      (tooltipSide="bottom" on the header theme button)
+```
+
+### Files created
+```
+frontend/src/components/ui/Tooltip.jsx                          (portal tooltip; to be committed)
+docs/remediation/preserved-untracked-2026-10-18/                 (the two original untracked files; NOT for commit)
+```
+
+### Verification
+| Check | Result |
+|---|---|
+| `npm run lint` | **PASS** (exit 0, no output) |
+| `npm run build` | **PASS** |
+| `git diff --check` | **PASS** (only `core.autocrlf` LF→CRLF notices) |
+| Backend: `test_backend_audit_regressions.py` | **PASS** 35/35 |
+| Backend: full SQLite suite | 809 passed, 5 skipped, 4 errors **before** the id fix; those 4 now pass (see section 3) |
+| Backend: PostgreSQL-only suites (18.4) | **PASS** 7/7 |
+
+**Browser:** Vite dev server; the backend was not running, so pages showed "Server unavailable". The sessions were fake student and instructor sessions seeded in `localStorage` and cleared afterwards.
+- **Expanded rail (1025 px and 763 px with the rail expanded):**
+  - The three icons are aligned in one track (34 px pitch), and sign-out sits on the same row, vertically centred.
+  - No horizontal overflow, and the profile row is unchanged.
+  - Viewed in dark (System) and light (manual).
+- **Theme changes:**
+  - Clicking Light gives `html.light`; the key is stored as `light`; `aria-pressed` moves; the status reads "Theme: Light, set manually".
+  - Dark persisted across a route change.
+  - System clears the stored key, follows the emulated OS (dark), and its description reads "Follows your device setting (currently dark)".
+- **Tooltips:**
+  - The hover tooltip renders above the button, inside the viewport.
+  - With the keyboard, Tab to the Light button shows the focus ring and the tooltip; Escape hides the tooltip and keeps focus.
+  - In the collapsed rail the tooltip renders to the right, outside the 60 px rail, without clipping.
+- **Sign out:** the tooltip reads "Sign out"; clicking opens the existing confirmation dialog, and the tooltip hides; confirming goes to `/login` with the token cleared, `html.light`, and no theme control.
+- **Instructor sidebar:** same layout, and the stored Dark preference is shown as pressed.
+- **375 px (mobile emulation):** the rail is collapsed; the theme and sign-out buttons are 43×36; no horizontal overflow.
+- No console errors.
+- **Not verified:**
+  - the header theme button's tooltip in the IDE and practice workspaces (those pages need a backend to render their toolbar);
+  - screen-reader output (only the attributes were checked);
+  - live OS theme-change events (the pane emits none, as in Phase 1);
+  - other browsers and touch devices;
+  - an admin session (admin doesn't use `AppSidebar`; no admin code was touched).
+
+### Remaining / next pending task
+1. **Next:** "Full backend audit", Still open, **item 2**: admin actions (deactivate, delete, password reset, settings) write no audit record, because `audit_records.action_type` has a DB CHECK constraint. **Needs approval for a migration** that widens the constraint. Not started.
+2. Items 3–10 of that list each need a product decision or a design change, and were not started:
+   - fail-open Redis behaviour;
+   - guest-account policy;
+   - synchronous Judge0 wait in practice submit;
+   - AI tutor dependency and wiring;
+   - legacy `POST /execution/submissions/`;
+   - `default_ast_strictness`;
+   - retakes and enrollment decisions;
+   - `rediss://` certificate checks.
+3. Admin dark mode: a separate phase, **not approved**, not started. Login, public auth and admin stay light-only.
+4. Run the PostgreSQL suites on PostgreSQL 15.
+5. **Housekeeping:**
+   - Compare `docs/remediation/preserved-untracked-2026-10-18/` with the committed versions, then delete the folder.
+   - `ActivityEditor.jsx.bak`/`.bak2` and the root helper scripts are still untracked.
+   - Rotate the SMTP key (still open from earlier sections).

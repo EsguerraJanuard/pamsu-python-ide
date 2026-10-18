@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
+import Tooltip from "../ui/Tooltip";
 import SignOutModal from "./SignOutModal";
 
 const ICONS = {
@@ -210,17 +211,23 @@ export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}
               </div>
             )}
           </div>
-          {renderThemeControl?.(isCollapsed)}
-          <button
-            type="button"
-            onClick={() => setIsSignOutOpen(true)}
-            title={isCollapsed ? "Sign out" : undefined}
-            aria-label={isCollapsed ? "Sign out" : undefined}
-            className={`${itemBase} font-medium text-text-muted hover:bg-psu-red/[0.06] hover:text-text-rose`}
-          >
-            <NavIcon name="logout" />
-            {!isCollapsed && <span>Sign out</span>}
-          </button>
+          {/* Expanded: theme toolbar and sign-out share one compact row.
+              Collapsed: the same controls stack as full-width icon buttons. */}
+          <div className={isCollapsed ? "space-y-1" : "flex items-center gap-2 px-1.5 pt-1"}>
+            {renderThemeControl?.(isCollapsed)}
+            <Tooltip content="Sign out" side={isCollapsed ? "right" : "top"}>
+              <button
+                type="button"
+                onClick={() => setIsSignOutOpen(true)}
+                aria-label="Sign out"
+                className={`flex items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-psu-red/[0.06] hover:text-text-rose ${
+                  isCollapsed ? "h-9 w-full" : "ml-auto h-8 w-8"
+                }`}
+              >
+                <NavIcon name="logout" />
+              </button>
+            </Tooltip>
+          </div>
         </div>
       </aside>
 
