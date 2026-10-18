@@ -1270,7 +1270,7 @@ Results: **3 passed**. With the fix temporarily removed, 2 failed and the messag
 1. Open and review PRs into `dev` for `claude/nice-faraday-a9cfcd` and for `draft/admin-audit-action-types`.
 2. Then items 3–10 of "Full backend audit" → "Still open". They stay open; the backend audit is **not** complete.
 
-## PR review, #31 merge and follow-up security PRs (2026-10-19)
+## PR review, #31–#33 merges and follow-up security fixes (2026-10-19)
 
 _Linux checkout, Python 3.14.8, SQLAlchemy 2.0.52 (the pinned version). No `.env` and no PostgreSQL server on this machine. No migration was applied anywhere, and no real database was touched. Handover notes are also in [this comment on #30](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/30#issuecomment-6252988856)._
 
@@ -1279,8 +1279,8 @@ _Linux checkout, Python 3.14.8, SQLAlchemy 2.0.52 (the pinned version). No `.env
 |---|---|---|
 | [#31](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/31) SQL parameters hidden from errors | `claude/nice-faraday-a9cfcd` @ `d4ea382` | **Merged** into `dev` as `1796da3` (squash, by the owner). Same tree as the reviewed `d4ea382` |
 | [#30](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/30) admin audit logging | `draft/admin-audit-action-types` @ `b661ed8` | **Draft**, open. Since #31 it **conflicts with `dev` in `audit-status.md` only** |
-| [#32](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/32) login identifier | `fix/login-failed-identifier` @ `559d815` | Open, mergeable, not merged |
-| [#33](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/33) database error logging | `fix/db-error-log-details` @ `763bee2` | Open, mergeable, not merged |
+| [#32](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/32) login identifier | `fix/login-failed-identifier` @ `559d815` | **Merged** into `dev` as `ae276a3` (squash, by the owner). Same content as the reviewed `559d815` |
+| [#33](https://github.com/EsguerraJanuard/pamsu-python-ide/pull/33) database error logging | `fix/db-error-log-details` @ `763bee2` | **Merged** into `dev` as `6a358d8` (squash, by the owner). Same content as the reviewed `763bee2` |
 
 The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend tests**; all results below are local.
 
@@ -1304,6 +1304,7 @@ The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend 
 | Scratch merge of #30 + #31 (tracker conflict resolved by keeping both sections; never pushed) | 876 passed, 8 skipped, 0 failed; single head; `git diff --check` clean |
 | #32 `559d815` | 834 passed, 5 skipped, 0 failed (814 + 20 new) |
 | #33 `763bee2` | 819 passed, 5 skipped, 0 failed (814 + 5 new) |
+| **`dev` `6a358d8`** (#31 + #32 + #33 merged) | **839 passed, 5 skipped, 0 failed** (814 + 20 + 5) |
 
 **Mutation checks:**
 - #32: with the old behaviour restored, its 7 unrecognized-input tests fail.
@@ -1331,11 +1332,11 @@ The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend 
 
 ### Integration
 - **Conflicts:**
-  - #32 and #33 don't touch `audit-status.md`, and they merge cleanly with each other and with #30.
+  - #32 and #33 didn't touch `audit-status.md`, and their code doesn't overlap with #30.
   - #30's only conflict is `audit-status.md`: every branch appended a section after the same line.
   - **Resolution:** keep every section in date order and delete only the conflict markers.
 - **Order:**
-  1. #32 and #33, in either order.
+  1. ~~#32 and #33~~: done.
   2. Update #30 from `dev`, resolve the tracker conflict, and add the endpoint masking of stored `login_failed` identifiers.
   3. Re-run the full suite and the PostgreSQL suites, on 15 if possible.
   4. Merge #30.
@@ -1355,6 +1356,5 @@ The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend 
 - **Backend audit "Still open" items 3–10:** unchanged, each needs a product decision. The backend audit is **not complete**.
 
 ### Next pending backend audit task
-1. Review and merge #32 and #33.
-2. Finish #30 as listed above.
-3. Then "Full backend audit" → "Still open" item 3: token revocation and rate limits fail open while Redis is down. Decide fail-open or fail-closed per route.
+1. Finish #30 as listed above (#31, #32 and #33 are merged).
+2. Then "Full backend audit" → "Still open" item 3: token revocation and rate limits fail open while Redis is down. Decide fail-open or fail-closed per route.
