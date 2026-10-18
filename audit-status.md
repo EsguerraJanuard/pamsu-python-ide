@@ -1406,3 +1406,51 @@ The only CI on these PRs is Vercel (frontend preview). **No CI runs the backend 
 ### Next pending backend audit task
 1. #30: PostgreSQL 15, the production check, the backup, then merge and deploy.
 2. "Still open" item 4: guest accounts. Unlimited creation behind the shared proxy IP, no cleanup, they can join any class whose code they know, and the sandbox class belongs to whichever instructor comes first. This needs product decisions.
+
+## Guest accounts (2026-10-19)
+
+"Full backend audit" → "Still open" **item 4: decided and implemented** (branch `fix/guest-account-limits`). Item 3, the Redis outage fallback, is merged as #35.
+
+### What was wrong
+- **Self-service guests** ("Continue as Guest Student" on the login page) were only limited to 2 per minute per IP. On Render that is effectively one shared bucket: up to about 2,800 accounts a day, and one person could block guest access for everyone.
+- Each guest cost a bcrypt hash.
+- Guests could join any real class whose code they knew, and use Judge0 there.
+- Guests were never cleaned up, and the admin user list hid them.
+- The sandbox class was owned by whichever instructor or admin row came first, so it appeared in a random instructor's dashboard. Two simultaneous first guests could both try to create it.
+- A guest's 6-hex-character id could collide.
+
+### Owner decisions (Zithxnm)
+1. Keep the public guest button, with a **daily cap**.
+2. Guests are **sandbox only**: no joining real classes.
+3. Guests are **deactivated 7 days** after creation (never deleted).
+4. The sandbox class is **owned by an admin**.
+
+**Scope:** these rules apply to **self-service guests** only: role student, `guest_…@pampangastateu.edu.ph`, school ID `GST…`. Guests an admin creates through `POST /admin/guests` keep the normal student rules.
+
+### Change
+- **New `services/guest_service.py`:**
+  - **Daily cap:** `GUEST_DAILY_LIMIT = 100` new self-service guests per rolling 24 hours. It's counted in the database, so it holds even while Redis is down. Beyond it, `/guest` returns 429 with a message the login page already shows.
+  - **Guest creation:** a 12-hex id, an unused `GST` school ID, and an unusable password marker (no bcrypt cost).
+  - **Sandbox:**
+    - owned by the first active admin; created on first use, and safe against two guests arriving at once;
+    - **an existing sandbox owned by an instructor is moved to an admin** on the next guest sign-in, with a `classroom_updated` audit record (actor: system);
+    - with no active admin, no sandbox is created, and the guest still gets a session.
+- **`POST /classrooms/join`:** self-service guests get 403.
+- **`get_current_user`:** a self-service guest older than 7 days gets 403 ("This guest account has expired…").
+- **`/guest`:** each new guest sign-in also deactivates expired guests in one `UPDATE`. They are deactivated, not deleted, so their history remains. This deactivation is not written to the audit log.
+- **`GET /admin/users`:** new `include_guests` option (default `false`, as before) and a stable `user_id` order. The guest filter now matches only self-service guests; the old `startswith("guest_")` treated `_` as a wildcard.
+
+### Tests
+- **New `tests/test_guest_accounts.py` (14):** guest identity; no usable password; the daily cap counted per rolling 24 hours (only self-service guests) and the 429 response; join refused for guests but allowed for students and admin-created guests; 7-day expiry, with older non-guest accounts unaffected; the deactivation sweep; sandbox ownership, moving an existing sandbox with its audit record, and no admin; and the admin list option.
+- `test_guest_login_enrolls_into_sandbox` updated to the admin-owned rule.
+- **Mutation checks:** switching off each rule (cap, join block, expiry, sweep, admin owner) makes its own test fail.
+- **Full SQLite suite:** 861 passed, 5 skipped, 0 failed (847 + 14).
+- **Not tested:** two guests creating the sandbox at the same moment. That code path catches the unique-constraint error and re-reads the class.
+
+### Follow-ups
+- **Admin UI:** a "show guests" toggle using `include_guests=true`.
+- **Production sandbox:** the move to an admin happens on the first guest sign-in after deploy. It needs at least one active admin.
+
+### Next pending backend audit task
+1. **#30:** PostgreSQL 15, the production check, the backup, then merge and deploy.
+2. **"Still open" item 5:** `POST /practice/tasks/{id}/submit` waits on Judge0 synchronously (up to 15 s), against the AGENTS.md 3-second rule.

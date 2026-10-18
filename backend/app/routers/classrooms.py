@@ -17,6 +17,8 @@ from app.schemas.enrollment_schema import (BulkEnrollmentRequest,
                                            EnrollmentResponse,
                                            EnrollmentStatusUpdate,
                                            StudentClassroomResponse)
+from app.services.guest_service import (GUEST_CANNOT_JOIN_DETAIL,
+                                        is_self_service_guest)
 from app.services.classroom_service import (ClassroomAccessDeniedError,
                                             ClassroomAuditWorkflowError,
                                             ClassroomCodeGenerationError,
@@ -190,6 +192,12 @@ def join_classroom_endpoint(
     db: Session = Depends(get_db),
     current_student: User = Depends(get_current_student),
 ) -> Enrollment:
+    if is_self_service_guest(current_student):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=GUEST_CANNOT_JOIN_DETAIL,
+        )
+
     try:
         return join_classroom(
             db=db,

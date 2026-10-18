@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.token_revocation import is_token_revoked
 from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
+from app.services.guest_service import GUEST_EXPIRED_DETAIL, guest_has_expired
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -178,6 +179,14 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This account is inactive.",
+        )
+
+    # Self-service guests stop working 7 days after creation, even before
+    # the next guest sign-in deactivates them in the database.
+    if guest_has_expired(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=GUEST_EXPIRED_DETAIL,
         )
 
     if not user.email_verified:
