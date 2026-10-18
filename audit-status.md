@@ -1224,3 +1224,48 @@ An application-only change can't store an action type the DB CHECK constraint re
 3. Then items 3–10 of "Still open" (unchanged).
 
 Cleaning up the worktree when it's no longer needed: `git worktree remove ../pamsu-python-ide-admin-audit-draft`, after saving or committing its files.
+
+## SQLAlchemy statement parameters in error logs (2026-10-18)
+
+Branch `claude/nice-faraday-a9cfcd` (worktree `.claude/worktrees/nice-faraday-a9cfcd`), based on `dev` `e444596`. Separate from the admin audit branch on purpose.
+
+### Vulnerability
+Found during the pre-commit review of the admin audit branch. When a database error was raised at `db.commit()` outside the audit helper (for example a dropped connection during an admin password reset), FastAPI logged the unhandled SQLAlchemy exception. SQLAlchemy's exception text includes the statement's bound parameters, so the server log could receive a freshly computed `password_hash` or other personal data. This affected every endpoint, not only admin ones. The admin audit code itself already logs only exception class names.
+
+### Root cause
+`create_engine` defaults to `hide_parameters=False`, so `StatementError.__str__` appends `[parameters: (...)]`. The application engine in `backend/app/core/database.py` did not override it.
+
+### Fix
+- `backend/app/core/database.py`: added `"hide_parameters": True` to `engine_options`. All other engine options are unchanged (`pool_pre_ping`, SQLite `connect_args`, PostgreSQL pool settings). Messages now read `[SQL parameters hidden due to hide_parameters=True]`. The same flag also hides parameters from SQLAlchemy's SQL echo logging.
+- This is the only application `create_engine` in `backend/app`. `backend/app/db/upgrade_p14_*.py` and `upgrade_p15_*.py` reuse this engine.
+
+### Regression test
+New `backend/tests/test_database_logging.py` (3 tests):
+1. The application engine and `engine_options` have `hide_parameters` set to True.
+2. Through the application `engine` and `SessionLocal` (in-memory SQLite forced by `conftest.py`), a unique-constraint violation with a canary `password_hash` value: neither `str(error)` nor `repr(error)` contains the value. The test skips if the engine is not SQLite, so it never writes to a real server.
+3. Control: an engine without the flag does leak the value, which proves the canary check means something.
+
+Results: **3 passed**. With the fix temporarily removed, 2 failed and the message showed `[parameters: ('pbkdf2-sha256$leak-canary-...',)]`. The fix was then restored.
+
+### Full suite
+`python -m pytest -q -p no:cacheprovider` from the worktree's `backend/`, with `PAMSU_TEST_DATABASE_URL` and `DATABASE_URL` unset (SQLite only), on `e444596` plus this change: **814 passed, 5 skipped, 0 failed** (11 min 33 s). That is the `dev` baseline of 811 passed and 5 skipped, plus the 3 new tests. The run used the main checkout's interpreter (`backend/venv`), because the worktree has no venv.
+
+### Remaining risks / not verified
+- No PostgreSQL run (neither 15 nor 18). `hide_parameters` is dialect-independent in SQLAlchemy 2.0, but psycopg error text was not checked.
+- `backend/alembic/env.py` builds its own migration engine without the flag. It is left as is, because it runs migrations rather than requests. Data migrations with sensitive parameters would still print them if a migration fails.
+- Test-only engines in `backend/tests` are unchanged. No test asserts on parameter text.
+- Other log paths were not audited: application code that logs `str(exc)` from non-SQLAlchemy sources, and request or response body logging.
+- The installed SQLAlchemy is 2.0.50, while `requirements.txt` pins 2.0.52.
+
+### Branch status
+- `claude/nice-faraday-a9cfcd`: was created at `main` `e271aa9`, whose backend does not import, then fast-forwarded to `dev` `e444596` (`--ff-only`, no merge commit). The fix, the test and this section are committed together and pushed to `origin/claude/nice-faraday-a9cfcd`. It is **not merged into `dev`**.
+- `draft/admin-audit-action-types`: committed as `b661ed8` and pushed to origin, **not merged into `dev`**. Before merging, the owner must:
+  - confirm the added `masterlist_imported` / `masterlist_import` audit types;
+  - ideally run the PostgreSQL suites on PostgreSQL 15;
+  - check the production `audit_records` constraints, read-only;
+  - take a backup;
+  - deploy migration `61330560eec5` together with its code.
+
+### Next steps
+1. Open and review PRs into `dev` for `claude/nice-faraday-a9cfcd` and for `draft/admin-audit-action-types`.
+2. Then items 3–10 of "Full backend audit" → "Still open". They stay open; the backend audit is **not** complete.
