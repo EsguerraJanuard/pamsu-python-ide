@@ -1490,3 +1490,58 @@ Item 4 (guest accounts) is merged as #36.
    - 7: legacy `POST /execution/submissions/`;
    - 9: retakes, enrollment decisions, instructor temporary-password email;
    - 10: `rediss://` certificate checks.
+
+## Deployment branch and ownership verification (2026-10-19)
+
+_Read-only verification: nothing was pushed, merged, deployed or migrated. No Vercel or Render setting was read or changed. No `.env` was read. Evidence: GitHub deployment records (`gh api …/deployments`), Git history, and unauthenticated read-only requests to the public backend (`GET /health`, `GET /`, `GET /ready`, and CORS preflights to `/health`)._
+
+### Ownership (reported by the owner)
+- GitHub repository: owner (EsguerraJanuard).
+- Vercel (frontend): owner.
+- Render (backend `pamsu-backend`): Errol's account. Not accessed.
+- Integration branch: `dev`.
+
+### Frontend (Vercel)
+- **Verified (GitHub deployment records, created by `vercel[bot]`):** Production deployment `7159090118` = `3e8fa3f` (`origin/dev` tip, #37), state `success`, 2026-10-18T18:49:40Z.
+- **Verified (pattern):** since 2026-10-08T09:00Z, every Production deployment is a `dev` commit that isn't on `main`. The last Production deployment of the `main` tip (`e271aa9`) was 2026-10-08T08:34Z. Feature branches get only Preview deployments. This is consistent with the Vercel Production Branch being `dev`. The Vercel project setting itself wasn't read (no Vercel CLI or token here). The owner can confirm it under Project → Settings → Git.
+- **Note:** two Production deployments on 2026-10-13 (`6086b26`, `e9db143`) are commits that are no longer on any branch, so `dev` history was rewritten that day.
+- **API URL:** `frontend/.env.production` (tracked) sets `VITE_API_BASE_URL` to `https://pamsu-backend.onrender.com`. Whether a Vercel environment variable overrides it is **unverified**.
+
+### Backend (Render)
+- **Reported (stale):** `errol_final_deployment_steps.md` says Render deploys from `main`.
+- **Verified (behaviour of the live service):** the production backend answers CORS preflights for `https://pamsu-python-ide.vercel.app` and **rejects** an unrelated `*.vercel.app` origin (400). `main`'s code (`e271aa9`) allows every `*.vercel.app` origin. The narrowed rule exists only from `e946455` (2026-10-17, `dev`) onward. **So the live backend isn't running `main`'s code. It runs a commit at or after `e946455`, consistent with Render deploying `dev`.**
+- **Unverified:** the configured Render branch, the exact live commit (anywhere from `e946455` to `3e8fa3f`), whether auto-deploy is on, the start command, and the health-check path. `/health` and `/` report only version `1.0.0`, the same on every branch.
+- **`/ready` returns 503:** `execution_partner_auth` is not configured (`PAMSU_PARTNER_EXECUTION_TOKEN` isn't set on Render, and `render.yaml` doesn't declare it). It gates only `/internal/partner-results`; Judge0 callbacks don't use it. `database` reports ready.
+- **Cold start:** the first `/health` took 62 s (free tier, spun down). The frontend's request timeout is 15 s.
+
+### Database revision
+- **Inferred, not verified:** every commit from `e946455` to `3e8fa3f` has the single head `c25114413200`. `render.yaml` starts the service with `bash start.sh`, which runs `alembic upgrade head` under `set -e` before Uvicorn. If Render uses that start command, the healthy service implies production is at `c25114413200`. Confirm with the read-only query below.
+
+### Frontend / backend compatibility
+- Frontend changes after `e946455`: theme work (`1a80b09`, `f0bc529`, `50bc701`) and #37's admin help text. None needs a newer backend contract, so the deployed frontend works with any backend commit in that range.
+- If the live backend predates `3e8fa3f`, the admin help text describes #37 behaviour the backend doesn't have yet.
+
+### Not yet in production (verified from Git; deploy status as above)
+- #30 (`draft/admin-audit-action-types` @ `ce86db6`, Draft) is on no deployed branch, so migration `61330560eec5` is in no deployed code.
+- #31–#37 are on `dev`. Whether the live backend includes all of them depends on its exact commit (unverified).
+
+### Deployment risks for pending PRs
+1. **If Render auto-deploys `dev`, merging #30 is the production deploy.** `start.sh` applies `61330560eec5` on the next start. The backup and the read-only production check must happen **before the merge**, not just before a "deploy".
+2. **Vercel previews use the production backend.** Preview builds read `.env.production`, and the backend's CORS rule allows `pamsu-python-ide-*.vercel.app`. Testing a PR preview reads and writes production data.
+3. **Version skew on merge:** Vercel deploys within about a minute of a push to `dev`, and Render deploys separately. #30 doesn't change the frontend. Item 5 will change both (asynchronous submit plus polling), so deploy its backend first or merge it when the skew is acceptable.
+4. **`main` is not deployable:** its Alembic graph fails (`333fed79e9f7` missing), and it still has `GET /admin/seed-production`. Don't point Render at `main`.
+5. **Credential in the repository:** `errol_final_deployment_steps.md` (tracked on `dev`) contains a plaintext production admin password. Rotate it and remove the file from future commits.
+
+### Manual checks for Errol (Render dashboard, read-only)
+1. Service `pamsu-backend`: **Settings → Build & Deploy → Branch** (expected `dev`), and **Auto-Deploy** (On / Off / After CI checks).
+2. **Events / Deploys:** the latest *successful* ("Live") deploy, with its full commit SHA, branch and time, and any later failed deploys.
+3. **Settings:** Root Directory (`backend`), Build Command, **Start Command** (expected `bash start.sh`), Docker or Python runtime, and **Health Check Path** (should be `/health`, not `/ready`).
+4. **Logs of the live deploy:** the `Running database migrations...` line, and that `alembic upgrade head` finished without error.
+5. **Environment:** only that `PAMSU_ENVIRONMENT` is production and `PAMSU_CORS_ALLOWED_ORIGINS` is set (don't share values). Also whether `PAMSU_PARTNER_EXECUTION_TOKEN` is intended to be set.
+6. **Read-only SQL on the production database** (Supabase SQL editor):
+   `SELECT version_num FROM alembic_version;` (expect `c25114413200`) and
+   `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'audit_records'::regclass AND contype = 'c';` (expect the baseline 20 action types and 7 resource types).
+7. **Whether a verified, restorable Supabase backup exists** (date and how it was checked).
+
+### Status
+The backend audit is **not complete**. This section changes no priorities: #30 (PostgreSQL 15, production check, backup, then merge) remains first. Item 5 follows #30 (migration chained after `61330560eec5`). Items 6, 7, 9 and 10 remain open.
