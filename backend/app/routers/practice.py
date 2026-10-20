@@ -6,7 +6,7 @@ import httpx
 import logging
 
 from app.core.database import get_db
-from app.core.rate_limit import limit_per_user
+from app.core.rate_limit import enforce_rate_limit, limit_per_user
 from app.core.security import get_current_instructor, get_current_student
 from app.core.system_settings import get_default_ast_strictness
 from app.models.domain_models import (PracticeAttempt, PracticeModule,
@@ -23,7 +23,9 @@ from app.schemas.practice_schema import (GrowthAnalyticsResponse,
                                          PracticeTaskBase, PracticeTaskCreate,
                                          PracticeTaskDetail,
                                          PracticeTaskUpdate)
-from app.services.ai_tutor_service import generate_pedagogical_hint
+from app.services import practice_hint_store
+from app.services.ai_tutor_service import (TUTOR_UNAVAILABLE_MESSAGE,
+                                           generate_pedagogical_hint)
 from app.services.ast_evaluator import evaluate_ast_details
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import func
@@ -225,6 +227,7 @@ def submit_practice_task(
     db.commit()
 
     return PracticeSubmissionResponse(
+        attempt_id=attempt.attempt_id,
         is_successful=is_successful,
         execution_feedback=execution_feedback,
         ast_feedback=ast_feedback_msgs,
@@ -501,36 +504,36 @@ def delete_practice_task(
 
 
 
-def _generate_hint_bg(attempt_id: int):
-    from app.core.database import SessionLocal
-    db = SessionLocal()
+def _generate_hint_bg(attempt_id: int, task_instructions: str, student_code: str, error_output: str):
+    # Runs after the response is sent; it needs no database session.
     try:
-        from app.models.domain_models import PracticeAttempt
-        attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id).first()
-        if not attempt or attempt.ai_hint:
-            return
-            
-        task = attempt.task
-        error_output = attempt.execution_feedback or "Unknown Error"
-        
         hint = generate_pedagogical_hint(
-            task_instructions=task.instructions,
-            student_code=attempt.submitted_code,
-            error_output=error_output
+            task_instructions=task_instructions,
+            student_code=student_code,
+            error_output=error_output,
         )
-        
-        attempt.ai_hint = hint
-        db.commit()
+
+        if hint:
+            practice_hint_store.save_hint(attempt_id, hint)
+        else:
+            practice_hint_store.save_hint(
+                attempt_id,
+                TUTOR_UNAVAILABLE_MESSAGE,
+                ttl_seconds=practice_hint_store.UNAVAILABLE_TTL_SECONDS,
+            )
     except Exception:
         logger.exception("AI hint generation failed for practice attempt %s.", attempt_id)
-        db.rollback()
     finally:
-        db.close()
+        practice_hint_store.release_generation(attempt_id)
+
 
 @router.post(
     "/attempts/{attempt_id}/ai-hint",
     response_model=PracticeAiHintResponse,
-    dependencies=[Depends(limit_per_user("practice_ai_hint", limit=10, window_seconds=300))],
+    # The client polls this route until the hint is ready; polls are a
+    # database read and a Redis GET. Only calls that start a Gemini request
+    # count against the "practice_ai_hint" limit below.
+    dependencies=[Depends(limit_per_user("practice_ai_hint_poll", limit=60, window_seconds=60))],
 )
 def get_ai_hint(
     attempt_id: int,
@@ -545,22 +548,30 @@ def get_ai_hint(
     if attempt.is_successful:
         raise HTTPException(status_code=400, detail="Cannot generate AI hint for successful attempts.")
 
-    if attempt.ai_hint:
-        return PracticeAiHintResponse(ai_hint=attempt.ai_hint, status="completed")
-        
-    # Repeated polls must not start a generation each time.
-    from app.core.redis_client import redis_client
-    lock_key = f"ai_hint_generating:{attempt_id}"
+    hint = practice_hint_store.get_hint(attempt_id)
+    if hint:
+        return PracticeAiHintResponse(ai_hint=hint, status="completed")
+
+    # Only the first caller starts a generation; later polls wait for it.
+    if not practice_hint_store.claim_generation(attempt_id):
+        return PracticeAiHintResponse(ai_hint=None, status="processing")
 
     try:
-        # SET NX: only the first caller in 30 s starts a generation.
-        if not redis_client.set(lock_key, "1", ex=30, nx=True):
-            return PracticeAiHintResponse(ai_hint=None, status="processing")
-    except Exception:
-        # Without Redis a duplicate generation is possible but harmless:
-        # _generate_hint_bg stops if a hint was already saved.
-        logger.warning("AI hint lock unavailable; Redis is unreachable.")
+        enforce_rate_limit(scope="practice_ai_hint", identifier=str(current_user.user_id), limit=10, window_seconds=300)
+    except HTTPException:
+        practice_hint_store.release_generation(attempt_id)
+        raise
 
-    background_tasks.add_task(_generate_hint_bg, attempt_id)
-    
+    error_output = attempt.execution_feedback or "The output did not match the expected output."
+    if attempt.ast_feedback:
+        error_output += "\n" + "\n".join(str(message) for message in attempt.ast_feedback)
+
+    background_tasks.add_task(
+        _generate_hint_bg,
+        attempt_id,
+        attempt.task.instructions,
+        attempt.submitted_code,
+        error_output,
+    )
+
     return PracticeAiHintResponse(ai_hint=None, status="processing")
