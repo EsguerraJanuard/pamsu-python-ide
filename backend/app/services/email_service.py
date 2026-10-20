@@ -17,7 +17,7 @@ def get_smtp_config():
         "port": int(os.getenv("SMTP_PORT", 587)),
         "user": os.getenv("SMTP_USER", ""),
         "password": os.getenv("SMTP_PASS", ""),
-        "sender_name": os.getenv("SMTP_SENDER_NAME", "PAMSU Python IDE"),
+        "sender_name": os.getenv("SMTP_SENDER_NAME", "PSU Python IDE"),
         "sender_email": os.getenv("SMTP_SENDER_EMAIL", "noreply@pampangastateu.edu.ph")
     }
 
@@ -38,7 +38,7 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
     safe_role = html.escape(role)
     safe_recipient_email = html.escape(recipient_email)
 
-    subject = f"Welcome to PAMSU Python IDE - Your {safe_role} Account"
+    subject = f"Welcome to PSU Python IDE - Your {safe_role} Account"
     
     frontend_url = os.getenv("FRONTEND_URL", "https://pamsu-python-ide.vercel.app")
 
@@ -49,7 +49,7 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
                     <p>School Email: <span class="highlight">{safe_recipient_email}</span></p>
                     <p>On the sign-in page, choose <strong>Forgot password?</strong> and enter your school email. We will send a one-time code to this mailbox so you can create your own password.</p>
                 </div>
-                <p>No password is included in this email. PAMSU staff will never ask you for your password or code.</p>
+                <p>No password is included in this email. Pampanga State University staff will never ask you for your password or code.</p>
         """
     else:
         safe_temp_password = html.escape(temp_password)
@@ -68,7 +68,7 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
     <html>
     <head>
         <meta charset="utf-8">
-        <title>Welcome to PAMSU Python IDE</title>
+        <title>Welcome to PSU Python IDE</title>
         <style>
             body {{
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -154,7 +154,7 @@ def send_provisioning_email(recipient_email: str, first_name: str, temp_password
             </div>
             <div class="content">
                 <p>Hello <strong>{safe_first_name}</strong>,</p>
-                <p>Your official {safe_role} account for the <strong>PAMSU Python IDE</strong> has been successfully provisioned by the MIS Administrator.</p>
+                <p>Your official {safe_role} account for the <strong>PSU Python IDE</strong> has been successfully provisioned by the MIS Administrator.</p>
                 
                 {access_html}
                 

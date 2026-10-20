@@ -215,6 +215,8 @@ export default function Login() {
           setError(SERVER_STARTING_ERROR);
         } else if (err.status === 401) {
           setError("Invalid email or password.");
+        } else if (err.status === 423) {
+          setError(typeof err.data?.detail === "string" ? err.data.detail : "This account is temporarily locked after too many failed sign-in attempts.");
         } else if (err.status === 429) {
           setError("Too many sign-in attempts. Please wait a minute and try again.");
         } else if (err.status === 403) {
@@ -264,14 +266,14 @@ export default function Login() {
           <div className="flex items-center gap-3">
             <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-md" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-psu-gold/90">Pampanga State University</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-psu-gold/90">Pampanga State University</p>
               <p className="text-lg font-black tracking-tight text-white">Python IDE</p>
             </div>
           </div>
         </div>
 
         <div className="relative z-10 my-auto animate-login-fade delay-100 opacity-0">
-          <span className="mb-[clamp(0.75rem,3vh,1.5rem)] inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-psu-gold border border-white/20 backdrop-blur-md">
+          <span className="mb-[clamp(0.75rem,3vh,1.5rem)] inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em] text-psu-gold border border-white/20 backdrop-blur-md">
             <span className="w-1.5 h-1.5 rounded-full bg-psu-gold animate-pulse"></span>
             Enterprise Platform
           </span>
@@ -311,7 +313,7 @@ export default function Login() {
         <div className="mb-[clamp(0.75rem,2.5vh,2rem)] flex shrink-0 items-center gap-3 lg:hidden animate-login-fade opacity-0">
           <img src="/school_logo.png" alt="PSU Logo" className="h-8 w-8 object-contain drop-shadow-md" />
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-text-muted">Pampanga State University</p>
             <p className="text-base font-black tracking-tight text-text-main">Python IDE</p>
           </div>
         </div>
@@ -475,7 +477,7 @@ export default function Login() {
               
               <div className="relative my-[clamp(0.625rem,2.2vh,1.5rem)]">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle"></div></div>
-                <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Or</span></div>
+                <div className="relative flex justify-center"><span className="bg-white px-3 text-xs font-bold uppercase tracking-wider text-text-muted">Or</span></div>
               </div>
 
               <button

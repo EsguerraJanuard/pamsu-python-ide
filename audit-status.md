@@ -1680,3 +1680,118 @@ The checklist for Errol is drafted but **not sent**.
 2. Errol and the owner rotate the SMTP key. Send Errol the checklist, and collect blockers 3, 4, 5 and 8.
 3. Run the smoke test. Declare the release production-ready only once blockers 1–6 are closed. Record the results in a new dated section.
 4. After delivery: decide how admin accounts are provisioned (see "Admin accounts"), then replace the demonstration admin with named accounts.
+
+## Panel requirements: verification and fixes (2026-10-20, code complete, NOT committed or deployed)
+
+### Overall progress
+- **Verification:** every request in the oral-defense form (FORM-23, 2026-09-30: De Leon, Mallari, Dungo; plus the adviser's requests) was checked against the code at `c58a059`. Most of the Antigravity checklist's "critical" items were already fixed (AST rule-key aliases, practice IDOR, bulk-enroll regex, registration toggle, name crashes, guest crashes, hardcoded passwords, seed backdoor, JTI logout, CORS, `ws://localhost`, color violations).
+- **Owner decisions (2026-10-20):** faculty lockout only (no login OTP); new task fields via migration; per-student retake using the existing `retake_allowed` column; suggested score prefilled in the Grading Bench (the instructor still saves and releases the grade; no automatic grade).
+- **Status:** every gap below is implemented, tested and checked in the browser. Nothing is committed, pushed or deployed.
+
+### What changed, per panel request
+- **Isolated workspace (Dungo):**
+  - Drafts are keyed `pamsu-workspace-draft-u<userId>-<activityId>`.
+  - Explicit sign-out removes every draft; the sign-out dialog now says so.
+  - A 401 expiry keeps the user's own drafts.
+  - Legacy unscoped drafts are deleted at sign-in.
+  - The workspace remounts per account.
+- **AST full score (Dungo) → suggested score:**
+  - The Grading Bench pre-fills round(100 × found ÷ required) and explains it. The instructor still saves and releases the official grade.
+  - **Pre-existing bug fixed:** the Grading Bench read only the `ast_findings` table, which no code ever fills. Its "Structure check (AST)" therefore always said "no required structures". It now falls back to the evaluator's own `ast_analyses[].details.findings` and shows found and needed counts.
+- **Automatic difficulty and construct analysis (Mallari, De Leon):**
+  - `POST /instructors/tasks/analyze-solution` accepts `reference_code`, `description` or both (422 when both are blank). It returns `difficulty_level`, `difficulty_reason`, `suggested_ast_rules` and `constructs` (source and matched phrases).
+  - Solution counts reuse the evaluator's detectors. Difficulty is the highest level among the constructs found, with the same levels as the editor categories (`frontend/src/utils/astRules.js`, `RULE_LEVELS` in `ast_analyzer.py`). When a solution is given, it alone sets the difficulty.
+  - The activity editor's "Analyze the activity" panel sends the description, scenario, instructions and optional solution. It auto-applies the difficulty and rules, lists the reasons, and skips rules above the level with a note.
+- **Advanced requirements (adviser):** a "Required at least N" stepper (1–20) under each checked rule. Activity details, the workspace and the grading bench show the counts.
+- **Scenario and solution explanation (De Leon):**
+  - New columns `tasks.scenario` and `tasks.solution_explanation` (migration `5e8a1c7d9b42`).
+  - The editor has both fields. The activity page and the student workspace show the scenario.
+  - Students see the explanation ("How the solution works") on their submission only after their grade is released.
+  - The workspace now also shows the problem description; it used to show only the instructions.
+- **Editing due dates and reminders (Mallari):**
+  - The activity editor has an edit mode at `/instructor/activities/:id/edit`, reached from an "Edit activity" button. It PATCHes only the changed fields; the audit showed `changed_fields: ['due_at']`.
+  - When a published activity's deadline moves, students get a "Deadline changed" notification.
+  - Due-soon reminders ("Deadline in less than 24 hours") are created when a student reads notifications or the unread count. There is one per unsubmitted published activity, idempotent per deadline. Render has no scheduler, which is why it works this way.
+- **Retake or republish (Dungo):**
+  - "Allow another attempt" in the Grading Bench calls `POST /instructors/submissions/{id}/retake`. It is owner only, idempotent, audited as `submission_status_changed`, and the student is notified.
+  - One late attempt through `/submissions/` is allowed; it becomes official and uses up the allowance. Attempts before the deadline stay unlimited and do not use it up.
+  - Students see a notice on their submission, and the activity card shows "Submit another attempt".
+  - The legacy `/execution/submissions/` route stays deadline-strict.
+  - Moving the deadline in edit mode reopens the whole activity.
+- **Faculty login security (De Leon):**
+  - An instructor or admin account with 5 failed logins in 15 minutes gets 423 Locked, with `Retry-After` and a message the login page shows.
+  - The lock is checked before the password. Locked attempts are audited as `login_failed`/`denied` and don't extend the lock.
+  - The count comes from audit records (works with Redis down). Students are unaffected.
+- **Middle name (Mallari):** an optional Middle name field in the admin create-faculty and create-student forms (stacked fields). `full_name` joins first, middle and last, with a 150-character limit. Storage is still the single `users.name` column.
+- **PSU naming (Mallari):** "PAMSU" became "PSU Python IDE" or "Pampanga State University" in the visible text:
+  - the tab title, PWA manifest, sidebar and error page;
+  - the API error messages and the OpenAPI title;
+  - the welcome and OTP emails (the OTP heading is now maroon and gold, not emerald).
+
+  Internal `PAMSU_*` env vars and `pamsu_*` storage keys are unchanged on purpose. The production `SMTP_SENDER_NAME` env var on Render may still say "PAMSU" and must be checked there.
+- **Label and text size (Mallari):** `.field-label` is now 14 px in the main text color (was 12 px muted), and badges are 12 px (was 11 px). All 9–10 px text became 11–12 px, and editor labels are `text-sm`.
+- **Submit gating (De Leon):**
+  - The Create/Save button is disabled until a title, a class and a difficulty are set, with a hint naming what is missing.
+  - The workspace Submit is disabled while the code is only comments or the untouched starter code.
+
+### Files modified (tracked)
+- Backend:
+  - `app/integrations/otp_delivery.py`, `app/main.py`, `app/models/domain_models.py`
+  - `app/routers/admin.py`, `auth.py`, `instructor.py`, `notifications.py`, `registration.py`
+  - `app/schemas/evaluation_schema.py`, `notification_schema.py`, `submission_schema.py`, `task_schema.py`
+  - `app/services/academic_event_service.py`, `ast_analyzer.py`, `email_service.py`, `evaluation_service.py`, `submission_service.py`, `task_service.py`
+  - `tests/conftest.py`, `tests/test_task_openapi_contracts.py`
+- Frontend:
+  - `index.html`, `vite.config.js`, `src/App.jsx`, `src/index.css`, `src/services/api.js`
+  - `src/components/ErrorBoundary.jsx`, `src/components/layout/AppSidebar.jsx`, `src/components/layout/SignOutModal.jsx`
+  - `src/features/admin/AdminDashboard.jsx`
+  - `src/features/auth/AuthContext.jsx`, `ForgotPassword.jsx`, `Login.jsx`, `Register.jsx`
+  - `src/features/instructor/ActivityDetails.jsx`, `ActivityEditor.jsx`, `LiveMonitoring.jsx`, `PracticeModuleManager.jsx`, `grading/SplitPaneGradingWorkspace.jsx`
+  - `src/features/student/ActivityCard.jsx`, `studentData.js`
+  - `src/features/submissions/SubmissionDetails.jsx`
+  - `src/features/workspace/Workspace.jsx`
+- `audit-status.md`
+
+### Files created (untracked: must be added explicitly, or the build and backend break)
+- `backend/alembic/versions/5e8a1c7d9b42_activity_guidance_and_deadline_reminders.py` (the ORM maps the new columns, so the backend needs this migration)
+- `backend/app/services/login_security_service.py` (imported by `auth.py`)
+- `backend/tests/test_panel_recommendations.py` (17 tests)
+- `frontend/src/features/workspace/draftStorage.js` (imported by `Workspace.jsx` and `AuthContext.jsx`)
+- `frontend/src/utils/astRules.js` (imported by the editor, details, practice, grading and workspace pages)
+
+### Verification
+- **Backend, full suite:** **885 passed, 5 skipped, 0 failed** (14 min 24 s, SQLite). Two cases were deselected (`test_pathological_code_is_reported_not_crashing`, Windows-only env-var length). The baseline at `c58a059` was 868 passed; the 17 new tests account for the difference.
+- **New tests:** `tests/test_panel_recommendations.py`, 17 passed, covering the analyzer, scenario and explanation privacy, deadline-change notifications, due-soon reminders, retake, faculty lockout and middle name.
+- **Migration:** `tests/test_alembic_migrations.py` against the local PostgreSQL server: 3 passed (upgrade, downgrade, re-upgrade of `5e8a1c7d9b42`). The test used its own temporary database; `pamsu_ide_db` was not touched. Only PostgreSQL 18.4 is available here, not the PG15 target.
+- **Frontend:** `npm run lint` clean, `npm run build` OK.
+- **Browser walkthrough:** a throwaway SQLite copy in the session scratchpad, with email, Redis and Judge0 blanked; `qa/.qa-data` was not touched. Verified:
+  - the analyzer from the description, then with a reference solution;
+  - the min-count stepper (for loop ×2);
+  - create and publish with scenario and explanation;
+  - edit the deadline: only `due_at` was sent, and the student got "Deadline changed";
+  - two students on one browser after a session expiry: no draft leak;
+  - sign-out clears all drafts;
+  - Submit is disabled on the comment-only template;
+  - a submission evaluated (run directly, since Celery is down locally), then the Grading Bench showed the per-rule found/needed counts and a suggested score of 29 (2 of 7);
+  - grade released, after which the student saw the explanation;
+  - deadline closed, then "Allow another attempt" with badge, notice and notification; the late attempt was accepted and the allowance used up;
+  - a due-soon reminder for the student who had not submitted;
+  - admin created "Ana Santos Reyes" with a middle name;
+  - 5 wrong passwords then the correct one showed the lockout message.
+- **Known and unchanged:** the Monaco DiffEditor "TextModel got disposed" console error when leaving the grading page (pre-existing). A one-off React "uncontrolled to controlled input" warning appeared once during scripted input and could not be reproduced on a fresh load or in normal use.
+
+### Deployment notes (read before pushing)
+- `start.sh` runs `alembic upgrade head` on Render, so pushing to `dev` applies `5e8a1c7d9b42` to production on the next deploy. It adds two nullable columns and widens one check constraint; there is no data backfill.
+- PR #30's migration `61330560eec5` also revises `c25114413200`. Before #30 merges, its `down_revision` must be changed to `5e8a1c7d9b42` (or a merge migration added).
+- Production still needs the end-to-end smoke test from the release handover. Production evaluation runs through Celery and Redis, which the local walkthrough could not exercise.
+
+### Pending tasks / next steps
+1. Commit and push (the user runs the commands), then smoke-test production. Check: create with the analyzer, the edit-deadline notification, a submission evaluated by Celery showing the structure check and suggested score, retake, reminder, faculty lockout, and the admin middle name.
+2. Check the Render env `SMTP_SENDER_NAME` (it may still say "PAMSU").
+3. Re-point PR #30's migration onto `5e8a1c7d9b42` before it merges.
+4. Manuscript only (not code):
+   - SOP 1 and 2 rephrase, title, remove the V-Model, RRLs, scope and limitations;
+   - the scoring criteria (explain the suggested score: share of required structures found, then the instructor's review of telemetry and output);
+   - the difficulty definitions (Beginner/Intermediate/Expert, as in `astRules.js`);
+   - the retake policy (one instructor-granted late attempt; unlimited attempts before the deadline);
+   - "standard library only".

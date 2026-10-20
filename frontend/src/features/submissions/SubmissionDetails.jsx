@@ -15,6 +15,7 @@ export default function SubmissionDetails() {
   const [activity, setActivity] = useState(null);
   const [attempts, setAttempts] = useState([]);
   const [grade, setGrade] = useState(null);
+  const [solutionExplanation, setSolutionExplanation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -26,11 +27,16 @@ export default function SubmissionDetails() {
       setSubmission(sub);
 
       // Supporting data is optional: the submission itself is the record of truth.
-      const [activityRes, attemptsRes, gradesRes] = await Promise.allSettled([
+      const [activityRes, attemptsRes, gradesRes, evaluationRes] = await Promise.allSettled([
         api.get(`/activities/${sub.task_id}`),
         api.get(`/submissions/?task_id=${sub.task_id}`),
         loadReleasedGrades(`&task_id=${sub.task_id}`),
+        api.get(`/evaluation/submissions/${sub.sub_id}`),
       ]);
+      // Present only after this attempt's grade is released.
+      setSolutionExplanation(
+        evaluationRes.status === "fulfilled" ? evaluationRes.value?.solution_explanation || null : null,
+      );
       setActivity(activityRes.status === "fulfilled" ? activityRes.value : null);
       setAttempts(
         attemptsRes.status === "fulfilled"
@@ -50,6 +56,7 @@ export default function SubmissionDetails() {
   }, [fetchDetails]);
 
   const status = submission ? SUBMISSION_STATUS[submission.status] || SUBMISSION_STATUS.submitted : null;
+  const retakeAllowed = attempts.some((attempt) => attempt.retake_allowed) || Boolean(submission?.retake_allowed);
 
   return (
     <PageShell>
@@ -83,7 +90,7 @@ export default function SubmissionDetails() {
             title={activity?.title || grade?.activity?.title || `Activity #${submission.task_id}`}
             description={`Attempt ${submission.attempt_number} · Submitted ${formatDateTime(submission.submitted_at)}`}
             actions={
-              activity && submission.status !== "graded" ? (
+              activity && (submission.status !== "graded" || retakeAllowed) ? (
                 <Link to={`/student/workspace?activity=${submission.task_id}`} className="btn-secondary">
                   Open workspace
                 </Link>
@@ -94,6 +101,13 @@ export default function SubmissionDetails() {
           {showSubmitted && (
             <InlineAlert tone="success" onDismiss={() => setShowSubmitted(false)} className="mb-5">
               Your solution was submitted and recorded as attempt {submission.attempt_number}.
+            </InlineAlert>
+          )}
+
+          {retakeAllowed && (
+            <InlineAlert tone="info" className="mb-5">
+              Your instructor allowed you one more attempt on this activity, even if the deadline has passed. Your next submission
+              becomes the official attempt.
             </InlineAlert>
           )}
 
@@ -124,6 +138,16 @@ export default function SubmissionDetails() {
                   </p>
                 )}
               </section>
+
+              {solutionExplanation && (
+                <section className="card p-5" aria-labelledby="explanation-heading">
+                  <h2 id="explanation-heading" className="mb-1 text-sm font-semibold">
+                    How the solution works
+                  </h2>
+                  <p className="mb-3 text-xs text-text-muted">Your instructor&apos;s explanation, shown after your grade was released.</p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-main">{solutionExplanation}</p>
+                </section>
+              )}
 
               <section className="card overflow-hidden" aria-labelledby="code-heading">
                 <div className="flex items-center justify-between border-b border-border-subtle px-5 py-3">

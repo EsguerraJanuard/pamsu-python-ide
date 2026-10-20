@@ -16,6 +16,8 @@ from app.models.domain_models import User
 from app.schemas.audit_schema import AuditRecordCreateInternal
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.services.audit_service import create_audit_record
+from app.services.login_security_service import (faculty_lockout_remaining,
+                                                 lockout_message)
 from app.services.guest_service import (GUEST_LIMIT_REACHED_DETAIL,
                                         create_self_service_guest,
                                         get_or_create_sandbox_classroom,
@@ -124,7 +126,7 @@ def recordable_login_identifier(normalized_email: str) -> str | None:
     summary="Log in using a verified university email",
     description=(
         "The OAuth2 `username` form field must contain the user's "
-        "PAMSU university email address. Account roles are read only "
+        "Pampanga State University email address. Account roles are read only "
         "from the backend-controlled user record."
     ),
     responses={
@@ -201,6 +203,34 @@ def login(
         # does not reveal which university emails have accounts.
         verify_password(form_data.password, DUMMY_PASSWORD_HASH)
         raise_invalid(None)
+
+    # Faculty accounts lock after repeated wrong passwords, checked before
+    # the password so a correct guess during the lock is refused too.
+    lock_remaining = faculty_lockout_remaining(db, user)
+    if lock_remaining is not None:
+        try:
+            create_audit_record(
+                db=db,
+                payload=AuditRecordCreateInternal(
+                    audit_key=f"login_locked_{user.user_id}_{uuid4().hex[:8]}",
+                    actor_user_id=user.user_id,
+                    action_type="login_failed",
+                    resource_type="user",
+                    resource_id=str(user.user_id),
+                    outcome="denied",
+                    audit_data={"email": user.email, "reason": "faculty_lockout"},
+                )
+            )
+        except Exception as exc:
+            logger.error(
+                "Could not record a locked sign-in attempt (%s).",
+                type(exc).__name__,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=lockout_message(lock_remaining),
+            headers={"Retry-After": str(max(1, int(lock_remaining.total_seconds())))},
+        )
 
     if not verify_password(
         form_data.password,

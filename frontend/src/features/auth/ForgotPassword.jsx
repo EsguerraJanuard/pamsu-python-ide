@@ -286,8 +286,8 @@ export default function ForgotPassword() {
                 return (
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: strength.color }}>{strength.label.split(' - ')[0] || strength.label}</span>
+                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Strength</span>
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: strength.color }}>{strength.label.split(' - ')[0] || strength.label}</span>
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-alt">
                       <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />

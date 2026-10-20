@@ -9,6 +9,7 @@ from app.schemas.task_schema import TaskCreate, TaskUpdate
 from app.schemas.task_test_case_schema import (TaskTestCaseCreate,
                                                TaskTestCaseUpdate)
 from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_activity_deadline_changed,
                                                  notify_activity_published)
 from app.services.audit_service import AuditServiceError, create_audit_record
 from app.services.notification_service import NotificationServiceError
@@ -268,6 +269,8 @@ def create_task(
         title=task_data.title,
         description=task_data.description,
         instructions=task_data.instructions,
+        scenario=task_data.scenario,
+        solution_explanation=task_data.solution_explanation,
         activity_type=task_data.activity_type,
         difficulty=task_data.difficulty,
         required_ast_rules=task_data.required_ast_rules,
@@ -475,8 +478,6 @@ def update_task(
 
         db.commit()
         db.refresh(task)
-
-        return task
     except AuditServiceError as error:
         db.rollback()
 
@@ -488,6 +489,25 @@ def update_task(
     except Exception:
         db.rollback()
         raise
+
+    # Students must hear about a moved deadline. The change itself is
+    # already saved, so a notification failure is logged, not raised.
+    if task.is_published and "due_at" in changed_fields:
+        try:
+            notify_activity_deadline_changed(
+                db,
+                actor_instructor_id=instructor_id,
+                task_id=task.task_id,
+            )
+        except (AcademicEventWorkflowError, NotificationServiceError) as error:
+            logger.warning(
+                "Deadline-change notification for task %s was not sent (%s).",
+                task.task_id,
+                type(error).__name__,
+            )
+        db.refresh(task)
+
+    return task
 
 
 def set_task_publication(

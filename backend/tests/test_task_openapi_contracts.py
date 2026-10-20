@@ -203,6 +203,8 @@ def test_task_update_schema_excludes_publication_and_ownership_fields():
         "title",
         "description",
         "instructions",
+        "scenario",
+        "solution_explanation",
         "activity_type",
         "difficulty",
         "required_ast_rules",

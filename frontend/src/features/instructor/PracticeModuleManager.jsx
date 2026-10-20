@@ -6,6 +6,7 @@ import AlertModal from '../../components/modals/AlertModal';
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import Modal from '../../components/ui/Modal';
 import { ErrorState, InlineAlert } from '../../components/ui/StateViews';
+import { AST_GROUPS } from '../../utils/astRules';
 
 
 
@@ -52,72 +53,6 @@ function InfoTooltip({ title, children, align = 'left', position = 'bottom' }) {
 }
 
 
-const AST_GROUPS = [
-  {
-    title: "Output & Input",
-    rules: [
-      { id: "require_print_call", label: "Require print() call" },
-      { id: "require_input_call", label: "Require input() call" }
-    ]
-  },
-  {
-    title: "Control Flow",
-    rules: [
-      { id: "require_if_statement", label: "Require if statement" },
-      { id: "require_for_loop", label: "Require for loop" },
-      { id: "require_while_loop", label: "Require while loop" },
-      { id: "require_break_statement", label: "Require break statement" },
-      { id: "require_continue_statement", label: "Require continue statement" },
-      { id: "require_with_statement", label: "Require with statement" },
-      { id: "require_pass_statement", label: "Require pass statement" }
-    ]
-  },
-  {
-    title: "Functions",
-    rules: [
-      { id: "require_function_def", label: "Require function definition" },
-      { id: "require_function_call", label: "Require function call" },
-      { id: "require_return_statement", label: "Require return statement" },
-      { id: "require_global", label: "Require global keyword" },
-      { id: "require_nonlocal", label: "Require nonlocal keyword" }
-    ]
-  },
-  {
-    title: "Data Structures",
-    rules: [
-      { id: "require_list", label: "Require list literal" },
-      { id: "require_dict", label: "Require dictionary literal" },
-      { id: "require_tuple", label: "Require tuple literal" },
-      { id: "require_set", label: "Require set literal" },
-      { id: "require_list_comprehension", label: "Require list comprehension" },
-      { id: "require_dict_comprehension", label: "Require dictionary comprehension" },
-      { id: "require_del_statement", label: "Require del statement" }
-    ]
-  },
-  {
-    title: "File Handling",
-    rules: [
-      { id: "require_open_call", label: "Require open() call" }
-    ]
-  },
-  {
-    title: "OOP & Advanced",
-    rules: [
-      { id: "require_class_def", label: "Require class definition" },
-      { id: "require_try_except", label: "Require try/except block" },
-      { id: "require_lambda", label: "Require lambda function" },
-      { id: "require_import", label: "Require import statement" },
-      { id: "require_match_statement", label: "Require match statement" },
-      { id: "require_yield", label: "Require yield (Generator)" },
-      { id: "require_assert_statement", label: "Require assert statement" },
-      { id: "require_raise_statement", label: "Require raise statement" },
-      { id: "require_decorator", label: "Require decorator (@)" },
-      { id: "require_async_function", label: "Require async def" },
-      { id: "require_await", label: "Require await" }
-    ]
-  }
-];
-
 const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCategory }) => {
   const [isOpen, setIsOpen] = useState(false);
   const checkedCount = category.rules.filter(r => requirements[r.id]).length;
@@ -159,7 +94,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
       {isOpen && (
         <div className="p-2 border-t border-border-subtle bg-bg-panel flex flex-col gap-1">
           <label className="flex justify-between items-center px-3 py-2.5 mb-1 border-b border-border-subtle/50 bg-bg-base/30 rounded-t-lg cursor-pointer group">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted group-hover:text-text-main transition-colors">
+            <span className="text-xs font-bold uppercase tracking-wider text-text-muted group-hover:text-text-main transition-colors">
               Select All Rules
             </span>
             <div className="relative inline-flex items-center">
@@ -464,7 +399,7 @@ export default function PracticeModuleManager() {
                           {mod.title}
                         </h2>
                         {mod.instructor_id === null && (
-                          <span className="rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-brand shadow-sm">
+                          <span className="rounded-full border border-psu-maroon/30 bg-psu-maroon/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-text-brand shadow-sm">
                             Protected Base
                           </span>
                         )}
@@ -576,7 +511,7 @@ export default function PracticeModuleManager() {
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1.5">Sort Order Index</label>
                 <input required type="number" min="1" value={moduleForm.order_index} onChange={e => setModuleForm({...moduleForm, order_index: parseInt(e.target.value) || 1})} className="w-full rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-main focus:border-psu-maroon focus:outline-none focus:ring-1 focus:ring-psu-maroon transition" />
-                <p className="mt-1.5 text-[10px] text-text-muted">Lower numbers appear first in the curriculum.</p>
+                <p className="mt-1.5 text-xs text-text-muted">Lower numbers appear first in the curriculum.</p>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle mt-6">
                 <button type="button" onClick={() => setIsModuleModalOpen(false)} className="rounded-lg border border-border-subtle bg-transparent px-4 py-2 text-sm font-semibold text-text-main hover:bg-bg-glass transition">Cancel</button>

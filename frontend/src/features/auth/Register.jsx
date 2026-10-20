@@ -325,13 +325,13 @@ export default function Register() {
                 <div className="flex items-center gap-3 mb-10">
                   <img src="/school_logo.png" alt="Pampanga State University logo" className="h-10 w-10 object-contain" />
                   <div className="leading-tight">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-text-brand">Pampanga State University</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-text-brand">Pampanga State University</p>
                     <p className="text-lg font-bold tracking-tight text-text-main">Python IDE</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <h1 className="text-3xl font-bold text-text-main">Create account</h1>
-                  <span className="shrink-0 items-center justify-center rounded-full border border-psu-gold/50 bg-psu-gold/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-psu-gold-dark select-none">
+                  <span className="shrink-0 items-center justify-center rounded-full border border-psu-gold/50 bg-psu-gold/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-psu-gold-dark select-none">
                     Step 1 of 2
                   </span>
                 </div>
@@ -432,7 +432,7 @@ export default function Register() {
                         Password
                       </label>
                       {capsLock && (
-                        <span className="flex items-center gap-1 text-[9px] font-semibold text-text-amber select-none">
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-text-amber select-none">
                           <svg width="8" height="8" viewBox="0 0 10 12" fill="none"><path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/><rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/></svg>
                         </span>
                       )}
@@ -470,8 +470,8 @@ export default function Register() {
                     {passwordStrength && (
                       <div className="mt-2.5">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: passwordStrength.color }}>
+                          <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Strength</span>
+                          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: passwordStrength.color }}>
                             {passwordStrength.label.split(' — ')[0] || passwordStrength.label}
                           </span>
                         </div>
@@ -479,7 +479,7 @@ export default function Register() {
                           <div className="h-full rounded-full transition-all duration-300" style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }} />
                         </div>
                         {passwordStrength.label.includes(' — ') && (
-                           <p className="mt-1.5 text-[10px] text-text-muted">{passwordStrength.label.split(' — ')[1]}</p>
+                           <p className="mt-1.5 text-xs text-text-muted">{passwordStrength.label.split(' — ')[1]}</p>
                         )}
                       </div>
                     )}
@@ -627,7 +627,7 @@ export default function Register() {
               
               <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight text-text-main select-none">Verify email</h1>
-                <span className="shrink-0 items-center justify-center rounded-full border border-psu-gold/50 bg-psu-gold/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-psu-gold-dark select-none">
+                <span className="shrink-0 items-center justify-center rounded-full border border-psu-gold/50 bg-psu-gold/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-psu-gold-dark select-none">
                   Step 2 of 2
                 </span>
               </div>

@@ -594,6 +594,17 @@ class Task(Base):
         Text,
         nullable=True,
     )
+    # Real-world context shown to students with the problem.
+    scenario = Column(
+        Text,
+        nullable=True,
+    )
+    # Why the expected solution works; students see it only after their
+    # grade for the activity is released.
+    solution_explanation = Column(
+        Text,
+        nullable=True,
+    )
     activity_type = Column(
         String(20),
         nullable=False,
@@ -1728,7 +1739,8 @@ class AcademicEvent(Base):
             "'submission_created', "
             "'submission_status_changed', "
             "'grade_released', "
-            "'classroom_archived'"
+            "'classroom_archived', "
+            "'deadline_reminder'"
             ")",
             name="ck_academic_events_type",
         ),

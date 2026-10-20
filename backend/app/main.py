@@ -20,7 +20,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-APP_TITLE = "PAMSU Python IDE Backend"
+APP_TITLE = "PSU Python IDE Backend"
 APP_VERSION = "1.0.0"
 
 HealthState = Literal["healthy"]
@@ -215,7 +215,7 @@ openapi_url = "/openapi.json" if settings.enable_api_docs else None
 app = FastAPI(
     title=APP_TITLE,
     description=(
-        "Backend API for the PAMSU Web-Based Python IDE with "
+        "Backend API for the Pampanga State University (PSU) Web-Based Python IDE with "
         "university-email authentication, OTP registration through an "
         "email-adapter contract, classroom and enrollment management, "
         "activity and test-case management, student-owned coding sessions, "

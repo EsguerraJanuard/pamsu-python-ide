@@ -57,6 +57,7 @@ export function mapActivity(task, classMap, attemptsByTask, now = Date.now()) {
     isSubmitted: Boolean(submission),
     submissionId: submission?.sub_id ?? null,
     attemptCount: attempts.length,
+    retakeAllowed: attempts.some((attempt) => attempt.retake_allowed),
   };
 }
 

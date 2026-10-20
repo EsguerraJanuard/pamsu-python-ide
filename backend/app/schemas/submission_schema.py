@@ -162,6 +162,13 @@ class SubmissionResponseBase(SubmissionBase):
     )
     submitted_at: datetime
     accepted_at: datetime | None = None
+    retake_allowed: bool = Field(
+        default=False,
+        description=(
+            "The instructor allowed one more attempt on this activity, "
+            "usable even after the deadline."
+        ),
+    )
 
     model_config = ConfigDict(
         from_attributes=True,

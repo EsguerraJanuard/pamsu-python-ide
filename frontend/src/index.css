@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * PAMSU design tokens.
+ * PSU design tokens.
  *
  * Light is the default theme everywhere. The student area additionally
  * supports dark mode: StudentThemeProvider (features/theme/ThemeContext.jsx)
@@ -214,13 +214,13 @@ body {
     @apply rounded-xl border border-border-subtle bg-bg-panel shadow-[var(--shadow-card)];
   }
   .field-label {
-    @apply mb-1.5 block text-xs font-semibold text-text-muted;
+    @apply mb-1.5 block text-sm font-semibold text-text-main;
   }
   .input-field {
     @apply w-full rounded-lg border border-border-strong bg-bg-panel px-3 py-2 text-sm text-text-main placeholder:text-[var(--text-placeholder)] transition-colors focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-border-focus/20 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/15;
   }
   .badge {
-    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold;
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold;
   }
   .badge-brand {
     @apply border-psu-maroon/25 bg-psu-maroon/[0.07] text-text-brand;

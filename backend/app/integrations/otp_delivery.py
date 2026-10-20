@@ -27,7 +27,7 @@ class SMTPEmailAdapter:
         self.port = int(os.getenv("SMTP_PORT", "587"))
         self.user = os.getenv("SMTP_USER", "")
         self.password = os.getenv("SMTP_PASS", "")
-        self.sender_name = os.getenv("SMTP_SENDER_NAME", "PAMSU IDE")
+        self.sender_name = os.getenv("SMTP_SENDER_NAME", "PSU Python IDE")
         self.sender_email = os.getenv("SMTP_SENDER_EMAIL", self.user)
 
     def send_otp(
@@ -67,8 +67,8 @@ This code will expire in {minutes} minutes. If you did not request this code, yo
         <html>
           <body style="font-family: sans-serif; padding: 20px;">
             <div style="max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                <div style="background-color: #0f1117; padding: 20px; text-align: center;">
-                    <h2 style="color: #10b981; margin: 0; font-family: monospace;">PAMSU IDE</h2>
+                <div style="background-color: #77250b; padding: 20px; text-align: center;">
+                    <h2 style="color: #eaae19; margin: 0;">Pampanga State University Python IDE</h2>
                 </div>
                 <div style="padding: 30px; background-color: #ffffff;">
                     <p style="color: #374151; font-size: 16px; margin-top: 0;">Hello,</p>

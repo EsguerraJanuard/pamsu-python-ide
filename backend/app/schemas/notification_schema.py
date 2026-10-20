@@ -14,6 +14,7 @@ AcademicEventType = Literal[
     "submission_status_changed",
     "grade_released",
     "classroom_archived",
+    "deadline_reminder",
 ]
 
 AcademicResourceType = Literal[

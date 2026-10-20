@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { clearSessionTokens } from '../../services/api';
+import { clearAllDrafts, clearLegacyDrafts } from '../workspace/draftStorage';
 
 const AuthContext = createContext(null);
 
@@ -81,7 +82,7 @@ const getInitialAuthState = () => {
 export const AuthProvider = ({ children }) => {
   const [authState, setAuthState] = useState(getInitialAuthState);
 
-  const logout = useCallback(() => {
+  const endSession = useCallback(() => {
     clearSessionTokens();
     try {
       localStorage.removeItem('pamsu_user_data');
@@ -91,17 +92,25 @@ export const AuthProvider = ({ children }) => {
     setAuthState(EMPTY_STATE);
   }, []);
 
+  // Signing out on a shared lab computer must not leave code behind.
+  const logout = useCallback(() => {
+    clearAllDrafts();
+    endSession();
+  }, [endSession]);
+
   // The API client reports 401 responses; the session is no longer valid.
+  // Drafts are kept: they are scoped to this account, which can sign back in.
   useEffect(() => {
     const handleUnauthorized = () => {
       markSessionExpired();
-      logout();
+      endSession();
     };
     window.addEventListener('pamsu:unauthorized', handleUnauthorized);
     return () => window.removeEventListener('pamsu:unauthorized', handleUnauthorized);
-  }, [logout]);
+  }, [endSession]);
 
   const login = useCallback((newToken, userData, userRole) => {
+    clearLegacyDrafts();
     localStorage.setItem('pamsu_access_token', newToken);
     localStorage.setItem('pamsu_user_role', userRole);
     localStorage.setItem('pamsu_user_data', JSON.stringify(userData));

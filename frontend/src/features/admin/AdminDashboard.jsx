@@ -109,7 +109,7 @@ function TextField({ id, label, error, ...props }) {
 
 function ProvisionForm({ role, onCreated }) {
   const isStudent = role === "student";
-  const empty = { email: "", first_name: "", last_name: "", school_id: "", password: generateTempPassword() };
+  const empty = { email: "", first_name: "", middle_name: "", last_name: "", school_id: "", password: generateTempPassword() };
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState({});
   const [result, setResult] = useState(null);
@@ -126,6 +126,8 @@ function ProvisionForm({ role, onCreated }) {
     if (!SCHOOL_EMAIL.test(form.email.trim())) next.email = "Use an @pampangastateu.edu.ph email address.";
     if (!form.first_name.trim()) next.first_name = "First name is required.";
     if (!form.last_name.trim()) next.last_name = "Last name is required.";
+    const fullName = [form.first_name, form.middle_name, form.last_name].map((part) => part.trim()).filter(Boolean).join(" ");
+    if (fullName.length > 150) next.last_name = "The full name must be at most 150 characters.";
     if (isStudent && !SCHOOL_ID.test(form.school_id.trim())) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
     if (form.password.length < 8) next.password = "Use at least 8 characters.";
     setErrors(next);
@@ -137,6 +139,7 @@ function ProvisionForm({ role, onCreated }) {
       const payload = {
         email: form.email.trim().toLowerCase(),
         first_name: form.first_name.trim(),
+        middle_name: form.middle_name.trim() || null,
         last_name: form.last_name.trim(),
         password: form.password,
         ...(isStudent ? { school_id: form.school_id.trim() } : {}),
@@ -172,9 +175,10 @@ function ProvisionForm({ role, onCreated }) {
         </InlineAlert>
       )}
       <TextField id={`${prefix}-email`} label="University email" type="email" autoComplete="off" value={form.email} onChange={set("email")} error={errors.email} disabled={isSaving} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField id={`${prefix}-first`} label="First name" value={form.first_name} onChange={set("first_name")} error={errors.first_name} disabled={isSaving} />
-        <TextField id={`${prefix}-last`} label="Last name" value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} />
+      <div className="grid grid-cols-1 gap-4">
+        <TextField id={`${prefix}-first`} label="First name" value={form.first_name} onChange={set("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} />
+        <TextField id={`${prefix}-middle`} label="Middle name (optional)" value={form.middle_name} onChange={set("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} />
+        <TextField id={`${prefix}-last`} label="Last name" value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} />
       </div>
       {isStudent && (
         <TextField id={`${prefix}-school-id`} label="School ID" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />

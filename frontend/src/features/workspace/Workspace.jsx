@@ -8,10 +8,13 @@ import Statusbar from "../../components/layout/Statusbar";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/ui/StateViews";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
+import { requiredRuleIds, ruleLabel, ruleMinCount } from "../../utils/astRules";
+import { useAuth } from "../auth/AuthContext";
 import api, { getErrorMessage, NETWORK_ERROR_STATUS, TIMEOUT_ERROR_STATUS } from "../../services/api";
 import { classLabel, formatDateTime } from "../student/studentData";
 import { useTheme } from "../theme/ThemeContext";
 import ThemeToggle from "../theme/ThemeToggle";
+import { draftKeyFor, readDraft, saveDraft } from "./draftStorage";
 import { defineEditorThemes, editorThemeFor } from "./editorThemes";
 
 const BLANK_TEMPLATE = "# Write your solution below.\n";
@@ -41,14 +44,6 @@ const STATUS_DISPLAY = {
   error: { label: "Finished with errors", dot: "bg-psu-red" },
   unavailable: { label: "Sandbox unavailable", dot: "bg-psu-red" },
 };
-
-function readDraft(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
 
 function connectionMessage(err, action) {
   if (err?.status === NETWORK_ERROR_STATUS) return `Could not reach the server to ${action}. Check your connection and try again.`;
@@ -92,16 +87,19 @@ function NoActivitySelected() {
 
 export default function Workspace() {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const activityId = searchParams.get("activity");
   if (!activityId || !/^\d+$/.test(activityId)) return <NoActivitySelected />;
-  return <ActivityWorkspace key={activityId} activityId={activityId} />;
+  // Keyed by account too, so a different student never inherits editor state.
+  return <ActivityWorkspace key={`${user?.user_id}-${activityId}`} activityId={activityId} userId={user?.user_id} />;
 }
 
-function ActivityWorkspace({ activityId }) {
+function ActivityWorkspace({ activityId, userId }) {
   const navigate = useNavigate();
   const delay = useDelay();
   const { settings } = useEditorSettings();
-  const draftStorageKey = `pamsu-workspace-draft-${activityId}`;
+  // No account id means no local draft: never share one between students.
+  const draftStorageKey = userId ? draftKeyFor(userId, activityId) : null;
   const editorRef = useRef(null);
   const isMounted = useRef(true);
 
@@ -160,12 +158,12 @@ function ActivityWorkspace({ activityId }) {
       setActivity({
         ...task,
         classLabel: enrollment ? classLabel(enrollment.classroom) : `Class ${task.class_id}`,
-        requirements: Object.keys(task.required_ast_rules || {}),
+        requirements: requiredRuleIds(task.required_ast_rules),
         pasteDisabled: task.paste_policy === "disabled",
       });
       setSampleCases(cases);
 
-      const savedDraft = readDraft(draftStorageKey);
+      const savedDraft = draftStorageKey ? readDraft(draftStorageKey) : null;
       setCode(savedDraft ?? (task.starter_code || BLANK_TEMPLATE));
       if (cases[0]?.standard_input) setStandardInput(cases[0].standard_input);
     } catch (err) {
@@ -181,14 +179,8 @@ function ActivityWorkspace({ activityId }) {
 
   // Autosave the draft locally (debounced).
   useEffect(() => {
-    if (!activity) return undefined;
-    const timer = window.setTimeout(() => {
-      try {
-        localStorage.setItem(draftStorageKey, code);
-      } catch {
-        // The editor remains usable without storage.
-      }
-    }, 500);
+    if (!activity || !draftStorageKey) return undefined;
+    const timer = window.setTimeout(() => saveDraft(draftStorageKey, code), 500);
     return () => window.clearTimeout(timer);
   }, [code, draftStorageKey, activity]);
 
@@ -410,6 +402,10 @@ function ActivityWorkspace({ activityId }) {
   const lineCount = code.split("\n").length;
   const dueLabel = activity.due_at ? `Due ${formatDateTime(activity.due_at)}` : "No due date";
   const pastDue = activity.due_at && new Date(activity.due_at) < new Date();
+  // A submission needs code of the student's own: not just comments or the untouched starter code.
+  const hasOwnCode =
+    code.split("\n").some((line) => line.trim() && !line.trim().startsWith("#")) &&
+    code.trim() !== (activity.starter_code || "").trim();
 
   const panelToggle = (pressed) =>
     `flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
@@ -486,7 +482,8 @@ function ActivityWorkspace({ activityId }) {
             <button
               type="button"
               onClick={() => setConfirmAction("submit")}
-              disabled={isBusy || isSubmitting}
+              disabled={isBusy || isSubmitting || !hasOwnCode}
+              title={!hasOwnCode ? "Write your solution before submitting." : undefined}
               className="btn-primary btn-sm"
             >
               Submit
@@ -547,23 +544,43 @@ function ActivityWorkspace({ activityId }) {
                   <span className="badge badge-neutral">{activity.activity_type === "homework" ? "Homework" : "Laboratory"}</span>
                 </div>
 
-                <section>
-                  <h3 className="mb-1.5 text-xs font-bold text-text-main">Instructions</h3>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
-                    {activity.instructions || activity.description || "No instructions were provided for this activity."}
-                  </p>
-                </section>
+                {activity.description && (
+                  <section>
+                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Problem description</h3>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">{activity.description}</p>
+                  </section>
+                )}
+
+                {activity.scenario && (
+                  <section>
+                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Real-world scenario</h3>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">{activity.scenario}</p>
+                  </section>
+                )}
+
+                {(activity.instructions || !activity.description) && (
+                  <section>
+                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Instructions</h3>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
+                      {activity.instructions || "No instructions were provided for this activity."}
+                    </p>
+                  </section>
+                )}
 
                 {activity.requirements.length > 0 && (
                   <section>
-                    <h3 className="mb-1.5 text-xs font-bold text-text-main">Required structures</h3>
+                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Required structures</h3>
                     <ul className="space-y-1.5">
-                      {activity.requirements.map((rule) => (
-                        <li key={rule} className="flex items-center gap-2 text-xs text-text-muted">
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-psu-gold" aria-hidden="true" />
-                          {rule.replace(/^require_/, "").replace(/_/g, " ")}
-                        </li>
-                      ))}
+                      {activity.requirements.map((rule) => {
+                        const count = ruleMinCount(activity.required_ast_rules[rule]);
+                        return (
+                          <li key={rule} className="flex items-center gap-2 text-sm text-text-muted">
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-psu-gold" aria-hidden="true" />
+                            {ruleLabel(rule)}
+                            {count > 1 ? ` (at least ${count})` : ""}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </section>
                 )}
@@ -579,11 +596,11 @@ function ActivityWorkspace({ activityId }) {
                           <p className="mb-1.5 text-[11px] font-semibold text-text-main">{sample.name}</p>
                           {sample.standard_input && (
                             <>
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Input</p>
+                              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Input</p>
                               <pre className="mb-2 overflow-x-auto whitespace-pre-wrap font-mono text-[11px] text-text-main">{sample.standard_input}</pre>
                             </>
                           )}
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Expected output</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Expected output</p>
                           <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[11px] text-text-main">{sample.expected_output}</pre>
                         </div>
                       ))}
@@ -678,7 +695,7 @@ function ActivityWorkspace({ activityId }) {
                   }}
                 />
               </div>
-              <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-bg-panel/90 px-2 py-0.5 font-mono text-[10px] text-text-muted shadow-sm">
+              <div className="pointer-events-none absolute bottom-2 right-3 rounded bg-bg-panel/90 px-2 py-0.5 font-mono text-xs text-text-muted shadow-sm">
                 {lineCount} {lineCount === 1 ? "line" : "lines"} · draft saved in this browser
               </div>
             </div>
@@ -742,7 +759,7 @@ function ActivityWorkspace({ activityId }) {
                             key={finding.rule}
                             className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle px-3 py-2"
                           >
-                            <span className="text-xs text-text-main">{finding.label || finding.rule}</span>
+                            <span className="text-xs text-text-main">{finding.label || ruleLabel(finding.rule)}</span>
                             <span className={`badge ${finding.passed ? "badge-success" : "badge-gold"}`}>
                               {finding.passed ? "Found" : "Missing"}
                             </span>
@@ -817,7 +834,7 @@ function ActivityWorkspace({ activityId }) {
         title="Submit this solution?"
         message={
           pastDue
-            ? "This activity is past its due date. Your instructor's settings decide whether a late submission is accepted."
+            ? "This activity is past its due date. A late submission is accepted only if your instructor allowed you another attempt."
             : "Your current code becomes your latest attempt. You can submit again while the activity is open; the latest accepted attempt is the official one."
         }
         confirmText="Submit"

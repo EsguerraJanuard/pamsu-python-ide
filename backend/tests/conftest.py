@@ -72,7 +72,7 @@ def block_real_smtp(monkeypatch):
             "port": 0,
             "user": "",
             "password": "",
-            "sender_name": "PAMSU Python IDE",
+            "sender_name": "PSU Python IDE",
             "sender_email": "noreply@pampangastateu.edu.ph",
         },
     )

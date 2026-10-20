@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
 
       manifest: {
-        name: 'PAMSU Python IDE',
-        short_name: 'PAMSU IDE',
+        name: 'PSU Python IDE',
+        short_name: 'PSU IDE',
         description: 'Advanced Agentic Coding Environment for Pampanga State University',
         theme_color: '#800000',
         background_color: '#ffffff',

@@ -12,7 +12,8 @@ from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.core.system_settings import get_default_ast_strictness
 from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import (BaseModel, ConfigDict, Field, computed_field, field_validator,
+                      model_validator)
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -40,9 +41,14 @@ def _validate_university_email(value: str) -> str:
     return normalized_email
 
 
+# users.name is VARCHAR(150); the separate name fields are joined into it.
+MAX_FULL_NAME_LENGTH = 150
+
+
 class _AccountCreateBase(BaseModel):
     email: str = Field(..., min_length=1, max_length=255)
     first_name: str = Field(..., min_length=1, max_length=70)
+    middle_name: str | None = Field(default=None, max_length=70)
     last_name: str = Field(..., min_length=1, max_length=70)
     password: str = Field(..., min_length=8, max_length=128)
 
@@ -53,9 +59,18 @@ class _AccountCreateBase(BaseModel):
     def normalize_email(cls, value: str) -> str:
         return _validate_university_email(value)
 
+    @model_validator(mode="after")
+    def validate_full_name_length(self):
+        if len(self.full_name) > MAX_FULL_NAME_LENGTH:
+            raise ValueError(
+                f"The full name must be at most {MAX_FULL_NAME_LENGTH} characters."
+            )
+        return self
+
     @property
     def full_name(self) -> str:
-        return " ".join(f"{self.first_name} {self.last_name}".split())
+        parts = (self.first_name, self.middle_name or "", self.last_name)
+        return " ".join(" ".join(parts).split())
 
 
 class InstructorCreate(_AccountCreateBase):

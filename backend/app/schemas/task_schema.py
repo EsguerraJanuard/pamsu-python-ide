@@ -107,6 +107,19 @@ class TaskBase(BaseModel):
         max_length=10000,
         description="Detailed student instructions.",
     )
+    scenario: str | None = Field(
+        default=None,
+        max_length=5000,
+        description="Optional real-world scenario or context for the problem.",
+    )
+    solution_explanation: str | None = Field(
+        default=None,
+        max_length=10000,
+        description=(
+            "Optional explanation of why the expected solution works. "
+            "A student sees it only after their grade is released."
+        ),
+    )
     activity_type: ActivityType = Field(
         default="laboratory",
         description="Laboratory or homework activity.",
@@ -156,6 +169,8 @@ class TaskBase(BaseModel):
     @field_validator(
         "description",
         "instructions",
+        "scenario",
+        "solution_explanation",
     )
     @classmethod
     def validate_optional_text_fields(
@@ -227,6 +242,14 @@ class TaskUpdate(BaseModel):
         default=None,
         max_length=10000,
     )
+    scenario: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
+    solution_explanation: str | None = Field(
+        default=None,
+        max_length=10000,
+    )
     activity_type: ActivityType | None = None
     difficulty: ActivityDifficulty | None = None
     required_ast_rules: dict[str, Any] | None = None
@@ -263,6 +286,8 @@ class TaskUpdate(BaseModel):
     @field_validator(
         "description",
         "instructions",
+        "scenario",
+        "solution_explanation",
     )
     @classmethod
     def validate_optional_text_fields(
@@ -324,6 +349,10 @@ class TaskResponseBase(BaseModel):
         default=None,
         max_length=10000,
     )
+    scenario: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
     activity_type: ActivityType
     difficulty: ActivityDifficulty = "beginner"
     required_ast_rules: dict[str, Any] = Field(
@@ -371,6 +400,11 @@ class TaskResponse(TaskResponseBase):
     instructor_id: int = Field(
         ...,
         gt=0,
+    )
+    # Instructor view only; students get it with their released grade.
+    solution_explanation: str | None = Field(
+        default=None,
+        max_length=10000,
     )
 
 

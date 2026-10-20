@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 import PageShell from "../../components/layout/PageShell";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, FieldError, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
 import api, { getErrorMessage } from "../../services/api";
+import { requiredRuleIds, ruleLabel, ruleMinCount } from "../../utils/astRules";
 import { classLabel, formatDateTime } from "../../utils/format";
 
 const EMPTY_CASE = { name: "", standard_input: "", expected_output: "", is_hidden: false };
 
 export default function ActivityDetails() {
   const { id } = useParams();
+  const location = useLocation();
   const [activity, setActivity] = useState(null);
   const [classroom, setClassroom] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState(() =>
+    location.state?.saved ? { tone: "success", text: "Activity changes saved." } : null,
+  );
 
   const [confirm, setConfirm] = useState(null); // { type: "publish" | "unpublish" | "delete-case", testCase? }
   const [isWorking, setIsWorking] = useState(false);
@@ -149,7 +153,7 @@ export default function ActivityDetails() {
     );
   }
 
-  const rules = Object.keys(activity.required_ast_rules || {});
+  const rules = requiredRuleIds(activity.required_ast_rules);
   const isPublished = activity.is_published;
 
   return (
@@ -161,6 +165,9 @@ export default function ActivityDetails() {
         description={activity.description || undefined}
         actions={
           <>
+            <Link to={`/instructor/activities/${activity.task_id}/edit`} className="btn-secondary">
+              Edit activity
+            </Link>
             {isPublished && (
               <Link to={`/instructor/bench/${activity.class_id}/${activity.task_id}`} className="btn-secondary">
                 Open grading bench
@@ -185,6 +192,15 @@ export default function ActivityDetails() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-5">
+          {activity.scenario && (
+            <section className="card p-5" aria-labelledby="scenario-heading">
+              <h2 id="scenario-heading" className="mb-2 text-sm font-semibold">
+                Real-world scenario
+              </h2>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-main">{activity.scenario}</p>
+            </section>
+          )}
+
           <section className="card p-5" aria-labelledby="instructions-heading">
             <h2 id="instructions-heading" className="mb-2 text-sm font-semibold">
               Instructions
@@ -200,6 +216,18 @@ export default function ActivityDetails() {
                 </pre>
               </>
             )}
+          </section>
+
+          <section className="card p-5" aria-labelledby="explanation-heading">
+            <h2 id="explanation-heading" className="mb-1 text-sm font-semibold">
+              Explanation of the solution
+            </h2>
+            <p className="mb-2 text-xs text-text-muted">Each student sees this after their grade is released.</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-main">
+              {activity.solution_explanation || (
+                <span className="text-text-muted">No explanation yet. Add one with “Edit activity”.</span>
+              )}
+            </p>
           </section>
 
           <section className="card p-5" aria-labelledby="test-cases-heading">
@@ -377,11 +405,15 @@ export default function ActivityDetails() {
               <p className="text-xs text-text-muted">No AST requirements for this activity.</p>
             ) : (
               <ul className="flex flex-wrap gap-1.5">
-                {rules.map((rule) => (
-                  <li key={rule} className="badge badge-neutral">
-                    {rule.replace(/^require_/, "").replace(/_/g, " ")}
-                  </li>
-                ))}
+                {rules.map((rule) => {
+                  const count = ruleMinCount(activity.required_ast_rules[rule]);
+                  return (
+                    <li key={rule} className="badge badge-neutral">
+                      {ruleLabel(rule)}
+                      {count > 1 ? ` ×${count}` : ""}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

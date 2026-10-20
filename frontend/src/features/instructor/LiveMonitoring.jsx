@@ -152,7 +152,7 @@ export default function LiveMonitoring() {
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-lg bg-bg-alt px-2 py-2">
                       <dd className="text-base font-semibold text-text-main">{value ?? 0}</dd>
-                      <dt className="text-[10px] text-text-muted">{label}</dt>
+                      <dt className="text-xs text-text-muted">{label}</dt>
                     </div>
                   ))}
                 </dl>

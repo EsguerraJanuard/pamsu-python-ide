@@ -52,9 +52,9 @@ export default function ActivityCard({ activity, showClass = true }) {
               <Link to={`/student/submissions/${activity.submissionId}`} className="btn-secondary btn-sm">
                 View submission
               </Link>
-              {activity.status !== "graded" && (
-                <Link to={workspacePath} className="btn-ghost btn-sm">
-                  Open workspace
+              {(activity.status !== "graded" || activity.retakeAllowed) && (
+                <Link to={workspacePath} className={activity.retakeAllowed ? "btn-primary btn-sm" : "btn-ghost btn-sm"}>
+                  {activity.retakeAllowed ? "Submit another attempt" : "Open workspace"}
                 </Link>
               )}
             </>

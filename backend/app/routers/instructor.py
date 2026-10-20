@@ -28,7 +28,7 @@ from app.schemas.task_test_case_schema import (InstructorTaskTestCaseResponse,
                                                TaskTestCaseCreate,
                                                TaskTestCaseUpdate)
 from app.core.pagination import MAX_PAGE_SIZE
-from app.services.ast_analyzer import analyze_reference_solution
+from app.services.ast_analyzer import SolutionParseError, analyze_activity
 from app.services.ast_safety import MAX_ANALYZED_SOURCE_LENGTH
 from app.services.coding_session_service import (
     CodingSessionAccessDeniedError, CodingSessionNotFoundError,
@@ -63,12 +63,14 @@ from app.services.review_queue_service import (ReviewQueueAccessDeniedError,
                                                ReviewQueueTaskNotFoundError,
                                                list_instructor_review_queue)
 from app.services.submission_service import (SubmissionAccessDeniedError,
+                                             SubmissionAuditWorkflowError,
                                              SubmissionNotFoundError,
                                              SubmissionPersistenceError,
                                              SubmissionServiceError)
 from app.services.submission_service import \
     get_instructor_submission as get_instructor_submission_service
-from app.services.submission_service import list_instructor_task_submissions
+from app.services.submission_service import (grant_submission_retake,
+                                             list_instructor_task_submissions)
 from app.services.task_service import (TaskAccessDeniedError,
                                        TaskAuditWorkflowError,
                                        TaskClassAccessDeniedError,
@@ -92,7 +94,7 @@ from app.services.task_service import update_task_test_case
 from fastapi import (APIRouter, Depends, HTTPException, Path, Query, Response,
                      status)
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
 REVIEW_QUEUE_EXPORT_PAGE_SIZE = MAX_PAGE_SIZE
@@ -191,7 +193,7 @@ def raise_submission_service_http_exception(
 
     if isinstance(
         exc,
-        SubmissionPersistenceError,
+        (SubmissionPersistenceError, SubmissionAuditWorkflowError),
     ):
         raise HTTPException(
             status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
@@ -1196,6 +1198,48 @@ def get_submission_endpoint(
     return InstructorSubmissionResponse.model_validate(submission)
 
 
+@router.post(
+    "/submissions/{submission_id}/retake",
+    response_model=InstructorSubmissionResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="grant_submission_retake",
+    summary="Allow the student another attempt",
+    description=(
+        "Allows the student who made this attempt to submit the activity "
+        "once more, even after the deadline. The next attempt becomes "
+        "official and uses up the allowance. Only the activity owner can "
+        "grant it, and the student is notified."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The submission belongs to another instructor's "
+                "activity or is unavailable."
+            ),
+        },
+    },
+)
+def grant_submission_retake_endpoint(
+    submission_id: int = Path(
+        ...,
+        gt=0,
+        description="Submission-attempt identifier.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> InstructorSubmissionResponse:
+    try:
+        submission = grant_submission_retake(
+            db,
+            instructor_id=current_instructor.user_id,
+            submission_id=submission_id,
+        )
+    except SubmissionServiceError as exc:
+        raise_submission_service_http_exception(exc)
+
+    return InstructorSubmissionResponse.model_validate(submission)
+
+
 @router.get(
     "/coding-sessions/live",
     response_model=list[GlobalCodingSessionResponse],
@@ -1579,7 +1623,15 @@ def export_instructor_review_queue_csv(
 
 
 class SolutionAnalysisRequest(BaseModel):
-    reference_code: str = Field(..., max_length=MAX_ANALYZED_SOURCE_LENGTH)
+    reference_code: str | None = Field(default=None, max_length=MAX_ANALYZED_SOURCE_LENGTH)
+    description: str | None = Field(default=None, max_length=20000)
+
+    @model_validator(mode="after")
+    def require_something_to_analyze(self) -> "SolutionAnalysisRequest":
+        if not (self.reference_code or "").strip() and not (self.description or "").strip():
+            raise ValueError("Provide a reference solution, a problem description, or both.")
+        return self
+
 
 @router.post("/tasks/analyze-solution", status_code=status.HTTP_200_OK)
 def analyze_solution(
@@ -1587,16 +1639,17 @@ def analyze_solution(
     current_user: User = Depends(get_current_instructor)
 ):
     """
-    Analyzes the instructor's reference solution using AST 
-    to auto-detect the difficulty and required Python constructs.
+    Suggests a difficulty level and AST requirements for a new activity from
+    the instructor's reference solution (parsed, never executed) and the
+    problem description. The instructor reviews the suggestions before saving.
     """
-        
-    analysis_result = analyze_reference_solution(request.reference_code)
-    
-    if not analysis_result.get("success"):
+    try:
+        return analyze_activity(
+            reference_code=request.reference_code,
+            description=request.description,
+        )
+    except SolutionParseError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=analysis_result.get("error", "Failed to parse code.")
-        )
-        
-    return analysis_result
+            detail=str(error) or "Failed to parse code.",
+        ) from error

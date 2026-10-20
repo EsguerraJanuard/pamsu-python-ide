@@ -123,8 +123,8 @@ export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}
               />
               {!isCollapsed && (
                 <div className="min-w-0 leading-tight">
-                  <p className="truncate text-sm font-bold tracking-tight text-text-main">PAMSU IDE</p>
-                  <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-text-brand">{roleLabel}</p>
+                  <p className="truncate text-sm font-bold tracking-tight text-text-main">PSU Python IDE</p>
+                  <p className="truncate text-xs font-semibold uppercase tracking-wider text-text-brand">{roleLabel}</p>
                 </div>
               )}
             </div>
@@ -152,7 +152,7 @@ export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}
               {isCollapsed ? (
                 <div className="mx-2 my-2 h-px bg-border-subtle" />
               ) : (
-                <h2 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+                <h2 className="mb-1 px-2.5 text-xs font-semibold uppercase tracking-widest text-text-muted">
                   {section.label}
                 </h2>
               )}
@@ -182,7 +182,7 @@ export default function AppSidebar({ sections, ariaLabel, roleLabel, badges = {}
                         </span>
                         {!isCollapsed && <span className="min-w-0 flex-1 truncate">{link.label}</span>}
                         {!isCollapsed && badge > 0 && (
-                          <span className="rounded-full bg-psu-maroon px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="rounded-full bg-psu-maroon px-1.5 py-0.5 text-xs font-semibold text-white">
                             {badge}
                             <span className="sr-only"> pending</span>
                           </span>

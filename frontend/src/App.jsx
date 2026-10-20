@@ -108,6 +108,7 @@ export const App = () => {
                   <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
                   <Route path="/instructor/practice" element={<PracticeModuleManager />} />
                   <Route path="/instructor/activities/create" element={<ActivityEditor />} />
+                  <Route path="/instructor/activities/:id/edit" element={<ActivityEditor />} />
                   <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
                   <Route path="/instructor/bench" element={<GradingBenchRoot />} />
                   <Route path="/instructor/bench/:classId" element={<GradingClassView />} />

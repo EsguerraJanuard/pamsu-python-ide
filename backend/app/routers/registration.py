@@ -37,7 +37,7 @@ DELIVERY_UNAVAILABLE_MESSAGE = "Verification email delivery is temporarily unava
     description=(
         "Validates registration details, stores a pending registration, "
         "creates an OTP challenge, and requests delivery of the OTP to the "
-        "provided PAMSU university email. The response never contains the "
+        "provided Pampanga State University email. The response never contains the "
         "plaintext OTP."
     ),
     responses={

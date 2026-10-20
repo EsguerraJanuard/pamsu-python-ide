@@ -1,5 +1,5 @@
 /**
- * Centralized API Client for PAMSU Web-Based Python IDE
+ * Centralized API Client for the PSU Web-Based Python IDE
  * Handles JWT Bearer authentication, request timeouts, network error normalization,
  * and strict FastAPI / Pydantic error response parsing.
  */
@@ -123,7 +123,7 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
       throw new ApiError('The server took too long to respond. Please try again.', TIMEOUT_ERROR_STATUS);
     }
     emitConnectivity(false);
-    throw new ApiError('Cannot reach the PAMSU server. Check your connection or try again shortly.', NETWORK_ERROR_STATUS);
+    throw new ApiError('Cannot reach the server. Check your connection or try again shortly.', NETWORK_ERROR_STATUS);
   }
 
   clearTimeout(timeoutId);
@@ -164,7 +164,7 @@ export const describeApiError = (error, { resource = 'this information' } = {}) 
     return {
       kind: 'unavailable',
       title: 'Server unavailable',
-      message: `We couldn't reach the PAMSU server to load ${resource}. The service may be offline or your connection was interrupted.`,
+      message: `We couldn't reach the server to load ${resource}. The service may be offline or your connection was interrupted.`,
     };
   }
   if (status === TIMEOUT_ERROR_STATUS) {

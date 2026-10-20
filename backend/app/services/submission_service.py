@@ -5,6 +5,7 @@ from app.models.domain_models import (Classroom, CodingSession, Enrollment,
                                       Submission, Task)
 from app.schemas.submission_schema import SubmissionCreate, SubmissionStatus
 from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 notify_retake_granted,
                                                  notify_submission_created)
 from app.services.audit_service import AuditServiceError, create_audit_record
 from app.services.notification_service import (
@@ -114,6 +115,37 @@ def _flush_submission_transaction(
         ) from error
 
 
+def is_task_past_due(task: Task, now: datetime | None = None) -> bool:
+    if task.due_at is None:
+        return False
+
+    due_at = task.due_at
+    if due_at.tzinfo is None:
+        due_at = due_at.replace(tzinfo=timezone.utc)
+
+    return (now or _utc_now()) > due_at
+
+
+def has_retake_allowance(
+    db: Session,
+    *,
+    student_id: int,
+    task_id: int,
+) -> bool:
+    """True when the instructor allowed this student one more attempt."""
+
+    return (
+        db.query(Submission.sub_id)
+        .filter(
+            Submission.student_id == student_id,
+            Submission.task_id == task_id,
+            Submission.retake_allowed.is_(True),
+        )
+        .first()
+        is not None
+    )
+
+
 def _get_student_submission_task(
     db: Session,
     *,
@@ -140,16 +172,14 @@ def _get_student_submission_task(
             "The activity is unavailable for submission."
         )
 
-    if task.due_at is not None:
-        now = _utc_now()
-        due_at = task.due_at
-        if due_at.tzinfo is None:
-            due_at = due_at.replace(tzinfo=timezone.utc)
-        allow_late = getattr(task, "allow_late_submissions", False)
-        if not allow_late and now > due_at:
-            raise SubmissionTaskUnavailableError(
-                "The activity deadline has passed."
-            )
+    if is_task_past_due(task) and not has_retake_allowance(
+        db,
+        student_id=student_id,
+        task_id=task.task_id,
+    ):
+        raise SubmissionTaskUnavailableError(
+            "The activity deadline has passed."
+        )
 
     active_enrollment = (
         db.query(Enrollment)
@@ -290,7 +320,8 @@ def create_student_submission(
     and attempt number are fixed when the record is created.
 
     Only the is_official flag of an older attempt may be changed so
-    that the latest accepted attempt becomes the official attempt.
+    that the latest accepted attempt becomes the official attempt. An
+    attempt made after the deadline also uses up the retake allowance.
 
     The new submission, immutable audit record, academic event, and
     instructor notification are committed as one transaction.
@@ -331,6 +362,24 @@ def create_student_submission(
             synchronize_session=False,
         )
     )
+
+    # A late attempt is only possible through a retake allowance, and the
+    # allowance covers exactly one attempt.
+    if is_task_past_due(task):
+        (
+            db.query(Submission)
+            .filter(
+                Submission.student_id == student_id,
+                Submission.task_id == task.task_id,
+                Submission.retake_allowed.is_(True),
+            )
+            .update(
+                {
+                    Submission.retake_allowed: False,
+                },
+                synchronize_session=False,
+            )
+        )
 
     accepted_at = _utc_now()
 
@@ -595,6 +644,91 @@ def get_instructor_submission(
         raise SubmissionAccessDeniedError(
             "You can only review submissions from your own classrooms."
         )
+
+    return submission
+
+
+def grant_submission_retake(
+    db: Session,
+    *,
+    instructor_id: int,
+    submission_id: int,
+) -> Submission:
+    """
+    Allow the student one more attempt on this activity, even after the
+    deadline. The next attempt becomes official and uses up the allowance;
+    the released grade of the earlier attempt stays on that attempt.
+
+    Granting twice before the student uses it changes nothing.
+    """
+
+    submission = get_instructor_submission(
+        db,
+        instructor_id=instructor_id,
+        submission_id=submission_id,
+    )
+
+    if has_retake_allowance(
+        db,
+        student_id=submission.student_id,
+        task_id=submission.task_id,
+    ):
+        return submission
+
+    granted_at = _utc_now()
+    submission.retake_allowed = True
+
+    try:
+        db.flush()
+
+        create_audit_record(
+            db,
+            {
+                "audit_key": (
+                    f"audit:submission_status_changed:submission:{submission.sub_id}"
+                    f":retake:{granted_at.isoformat(timespec='microseconds')}"
+                ),
+                "actor_user_id": instructor_id,
+                "action_type": "submission_status_changed",
+                "resource_type": "submission",
+                "resource_id": str(submission.sub_id),
+                "audit_data": {
+                    "task_id": submission.task_id,
+                    "student_id": submission.student_id,
+                    "change": "retake_allowed",
+                },
+                "occurred_at": granted_at,
+            },
+            commit=False,
+        )
+
+        db.commit()
+    except (AuditServiceError, ValidationError) as error:
+        db.rollback()
+
+        raise SubmissionAuditWorkflowError(
+            "Another attempt could not be allowed because its "
+            "accountability record could not be saved. Please try again."
+        ) from error
+    except SQLAlchemyError as error:
+        db.rollback()
+
+        raise SubmissionPersistenceError(
+            "Another attempt could not be allowed."
+        ) from error
+
+    db.refresh(submission)
+
+    # The allowance is saved; a notification failure must not undo it.
+    try:
+        notify_retake_granted(
+            db,
+            actor_instructor_id=instructor_id,
+            submission_id=submission.sub_id,
+            granted_at=granted_at,
+        )
+    except (AcademicEventWorkflowError, NotificationServiceError, ValidationError):
+        db.rollback()
 
     return submission
 

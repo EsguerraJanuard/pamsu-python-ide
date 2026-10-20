@@ -3,8 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { DiffEditor } from "@monaco-editor/react";
 
 import PageShell from "../../../components/layout/PageShell";
+import ConfirmationModal from "../../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../../components/ui/StateViews";
 import api, { API_BASE_URL, getErrorMessage } from "../../../services/api";
+import { ruleLabel } from "../../../utils/astRules";
 import { classLabel, formatDateTime, humanize } from "../../../utils/format";
 import { useTheme } from "../../theme/ThemeContext";
 import { defineEditorThemes, editorThemeFor } from "../../workspace/editorThemes";
@@ -17,6 +19,36 @@ const STATUS_BADGE = {
   submitted: { label: "Submitted", badge: "badge-brand" },
   awaiting_review: { label: "Awaiting review", badge: "badge-brand" },
 };
+
+/**
+ * Findings of an AST analysis. Stored finding rows are used when present;
+ * otherwise the evaluator's own result in `details` (what evaluation saves).
+ */
+function analysisFindings(analysis) {
+  if (!analysis) return [];
+  if (analysis.findings?.length) return analysis.findings;
+  return (analysis.details?.findings || []).map((finding) => ({
+    finding_id: finding.rule,
+    rule_key: finding.rule,
+    label: finding.label,
+    passed: finding.passed,
+    required_count: finding.required_count,
+    detected_count: finding.detected_count,
+  }));
+}
+
+/**
+ * Score suggested by the structure check: the share of required AST
+ * structures that were found. It only pre-fills the form; the instructor
+ * reviews the indicators, adjusts and saves the official grade.
+ */
+function suggestScore(analysis, maxScore) {
+  if (!analysis || analysis.syntax_error) return null;
+  const findings = analysisFindings(analysis).filter((finding) => typeof finding.passed === "boolean");
+  if (findings.length === 0) return null;
+  const found = findings.filter((finding) => finding.passed).length;
+  return { score: Math.round((maxScore * found) / findings.length), found, total: findings.length };
+}
 
 async function loadAllQueueItems(taskId) {
   const items = [];
@@ -57,6 +89,10 @@ function SubmissionReview({ submission, task, onGraded }) {
   const [scoreError, setScoreError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
+  const [suggestion, setSuggestion] = useState(null);
+  const [isRetakeConfirmOpen, setIsRetakeConfirmOpen] = useState(false);
+  const [isGrantingRetake, setIsGrantingRetake] = useState(false);
+  const [retakeMessage, setRetakeMessage] = useState(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -74,10 +110,13 @@ function SubmissionReview({ submission, task, onGraded }) {
         session = await api.get(`/instructors/coding-sessions/${record.coding_session_id}`).catch(() => null);
       }
       const execution = (Array.isArray(executions) ? executions : []).find((e) => e.submission_id === submission.sub_id) || null;
-      setDetails({ evaluation, session, execution, sourceCode: record?.raw_code || execution?.source_code || "" });
+      setDetails({ evaluation, session, execution, record, sourceCode: record?.raw_code || execution?.source_code || "" });
 
       const grade = evaluation?.instructor_grade;
-      setScore(grade ? String(grade.score) : "");
+      const latestAnalysis = (evaluation?.ast_analyses || []).slice(-1)[0] || null;
+      const suggested = grade ? null : suggestScore(latestAnalysis, MAX_SCORE);
+      setSuggestion(suggested);
+      setScore(grade ? String(grade.score) : suggested ? String(suggested.score) : "");
       setFeedback(grade?.feedback || "");
       setRelease(Boolean(grade?.is_released));
     } catch (err) {
@@ -121,12 +160,28 @@ function SubmissionReview({ submission, task, onGraded }) {
     }
   };
 
+  const handleGrantRetake = async () => {
+    setIsGrantingRetake(true);
+    setRetakeMessage(null);
+    try {
+      const updated = await api.post(`/instructors/submissions/${submission.sub_id}/retake`);
+      setDetails((prev) => ({ ...prev, record: { ...prev.record, ...updated } }));
+      setRetakeMessage({ tone: "success", text: "Another attempt is allowed. The student was notified and can submit once more, even after the deadline." });
+    } catch (err) {
+      setRetakeMessage({ tone: "error", text: getErrorMessage(err, "Another attempt could not be allowed.") });
+    } finally {
+      setIsGrantingRetake(false);
+      setIsRetakeConfirmOpen(false);
+    }
+  };
+
   if (isLoading) return <LoadingState label="Loading submission…" />;
   if (error) return <ErrorState error={error} resource="this submission" onRetry={load} />;
 
-  const { evaluation, session, execution, sourceCode } = details;
+  const { evaluation, session, execution, record, sourceCode } = details;
+  const retakeAllowed = Boolean(record?.retake_allowed);
   const analysis = (evaluation?.ast_analyses || []).slice(-1)[0] || null;
-  const findings = analysis?.findings || [];
+  const findings = analysisFindings(analysis);
   const status = STATUS_BADGE[submission.status] || STATUS_BADGE.submitted;
 
   return (
@@ -136,7 +191,19 @@ function SubmissionReview({ submission, task, onGraded }) {
         <span className="badge badge-neutral">Attempt {submission.attempt_number}</span>
         {submission.is_official && <span className="badge badge-brand">Official</span>}
         <span className="text-xs text-text-muted">Submitted {formatDateTime(submission.submitted_at)}</span>
+        {retakeAllowed && <span className="badge badge-gold">Another attempt allowed</span>}
+        {!retakeAllowed && record && (
+          <button type="button" onClick={() => setIsRetakeConfirmOpen(true)} className="btn-secondary btn-sm ml-auto">
+            Allow another attempt
+          </button>
+        )}
       </div>
+
+      {retakeMessage && (
+        <InlineAlert tone={retakeMessage.tone} onDismiss={() => setRetakeMessage(null)}>
+          {retakeMessage.text}
+        </InlineAlert>
+      )}
 
       <section className="card p-5" aria-labelledby="indicators-heading">
         <h3 id="indicators-heading" className="text-sm font-semibold">
@@ -171,7 +238,14 @@ function SubmissionReview({ submission, task, onGraded }) {
           <ul className="space-y-1.5">
             {findings.map((finding) => (
               <li key={finding.finding_id || finding.rule_key} className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle px-3 py-2 text-sm">
-                <span className="text-text-main">{finding.label || humanize(finding.rule_key)}</span>
+                <span className="text-text-main">
+                  {ruleLabel(finding.rule_key) || finding.label}
+                  {typeof finding.detected_count === "number" && (
+                    <span className="ml-2 text-xs text-text-muted">
+                      {finding.detected_count} found, {finding.required_count} needed
+                    </span>
+                  )}
+                </span>
                 <span className={`badge ${finding.passed ? "badge-success" : finding.passed === false ? "badge-gold" : "badge-neutral"}`}>
                   {finding.passed ? "Found" : finding.passed === false ? "Missing" : "Not evaluated"}
                 </span>
@@ -189,6 +263,13 @@ function SubmissionReview({ submission, task, onGraded }) {
           <InlineAlert tone={saveMessage.tone} onDismiss={() => setSaveMessage(null)}>
             {saveMessage.text}
           </InlineAlert>
+        )}
+        {suggestion && !evaluation?.instructor_grade && (
+          <p className="rounded-lg border border-psu-gold/40 bg-psu-gold/[0.06] px-3 py-2 text-xs text-text-main">
+            <span className="font-semibold">Suggested score: {suggestion.score}.</span>{" "}
+            The structure check found {suggestion.found} of {suggestion.total} required structure{suggestion.total === 1 ? "" : "s"}.
+            Review the indicators above, deduct for any problems you find, then save.
+          </p>
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
           <div>
@@ -274,6 +355,16 @@ function SubmissionReview({ submission, task, onGraded }) {
           </p>
         )}
       </section>
+
+      <ConfirmationModal
+        isOpen={isRetakeConfirmOpen}
+        title="Allow another attempt?"
+        message="This student may submit this activity one more time, even if the deadline has passed. The new attempt becomes the official one, and you grade it separately. The student is notified."
+        confirmText="Allow attempt"
+        isLoading={isGrantingRetake}
+        onConfirm={handleGrantRetake}
+        onCancel={() => setIsRetakeConfirmOpen(false)}
+      />
     </div>
   );
 }
