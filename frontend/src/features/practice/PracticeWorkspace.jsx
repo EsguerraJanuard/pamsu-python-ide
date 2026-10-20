@@ -18,6 +18,14 @@ import { defineEditorThemes, editorThemeFor } from "../workspace/editorThemes";
 // than the 15 s default.
 const PRACTICE_SUBMIT_TIMEOUT_MS = 45000;
 
+// After a failed submission the server writes an AI Tutor hint in the
+// background and answers "processing" until it is ready. Poll at this pace
+// and give up after about 40 s (the server's Gemini call times out at 20 s).
+const HINT_POLL_INTERVAL_MS = 2000;
+const HINT_MAX_POLLS = 20;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function BackToModules() {
   return (
     <Link to="/student/practice" className="btn-ghost btn-sm">
@@ -77,6 +85,10 @@ function PracticeTask({ taskId }) {
   const [feedback, setFeedback] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [pasteNotice, setPasteNotice] = useState(false);
+  // null | { status: "loading" } | { status: "ready", hint } | { status: "error", message, attemptId }
+  const [tutor, setTutor] = useState(null);
+  // Bumped for every submission, so polling for an older attempt stops.
+  const hintRun = useRef(0);
 
   useEffect(() => {
     isMounted.current = true;
@@ -116,14 +128,48 @@ function PracticeTask({ taskId }) {
     setPasteNotice(true);
   };
 
+  const fetchHint = useCallback(async (attemptId) => {
+    const run = ++hintRun.current;
+    const isCurrent = () => isMounted.current && hintRun.current === run;
+    setTutor({ status: "loading" });
+    try {
+      for (let poll = 0; poll <= HINT_MAX_POLLS; poll += 1) {
+        if (poll > 0) await wait(HINT_POLL_INTERVAL_MS);
+        if (!isCurrent()) return;
+        const result = await api.post(`/practice/attempts/${attemptId}/ai-hint`);
+        if (!isCurrent()) return;
+        if (result?.status === "completed" && result.ai_hint) {
+          setTutor({ status: "ready", hint: result.ai_hint });
+          return;
+        }
+      }
+      setTutor({ status: "error", attemptId, message: "The AI Tutor is taking longer than usual." });
+    } catch (err) {
+      if (!isCurrent()) return;
+      setTutor({
+        status: "error",
+        attemptId,
+        message:
+          err?.status === 429
+            ? "You've asked for many hints in a short time. Wait a few minutes and try again."
+            : "The AI Tutor is unavailable right now. Review the output and try again.",
+      });
+    }
+  }, []);
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     setFeedback(null);
     setSubmitError("");
+    hintRun.current += 1;
+    setTutor(null);
     try {
       const result = await api.post(`/practice/tasks/${taskId}/submit`, { code }, {}, PRACTICE_SUBMIT_TIMEOUT_MS);
-      if (isMounted.current) setFeedback(result);
+      if (!isMounted.current) return;
+      setFeedback(result);
+      // An older backend sends no attempt_id; it has no tutor to ask.
+      if (result && !result.is_successful && Number.isInteger(result.attempt_id)) fetchHint(result.attempt_id);
     } catch (err) {
       if (!isMounted.current) return;
       if (err?.status === NETWORK_ERROR_STATUS) setSubmitError("Could not reach the server. Your code was not evaluated.");
@@ -283,6 +329,36 @@ function PracticeTask({ taskId }) {
                       <li key={idx}>{msg}</li>
                     ))}
                   </ul>
+                )}
+              </div>
+            )}
+
+            {tutor && feedback && !feedback.is_successful && (
+              <div className="mt-4 rounded-xl border border-psu-gold/40 bg-psu-gold/[0.08] p-4" aria-live="polite" aria-busy={tutor.status === "loading"}>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-text-amber">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                  </svg>
+                  AI Tutor hint
+                </h3>
+                {tutor.status === "loading" && (
+                  <p className="mt-2 flex items-center gap-2 text-sm text-text-muted">
+                    <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-psu-gold/30 border-t-psu-gold" aria-hidden="true" />
+                    Looking at your code…
+                  </p>
+                )}
+                {tutor.status === "ready" && (
+                  <div className="markdown-body markdown-compact mt-2">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{tutor.hint}</ReactMarkdown>
+                  </div>
+                )}
+                {tutor.status === "error" && (
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-text-muted">
+                    <span>{tutor.message}</span>
+                    <button type="button" onClick={() => fetchHint(tutor.attemptId)} className="font-semibold text-text-brand hover:underline">
+                      Try again
+                    </button>
+                  </div>
                 )}
               </div>
             )}

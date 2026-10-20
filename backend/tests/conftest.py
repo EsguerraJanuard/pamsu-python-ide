@@ -80,15 +80,19 @@ def block_real_smtp(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def reset_redis_memory_fallback():
-    # Redis is unreachable in tests (REDIS_URL above), so rate limits and
-    # token revocation use the in-memory fallback; start each test empty.
+    # Redis is unreachable in tests (REDIS_URL above), so rate limits, token
+    # revocation and AI Tutor hints use the in-memory fallback; start each
+    # test empty.
     from app.core import rate_limit, token_revocation
+    from app.services import practice_hint_store
 
-    rate_limit.memory_counters.clear()
-    token_revocation.revoked_in_memory.clear()
+    stores = (rate_limit.memory_counters, token_revocation.revoked_in_memory, practice_hint_store.memory_store)
+
+    for store in stores:
+        store.clear()
     yield
-    rate_limit.memory_counters.clear()
-    token_revocation.revoked_in_memory.clear()
+    for store in stores:
+        store.clear()
 
 
 @pytest.fixture(autouse=True)

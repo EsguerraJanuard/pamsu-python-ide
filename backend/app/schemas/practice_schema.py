@@ -38,6 +38,8 @@ class PracticeSubmissionRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=MAX_SOURCE_CODE_LENGTH)
 
 class PracticeSubmissionResponse(BaseModel):
+    # The AI Tutor endpoint (/practice/attempts/{attempt_id}/ai-hint) needs it.
+    attempt_id: int
     is_successful: bool
     execution_feedback: Optional[str] = None
     ast_feedback: Optional[List[str]] = None
@@ -100,4 +102,5 @@ class PracticeTaskUpdate(BaseModel):
 
 class PracticeAiHintResponse(BaseModel):
     ai_hint: Optional[str] = None
+    # "processing" until the hint is ready (poll again), then "completed".
     status: str
