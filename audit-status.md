@@ -1545,3 +1545,138 @@ _Read-only verification: nothing was pushed, merged, deployed or migrated. No Ve
 
 ### Status
 The backend audit is **not complete**. This section changes no priorities: #30 (PostgreSQL 15, production check, backup, then merge) remains first. Item 5 follows #30 (migration chained after `61330560eec5`). Items 6, 7, 9 and 10 remain open.
+
+## Release readiness and #30 deferral (2026-10-20)
+
+_Main checkout `dev` @ `b62e225` (local; 1 commit ahead of `origin/dev` `3e8fa3f`, and that commit changes only this file). Prepared at the owner's request for one commit containing this section and the deletion of `errol_final_deployment_steps.md`; the owner commits and pushes. Nothing was committed, pushed, merged, deployed or migrated by this session. No credential was printed or changed._
+
+### Verdict
+**Not production-ready yet.** The release code passes its automated tests. But the credential exposure is still open, and no critical workflow has been verified in production. Don't call it production-ready until every blocker below is closed.
+
+### Owner decision: #30 deferred
+- PR #30 (admin audit logging) and migration `61330560eec5` are **deferred until after Wednesday's release** (owner, 2026-10-20). Not merged, pushed, deployed or applied.
+- **State kept:**
+  - GitHub head `ce86db6`, Draft.
+  - Worktree `../pamsu-python-ide-admin-audit-draft` at `2dfe381`, **6 commits ahead, unpushed:** `5c47e24` (merge of `dev`), `19de347` (docs), `2dfe381` (masks all-digit login identifiers).
+- **Reconsider after delivery**, once:
+  - the production revision and `audit_records` constraints are confirmed;
+  - a verified backup exists;
+  - PostgreSQL 15 is tested, or the risk is accepted in writing;
+  - the 6 commits are pushed;
+  - a full suite passes on the exact merge commit.
+- **Test evidence for `2dfe381`:** the reconciliation session's run (2026-10-19, 00:57–01:11Z) gave 936 passed, 8 skipped, exit 0. The run didn't record its SHA. It's attributed to `2dfe381` because the commit was made 7 minutes before the run and the tree hasn't changed since, the 8 skips match #30's PostgreSQL-only tests, and `2dfe381` adds one test.
+
+### Release candidate and test evidence
+| Check | Result |
+|---|---|
+| Full backend suite on the release code (`3e8fa3f`, run from `b62e225`) | **870 passed, 5 skipped, 0 failed** (14 min 20 s; 2026-10-20 02:22–02:37Z; Windows) |
+| Test environment | Isolated: in-memory SQLite; `DATABASE_URL`, `PAMSU_TEST_DATABASE_URL` and `REDIS_URL` unset; Redis unreachable; SMTP blanked and Celery stubbed by `conftest.py` |
+| Skipped | **The 5 PostgreSQL-only suites:** `test_alembic_migrations` and the execution-idempotency, grade, partner-execution and submission concurrency suites. No PostgreSQL run (15 or 18) exists for this commit |
+| Frontend `npm run lint` (2026-10-19, same frontend) | Pass |
+| Vercel Production | `3e8fa3f`, success (GitHub deployment record) |
+| Live backend (unauthenticated read-only checks, 2026-10-20) | `/health` returns 200 after a 62 s cold start. An unrelated `*.vercel.app` origin is rejected (400), so production runs `dev` code at or after `e946455`. The exact commit is unverified |
+
+**The automated tests stub SMTP, Redis, Celery and Judge0. They are not production verification.**
+
+### Email delivery: can it work in production?
+The smoke test expects password-reset and account-setup emails to arrive, so the code was traced:
+- **`/ready` gives no evidence either way.** `otp_email_adapter: contract_only` is a hard-coded entry in `readiness_check` (`main.py`). It never inspects the SMTP settings.
+- **Password reset** (`/users/password-reset/start` and `/resend`):
+  - `get_otp_delivery_adapter` (`integrations/otp_delivery.py`) uses SMTP only when `SMTP_HOST`, `SMTP_USER` and `SMTP_PASS` are **all** set.
+  - Otherwise it picks `UnavailableOTPDeliveryAdapter`, which always fails.
+  - The sender is `SMTP_SENDER_EMAIL`, falling back to `SMTP_USER`.
+- **Account-setup emails** (`email_service.send_provisioning_email`):
+  - sent by the masterlist import (one per created student) and by instructor creation; `POST /admin/students` sends none;
+  - need only `SMTP_USER` and `SMTP_PASS`;
+  - the host defaults to `smtp-relay.brevo.com`, and the sender to `noreply@pampangastateu.edu.ph`.
+- **Failures are invisible to users.** Both paths send in a background task after the response. Reset always answers "If an account exists with this email, a verification code has been sent.", and a failed send is only logged. **A success message in the UI is not evidence. Only a received email is.**
+- **Email works in production only if all of these hold:**
+  - `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` and `SMTP_SENDER_EMAIL` are all set on Render;
+  - the Brevo account accepts the sender. The two paths default to different senders, so setting `SMTP_SENDER_EMAIL` explicitly matters;
+  - the rotated key is in place;
+  - Render allows outbound connections to the relay on port 587. **Unverified:** check Render's current outbound-SMTP rules for this instance plan, and the logs.
+- **Impact:** masterlist students have no password. They can sign in only after a reset email, so without working email they can't sign in at all.
+- `render.yaml` declares no SMTP variable. None of the above is verified in production.
+
+### Release blockers
+| # | Blocker | Owner | Status |
+|---|---|---|---|
+| 1 | Rotate the production admin password. It was in plaintext in `errol_final_deployment_steps.md`. That file is still at the tip of `main`, the repository's default branch, so it shows on the GitHub front page, and it's in every branch's history. Change it while signed in as that admin, through `PATCH /users/me/password`. **Don't use "Forgot password?" for this account** (see "Admin accounts" below) | Errol (requested 2026-10-20) or owner | **Pending at time of writing** |
+| 2 | Rotate the SMTP/Brevo key, coordinating the Render variable update and any deploy it triggers | Errol + owner | **Pending: not confirmed** |
+| 3 | Render configuration: branch, auto-deploy, live commit, start command, health-check path; environment variables reported as set/not set, including the four SMTP variables and an accepted sender | Errol | Pending |
+| 4 | Production database (read-only): PostgreSQL version and `alembic_version` (expected `c25114413200`, inferred, not verified) | Errol | Pending |
+| 5 | A verified, restorable production backup | Errol | Pending |
+| 6 | Production smoke test (below), with Errol watching the logs | Owner + Errol | **Pending: never run** |
+| 7 | Remove `errol_final_deployment_steps.md`. It was also out of date: it described merging `dev` into `main`, the old split-name migration, and the removed `seed-production` route. Nothing else referenced it | Owner | **Deleted from `dev` by the commit that adds this section.** It's still at the tip of `main` and in every earlier commit, so rotation (item 1) is the fix. Removing it from `main` needs a separate decision once Render's branch is confirmed (item 3). Rewriting public history isn't recommended before delivery |
+| 8 | Errol's laptop shut down mid-session, and nothing reached GitHub after 2026-10-18 18:49Z. He should report `git status`, stashes and unpushed commits before redoing anything | Errol | Unknown |
+
+The checklist for Errol is drafted but **not sent**.
+
+**What this push changes in production:** it carries only this file and the deletion, with no application code and no migration.
+- Vercel builds a new Production deployment with the same frontend.
+- If Render auto-deploys `dev`, the backend restarts on the same code, and `alembic upgrade head` has nothing new to apply.
+- If auto-deploy is off, Render doesn't change.
+
+### Public history scan (2026-10-20; names and counts only, no values)
+- **No `.env` or key file was ever committed** on any branch.
+- **No Brevo key, Redis URL with a password, or Google API key** appears in any commit.
+- **Database URLs with passwords** appear only in removed root helper scripts (`check_db*.py`, `check_admin*.py`; removed in `0eb9c17`) and in Docker setup:
+  - they point to `localhost` (the local development PostgreSQL superuser) or to compose placeholders;
+  - none points to production;
+  - change the local PostgreSQL password if it's used anywhere else.
+- **`JWT_SECRET_KEY` in `.env.example`** is a placeholder. `render.yaml` has Render generate the production value (`generateValue: true`).
+- **The only production credential found in public history is the admin password (item 1).** The SMTP key was exposed in session output, not in the repository.
+
+### Admin accounts: finding and recommendation
+**Finding.** The production admin is a demonstration account, made before the project moved to Claude.
+- **Its email is a generic role address on the university's real email domain**, not a named person's mailbox. That address may be a real mailbox run by someone outside the project. Because "Forgot password?" sends the reset code to the account's email:
+  - using "Forgot password?" on this account could hand a code to that mailbox's owner;
+  - if the mailbox exists, its owner could take over the production admin account.
+- **There's no other way to change an admin password in the app.** The admin dashboard has no "change my password" form, and `GET /admin/users` leaves out admin accounts. So for now, the password can only be changed while signed in as the admin, through `PATCH /users/me/password`.
+- **No endpoint creates or grants the admin role.** Only `backend/seed_admin.py` does, and it needs database access. It also makes the person running it choose the admin's password (`ADMIN_PASSWORD`).
+
+**Rules for real MIS/admin accounts** (the system will hold College of Computing Studies student records):
+- **One account per named person, on their own university mailbox.** No shared or generic role addresses: whoever runs that mailbox controls the account, and actions can't be traced to a person.
+- **Only the person knows their password.** Never set by someone else, and never in files, chat or the repository.
+- **Two or three active admins,** so nobody gets locked out. Deactivate an account when its owner leaves the role.
+- **Record admin actions** (PR #30). Under the Data Privacy Act (RA 10173), access to student records should be accountable and logged.
+
+**Recommendation (owner decision pending; not implemented):**
+- **Approach: pre-provision each admin account with no usable password,** and have the person set one through "Forgot password?" on their own mailbox.
+  - This is how masterlist students already work, and it's tested.
+  - The admin account itself works as the allowlist entry. Only the real mailbox owner can activate it.
+  - A separate admin allowlist that turns into an account on first sign-in would need the retired registration flow back (an `InstructorAllowlist` table from that flow still exists). It gives no extra protection.
+- **Order of work:**
+
+| When | Step | Owner |
+|---|---|---|
+| Before delivery | Change the demonstration admin's password while signed in (blocker 1) | Errol or owner |
+| After delivery | Create named admin accounts for the MIS staff, then deactivate the demonstration admin. It can't be deleted once it has records | Errol (database access) |
+| After delivery | Change `seed_admin.py` to create the account with no usable password and send a setup email, instead of taking `ADMIN_PASSWORD` | Code change, needs approval |
+| Before university rollout | Admin-only "Manage administrators" screen: add or deactivate admins, never your own account, at least two active. Plus PR #30's audit logging and an admin "change my password" form | Code change, needs approval |
+| Long term | Sign-in through the university's own accounts (Google Workspace or Microsoft 365) with multi-factor authentication. Needs university IT's cooperation | Owner + university IT |
+
+### Production smoke test (planned, not run)
+**Rules:**
+- Use test accounts only, and write down every record created.
+- Don't test on Vercel preview URLs.
+- Stop on a critical failure. Don't hot-fix on `dev`: a push may redeploy production.
+
+**Steps:**
+0. Warm up the backend: `/health` returns 200.
+1. Sign in as student, instructor and admin; a wrong password is refused.
+2. "Forgot password?" for a test student: **the email arrives**, the code works, and the new password signs in.
+3. Masterlist import of one test row: **the setup email arrives** with no credential in it. Then do step 2 for that student.
+4. The instructor publishes a test activity and enrolls the test student.
+5. Workspace **Run**: output appears, and it isn't stuck at "queued" or "queue unavailable". Errol sees the Celery task and the Judge0 callback in the logs.
+6. **Submit**: the submission is saved and listed, and background evaluation completes.
+7. Practice submit: a result within 15 s.
+8. Grading Bench: grade, save, release. The student sees the grade and a notification.
+9. Log out: the old session is rejected.
+10. Optional: guest sign-in lands in the sandbox only (needs an active admin).
+
+### Next
+1. Errol changes the admin password (requested 2026-10-20). This commit doesn't wait for that. The file is already in plain view at the tip of `main`, so this section adds no exposure, and the commit removes the file from `dev`.
+2. Errol and the owner rotate the SMTP key. Send Errol the checklist, and collect blockers 3, 4, 5 and 8.
+3. Run the smoke test. Declare the release production-ready only once blockers 1–6 are closed. Record the results in a new dated section.
+4. After delivery: decide how admin accounts are provisioned (see "Admin accounts"), then replace the demonstration admin with named accounts.
