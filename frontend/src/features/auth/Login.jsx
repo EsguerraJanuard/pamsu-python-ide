@@ -11,12 +11,20 @@
  * Returns: { access_token, token_type, expires_in, user: { user_id, name, school_id, email, role, email_verified } }
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth, homePathForRole, consumeSessionExpiredNotice } from "./AuthContext";
-import { api, ApiError } from "../../services/api";
+import { api, ApiError, TIMEOUT_ERROR_STATUS } from "../../services/api";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
+
+// The backend's hosting stops it when idle, and the first request afterwards
+// waits about a minute for it to start. The page wakes the server as soon as
+// it opens, and sign-in waits longer than the 15 s default instead of failing.
+const SIGN_IN_TIMEOUT_MS = 90000;
+// With no answer after this long, tell the user the server is starting.
+const SLOW_SERVER_HINT_MS = 4000;
+const SERVER_STARTING_ERROR = "The server is taking too long to start. Please try again in a moment.";
 
 const features = [
   {
@@ -79,7 +87,40 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [capsLock, setCapsLock] = useState(false);
+  const [serverStarting, setServerStarting] = useState(false);
+  const [slowSignIn, setSlowSignIn] = useState(false);
+  const slowSignInTimer = useRef(null);
 
+  useEffect(() => {
+    let active = true;
+    const hintTimer = window.setTimeout(() => {
+      if (active) setServerStarting(true);
+    }, SLOW_SERVER_HINT_MS);
+    // Errors are ignored here; sign-in reports its own.
+    api
+      .get("/health", {}, SIGN_IN_TIMEOUT_MS)
+      .catch(() => {})
+      .finally(() => {
+        window.clearTimeout(hintTimer);
+        if (active) setServerStarting(false);
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(hintTimer);
+    };
+  }, []);
+
+  useEffect(() => () => window.clearTimeout(slowSignInTimer.current), []);
+
+  const startSlowSignInHint = () => {
+    window.clearTimeout(slowSignInTimer.current);
+    slowSignInTimer.current = window.setTimeout(() => setSlowSignIn(true), SLOW_SERVER_HINT_MS);
+  };
+
+  const stopSlowSignInHint = () => {
+    window.clearTimeout(slowSignInTimer.current);
+    setSlowSignIn(false);
+  };
 
   useEffect(() => {
     const handler = (e) => {
@@ -111,19 +152,23 @@ export default function Login() {
   const handleGuestLogin = async () => {
     setIsLoading(true);
     setError("");
+    startSlowSignInHint();
     try {
-      const data = await api.post("/guest");
+      const data = await api.post("/guest", undefined, {}, SIGN_IN_TIMEOUT_MS);
       login(data.access_token, data.user, data.user.role);
       redirectAfterLogin(data.user.role);
     } catch (err) {
       if (err instanceof ApiError && err.status === 0) {
         setError("Cannot reach the server. Check your connection and try again.");
+      } else if (err instanceof ApiError && err.status === TIMEOUT_ERROR_STATUS) {
+        setError(SERVER_STARTING_ERROR);
       } else if (err instanceof ApiError && err.status >= 500) {
         setError("Guest access is temporarily unavailable. Please sign in with your university account.");
       } else {
         setError(err instanceof ApiError ? err.message : "Guest access failed. Please try again.");
       }
     } finally {
+      stopSlowSignInHint();
       setIsLoading(false);
     }
   };
@@ -146,6 +191,7 @@ export default function Login() {
 
     setIsLoading(true);
     setError("");
+    startSlowSignInHint();
 
     try {
       // Login uses OAuth2PasswordRequestForm — must send as FormData, NOT JSON
@@ -154,7 +200,7 @@ export default function Login() {
       formData.append("username", normalizedEmail);
       formData.append("password", form.password);
 
-      const data = await api.post("/login", formData);
+      const data = await api.post("/login", formData, {}, SIGN_IN_TIMEOUT_MS);
 
       // Save token and user data via AuthContext
       // login() stores in localStorage under pamsu_access_token, pamsu_user_role, pamsu_user_data
@@ -165,6 +211,8 @@ export default function Login() {
       if (err instanceof ApiError) {
         if (err.status === 0) {
           setError("Cannot reach the server. Check your connection and try again.");
+        } else if (err.status === TIMEOUT_ERROR_STATUS) {
+          setError(SERVER_STARTING_ERROR);
         } else if (err.status === 401) {
           setError("Invalid email or password.");
         } else if (err.status === 429) {
@@ -180,6 +228,7 @@ export default function Login() {
         setError("Something went wrong. Please try again.");
       }
     } finally {
+      stopSlowSignInHint();
       setIsLoading(false);
     }
   };
@@ -282,6 +331,16 @@ export default function Login() {
           {notice && !error && (
             <div role="status" className="mb-[clamp(0.75rem,2.5vh,1.5rem)] rounded-xl border border-psu-maroon/20 bg-psu-cream p-[clamp(0.625rem,1.6vh,1rem)] text-sm font-medium text-psu-maroon">
               {notice}
+            </div>
+          )}
+
+          {(serverStarting || slowSignIn) && !error && (
+            <div role="status" className="mb-[clamp(0.75rem,2.5vh,1.5rem)] flex items-start gap-3 rounded-xl border border-border-subtle bg-bg-alt p-[clamp(0.625rem,1.6vh,1rem)] text-sm text-text-muted">
+              <svg className="mt-0.5 h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              <p>Starting the server. The first sign-in after a quiet period can take up to a minute.</p>
             </div>
           )}
 
@@ -407,7 +466,7 @@ export default function Login() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
-                    Signing in...
+                    {slowSignIn ? "Waking up the server…" : "Signing in..."}
                   </>
                 ) : (
                   "Sign In to Workspace"

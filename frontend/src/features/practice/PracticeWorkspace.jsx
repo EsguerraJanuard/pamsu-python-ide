@@ -13,6 +13,11 @@ import { useTheme } from "../theme/ThemeContext";
 import ThemeToggle from "../theme/ThemeToggle";
 import { defineEditorThemes, editorThemeFor } from "../workspace/editorThemes";
 
+// The server runs the code on Judge0 before it answers (it waits up to 15 s
+// for Judge0, then checks the structure), so this request gets more time
+// than the 15 s default.
+const PRACTICE_SUBMIT_TIMEOUT_MS = 45000;
+
 function BackToModules() {
   return (
     <Link to="/student/practice" className="btn-ghost btn-sm">
@@ -117,13 +122,14 @@ function PracticeTask({ taskId }) {
     setFeedback(null);
     setSubmitError("");
     try {
-      const result = await api.post(`/practice/tasks/${taskId}/submit`, { code });
+      const result = await api.post(`/practice/tasks/${taskId}/submit`, { code }, {}, PRACTICE_SUBMIT_TIMEOUT_MS);
       if (isMounted.current) setFeedback(result);
     } catch (err) {
       if (!isMounted.current) return;
       if (err?.status === NETWORK_ERROR_STATUS) setSubmitError("Could not reach the server. Your code was not evaluated.");
       else if (err?.status === TIMEOUT_ERROR_STATUS) setSubmitError("The evaluator took too long to respond. The code runner may be offline — please try again.");
       else if (err?.status === 429) setSubmitError("You're submitting too quickly. Wait a few seconds and try again.");
+      else if (err?.status === 503) setSubmitError("The code runner is unavailable right now. Your code was not evaluated — please try again shortly.");
       else setSubmitError(getErrorMessage(err, "Your code could not be evaluated."));
     } finally {
       if (isMounted.current) setIsSubmitting(false);

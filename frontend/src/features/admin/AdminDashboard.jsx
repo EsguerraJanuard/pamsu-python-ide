@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHead
 import api, { getErrorMessage } from "../../services/api";
 import { formatDateTime, humanize } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
+import { ChangePasswordSection } from "../settings/AccountSections";
 
 const PAGE_SIZE = 50;
 const SCHOOL_EMAIL = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
@@ -708,6 +709,11 @@ export default function AdminDashboard() {
                     </div>
                   </form>
                 )}
+                {/* Outside the settings form so it stays available when the
+                    system settings fail to load. */}
+                <div className="mt-6 max-w-3xl">
+                  <ChangePasswordSection />
+                </div>
               </>
             )}
           </div>
