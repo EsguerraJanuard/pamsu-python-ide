@@ -1795,3 +1795,78 @@ The checklist for Errol is drafted but **not sent**.
    - the difficulty definitions (Beginner/Intermediate/Expert, as in `astRules.js`);
    - the retake policy (one instructor-granted late attempt; unlimited attempts before the deadline);
    - "standard library only".
+
+## Release checks with Errol: production state (2026-10-21)
+
+_Checked with Errol (owner of the Render account, with Supabase and Brevo access), following the owner's release-checks brief, 2026-10-20 17:30–18:40 UTC. Claude deployed nothing and changed no database or Render setting. Errol made the two production changes listed below himself. No credential, `.env` value or connection string was read, printed or committed. Account identities are left out of this public file on purpose._
+
+### Production now
+| Part | State | Evidence |
+|---|---|---|
+| Frontend (Vercel Production) | `bd17c3f` | GitHub deployment record (`vercel[bot]`, success, 2026-10-20 07:41Z) |
+| Backend (Render) | `bd17c3f` code | `GET /health` reports "PSU Python IDE Backend", the name `bd17c3f` introduced. Errol: the deploy succeeded |
+| Database | PostgreSQL **17.6**; `alembic_version` = `5e8a1c7d9b42` | Read-only `SELECT`s in the Supabase SQL editor (run by Errol) |
+| `audit_records` CHECK constraints | 20 action types, 7 resource types, 3 outcomes (the baseline) | Same |
+| Active admin accounts | 1 (none before 2026-10-20 ~18:05Z) | Same, then the `seed_admin.py` output |
+
+### Production changes on 2026-10-20 (made by Errol)
+1. **~17:40Z: manual Render deploy of `dev` (`bd17c3f`).**
+   - `start.sh` applied migration `5e8a1c7d9b42`, confirmed by `alembic_version`.
+   - No backup existed (see "Backup").
+   - From 07:41Z until this deploy, the frontend was ahead of the backend. The new activity editor always sends `scenario` and `solution_explanation`, and the old `TaskCreate` (`extra="forbid"`) rejects unknown fields. So creating an activity would have returned 422 (inferred from code; not tested in production).
+2. **~18:05Z: one admin account created** with `backend/seed_admin.py` (not modified).
+   - Errol ran it himself, entering the URL and the password at hidden prompts.
+   - He shared the temporary password with the owner by call.
+   - This is a temporary demonstration account. Replace it with named accounts before real use (see "Admin accounts" in the 2026-10-20 section).
+
+### Findings
+- **No admin account existed before this.** `active_admins` was 0, so the password in `errol_final_deployment_steps.md` never worked in production. This matches the owner's "Invalid email or password" result.
+- **Guest sign-in worked with no admin.** `get_or_create_sandbox_classroom` returns the existing sandbox when no active admin exists. Now that an admin exists, the next guest sign-in moves the sandbox to the admin and writes a `classroom_updated` audit record. That's expected.
+- **PostgreSQL 17.6, not 15.**
+  - #30's "PostgreSQL 15 tested" condition should read 17.
+  - No suite has run on 17: the migration tests ran on 18.4, everything else on SQLite.
+- **Deploys:**
+  - Render deploys only when Errol clicks Manual Deploy. It's his account, and there's no GitHub webhook because he isn't a repository admin.
+  - Vercel deploys every push to `dev`. So a push that changes both sides leaves the frontend ahead of the backend until Errol deploys, and a push with a migration applies it at that click.
+  - **Coordinate pushes to `dev` with Errol.**
+- **Render environment-variable saves** (Render documentation):
+
+  | Option | What it does |
+  |---|---|
+  | "Save and deploy" | Redeploys the existing build with the new values |
+  | "Save, rebuild, and deploy" | Builds the latest commit |
+  | "Save only" | Waits for the next deploy; a restart doesn't pick up the new values |
+- **Email:**
+  - The SMTP variables are set on Render (set/not set only), and `SMTP_PORT` is 2525.
+  - Render's free plan blocks outbound ports 25, 465 and 587 only, so 2525 isn't affected.
+  - Errol reports that OTP email works. A received email in the smoke test is still the proof.
+- **AI Tutor ("Full backend audit", Still open, item 6):**
+  - Broken in four places since `7748c49` (2026-10-01): no UI, no `attempt_id` in the submit response, no `ai_hint` storage, and no Gemini SDK.
+  - Restored in PR #38: Redis-backed hints, **no migration**, a new `google-genai` dependency; 911 passed, 5 skipped.
+  - **Not merged or deployed.** Close item 6 once it's merged and Errol has deployed the backend.
+
+### Backup
+- **None exists.** The Supabase free tier gives no backups.
+- No restore has been tested, and no dump has been taken.
+- A `pg_dump` contains students' personal data, so whether to take one, and where to keep it, is the owner's decision.
+
+### Release blockers (from 2026-10-20): status now
+| # | Blocker | Status 2026-10-21 |
+|---|---|---|
+| 1 | Rotate the production admin password | **Superseded.** No admin account existed, so the leaked password never worked. A new admin exists (above) |
+| 2 | Rotate the SMTP/Brevo key | **Pending.** Errol and the owner together, on a call; use "Save and deploy" |
+| 3 | Render configuration | **Mostly known:** branch `dev` (from the live code); manual deploys only; the start command runs migrations (evidenced by `alembic_version`); `SMTP_PORT` 2525. Health-check path and instance type not reported |
+| 4 | Production database version and revision | **Done:** PostgreSQL 17.6, `5e8a1c7d9b42` |
+| 5 | A verified, restorable backup | **Open: none exists** (free tier). Owner decision |
+| 6 | Production smoke test | **Not run** |
+| 7 | `errol_final_deployment_steps.md` | Unchanged: deleted from `dev`, still at the tip of `main` |
+
+### Verdict
+**Still not production-ready:** blockers 2, 5 and 6 are open. Everything checked so far matches the code at `bd17c3f`.
+
+### Next
+1. **Errol and the owner:** swap the SMTP key, then use "Forgot password?" on a test student. The email must arrive.
+2. **Owner and Errol:** run the smoke test (2026-10-20 section), with Errol watching the Render logs. Include creating an activity (the 422 gap) and the panel features.
+3. **Owner:** decide on a backup.
+4. **Owner:** review PR #38. After the merge, Errol deploys the backend.
+5. **After delivery:** #30, re-pointed onto `5e8a1c7d9b42` and tested on PostgreSQL 17.
