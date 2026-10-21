@@ -2261,3 +2261,24 @@ _Branch `dev` on top of `364e20c`. Backend and frontend change; no migration. No
    - maroon footer text for legibility;
    - email the new password when an admin resets one;
    - reuse one SMTP connection for large masterlists.
+
+## AI Tutor: restored and verified in production (2026-10-22)
+
+**"Full backend audit" → "Still open", item 6 (AI Tutor) is closed.** Errol checked production on 2026-10-22: a failing practice submit shows the tutor's hint.
+
+### What shipped
+| PR | Change |
+|---|---|
+| #38 | Restored the tutor: `attempt_id` in the submit response, hints in Redis (24 h, memory fallback, no migration), `google-genai==2.28.0`, the tutor panel in `PracticeWorkspace.jsx` |
+| #39 | Gemini retries with backoff (the SDK makes one attempt without `retry_options`); a failed generation is reported as `unavailable`, and "Try again" sends `retry=true` |
+| #40 | 429 (quota used up) is no longer retried; Google's error text is logged; automatic function calling is off |
+| #41 | **Fallback model:** when `gemini-3.8-flash` answers 503 or 429, the tutor asks `gemini-3.6-flash`. The worst case is 67 s, inside the 90 s generation lock and the frontend's ~80 s polling window |
+
+### Why the fallback
+- After #38 deployed, production logs showed `gemini-3.8-flash` answering **503 "high demand"**, then **429 "You exceeded your current quota"**: the Google project is on the free tier.
+- **Errol approved the fallback on 2026-10-22.** It overrides the AGENTS.md rule "gemini-3.8-flash only, no fallback"; AGENTS.md (local, gitignored) should be updated to match.
+- Linking a billing account to the Gemini project (Tier 1) is still the lasting fix if both models' free quotas run out.
+
+### Next
+1. **Errol:** update AGENTS.md to record the approved fallback.
+2. **Owner:** decide whether to enable billing on the Gemini project.
