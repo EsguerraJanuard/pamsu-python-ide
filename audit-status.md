@@ -2341,3 +2341,38 @@ _"Still open" item 1 of the previous section. Errol approved the migration on 20
 1. **Errol:** Render manual deploy. In the log, look for `Running upgrade 5e8a1c7d9b42 -> 61330560eec5`. Then edit a test account and check the Audit tab shows "User updated" with the account's name.
 2. Item 2 (practice submit waits on Judge0) is unblocked: its migration chains after `61330560eec5`.
 3. PR #30 can be closed as superseded.
+
+## Demo seed: a semester in use, admin kept (2026-10-22)
+
+_Errol asked for realistic demo data that keeps the admin account. He runs the reset against Supabase himself; nothing here touched production._
+
+### What changed
+- **`backend/seed.py` was rewritten; `backend/seed_content.py` is new.** `seed_dummy.py` and `seed_task.py` (load-test stubs: "Load Testing 101", `student1@…`, a shared weak password) were removed.
+- **`python seed.py --reset`:**
+  - shows the target database (never the password), the admins kept and what will be deleted, and asks you to type the database host;
+  - refuses unless the database is on the current Alembic head;
+  - then, in **one transaction**, empties every table except `users` (admin rows kept) and `system_settings`, and seeds the demo. Any failure rolls everything back.
+- **The demo, about ten weeks into the term:**
+  - 5 faculty and 183 students (fictional Kapampangan and Filipino names);
+  - 6 active classes (CC 102 for BSIT 1-A/1-B, BSCS 1-A and BSIS 1-A; CC 104 for BSCS 2-A; IT 213 for BSIT 2-B) and last semester's archived CC 103;
+  - 38 activities with scenarios, test cases and structure rules: released, in review, open and one scheduled;
+  - about 880 submissions with their coding sessions, submit runs, evaluations and similarity;
+  - grades (released and unreleased), practice progress, in-app notifications, and an audit trail with MIS masterlist imports and sign-ins.
+- **Evaluations use the app's own code** (`evaluate_ast_details`, `find_highest_similarity`). Submit-run output comes from running the seed's own code templates. `python seed.py --self-check` checks that every code variant behaves as labelled.
+- **Demo accounts** share one password (random, or `DEMO_PASSWORD`), written to `~/Documents/psu_demo_accounts.md` (mode 600), never to the repo. No email is sent.
+- **`entrypoint.sh`** (local Docker stack) now runs `seed.py --reset --unattended`, and only when `PAMSU_ALLOW_DATABASE_RESET=true`. That mode refuses unless `PAMSU_ENVIRONMENT` is development or test.
+
+### Verified (throwaway local PostgreSQL 18.6)
+- Seeded in about 30 s:
+  - the admin row was byte-for-byte unchanged and older accounts were removed;
+  - no timestamp is in the future, and no grade predates its activity's due date.
+- A second run on seeded data works.
+- **30/30** GET endpoints used by the admin, instructor and student screens return 200 on the seeded data.
+- The guards refuse:
+  - the wrong host;
+  - no admin (outside Docker);
+  - `--unattended` without its flags;
+  - a database one migration behind.
+
+### Next
+- **Errol:** take a `pg_dump` backup, then run the reset against Supabase after the backend deploy that applies `61330560eec5`.
