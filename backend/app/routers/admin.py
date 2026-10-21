@@ -56,9 +56,15 @@ def _audit_unavailable(db: Session, error: Exception) -> HTTPException:
 
 def _target_user_id(log: AuditRecord) -> int | None:
     resource_id = log.resource_id
-    if log.resource_type == "user" and resource_id.isascii() and resource_id.isdigit():
-        return int(resource_id)
-    return None
+    if log.resource_type != "user" or not (resource_id.isascii() and resource_id.isdigit()):
+        return None
+    # A failed sign-in names an account only when it was for that account
+    # (it is then also the record's actor). Older records of unknown sign-ins
+    # can hold digits typed into the email field, such as a password; they
+    # must be masked, not read as a user id.
+    if log.action_type == "login_failed" and str(log.actor_user_id) != resource_id:
+        return None
+    return int(resource_id)
 
 
 def _displayed_resource_id_and_details(log: AuditRecord) -> tuple[str, dict]:

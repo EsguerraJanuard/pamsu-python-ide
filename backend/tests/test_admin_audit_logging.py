@@ -560,6 +560,37 @@ def test_audit_log_endpoint_masks_stored_unrecognized_login_identifiers(client, 
     assert stored["legacy:password"].audit_data == {"email": TYPED_PASSWORD}
 
 
+def test_digits_typed_as_login_email_are_masked_not_read_as_a_user(client, db_session, admin, student):
+    # Older rows of unknown sign-ins kept what was typed. All-digit input,
+    # such as a numeric password, must not become a user id: here one even
+    # equals the student's real id.
+    rows = {
+        "legacy:digits": (None, "20231234"),
+        "legacy:digits-matching-a-user": (None, str(student.user_id)),
+        "legacy:wrong-password": (student.user_id, str(student.user_id)),
+    }
+    for key, (actor, resource_id) in rows.items():
+        db_session.add(AuditRecord(audit_key=key, actor_user_id=actor, action_type="login_failed",
+                                   resource_type="user", resource_id=resource_id, outcome="failed",
+                                   audit_data={"identifier": "unrecognized"}))
+    db_session.commit()
+
+    response = client.get("/admin/audit-logs", headers=auth(admin))
+
+    assert response.status_code == 200
+    assert "20231234" not in response.text
+    entries = sorted(
+        ((log["resource_id"], log["target_user_id"], log["target_name"])
+         for log in response.json() if log["action_type"] == "login_failed"),
+        key=str,
+    )
+    assert entries == sorted([
+        ("unrecognized", None, None),
+        ("unrecognized", None, None),
+        (str(student.user_id), student.user_id, "Stu Dent"),
+    ], key=str)
+
+
 def test_password_typed_as_login_email_never_reaches_admin_audit_log(client, db_session, admin):
     assert client.post("/login", data={"username": TYPED_PASSWORD, "password": "x"}).status_code == 401
 
