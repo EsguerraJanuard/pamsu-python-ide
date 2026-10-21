@@ -15,8 +15,6 @@ const STRICTNESS_OPTIONS = [
 
 function EvaluationPreferences() {
   const { user, updateUser } = useAuth();
-  // The sign-in payload doesn't include the stored strictness, so it is only
-  // known after it has been saved from this page.
   const [strictness, setStrictness] = useState(user?.ast_strictness_level || "");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState(null);

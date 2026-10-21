@@ -2282,3 +2282,31 @@ _Branch `dev` on top of `364e20c`. Backend and frontend change; no migration. No
 ### Next
 1. **Errol:** update AGENTS.md to record the approved fallback.
 2. **Owner:** decide whether to enable billing on the Gemini project.
+
+## Audit follow-ups: what is still open (2026-10-22)
+
+_Checked against `dev` @ `bb11f66`. From today, follow-up work is pushed straight to `dev` (Errol's decision). Vercel deploys each push at once; backend changes wait for Errol's manual Render deploy._
+
+### Done in this commit
+- **Removed the unused `xlsx` and `react-intersection-observer` packages** ("Frontend follow-ups"). Nothing imported them, and `xlsx` 0.18.5 has known npm security advisories. The lockfile only loses those two and `xlsx`'s eight sub-dependencies.
+- **Removed the out-of-date strictness comment** in `InstructorSettings.jsx`. The sign-in response has included `ast_strictness_level` for some time.
+
+### Older pending items that are already fixed (verified in the code)
+- `/admin/*` router registered; `POST /guest` import error; `users.py` double router; the guest `PATCH /users/me` 500 (`UserResponse` accepts `GST…`/`FAC…`).
+- The hardcoded `PamsU@2026` password; case-insensitive email checks in `POST /admin/students`; `DELETE /admin/users/{id}` on a student with enrollments (409, deactivate instead).
+- CORS limited to this project's Vercel URLs; `rediss://` certificate checks; the ad-hoc `fix_*.py`/`check_*.py`, `write_migration.py` and `update_model.py` scripts are gone.
+- The Judge0 callback is protected by its `correlation_id`: a random UUID that only the server and Judge0 see. No student-facing response includes it.
+- Frontend: guest sign-in handles 429 and 5xx; the workspace treats a `failed` execution as finished.
+
+### Still open
+| # | Item | Needs |
+|---|---|---|
+| 1 | Admin actions not audited (deactivate, delete, password reset, settings, account edits): `audit_records.action_type` has a CHECK constraint | **A migration.** PR #30's `61330560eec5`, re-pointed onto the current head. Errol's OK first: no backup, and `start.sh` migrates on every deploy |
+| 2 | Practice submit waits on Judge0 (up to 15 s), against the 3-second rule | Builds on item 1's migration chain |
+| 3 | PostgreSQL 17 run of the migration and concurrency suites (production is 17.6) | A local PostgreSQL 17 |
+| 4 | Release blockers: rotate the SMTP/Brevo key, production smoke test, backup | Errol and the owner |
+| 5 | Remove the legacy `/execution/submissions/` routes? Should `POST /submissions/` create its own execution request? | Owner decisions |
+| 6 | Enrollment questions (suspended students in bulk enroll, pending rows for archived classes, capacity, instructor visibility), instructor temporary-password email | Owner decisions |
+| 7 | AI Tutor: enable billing on the Gemini project; record the approved fallback in AGENTS.md | Errol |
+| 8 | Optional UI: "show guests" toggle (Students directory), "Re-apply pending enrollments" action, MIS editing a school ID, admin dark mode (not approved), rebuilding `PracticeModuleManager.jsx`/`ActivityEditor.jsx` on `PageShell` | Errol's choice |
+| 9 | `ClassroomResponse` requires `section`, but the column is nullable: a classroom created outside the API would make `GET /classrooms/mine` return 500 | Small fix; low risk today, since the API always sets it |
