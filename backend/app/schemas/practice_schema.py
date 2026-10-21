@@ -104,3 +104,6 @@ class PracticeAiHintResponse(BaseModel):
     ai_hint: Optional[str] = None
     # "processing" until the hint is ready (poll again), then "completed".
     status: str
+    # True when Gemini could not produce a hint; ai_hint then holds a short
+    # notice. The client may ask again with retry=true.
+    unavailable: bool = False
