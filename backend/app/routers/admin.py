@@ -201,6 +201,7 @@ def get_system_stats(
 @router.post("/students", response_model=StudentCreateResponse)
 def create_student(
     request: StudentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -234,6 +235,16 @@ def create_student(
         db.rollback()
         raise
     db.refresh(new_student)
+    # Sent only after the commit, like the faculty welcome email.
+    background_tasks.add_task(
+        send_provisioning_email,
+        new_student.email,
+        request.first_name,
+        request.password,
+        "Student",
+        last_name=request.last_name,
+        school_id=new_student.school_id,
+    )
     return StudentCreateResponse(
         **UserResponse.model_validate(new_student).model_dump(),
         pending_enrollments=pending_result,
@@ -330,7 +341,15 @@ def create_instructor(
         db.rollback()
         raise HTTPException(status_code=409, detail="User already exists") from exc
     db.refresh(new_instructor)
-    background_tasks.add_task(send_provisioning_email, new_instructor.email, request.first_name, request.password, 'Instructor')
+    background_tasks.add_task(
+        send_provisioning_email,
+        new_instructor.email,
+        request.first_name,
+        request.password,
+        "Instructor",
+        last_name=request.last_name,
+        school_id=new_instructor.school_id,
+    )
     return new_instructor
 
 @router.get("/users", response_model=List[UserResponse])
@@ -597,9 +616,18 @@ async def bulk_register_students_file(
     except MasterlistConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-    # Only committed accounts are notified, and no credential is included.
-    for new_user in new_users:
-        background_tasks.add_task(send_provisioning_email, new_user.email, new_user.name.split()[0], None, 'Student')
+    # Only committed accounts are notified, and no credential is included:
+    # masterlist accounts have no password until the student sets one.
+    for student in new_users:
+        background_tasks.add_task(
+            send_provisioning_email,
+            student.email,
+            student.first_name or student.full_name,
+            None,
+            "Student",
+            last_name=student.last_name if student.first_name else "",
+            school_id=student.school_id,
+        )
     return result
 
 @router.get("/settings")

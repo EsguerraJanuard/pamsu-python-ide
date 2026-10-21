@@ -395,7 +395,9 @@ function ProvisionForm({ role, onCreated }) {
       ].filter(Boolean).join(" ");
       setResult({
         tone: waiting > 0 ? "warning" : "success",
-        text: `Account created for ${payload.email}. Temporary password: ${payload.password} — share it securely.${enrollmentNote ? ` ${enrollmentNote}` : ""}`,
+        // Delivery happens after the response and isn't confirmed, so the
+        // password stays visible here in case the email doesn't arrive.
+        text: `Account created for ${payload.email}. Their sign-in details, including the temporary password, are being emailed to them. If the email doesn't arrive, the temporary password is ${payload.password}.${enrollmentNote ? ` ${enrollmentNote}` : ""}`,
       });
       setForm({ ...empty, password: generateTempPassword() });
       onCreated?.();
@@ -423,7 +425,7 @@ function ProvisionForm({ role, onCreated }) {
       onSubmit={handleSubmit}
       noValidate
       title={isStudent ? "Create student account" : "Create faculty account"}
-      description={isStudent ? "For one student. Use a masterlist for a whole class." : "The instructor signs in with the temporary password."}
+      description={isStudent ? "For one student. The sign-in details are emailed automatically." : "The sign-in details are emailed to the instructor automatically."}
       icon="userPlus"
       footer={
         <div className="@container">
@@ -489,7 +491,7 @@ function TemporaryPasswordField({ prefix, value, error, disabled, onChange, onGe
         <FieldError id={`${prefix}-password-error`}>{error}</FieldError>
       ) : (
         <p id={`${prefix}-password-hint`} className="mt-1.5 text-xs text-text-muted">
-          Shown once after the account is created. Share it privately.
+          Account credentials will be automatically emailed to the user.
         </p>
       )}
     </div>
@@ -1185,7 +1187,7 @@ export default function AdminDashboard() {
         tone: failedRows.length > 0 || pendingLeft > 0 ? "warning" : "success",
         text:
           `${created} account${created === 1 ? "" : "s"} created, ${res?.skipped ?? 0} already existed, ${failedRows.length} row${failedRows.length === 1 ? "" : "s"} failed.` +
-          (created > 0 ? " Students set their own password with “Forgot password?” on the sign-in page." : "") +
+          (created > 0 ? " Each new student is emailed their account details and a link to set their own password." : "") +
           (fromPending > 0 ? ` ${fromPending} queued class enrollment${fromPending === 1 ? " was" : "s were"} completed.` : "") +
           (pendingLeft > 0 ? ` ${pendingLeft} stay${pendingLeft === 1 ? "s" : ""} pending because the class is inactive or could not be joined.` : ""),
         rows: failedRows,
@@ -1496,7 +1498,7 @@ export default function AdminDashboard() {
                     <ProvisionForm role="student" onCreated={() => { users.load(); loadStats(); }} />
                   </div>
                   <div>
-                    <Panel title="Bulk register from masterlist" description="No password is set or emailed." icon="upload">
+                    <Panel title="Bulk register from masterlist" description="New students are emailed their account details automatically." icon="upload">
                       <div className="space-y-4">
                         <p className="text-sm text-text-muted">
                           Columns: <code className="rounded bg-bg-alt px-1 py-0.5 text-xs">email</code>, <code className="rounded bg-bg-alt px-1 py-0.5 text-xs">school_id</code> and{" "}

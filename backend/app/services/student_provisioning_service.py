@@ -19,6 +19,7 @@ import csv
 import io
 import secrets
 from collections import Counter
+from dataclasses import dataclass
 from typing import Literal
 
 from app.models.domain_models import User
@@ -73,6 +74,22 @@ class _ParsedRow:
         self.numeric_school_id = numeric_school_id
         self.identity: UserBase | None = None
         self.result: MasterlistRowResult | None = None
+
+
+@dataclass(frozen=True)
+class ProvisionedStudent:
+    """A created account, as the welcome email needs it.
+
+    first_name and last_name are the file's own columns when it had them
+    (empty when it had a single name column), so the greeting never has to
+    guess where a surname like "Dela Cruz" starts.
+    """
+
+    email: str
+    school_id: str
+    full_name: str
+    first_name: str
+    last_name: str
 
 
 def make_unusable_password_hash() -> str:
@@ -294,7 +311,7 @@ def import_masterlist(
     content: bytes,
     filename: str | None,
     actor_user_id: int,
-) -> tuple[MasterlistImportResult, list[User]]:
+) -> tuple[MasterlistImportResult, list[ProvisionedStudent]]:
     """
     Validate a masterlist and create the accounts it describes.
 
@@ -432,5 +449,14 @@ def import_masterlist(
             pending_left=pending_left,
             rows=results,
         ),
-        [user for _, user in created_users],
+        [
+            ProvisionedStudent(
+                email=user.email,
+                school_id=user.school_id,
+                full_name=user.name,
+                first_name=row.values.get("first_name", "").strip(),
+                last_name=row.values.get("last_name", "").strip(),
+            )
+            for row, user in created_users
+        ],
     )

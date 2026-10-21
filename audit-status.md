@@ -2159,3 +2159,105 @@ Vercel publishes the frontend on push, and the backend waits for Errol's Manual 
 - **After delivery:**
   - add `user_updated` (and the other admin action types) through PR #30, so edits are audited;
   - optionally let MIS correct a student's school ID (left out on purpose: the request was names and emails).
+
+## Account provisioning email: wiring, admin UI copy, new template (2026-10-21)
+
+_Branch `dev` on top of `364e20c`. Backend and frontend change; no migration. Nothing was committed or pushed by this session, and no real email was sent: tests stub SMTP, and the local QA copy has no SMTP key._
+
+### How the email is sent (verified in code)
+| Path | Before | Now |
+|---|---|---|
+| `POST /admin/instructors` (Faculty form) | Welcome email with the temporary password | Same, plus last name and account ID for the new template |
+| `POST /admin/students` (Student form) | **No email at all.** The admin had to pass the password on by hand | **Welcome email with the temporary password and school ID** |
+| `POST /admin/students/bulk-register/file` (masterlist) | Setup email for each created student, **no password** (by design: masterlist accounts have no usable password until the student sets one through "Forgot password?") | Same design. The email says no password was issued and links to `/forgot-password`. The greeting uses the file's own first and last name columns when it has them |
+| `PATCH /admin/users/{id}/password` (admin reset) | Not emailed; the admin is shown the new password once | Unchanged. "Share it securely" stays in that message because it's accurate |
+
+- **Dispatch:**
+  - Each route queues `send_provisioning_email` as a FastAPI **background task after the commit**: one SMTP session per recipient, after the response.
+  - It runs in the API process (not Celery): no retry, and a failure is only logged, so the admin never sees it.
+  - **That's why the success message still shows the temporary password, as a fallback.**
+- **SMTP:** `smtplib` with STARTTLS and login on `SMTP_HOST:SMTP_PORT` (Brevo's SMTP relay, port 2525 on Render), with a 15 s timeout per command.
+- **Logging:**
+  - Recipient addresses are now masked (`j***@pampangastateu.edu.ph`).
+  - A failure logs only the error class and SMTP code (for example `SMTPAuthenticationError 535` or `SMTPSenderRefused`), never the error text, which can echo the address or the message.
+  - Before, it logged full addresses and the raw error text.
+
+### Environment variables (Render)
+| Variable | Needed? | Notes |
+|---|---|---|
+| `SMTP_USER`, `SMTP_PASS` | **Required.** If either is missing, nothing is sent (logged as "not sent") | Brevo's **SMTP login and SMTP key**, not the REST API key: this code uses the SMTP relay, so **no `BREVO_API_KEY` is needed**. Errol reports both are set. **The key is the exposed one: rotation is still pending** (release blocker 2) |
+| `SMTP_HOST` | Optional (default `smtp-relay.brevo.com`) | Errol reports it set |
+| `SMTP_PORT` | **Required on Render** (the default 587 is blocked on the free plan) | Set to 2525 (reported) |
+| `SMTP_SENDER_EMAIL` | Recommended (default `noreply@pampangastateu.edu.ph`) | **Must be a verified sender or domain in Brevo**, or every email is refused (`SMTPSenderRefused`). Not yet checked in Brevo |
+| `SMTP_SENDER_NAME` | Optional (default "PSU Python IDE") | May still say "PAMSU" on Render. Check it |
+| `FRONTEND_URL` | Optional (default `https://pamsu-python-ide.vercel.app`) | Base of the "here" link. Set it only if the frontend domain changes |
+
+### New email template (`services/email_service.py`)
+- **Layout:** tables and inline styles only (no `<style>` block); 600 px wide, full-width on phones.
+  - **Header:** solid PSU gold `#eaae19`, with the logo and **PAMPANGA STATE UNIVERSITY** (bold, maroon `#77250b`) side by side in one table row.
+  - **Body:** white, `#1f2937` text, 28–32 px padding.
+  - **Footer:** solid gold, centered white text: **Contact Details**, address, phone, `info@pampangastateu.edu.ph` (a mailto link).
+- **Content:**
+  - "Good day {Last}, {First},". When only a full name is known (a masterlist with a single name column), that name is used as given; a surname is never guessed.
+  - The welcome sentence as specified.
+  - "Take note of your temporary account details:" with **School ID Number**, **Email / Username** and **Temporary Password** (monospace, kept on one line).
+  - "To complete the process, please click **here** to sign in and reset your password." The link goes to `/login`, or for masterlist accounts to `/forgot-password` ("…to set your password and sign in").
+- **Logo:**
+  - `backend/app/assets/psu_logo_email.png`, a 128×128 copy (30 KB) of `frontend/public/school_logo.png`, shown at 56 px.
+  - **Embedded as an inline image (Content-ID) in a `multipart/related` message**, which Gmail, Outlook and Apple Mail show without remote-image prompts. Base64 data URIs are blocked by Gmail and Outlook, and hosted images are hidden by default in Outlook.
+  - If the file is missing, the email is sent without it.
+- **Also:**
+  - a plain-text part;
+  - `Date` and `Message-ID` headers (deliverability);
+  - every value HTML-escaped;
+  - about 49 KB per email.
+- **Fixed:** the old template named the school "Pampanga State **Agricultural** University" (a different university), and relied on a `<style>` block that several clients strip.
+- **Accessibility:** white footer text on gold has a contrast of about **2.0:1** (WCAG asks for 4.5:1), so the contact lines are hard to read. It was kept as specified; maroon on gold (about 5.2:1) would be a one-line change.
+
+### Admin UI copy (`AdminDashboard.jsx`)
+- **Create forms:**
+  - The description reads "The sign-in details are emailed to the instructor automatically" (faculty) or "For one student. The sign-in details are emailed automatically." (students).
+  - The temporary-password hint reads "Account credentials will be automatically emailed to the user." (was "Shown once after the account is created. Share it privately.").
+  - After creating an account: "Their sign-in details, including the temporary password, are being emailed to them. If the email doesn't arrive, the temporary password is …".
+- **Masterlist:**
+  - The card reads "New students are emailed their account details automatically." (was "No password is set or emailed.").
+  - The result says each new student is emailed their account details and a link to set their own password.
+
+### Verification
+| Check | Result |
+|---|---|
+| New `tests/test_provisioning_email.py` | **18 passed**: MIME structure (related > alternative[plain, html] + inline PNG with a matching Content-ID); header, body and footer colours and text; greeting order; the three details; the `/login` link with "here"; footer contact lines; no "Agricultural" and no `<style>`; plain-text part; masterlist variant (no password, `/forgot-password`); HTML escaping (name, password); `FRONTEND_URL` override; sending without the logo; greeting fallbacks; STARTTLS, login and port 2525 via a fake SMTP; masked logs on success, failure and missing credentials; student and faculty creation queue the email with password, last name and ID; a refused duplicate sends nothing |
+| `tests/test_masterlist_import.py` (updated stub) | Passed; it now also checks the greeting names and school IDs passed for column and single-name files |
+| Full backend suite (SQLite, Windows, 03:38–04:03Z) | **971 passed, 5 skipped, 0 failed** (953 before + 18 new) |
+| Frontend lint and build, `git diff --check` | Clean |
+| Rendered preview (browser, 800 px and 375 px) | Header logo and name aligned; details wrap cleanly on a phone, and the password stays on one line; links correct. The footer's low contrast was confirmed visually |
+| Local QA copy | The new copy shows on both forms. Creating a student queued the email; with no SMTP key the server logged "provisioning email to l***@pampangastateu.edu.ph not sent" |
+
+**Not verified:** a real send through Brevo, and rendering in real mail clients (Gmail, Outlook). Do this in the production smoke test (step 3 there): create a test account and check the received email.
+
+### Files
+- **Modified:**
+  - `backend/app/routers/admin.py`
+  - `backend/app/services/email_service.py`
+  - `backend/app/services/student_provisioning_service.py`
+  - `backend/tests/test_masterlist_import.py`
+  - `frontend/src/features/admin/AdminDashboard.jsx`
+  - `audit-status.md`
+- **Created** (untracked: add them by name):
+  - `backend/app/assets/psu_logo_email.png`
+  - `backend/tests/test_provisioning_email.py`
+
+### What a push of this commit does
+- **Vercel:** the new admin copy goes live at once.
+- **Render:** the new template and the student-creation email arrive at Errol's next Manual Deploy. Until then, production keeps the old template, and **single student creation sends no email** (the copy says it does). Deploy the backend soon after the push.
+- **No migration.**
+
+### Next
+1. **Errol:** deploy the backend. Rotate the SMTP key (release blocker 2), confirm the sender address is verified in Brevo, and check `SMTP_SENDER_NAME`.
+2. **Smoke test:**
+   - create a test student and a test faculty account, and check both emails arrive with the logo;
+   - import a one-row masterlist, and check the email links to "Forgot password?".
+3. **Optional:**
+   - maroon footer text for legibility;
+   - email the new password when an admin resets one;
+   - reuse one SMTP connection for large masterlists.

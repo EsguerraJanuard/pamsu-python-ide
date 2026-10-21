@@ -60,12 +60,21 @@ def admin(db_session):
     return make_user(db_session, email=f"mis{DOMAIN}", role="admin", school_id="9000000001", name="MIS Admin")
 
 
+class SentEmails(list):
+    """(email, temp_password, role) per queued email; .details has the rest."""
+
+    def __init__(self):
+        super().__init__()
+        self.details = []
+
+
 @pytest.fixture
 def sent_emails(monkeypatch):
-    sent = []
+    sent = SentEmails()
 
-    def fake_send(recipient_email, first_name, temp_password, role):
+    def fake_send(recipient_email, first_name, temp_password, role, **details):
         sent.append((recipient_email, temp_password, role))
+        sent.details.append({"email": recipient_email, "first_name": first_name, **details})
 
     monkeypatch.setattr("app.routers.admin.send_provisioning_email", fake_send)
     return sent
@@ -124,6 +133,10 @@ def test_first_and_last_name_columns_are_combined(client, db_session, admin, sen
 
     assert response.status_code == 200, response.text
     assert students(db_session)[0].name == "Ana Reyes Lopez"
+    # The welcome email greets "Lopez, Ana" from the file's own columns.
+    assert sent_emails.details == [
+        {"email": f"ana{DOMAIN}", "first_name": "Ana", "last_name": "Lopez", "school_id": "2023000001"}
+    ]
 
 
 @pytest.mark.parametrize(
@@ -209,6 +222,11 @@ def test_no_shared_or_emailed_password(client, db_session, admin, sent_emails):
 
     assert sorted(email for email, _, _ in sent_emails) == [f"one{DOMAIN}", f"two{DOMAIN}"]
     assert all(temp_password is None for _, temp_password, _ in sent_emails)
+    # A single name column is used whole; a surname is never guessed from it.
+    assert sorted((d["first_name"], d["last_name"], d["school_id"]) for d in sent_emails.details) == [
+        ("Student One", "", "2023000001"),
+        ("Student Two", "", "2023000002"),
+    ]
 
 
 def test_provisioned_student_cannot_log_in_until_password_reset(client, db_session, admin, sent_emails):
