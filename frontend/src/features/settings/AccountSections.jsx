@@ -5,7 +5,25 @@ import { FieldError, InlineAlert } from "../../components/ui/StateViews";
 import api, { getErrorMessage } from "../../services/api";
 import { useAuth } from "../auth/AuthContext";
 
-export function SettingsSection({ title, description, children, id }) {
+/**
+ * Settings card. `divided` puts the title in its own header row above a
+ * divider, matching the admin dashboard's cards; other pages keep the plain
+ * layout.
+ */
+export function SettingsSection({ title, description, children, id, divided = false }) {
+  if (divided) {
+    return (
+      <section className="card overflow-hidden" aria-labelledby={id}>
+        <div className="border-b border-border-subtle px-5 py-4 sm:px-6">
+          <h2 id={id} className="text-base font-semibold text-text-main">
+            {title}
+          </h2>
+          {description && <p className="mt-0.5 text-sm text-text-muted">{description}</p>}
+        </div>
+        <div className="p-5 sm:p-6">{children}</div>
+      </section>
+    );
+  }
   return (
     <section className="card p-5 sm:p-6" aria-labelledby={id}>
       <div className="mb-5">
@@ -75,7 +93,7 @@ const EMPTY_PASSWORDS = { currentPassword: "", newPassword: "", confirmPassword:
  * Changing the password invalidates every existing session on the server,
  * so a successful change signs the user out and returns them to sign-in.
  */
-export function ChangePasswordSection() {
+export function ChangePasswordSection({ divided = false }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [passwords, setPasswords] = useState(EMPTY_PASSWORDS);
@@ -148,6 +166,7 @@ export function ChangePasswordSection() {
   return (
     <SettingsSection
       id="password-heading"
+      divided={divided}
       title="Change password"
       description="Your current password is verified by the server. You'll be signed out on all devices after a change."
     >

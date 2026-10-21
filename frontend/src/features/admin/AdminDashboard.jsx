@@ -1,24 +1,50 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import SignOutModal from "../../components/layout/SignOutModal";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../components/ui/StateViews";
 import api, { getErrorMessage } from "../../services/api";
-import { formatDateTime, humanize } from "../../utils/format";
+import { formatDate, formatDateTime, humanize } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
 import { ChangePasswordSection } from "../settings/AccountSections";
 
 const PAGE_SIZE = 50;
+const RECENT_ACTIVITY_COUNT = 6;
 const SCHOOL_EMAIL = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
 const SCHOOL_ID = /^(\d{10}|\d{4}-\d{5})$/;
 
+/* Stroke icons (24×24, drawn with currentColor). */
+const ICONS = {
+  overview: "M3 12l2-2 7-7 7 7 2 2M5 10v10h4v-6h6v6h4V10",
+  faculty: "M12 14l9-5-9-5-9 5 9 5zm0 0v6m-6-9.5v5.5l6 3 6-3v-5.5",
+  students: "M17 20h5v-2a3 3 0 00-5.36-1.86M9 20H4v-2a4 4 0 017-2.65M15 7a3 3 0 11-6 0 3 3 0 016 0z",
+  audit: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+  settings: "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.82 1.17V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 003 15.08V15a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6V4a2 2 0 114 0v.09a1.65 1.65 0 001.03 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.4.16.84.24 1.28.24H21a2 2 0 110 4h-.09c-.44 0-.88.08-1.28.24z",
+  classroom: "M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6",
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4",
+  wrench: "M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z",
+  activity: "M22 12h-4l-3 9L9 3l-3 9H2",
+  userPlus: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zM19 8v6M22 11h-6",
+  upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
+  chevronRight: "M9 18l6-6-6-6",
+  arrowRight: "M5 12h14M13 6l6 6-6 6",
+  key: "M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.78 7.78 5.5 5.5 0 017.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
+  ban: "M12 22a10 10 0 100-20 10 10 0 000 20zM4.93 4.93l14.14 14.14",
+  check: "M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3",
+  search: "M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z",
+  signOut: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  calendar: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z",
+  bolt: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+};
+
 const TABS = [
-  { id: "overview", label: "Overview", icon: "M3 12l2-2 7-7 7 7 2 2M5 10v10h4v-6h6v6h4V10" },
-  { id: "faculty", label: "Faculty", icon: "M12 14l9-5-9-5-9 5 9 5zm0 0v6m-6-9.5v5.5l6 3 6-3v-5.5" },
-  { id: "students", label: "Students", icon: "M17 20h5v-2a3 3 0 00-5.36-1.86M9 20H4v-2a4 4 0 017-2.65M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
-  { id: "audit", label: "Audit trail", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
-  { id: "settings", label: "Settings", icon: "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.82 1.17V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 003 15.08V15a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6V4a2 2 0 114 0v.09a1.65 1.65 0 001.03 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.4.16.84.24 1.28.24H21a2 2 0 110 4h-.09c-.44 0-.88.08-1.28.24z" },
+  { id: "overview", label: "Overview" },
+  { id: "faculty", label: "Faculty" },
+  { id: "students", label: "Students" },
+  { id: "audit", label: "Audit trail" },
+  { id: "settings", label: "Settings" },
 ];
 
 const STRICTNESS = [
@@ -27,6 +53,19 @@ const STRICTNESS = [
   ["strict", "Strict", "Required structures are enforced rigidly."],
 ];
 
+const QUICK_ACTIONS = [
+  { id: "add-faculty", icon: "userPlus", title: "Add a faculty account", text: "Create an instructor sign-in with a temporary password.", tab: "faculty", focus: "provision-instructor-email" },
+  { id: "add-student", icon: "userPlus", title: "Add a student account", text: "Register one student by university email and school ID.", tab: "students", focus: "provision-student-email" },
+  { id: "masterlist", icon: "upload", title: "Import a masterlist", text: "Create many student accounts from a CSV or .xlsx file.", tab: "students", focus: "admin-bulk-file" },
+  { id: "audit", icon: "shield", title: "Review the audit trail", text: "Check sign-ins and account changes.", tab: "audit" },
+  { id: "settings", icon: "settings", title: "System settings", text: "Maintenance mode and the default AST strictness.", tab: "settings" },
+];
+
+const OUTCOME_TONE = { succeeded: "success", failed: "danger", denied: "warning" };
+
+const TH = "px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted";
+const ELEVATED = "shadow-[0_1px_2px_rgba(28,25,23,0.04),0_12px_32px_-20px_rgba(119,37,11,0.45)]";
+
 /** Random temporary password (letters, digits, symbol) shown once to the admin. */
 function generateTempPassword() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -34,6 +73,158 @@ function generateTempPassword() {
   crypto.getRandomValues(bytes);
   const core = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
   return `${core.slice(0, 5)}-${core.slice(5)}!`;
+}
+
+function formatTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** "Just now", "12 min ago", "3 h ago", then the full date. */
+function timeAgo(value, now = Date.now()) {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return "";
+  const minutes = Math.floor((now - time) / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return formatDateTime(value);
+}
+
+function greeting(now = new Date()) {
+  const hour = now.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function initials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return `${parts[0][0]}${last}`.toUpperCase();
+}
+
+function plural(count, word) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+function Icon({ name, className = "h-4 w-4", strokeWidth = 1.8 }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d={ICONS[name]} />
+    </svg>
+  );
+}
+
+function Avatar({ name, size = "md" }) {
+  const sizes = { sm: "h-8 w-8 text-[11px]", md: "h-9 w-9 text-xs" };
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-psu-maroon/[0.08] font-semibold text-text-brand ring-1 ring-psu-maroon/15 ${sizes[size]}`}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+const PILL_TONES = {
+  success: "border-emerald-600/25 bg-emerald-600/[0.08] text-text-emerald",
+  danger: "border-psu-red/25 bg-psu-red/[0.07] text-text-rose",
+  warning: "border-psu-gold/60 bg-psu-gold/15 text-text-amber",
+  neutral: "border-border-strong bg-bg-alt text-text-muted",
+};
+const DOT_TONES = { success: "bg-emerald-600", danger: "bg-psu-red", warning: "bg-psu-gold-dark", neutral: "bg-text-muted" };
+
+/** Status pill: a coloured dot plus text, so the state never depends on colour alone. */
+function Pill({ tone = "neutral", children }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold ${PILL_TONES[tone]}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${DOT_TONES[tone]}`} aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
+function OutcomePill({ status }) {
+  return <Pill tone={OUTCOME_TONE[status] || "neutral"}>{humanize(status)}</Pill>;
+}
+
+/**
+ * Card with a header row (title, description, actions) separated from its
+ * body, and an optional footer. Pass as="form" to make the whole card a form.
+ */
+function Panel({ as: Tag = "section", title, description, icon, actions, footer, flush = false, className = "", children, ...rest }) {
+  const headingId = `${useId()}-title`;
+  return (
+    <Tag aria-labelledby={title ? headingId : undefined} className={`card overflow-hidden ${className}`} {...rest}>
+      {title && (
+        <div className="flex flex-col gap-3 border-b border-border-subtle px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex min-w-0 items-start gap-3">
+            {icon && (
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-psu-maroon/[0.07] text-text-brand">
+                <Icon name={icon} className="h-[18px] w-[18px]" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <h2 id={headingId} className="text-base font-semibold text-text-main">
+                {title}
+              </h2>
+              {description && <p className="mt-0.5 text-sm text-text-muted">{description}</p>}
+            </div>
+          </div>
+          {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        </div>
+      )}
+      <div className={flush ? "" : "p-5 sm:p-6"}>{children}</div>
+      {footer && <div className="border-t border-border-subtle bg-bg-alt/60 px-5 py-3.5 sm:px-6">{footer}</div>}
+    </Tag>
+  );
+}
+
+function StatCard({ icon, label, value, hint, tone = "brand" }) {
+  return (
+    <div className={`card relative overflow-hidden p-5 ${ELEVATED}`}>
+      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-psu-maroon via-psu-maroon to-psu-gold" aria-hidden="true" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-text-muted">{label}</p>
+          <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums ${tone === "warning" ? "text-text-amber" : "text-text-main"}`}>{value}</p>
+        </div>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-psu-maroon to-psu-maroon-dark text-white shadow-sm ring-2 ring-psu-gold/30">
+          <Icon name={icon} className="h-5 w-5" />
+        </span>
+      </div>
+      {hint && <p className="mt-3 border-t border-border-subtle pt-3 text-xs text-text-muted">{hint}</p>}
+    </div>
+  );
+}
+
+function CountBadge({ count, word, hasMore, shown }) {
+  const total = hasMore ? `${count}+ ${word}s` : plural(count, word);
+  return (
+    <span className="badge badge-neutral tabular-nums" aria-live="polite">
+      {shown === undefined ? total : `${shown} of ${total}`}
+    </span>
+  );
+}
+
+function ListSkeleton({ rows = 4 }) {
+  return (
+    <ul className="divide-y divide-border-subtle" role="status" aria-label="Loading">
+      {Array.from({ length: rows }).map((_, i) => (
+        <li key={i} className="flex animate-pulse items-center gap-3 px-5 py-3.5 sm:px-6">
+          <span className="h-8 w-8 rounded-full bg-border-subtle" />
+          <span className="flex-1 space-y-2">
+            <span className="block h-3 w-2/5 rounded bg-border-subtle" />
+            <span className="block h-2.5 w-3/5 rounded bg-border-subtle" />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /** Admin endpoints may be missing on a server; explain that plainly. */
@@ -89,7 +280,7 @@ function useAdminList(endpoint) {
   return { items, setItems, hasMore, isLoading, isLoadingMore, error, load, loadMore };
 }
 
-function TextField({ id, label, error, ...props }) {
+function TextField({ id, label, hint, error, ...props }) {
   return (
     <div>
       <label htmlFor={id} className="field-label">
@@ -97,11 +288,16 @@ function TextField({ id, label, error, ...props }) {
       </label>
       <input
         id={id}
-        className="input-field"
+        className="input-field py-2.5"
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={[hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") || undefined}
         {...props}
       />
+      {hint && !error && (
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-text-muted">
+          {hint}
+        </p>
+      )}
       <FieldError id={`${id}-error`}>{error}</FieldError>
     </div>
   );
@@ -166,101 +362,238 @@ function ProvisionForm({ role, onCreated }) {
   };
 
   const prefix = `provision-${role}`;
+  const passwordField = (
+    <TemporaryPasswordField
+      prefix={prefix}
+      value={form.password}
+      error={errors.password}
+      disabled={isSaving}
+      onChange={set("password")}
+      onGenerate={() => setForm((p) => ({ ...p, password: generateTempPassword() }))}
+    />
+  );
   return (
-    <form onSubmit={handleSubmit} noValidate className="card space-y-4 p-5">
-      <h2 className="text-sm font-semibold">{isStudent ? "Create student account" : "Create faculty account"}</h2>
-      {result && (
-        <InlineAlert tone={result.tone} onDismiss={() => setResult(null)}>
-          {result.text}
-        </InlineAlert>
-      )}
-      <TextField id={`${prefix}-email`} label="University email" type="email" autoComplete="off" value={form.email} onChange={set("email")} error={errors.email} disabled={isSaving} />
-      <div className="grid grid-cols-1 gap-4">
-        <TextField id={`${prefix}-first`} label="First name" value={form.first_name} onChange={set("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} />
-        <TextField id={`${prefix}-middle`} label="Middle name (optional)" value={form.middle_name} onChange={set("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} />
-        <TextField id={`${prefix}-last`} label="Last name" value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} />
-      </div>
-      {isStudent && (
-        <TextField id={`${prefix}-school-id`} label="School ID" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />
-      )}
-      <div>
-        <label htmlFor={`${prefix}-password`} className="field-label">
-          Temporary password
-        </label>
-        <div className="flex gap-2">
-          <input
-            id={`${prefix}-password`}
-            type="text"
-            value={form.password}
-            onChange={set("password")}
-            aria-invalid={Boolean(errors.password)}
-            aria-describedby={errors.password ? `${prefix}-password-error` : undefined}
-            className="input-field font-mono"
-            disabled={isSaving}
-            autoComplete="off"
-          />
-          <button type="button" className="btn-secondary shrink-0" onClick={() => setForm((p) => ({ ...p, password: generateTempPassword() }))} disabled={isSaving}>
-            Generate
-          </button>
+    <Panel
+      as="form"
+      onSubmit={handleSubmit}
+      noValidate
+      title={isStudent ? "Create student account" : "Create faculty account"}
+      description={isStudent ? "For one student. Use a masterlist for a whole class." : "The instructor signs in with the temporary password."}
+      icon="userPlus"
+      footer={
+        <div className="@container">
+          <div className="flex justify-end">
+            <button type="submit" disabled={isSaving} className="btn-primary w-full py-2.5 text-[15px] @md:w-auto @md:min-w-52">
+              <Icon name="userPlus" className="h-[18px] w-[18px]" />
+              {isSaving ? "Creating account…" : "Create account"}
+            </button>
+          </div>
         </div>
-        <FieldError id={`${prefix}-password-error`}>{errors.password}</FieldError>
+      }
+    >
+      {/* Laid out by the card's own width: one column in a narrow side
+          column, a field grid when the card spans the page. */}
+      <div className="@container space-y-5">
+        {result && (
+          <InlineAlert tone={result.tone} onDismiss={() => setResult(null)}>
+            {result.text}
+          </InlineAlert>
+        )}
+        <div className="grid grid-cols-1 gap-5 @xl:grid-cols-2">
+          <TextField id={`${prefix}-email`} label="University email" type="email" autoComplete="off" placeholder="name@pampangastateu.edu.ph" value={form.email} onChange={set("email")} error={errors.email} disabled={isSaving} />
+          {isStudent ? (
+            <TextField id={`${prefix}-school-id`} label="School ID" placeholder="2026000001 or 2026-00001" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />
+          ) : (
+            passwordField
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-5 rounded-lg border border-border-subtle bg-bg-alt/40 p-4 @xl:grid-cols-3">
+          <TextField id={`${prefix}-first`} label="First name" value={form.first_name} onChange={set("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} />
+          <TextField id={`${prefix}-middle`} label="Middle name (optional)" value={form.middle_name} onChange={set("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} />
+          <TextField id={`${prefix}-last`} label="Last name" value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} />
+        </div>
+        {isStudent && <div className="@xl:max-w-[calc(50%-0.625rem)]">{passwordField}</div>}
       </div>
-      <button type="submit" disabled={isSaving} className="btn-primary w-full">
-        {isSaving ? "Creating…" : "Create account"}
-      </button>
-    </form>
+    </Panel>
   );
 }
 
-function UserTable({ users, emptyMessage, onAction }) {
-  if (users.length === 0) return <EmptyState className="py-10" title="No accounts" message={emptyMessage} />;
+function TemporaryPasswordField({ prefix, value, error, disabled, onChange, onGenerate }) {
   return (
-    <div className="card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] text-left text-sm">
-          <thead className="border-b border-border-subtle bg-bg-alt text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-            <tr>
-              <th scope="col" className="px-4 py-3">Name</th>
-              <th scope="col" className="px-4 py-3">School ID</th>
-              <th scope="col" className="px-4 py-3">Status</th>
-              <th scope="col" className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border-subtle">
-            {users.map((user) => (
-              <tr key={user.user_id}>
-                <td className="px-4 py-3">
-                  <p className="font-medium text-text-main">{user.name}</p>
-                  <p className="text-xs text-text-muted">{user.email}</p>
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-text-muted">{user.school_id || "—"}</td>
-                <td className="px-4 py-3">
-                  <span className={`badge ${user.is_active ? "badge-success" : "badge-neutral"}`}>{user.is_active ? "Active" : "Suspended"}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-1">
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => onAction(user, "reset")}>
-                      Reset password
-                    </button>
-                    <button type="button" className={`btn-ghost btn-sm ${user.is_active ? "hover:text-psu-red" : ""}`} onClick={() => onAction(user, "status")}>
-                      {user.is_active ? "Suspend" : "Activate"}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div>
+      <label htmlFor={`${prefix}-password`} className="field-label">
+        Temporary password
+      </label>
+      <div className="flex gap-2">
+        <input
+          id={`${prefix}-password`}
+          type="text"
+          value={value}
+          onChange={onChange}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${prefix}-password-error` : `${prefix}-password-hint`}
+          className="input-field py-2.5 font-mono"
+          disabled={disabled}
+          autoComplete="off"
+        />
+        <button type="button" className="btn-secondary shrink-0" onClick={onGenerate} disabled={disabled}>
+          Generate
+        </button>
       </div>
+      {error ? (
+        <FieldError id={`${prefix}-password-error`}>{error}</FieldError>
+      ) : (
+        <p id={`${prefix}-password-hint`} className="mt-1.5 text-xs text-text-muted">
+          Shown once after the account is created. Share it privately.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function UserTable({ users, caption, emptyMessage, onAction }) {
+  if (users.length === 0) {
+    return (
+      <div className="p-5 sm:p-6">
+        <EmptyState className="py-10" title="No accounts" message={emptyMessage} />
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[680px] text-sm">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="border-b border-border-subtle bg-bg-alt/70">
+          <tr>
+            <th scope="col" className={TH}>Name</th>
+            <th scope="col" className={TH}>School ID</th>
+            <th scope="col" className={TH}>Status</th>
+            <th scope="col" className={`${TH} text-right`}>Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border-subtle">
+          {users.map((user) => (
+            <tr key={user.user_id} className="transition-colors hover:bg-psu-cream/70">
+              <td className="px-5 py-3.5">
+                <div className="flex items-center gap-3">
+                  <Avatar name={user.name} />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-text-main">{user.name}</p>
+                    <p className="truncate text-xs text-text-muted">{user.email}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-5 py-3.5">
+                {user.school_id ? (
+                  <span className="rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 font-mono text-xs text-text-main">{user.school_id}</span>
+                ) : (
+                  <span className="text-text-muted">—</span>
+                )}
+              </td>
+              <td className="px-5 py-3.5">
+                <Pill tone={user.is_active ? "success" : "neutral"}>{user.is_active ? "Active" : "Suspended"}</Pill>
+              </td>
+              <td className="px-5 py-3.5">
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors hover:border-border-strong hover:bg-bg-alt"
+                    aria-label={`Reset password for ${user.name}`}
+                    onClick={() => onAction(user, "reset")}
+                  >
+                    <Icon name="key" className="h-3.5 w-3.5" />
+                    Reset password
+                  </button>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                      user.is_active
+                        ? "text-text-main hover:border-psu-red/40 hover:bg-psu-red/[0.05] hover:text-text-rose"
+                        : "text-text-main hover:border-emerald-600/40 hover:bg-emerald-600/[0.06] hover:text-text-emerald"
+                    }`}
+                    aria-label={`${user.is_active ? "Suspend" : "Activate"} ${user.name}`}
+                    onClick={() => onAction(user, "status")}
+                  >
+                    <Icon name={user.is_active ? "ban" : "check"} className="h-3.5 w-3.5" />
+                    {user.is_active ? "Suspend" : "Activate"}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AuditTable({ logs }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] text-sm">
+        <caption className="sr-only">Audit events, newest first</caption>
+        <thead className="border-b border-border-subtle bg-bg-alt/70">
+          <tr>
+            <th scope="col" className={TH}>When</th>
+            <th scope="col" className={TH}>Actor</th>
+            <th scope="col" className={TH}>Event</th>
+            <th scope="col" className={TH}>Resource</th>
+            <th scope="col" className={`${TH} text-right`}>Outcome</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border-subtle">
+          {logs.map((log) => (
+            <tr key={log.log_id} className="transition-colors hover:bg-psu-cream/70">
+              <td className="whitespace-nowrap px-5 py-3.5">
+                <time dateTime={log.occurred_at} className="block">
+                  <span className="block text-sm text-text-main">{formatDate(log.occurred_at)}</span>
+                  <span className="block text-xs text-text-muted">{formatTime(log.occurred_at)}</span>
+                </time>
+              </td>
+              <td className="px-5 py-3.5">
+                <div className="flex items-center gap-3">
+                  <Avatar name={log.actor_name} size="sm" />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-text-main">{log.actor_name}</p>
+                    <p className="text-xs text-text-muted">{log.actor_role ? humanize(log.actor_role) : "Automated"}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-5 py-3.5 font-medium text-text-main">{humanize(log.action_type)}</td>
+              <td className="px-5 py-3.5">
+                <span className="rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 text-xs font-medium text-text-muted">{humanize(log.resource_type)}</span>
+              </td>
+              <td className="px-5 py-3.5 text-right">
+                <OutcomePill status={log.status} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SettingRow({ labelId, title, description, children }) {
+  return (
+    <div className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-6">
+      <div className="min-w-0">
+        <p id={labelId} className="text-sm font-semibold text-text-main">
+          {title}
+        </p>
+        <p className="mt-0.5 text-sm text-text-muted">{description}</p>
+      </div>
+      <div className="shrink-0">{children}</div>
     </div>
   );
 }
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [pendingTab, setPendingTab] = useState(null);
+  const [focusTarget, setFocusTarget] = useState(null);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   const [stats, setStats] = useState(null);
@@ -311,15 +644,40 @@ export default function AdminDashboard() {
     loadSettings();
   }, [loadStats, loadUsers, loadLogs, loadSettings]);
 
+  // Quick actions open a tab and then move focus to the field they name.
+  useEffect(() => {
+    if (!focusTarget) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      const element = document.getElementById(focusTarget);
+      if (element) {
+        element.scrollIntoView({ block: "center", behavior: "smooth" });
+        element.focus({ preventScroll: true });
+        setFocusTarget(null);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusTarget, activeTab]);
+
   const settingsDirty =
     settings && savedSettings && ["maintenance_mode", "default_ast_strictness"].some((k) => settings[k] !== savedSettings[k]);
+
+  const showTab = (tab) => {
+    // A result message belongs to the section where the action happened.
+    if (tab !== activeTab) setActionMessage(null);
+    setActiveTab(tab);
+  };
 
   const changeTab = (tab) => {
     if (activeTab === "settings" && settingsDirty && tab !== "settings") {
       setPendingTab(tab);
       return;
     }
-    setActiveTab(tab);
+    showTab(tab);
+  };
+
+  const openQuickAction = (action) => {
+    setFocusTarget(action.focus || null);
+    changeTab(action.tab);
   };
 
   const faculty = users.items.filter((u) => u.role === "instructor");
@@ -422,22 +780,38 @@ export default function AdminDashboard() {
       type="button"
       onClick={() => changeTab(tab.id)}
       aria-current={activeTab === tab.id ? "page" : undefined}
-      className={`flex items-center gap-2.5 rounded-lg text-sm transition-colors ${compact ? "shrink-0 px-3 py-2" : "w-full px-3 py-2.5"} ${
+      className={`flex items-center gap-3 rounded-lg text-sm transition-colors ${compact ? "shrink-0 px-3 py-2" : "w-full px-3 py-2.5"} ${
         activeTab === tab.id
           ? "bg-psu-cream font-semibold text-psu-maroon shadow-[inset_3px_0_0_var(--color-psu-gold)]"
           : "font-medium text-text-muted hover:bg-bg-alt hover:text-text-main"
       }`}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d={tab.icon} />
-      </svg>
+      <Icon name={tab.id} className="h-[18px] w-[18px]" />
       {tab.label}
+    </button>
+  );
+
+  const maintenanceOn = Boolean(savedSettings?.maintenance_mode);
+  const recentLogs = logs.items.slice(0, RECENT_ACTIVITY_COUNT);
+  const userListBody = (list, caption, emptyMessage) =>
+    users.error ? (
+      <div className="p-5 sm:p-6">
+        <AdminErrorState error={users.error} resource={caption.toLowerCase()} onRetry={users.load} />
+      </div>
+    ) : users.isLoading ? (
+      <LoadingState label="Loading accounts…" className="py-14" />
+    ) : (
+      <UserTable users={list} caption={caption} emptyMessage={emptyMessage} onAction={(user, type) => setUserAction({ user, type, password: generateTempPassword() })} />
+    );
+  const loadMoreUsers = users.hasMore && !users.error && (
+    <button type="button" className="btn-secondary w-full" onClick={users.loadMore} disabled={users.isLoadingMore}>
+      {users.isLoadingMore ? "Loading…" : "Load more accounts"}
     </button>
   );
 
   return (
     <div className="flex min-h-screen flex-col bg-bg-base text-text-main">
-      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-panel px-4 sm:px-6">
+      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between bg-bg-panel px-4 shadow-[0_1px_0_var(--border-subtle)] sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <img src="/school_logo.png" alt="Pampanga State University logo" className="h-10 w-10 object-contain" />
           <div className="min-w-0 leading-tight">
@@ -445,9 +819,22 @@ export default function AdminDashboard() {
             <p className="text-[11px] font-semibold uppercase tracking-widest text-text-brand">MIS Administration</p>
           </div>
         </div>
-        <button type="button" onClick={() => setIsSignOutOpen(true)} className="btn-secondary btn-sm">
-          Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          {currentUser?.name && (
+            <div className="hidden items-center gap-3 border-r border-border-subtle pr-4 md:flex">
+              <div className="text-right leading-tight">
+                <p className="text-sm font-semibold text-text-main">{currentUser.name}</p>
+                <p className="text-xs text-text-muted">{currentUser.email}</p>
+              </div>
+              <Avatar name={currentUser.name} />
+            </div>
+          )}
+          <button type="button" onClick={() => setIsSignOutOpen(true)} className="btn-secondary btn-sm">
+            <Icon name="signOut" className="h-3.5 w-3.5" />
+            Sign out
+          </button>
+        </div>
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-psu-maroon via-psu-gold to-psu-maroon" aria-hidden="true" />
       </header>
 
       <nav aria-label="Administration sections" className="flex gap-1 overflow-x-auto border-b border-border-subtle bg-bg-panel px-3 py-2 lg:hidden">
@@ -455,14 +842,19 @@ export default function AdminDashboard() {
       </nav>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-60 shrink-0 border-r border-border-subtle bg-bg-panel p-4 lg:block">
-          <nav aria-label="Administration sections" className="space-y-1">
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col border-r border-border-subtle bg-bg-panel lg:flex">
+          <p className="px-7 pb-2 pt-6 text-[11px] font-semibold uppercase tracking-widest text-text-muted">Administration</p>
+          <nav aria-label="Administration sections" className="space-y-1 px-4">
             {TABS.map((tab) => tabButton(tab))}
           </nav>
+          <div className="mt-auto border-t border-border-subtle px-7 py-4">
+            <p className="text-xs font-semibold text-text-main">PSU Python IDE</p>
+            <p className="text-xs text-text-muted">MIS console</p>
+          </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8">
-          <div className="animate-page-fade mx-auto w-full max-w-6xl">
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 lg:py-8">
+          <div key={activeTab} className="animate-page-fade mx-auto w-full max-w-6xl">
             {actionMessage && (
               <InlineAlert tone={actionMessage.tone} onDismiss={() => setActionMessage(null)} className="mb-5">
                 {actionMessage.text}
@@ -470,42 +862,146 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === "overview" && (
-              <>
-                <PageHeader eyebrow="Metrics" title="System overview" description="Accounts and classrooms across the platform." />
+              <div className="space-y-6">
+                <section aria-labelledby="admin-welcome-title" className={`relative overflow-hidden rounded-2xl bg-gradient-to-br from-psu-maroon via-psu-maroon to-psu-maroon-dark px-6 py-7 text-white sm:px-8 ${ELEVATED}`}>
+                  <span className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-psu-gold/20 blur-3xl" aria-hidden="true" />
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-psu-gold via-psu-gold/70 to-transparent" aria-hidden="true" />
+                  <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-psu-gold">System overview</p>
+                      <h1 id="admin-welcome-title" className="mt-1.5 text-2xl font-bold tracking-tight sm:text-[26px]">
+                        {greeting()}, {currentUser?.name || "Administrator"}
+                      </h1>
+                      <p className="mt-1.5 max-w-xl text-sm text-white/80">
+                        Manage faculty and student accounts, review recorded activity and set platform-wide policies for the PSU Python IDE.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 ring-1 ring-white/20">
+                        <Icon name="calendar" className="h-3.5 w-3.5" />
+                        {formatDate(new Date(), { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                      </span>
+                      {savedSettings && (
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${maintenanceOn ? "bg-psu-gold text-psu-maroon-dark ring-psu-gold" : "bg-white/10 ring-white/20"}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${maintenanceOn ? "bg-psu-maroon-dark" : "bg-emerald-300"}`} aria-hidden="true" />
+                          {maintenanceOn ? "Maintenance mode on" : "All services open"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
                 {statsError ? (
                   <AdminErrorState error={statsError} resource="platform statistics" onRetry={loadStats} />
                 ) : !stats ? (
-                  <LoadingState label="Loading statistics…" />
+                  <LoadingState label="Loading statistics…" className="py-10" />
                 ) : (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {[
-                      ["Instructors", stats.total_instructors],
-                      ["Students", stats.total_students],
-                      ["Classrooms", stats.total_classrooms],
-                    ].map(([label, value]) => (
-                      <div key={label} className="card p-5">
-                        <p className="text-3xl font-bold tracking-tight">{value ?? 0}</p>
-                        <p className="mt-1 text-sm font-medium text-text-muted">{label}</p>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard icon="faculty" label="Instructors" value={stats.total_instructors ?? 0} hint="Faculty accounts, active and suspended." />
+                    <StatCard icon="students" label="Students" value={stats.total_students ?? 0} hint="All student accounts, including guests." />
+                    <StatCard icon="classroom" label="Classrooms" value={stats.total_classrooms ?? 0} hint="Every class, including archived ones." />
+                    <StatCard
+                      icon={maintenanceOn ? "wrench" : "shield"}
+                      label="Student access"
+                      value={savedSettings ? (maintenanceOn ? "Paused" : "Open") : "—"}
+                      tone={maintenanceOn ? "warning" : "brand"}
+                      hint={savedSettings ? (maintenanceOn ? "Maintenance mode blocks student sign-in." : "Students can sign in normally.") : "Settings unavailable."}
+                    />
                   </div>
                 )}
-              </>
+
+                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+                  <Panel
+                    title="Recent activity"
+                    description="The latest recorded events across the platform."
+                    icon="activity"
+                    flush
+                    footer={
+                      <button type="button" onClick={() => changeTab("audit")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-brand hover:underline">
+                        View the full audit trail
+                        <Icon name="arrowRight" className="h-4 w-4" />
+                      </button>
+                    }
+                  >
+                    {logs.error ? (
+                      <div className="p-5 sm:p-6">
+                        <AdminErrorState error={logs.error} resource="recent activity" onRetry={logs.load} />
+                      </div>
+                    ) : logs.isLoading ? (
+                      <ListSkeleton />
+                    ) : recentLogs.length === 0 ? (
+                      <div className="p-5 sm:p-6">
+                        <EmptyState className="py-10" title="No activity yet" message="Sign-ins and account changes will appear here." />
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-border-subtle">
+                        {recentLogs.map((log) => (
+                          <li key={log.log_id} className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-psu-cream/60 sm:px-6">
+                            <Avatar name={log.actor_name} size="sm" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm text-text-main">
+                                <span className="font-semibold">{log.actor_name}</span>
+                                <span className="text-text-muted"> · </span>
+                                {humanize(log.action_type)}
+                              </p>
+                              <p className="truncate text-xs text-text-muted">
+                                {log.actor_role ? humanize(log.actor_role) : "Automated"} · {humanize(log.resource_type)} ·{" "}
+                                <time dateTime={log.occurred_at} title={formatDateTime(log.occurred_at)}>
+                                  {timeAgo(log.occurred_at)}
+                                </time>
+                              </p>
+                            </div>
+                            <OutcomePill status={log.status} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </Panel>
+
+                  <Panel title="Quick actions" description="Common MIS tasks." icon="bolt" flush>
+                    <ul className="divide-y divide-border-subtle">
+                      {QUICK_ACTIONS.map((action) => (
+                        <li key={action.id}>
+                          <button
+                            type="button"
+                            onClick={() => openQuickAction(action)}
+                            className="group flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-psu-cream/70 sm:px-6"
+                          >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-psu-gold/40 bg-psu-gold/10 text-text-amber transition-colors group-hover:border-psu-maroon/30 group-hover:bg-psu-maroon group-hover:text-white">
+                              <Icon name={action.icon} className="h-[18px] w-[18px]" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-semibold text-text-main">{action.title}</span>
+                              <span className="block text-xs text-text-muted">{action.text}</span>
+                            </span>
+                            <Icon name="chevronRight" className="h-4 w-4 shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-text-brand" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </Panel>
+                </div>
+              </div>
             )}
 
             {activeTab === "faculty" && (
               <>
-                <PageHeader eyebrow="Accounts" title="Faculty" description="Create instructor accounts and manage access." />
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+                <PageHeader eyebrow="Accounts" title="Faculty" description="Create instructor accounts and manage their access." />
+                {/* Form above a full-width directory, so the table never has to
+                    scroll sideways on a desktop display. */}
+                <div className="grid grid-cols-1 items-start gap-6">
                   <ProvisionForm role="instructor" onCreated={() => { users.load(); loadStats(); }} />
-                  <div className="min-w-0">
-                    {users.error ? (
-                      <AdminErrorState error={users.error} resource="faculty accounts" onRetry={users.load} />
-                    ) : users.isLoading ? (
-                      <LoadingState label="Loading accounts…" />
-                    ) : (
-                      <UserTable users={faculty} emptyMessage="No faculty accounts have been created yet." onAction={(user, type) => setUserAction({ user, type, password: generateTempPassword() })} />
-                    )}
+                  <div className="min-w-0 space-y-4">
+                    <Panel
+                      title="Faculty directory"
+                      description="Instructors who can sign in to the IDE."
+                      icon="faculty"
+                      flush
+                      actions={!users.isLoading && !users.error && <CountBadge count={faculty.length} word="account" hasMore={users.hasMore} />}
+                    >
+                      {userListBody(faculty, "Faculty accounts", "No faculty accounts have been created yet.")}
+                    </Panel>
+                    {loadMoreUsers}
                   </div>
                 </div>
               </>
@@ -519,62 +1015,84 @@ export default function AdminDashboard() {
                   description="Create student accounts individually or from a masterlist file."
                   actions={
                     <button type="button" className="btn-secondary" onClick={exportStudents} disabled={students.length === 0}>
+                      <Icon name="download" className="h-4 w-4" />
                       Export CSV
                     </button>
                   }
                 />
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-                  <div className="space-y-4">
+                {/* Form and masterlist side by side, full-width directory below. */}
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div>
                     <ProvisionForm role="student" onCreated={() => { users.load(); loadStats(); }} />
-                    <div className="card p-5">
-                      <h2 className="text-sm font-semibold">Bulk register from masterlist</h2>
-                      <p className="mt-1 text-xs text-text-muted">
-                        Upload a CSV or .xlsx masterlist with the columns <code>email</code>, <code>school_id</code> and <code>name</code> (or <code>first_name</code> and <code>last_name</code>). No password is set or emailed.
-                      </p>
-                      {bulkMessage && (
-                        <InlineAlert tone={bulkMessage.tone} onDismiss={() => setBulkMessage(null)} className="mt-3">
-                          {bulkMessage.text}
-                          {bulkMessage.rows?.length > 0 && (
-                            <ul className="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-4 text-xs">
-                              {bulkMessage.rows.map((row) => (
-                                <li key={row.row}>
-                                  Row {row.row}
-                                  {row.email ? ` (${row.email})` : ""}: {row.reason}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </InlineAlert>
-                      )}
-                      <label htmlFor="admin-bulk-file" className="btn-secondary mt-3 w-full cursor-pointer">
-                        {isUploading ? "Uploading…" : "Choose file"}
-                      </label>
-                      <input ref={fileRef} id="admin-bulk-file" type="file" accept=".csv,.xlsx" className="sr-only" onChange={handleBulkUpload} disabled={isUploading} />
-                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className="mb-3 w-full sm:w-80">
-                      <label htmlFor="admin-student-search" className="sr-only">
-                        Search students
-                      </label>
-                      <input id="admin-student-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email or ID…" className="input-field" />
-                    </div>
-                    {users.error ? (
-                      <AdminErrorState error={users.error} resource="student accounts" onRetry={users.load} />
-                    ) : users.isLoading ? (
-                      <LoadingState label="Loading accounts…" />
-                    ) : (
-                      <UserTable
-                        users={filteredStudents}
-                        emptyMessage={query ? "No students match your search." : "No student accounts yet."}
-                        onAction={(user, type) => setUserAction({ user, type, password: generateTempPassword() })}
-                      />
-                    )}
-                    {users.hasMore && !users.error && (
-                      <button type="button" className="btn-secondary mt-4 w-full" onClick={users.loadMore} disabled={users.isLoadingMore}>
-                        {users.isLoadingMore ? "Loading…" : "Load more accounts"}
-                      </button>
-                    )}
+                  <div>
+                    <Panel title="Bulk register from masterlist" description="No password is set or emailed." icon="upload">
+                      <div className="space-y-4">
+                        <p className="text-sm text-text-muted">
+                          Columns: <code className="rounded bg-bg-alt px-1 py-0.5 text-xs">email</code>, <code className="rounded bg-bg-alt px-1 py-0.5 text-xs">school_id</code> and{" "}
+                          <code className="rounded bg-bg-alt px-1 py-0.5 text-xs">name</code> (or <code className="rounded bg-bg-alt px-1 py-0.5 text-xs">first_name</code> and{" "}
+                          <code className="rounded bg-bg-alt px-1 py-0.5 text-xs">last_name</code>).
+                        </p>
+                        {bulkMessage && (
+                          <InlineAlert tone={bulkMessage.tone} onDismiss={() => setBulkMessage(null)}>
+                            {bulkMessage.text}
+                            {bulkMessage.rows?.length > 0 && (
+                              <ul className="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-4 text-xs">
+                                {bulkMessage.rows.map((row) => (
+                                  <li key={row.row}>
+                                    Row {row.row}
+                                    {row.email ? ` (${row.email})` : ""}: {row.reason}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </InlineAlert>
+                        )}
+                        <label
+                          htmlFor="admin-bulk-file"
+                          className={`relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border-strong bg-bg-alt/40 px-4 py-6 text-center transition-colors hover:border-psu-maroon/40 hover:bg-psu-cream/60 focus-within:border-psu-maroon focus-within:ring-2 focus-within:ring-border-focus/20 ${isUploading ? "pointer-events-none opacity-70" : ""}`}
+                        >
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-psu-maroon/[0.08] text-text-brand">
+                            <Icon name="upload" className="h-5 w-5" />
+                          </span>
+                          <span className="text-sm font-semibold text-text-main">{isUploading ? "Uploading…" : "Choose a masterlist file"}</span>
+                          <span className="text-xs text-text-muted">CSV or .xlsx</span>
+                          <input ref={fileRef} id="admin-bulk-file" type="file" accept=".csv,.xlsx" className="sr-only" onChange={handleBulkUpload} disabled={isUploading} />
+                        </label>
+                      </div>
+                    </Panel>
+                  </div>
+                  <div className="min-w-0 space-y-4 lg:col-span-2">
+                    <Panel
+                      title="Student directory"
+                      description="Guest accounts are not listed."
+                      icon="students"
+                      flush
+                      actions={
+                        <>
+                          {!users.isLoading && !users.error && (
+                            <CountBadge count={students.length} word="account" hasMore={users.hasMore} shown={query ? filteredStudents.length : undefined} />
+                          )}
+                          <div className="relative w-full sm:w-64">
+                            <label htmlFor="admin-student-search" className="sr-only">
+                              Search students
+                            </label>
+                            <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                            <input
+                              id="admin-student-search"
+                              type="search"
+                              value={search}
+                              onChange={(e) => setSearch(e.target.value)}
+                              placeholder="Search name, email or ID…"
+                              className="input-field pl-9"
+                            />
+                          </div>
+                        </>
+                      }
+                    >
+                      {userListBody(filteredStudents, "Student accounts", query ? "No students match your search." : "No student accounts yet.")}
+                    </Panel>
+                    {loadMoreUsers}
                   </div>
                 </div>
               </>
@@ -583,142 +1101,149 @@ export default function AdminDashboard() {
             {activeTab === "audit" && (
               <>
                 <PageHeader eyebrow="Security" title="Global audit trail" description="Recorded account, classroom and academic events." />
-                {logs.error ? (
-                  <AdminErrorState error={logs.error} resource="the audit trail" onRetry={logs.load} />
-                ) : logs.isLoading ? (
-                  <LoadingState label="Loading audit trail…" />
-                ) : logs.items.length === 0 ? (
-                  <EmptyState title="No audit events" message="Recorded actions will appear here." />
-                ) : (
-                  <div className="card overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[640px] text-left text-sm">
-                        <thead className="border-b border-border-subtle bg-bg-alt text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                          <tr>
-                            <th scope="col" className="px-4 py-3">When</th>
-                            <th scope="col" className="px-4 py-3">Actor</th>
-                            <th scope="col" className="px-4 py-3">Event</th>
-                            <th scope="col" className="px-4 py-3">Resource</th>
-                            <th scope="col" className="px-4 py-3 text-right">Outcome</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-subtle">
-                          {logs.items.map((log) => (
-                            <tr key={log.log_id}>
-                              <td className="whitespace-nowrap px-4 py-3 text-xs text-text-muted">{formatDateTime(log.occurred_at)}</td>
-                              <td className="px-4 py-3">
-                                <p className="font-medium text-text-main">{log.actor_name}</p>
-                                <p className="text-xs text-text-muted">{humanize(log.actor_role)}</p>
-                              </td>
-                              <td className="px-4 py-3 text-text-main">{humanize(log.action_type)}</td>
-                              <td className="px-4 py-3 text-text-muted">{humanize(log.resource_type)}</td>
-                              <td className="px-4 py-3 text-right">
-                                <span className={`badge ${log.status === "succeeded" ? "badge-success" : log.status === "failed" ? "badge-danger" : "badge-gold"}`}>
-                                  {humanize(log.status)}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-                {logs.hasMore && !logs.error && (
-                  <button type="button" className="btn-secondary mt-4 w-full" onClick={logs.loadMore} disabled={logs.isLoadingMore}>
-                    {logs.isLoadingMore ? "Loading…" : "Load older events"}
-                  </button>
-                )}
+                <div className="space-y-4">
+                  <Panel
+                    title="Event log"
+                    description="Newest first."
+                    icon="shield"
+                    flush
+                    actions={!logs.isLoading && !logs.error && logs.items.length > 0 && <CountBadge count={logs.items.length} word="event" hasMore={logs.hasMore} />}
+                  >
+                    {logs.error ? (
+                      <div className="p-5 sm:p-6">
+                        <AdminErrorState error={logs.error} resource="the audit trail" onRetry={logs.load} />
+                      </div>
+                    ) : logs.isLoading ? (
+                      <LoadingState label="Loading audit trail…" className="py-14" />
+                    ) : logs.items.length === 0 ? (
+                      <div className="p-5 sm:p-6">
+                        <EmptyState title="No audit events" message="Recorded actions will appear here." />
+                      </div>
+                    ) : (
+                      <AuditTable logs={logs.items} />
+                    )}
+                  </Panel>
+                  {logs.hasMore && !logs.error && (
+                    <button type="button" className="btn-secondary w-full" onClick={logs.loadMore} disabled={logs.isLoadingMore}>
+                      {logs.isLoadingMore ? "Loading…" : "Load older events"}
+                    </button>
+                  )}
+                </div>
               </>
             )}
 
             {activeTab === "settings" && (
-              <>
-                <PageHeader eyebrow="Configuration" title="System settings" description="Platform-wide policies." />
-                {settingsError ? (
-                  <AdminErrorState error={settingsError} resource="system settings" onRetry={loadSettings} />
-                ) : !settings ? (
-                  <LoadingState label="Loading settings…" />
-                ) : (
-                  <form onSubmit={saveSettings} noValidate className="card max-w-3xl space-y-6 p-6">
-                    {settingsMessage && (
-                      <InlineAlert tone={settingsMessage.tone} onDismiss={() => setSettingsMessage(null)}>
-                        {settingsMessage.text}
-                      </InlineAlert>
-                    )}
-                    {[
-                      ["maintenance_mode", "Maintenance mode", "Blocks student sign-in. Instructors and MIS keep access."],
-                    ].map(([key, label, help]) => (
-                      <div key={key} className="flex items-start justify-between gap-4">
-                        <div>
-                          <p id={`setting-${key}-label`} className="text-sm font-semibold text-text-main">
-                            {label}
-                          </p>
-                          <p className="text-xs text-text-muted">{help}</p>
+              <div className="mx-auto w-full max-w-4xl">
+                <PageHeader eyebrow="Configuration" title="System settings" description="Platform-wide policies and your administrator account." />
+                <div className="space-y-6">
+                  {settingsError ? (
+                    <AdminErrorState error={settingsError} resource="system settings" onRetry={loadSettings} />
+                  ) : !settings ? (
+                    <LoadingState label="Loading settings…" />
+                  ) : (
+                    <Panel
+                      as="form"
+                      onSubmit={saveSettings}
+                      noValidate
+                      title="Platform policies"
+                      description="These apply to every account. Changes take effect when you save."
+                      flush
+                      footer={
+                        <div className="flex items-center justify-end gap-3">
+                          {settingsDirty && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-amber">
+                              <span className="h-1.5 w-1.5 rounded-full bg-psu-gold-dark" aria-hidden="true" />
+                              Unsaved changes
+                            </span>
+                          )}
+                          <button type="submit" className="btn-primary" disabled={isSavingSettings || !settingsDirty}>
+                            {isSavingSettings ? "Saving…" : "Save settings"}
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={Boolean(settings[key])}
-                          aria-labelledby={`setting-${key}-label`}
-                          onClick={() => setSettings((prev) => ({ ...prev, [key]: !prev[key] }))}
-                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${settings[key] ? "bg-psu-maroon" : "bg-border-strong"}`}
-                        >
-                          <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings[key] ? "translate-x-[22px]" : "translate-x-0.5"}`} aria-hidden="true" />
-                        </button>
-                      </div>
-                    ))}
-                    {/* Public self-registration is retired; this reports the stored
-                        legacy flag (it still gates POST /registration/start) instead
-                        of offering a toggle. */}
-                    <div>
-                      <p className="text-sm font-semibold text-text-main">Student self-registration</p>
-                      {savedSettings?.registration_enabled ? (
-                        <InlineAlert tone="warning" className="mt-2">
-                          Public sign-up has been removed from the app, but the legacy self-registration setting is still
-                          enabled on the server, so its registration API remains open. Student accounts are provisioned by
-                          MIS; ask the system maintainer to turn this setting off.
-                        </InlineAlert>
-                      ) : (
-                        <p className="text-xs text-text-muted">
-                          Student self-registration is disabled. Student accounts are provisioned by MIS.
-                        </p>
+                      }
+                    >
+                      {settingsMessage && (
+                        <div className="px-5 pt-5 sm:px-6">
+                          <InlineAlert tone={settingsMessage.tone} onDismiss={() => setSettingsMessage(null)}>
+                            {settingsMessage.text}
+                          </InlineAlert>
+                        </div>
                       )}
-                    </div>
-                    <fieldset>
-                      <legend className="text-sm font-semibold text-text-main">Default AST strictness</legend>
-                      <p className="mb-3 text-xs text-text-muted">Starting level for new instructor accounts and the level used for practice modules. Instructors can change their own level in Settings.</p>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        {STRICTNESS.map(([value, label, help]) => (
-                          <label key={value} className="cursor-pointer rounded-xl border border-border-strong p-4 transition-colors has-[:checked]:border-psu-maroon has-[:checked]:bg-psu-cream">
-                            <input
-                              type="radio"
-                              name="default-strictness"
-                              value={value}
-                              checked={settings.default_ast_strictness === value}
-                              onChange={() => setSettings((prev) => ({ ...prev, default_ast_strictness: value }))}
-                              className="accent-psu-maroon"
-                            />
-                            <span className="ml-2 text-sm font-semibold text-text-main">{label}</span>
-                            <span className="mt-1 block text-xs text-text-muted">{help}</span>
-                          </label>
-                        ))}
+                      <div className="divide-y divide-border-subtle">
+                        <SettingRow labelId="setting-maintenance_mode-label" title="Maintenance mode" description="Blocks student sign-in. Instructors and MIS keep access.">
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-semibold ${settings.maintenance_mode ? "text-text-amber" : "text-text-muted"}`} aria-hidden="true">
+                              {settings.maintenance_mode ? "On" : "Off"}
+                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={Boolean(settings.maintenance_mode)}
+                              aria-labelledby="setting-maintenance_mode-label"
+                              onClick={() => setSettings((prev) => ({ ...prev, maintenance_mode: !prev.maintenance_mode }))}
+                              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${settings.maintenance_mode ? "bg-psu-maroon" : "bg-border-strong"}`}
+                            >
+                              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings.maintenance_mode ? "translate-x-[22px]" : "translate-x-0.5"}`} aria-hidden="true" />
+                            </button>
+                          </div>
+                        </SettingRow>
+                        {/* Public self-registration is retired; this reports the stored
+                            legacy flag (it still gates POST /registration/start) instead
+                            of offering a toggle. */}
+                        <div>
+                          <SettingRow title="Student self-registration" description="Student accounts are provisioned by MIS.">
+                            <Pill tone={savedSettings?.registration_enabled ? "warning" : "neutral"}>
+                              {savedSettings?.registration_enabled ? "Legacy API open" : "Disabled"}
+                            </Pill>
+                          </SettingRow>
+                          {savedSettings?.registration_enabled && (
+                            <div className="px-5 pb-5 sm:px-6">
+                              <InlineAlert tone="warning">
+                                Public sign-up has been removed from the app, but the legacy self-registration setting is still
+                                enabled on the server, so its registration API remains open. Ask the system maintainer to turn this
+                                setting off.
+                              </InlineAlert>
+                            </div>
+                          )}
+                        </div>
+                        <fieldset className="px-5 py-5 sm:px-6">
+                          <legend className="sr-only">Default AST strictness</legend>
+                          <p className="text-sm font-semibold text-text-main" aria-hidden="true">
+                            Default AST strictness
+                          </p>
+                          <p className="mb-4 mt-0.5 text-sm text-text-muted">
+                            Starting level for new instructor accounts and the level used for practice modules. Instructors can change their own level in Settings.
+                          </p>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            {STRICTNESS.map(([value, label, help]) => (
+                              <label
+                                key={value}
+                                className="relative flex cursor-pointer flex-col rounded-xl border border-border-strong bg-bg-panel p-4 transition-colors hover:border-psu-maroon/40 has-[:checked]:border-psu-maroon has-[:checked]:bg-psu-cream has-[:checked]:ring-1 has-[:checked]:ring-psu-maroon"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    name="default-strictness"
+                                    value={value}
+                                    checked={settings.default_ast_strictness === value}
+                                    onChange={() => setSettings((prev) => ({ ...prev, default_ast_strictness: value }))}
+                                    className="accent-psu-maroon"
+                                  />
+                                  <span className="text-sm font-semibold text-text-main">{label}</span>
+                                </span>
+                                <span className="mt-1.5 block text-xs text-text-muted">{help}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
                       </div>
-                    </fieldset>
-                    <div className="flex items-center justify-end gap-3 border-t border-border-subtle pt-5">
-                      {settingsDirty && <span className="text-xs text-text-muted">Unsaved changes</span>}
-                      <button type="submit" className="btn-primary" disabled={isSavingSettings || !settingsDirty}>
-                        {isSavingSettings ? "Saving…" : "Save settings"}
-                      </button>
-                    </div>
-                  </form>
-                )}
-                {/* Outside the settings form so it stays available when the
-                    system settings fail to load. */}
-                <div className="mt-6 max-w-3xl">
-                  <ChangePasswordSection />
+                    </Panel>
+                  )}
+                  {/* Outside the settings form so it stays available when the
+                      system settings fail to load. */}
+                  <ChangePasswordSection divided />
                 </div>
-              </>
+              </div>
             )}
           </div>
         </main>
@@ -754,10 +1279,13 @@ export default function AdminDashboard() {
         isDanger
         onConfirm={() => {
           setSettings(savedSettings);
-          setActiveTab(pendingTab);
+          showTab(pendingTab);
           setPendingTab(null);
         }}
-        onCancel={() => setPendingTab(null)}
+        onCancel={() => {
+          setPendingTab(null);
+          setFocusTarget(null);
+        }}
       />
       <SignOutModal
         isOpen={isSignOutOpen}

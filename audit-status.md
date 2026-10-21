@@ -2003,3 +2003,76 @@ Same rules as before: test accounts only, write down every record created, don't
    - #30, re-pointed onto `5e8a1c7d9b42` and tested on PostgreSQL 17; then item 5;
    - owner decisions for item 9;
    - whether to remove the legacy `/execution/submissions/` routes.
+
+## MIS admin dashboard UI overhaul (2026-10-21)
+
+_Branch `dev` on top of `3ab3576`. Frontend only: no API, backend or migration change. Every request, handler, validation rule and confirmation dialog is unchanged; only layout and styling changed, plus two small fixes noted below. Nothing was committed or pushed by this session._
+
+### What changed, per tab
+- **Shell (all tabs):**
+  - The header shows the signed-in admin (name, email, initials avatar) next to Sign out, and has a maroon–gold–maroon line along its bottom edge.
+  - The sidebar is sticky, with an "Administration" label and a "PSU Python IDE · MIS console" footer.
+  - Each section fades in on tab change.
+  - **Result messages** ("X is now suspended", …) now clear when you switch tabs. Before, they followed you to every section.
+- **Overview:**
+  - A maroon banner with a greeting, today's date, and a status chip: "All services open", or "Maintenance mode on" in gold.
+  - **Four stat cards** with icon tiles and a maroon-to-gold top border: Instructors, Students and Classrooms (from `/admin/stats`), and **Student access** (Open or Paused, from the saved maintenance setting). Each has a one-line note on what it counts; for example, Students includes guest accounts, which the Students tab doesn't list.
+  - **Recent activity:** the 6 latest audit events, with actor, event, role, resource, relative time ("12 min ago", full date on hover) and an outcome pill, plus a link to the full audit trail. It reuses the audit list the page already loads, so there's no extra request.
+  - **Quick actions:** add a faculty account, add a student account, import a masterlist, review the audit trail, system settings. Each opens its tab and moves focus to the right field (email field, or the upload box).
+- **Faculty and Students:**
+  - **Layout:**
+    - The create form now sits **above a full-width directory**, instead of beside it.
+    - Measured at 1366 px, the old side-by-side layout left the table 680 px, so "Reset password" wrapped and the Actions column scrolled sideways. Side by side, it was still 62 px too narrow even at 1600 px.
+    - On Students, the form and the masterlist upload share the top row from 1024 px up.
+  - **Forms:**
+    - The card has a header (title, one-line purpose); the fields adapt to the card's width (container queries): email paired with the temporary password (faculty) or the school ID (students), and first/middle/last name in one grouped row.
+    - Inputs are taller, the temporary password has a "shown once" hint, and a large **Create account** button sits in the card footer.
+  - **Masterlist:** a dashed drop zone ("Choose a masterlist file · CSV or .xlsx") replaces the plain button. It's the same file input and handler.
+  - **Directory tables:**
+    - The card header shows the title, an account count and, on Students, the search box. While searching, the count reads "1 of 8 accounts".
+    - Rows: an initials avatar with a bold name over the email, the school ID in a mono chip, and **pill badges with a dot** (green Active, grey Suspended).
+    - Bordered action buttons with icons. Suspend tints red on hover, Activate green, and each button's screen-reader name includes the person's name.
+    - Row hover is a cream tint.
+  - **Fix:** the Faculty tab now has "Load more accounts". The directory loads 50 accounts at a time, and before, faculty beyond the first page were never shown.
+- **Audit trail:** the same table style:
+  - **When:** the date above the time;
+  - **Actor:** initials avatar, **bold name**, role ("Automated" for system actions);
+  - **Event:** in medium weight;
+  - **Resource:** a neutral chip;
+  - **Outcome:** a pill. Green Succeeded, red Failed, gold Denied.
+  - The card header has an event count.
+- **Settings:**
+  - Centered in a `max-w-4xl` column, header included.
+  - "Platform policies" is one card with a divided header and one row per setting: the maintenance switch with an On/Off label, self-registration as a "Disabled" pill (or a warning when the legacy flag is on), and the strictness choices as selectable cards.
+  - A footer holds "Unsaved changes" and Save.
+  - **Change password** uses the same divided header, through a new optional `divided` prop on `SettingsSection`/`ChangePasswordSection` in `AccountSections.jsx`. The instructor and student settings pages don't pass it, so they're unchanged.
+
+### Verification
+- `npm run lint` clean; `npm run build` OK; `git diff --check` clean.
+- **Browser setup:** a copy of the QA kit run from the session scratchpad, on ports 8013 (API) and 5177 (app), with its own throwaway SQLite database. Email, Redis, Judge0 and AI were blanked by the kit; `qa/.qa-data` and production were never touched. The data was seeded through the API: 4 faculty, 8 students, one suspended account, one failed sign-in and one classroom. Checked at 1366×768:
+  - every tab rendered, with no page or table overflow on any tab at 1366 px or 1600 px;
+  - quick actions: Faculty focused the email field; Masterlist focused the upload box and scrolled it into view;
+  - a faculty account was created through the new form: success message, count 4 → 5, and the new row appeared;
+  - Suspend through the confirmation dialog: "Suspended" pill and an "Activate" button;
+  - student search, with the "x of y" count;
+  - maintenance mode on → "Unsaved changes" → Save → the Overview showed "Maintenance mode on" and "Student access: Paused";
+  - the discard-unsaved-settings dialog: Discard moved tabs and reverted the switch;
+  - at 375 px: no horizontal overflow, the tab strip scrolls, and the cards stack.
+- No console errors from the final code and no backend errors. The only console errors came from one hot-reload moment mid-edit, a version of the file that never shipped.
+- **Seen but not changed:**
+  - On the SQLite QA copy, every time in the app shows UTC: SQLite drops the time zone, so "8 h ago" shows in UTC+8. Production stores `timestamptz` and sends the offset, so production times are correct (as in the owner's production screenshot).
+  - Admin account changes (create, suspend, reset) still write no audit record. That's PR #30, deferred.
+
+### Files modified (tracked, no new files)
+- `frontend/src/features/admin/AdminDashboard.jsx`
+- `frontend/src/features/settings/AccountSections.jsx` (optional `divided` prop)
+- `audit-status.md`
+
+### What a push of this commit does
+- **Vercel deploys it to production immediately.** The admin dashboard changes for anyone signed in as MIS. Students' and instructors' pages are unchanged.
+- **Render:** nothing; no backend file changed.
+- **If the production smoke test is running at the time,** the admin screens will look different mid-test, though they work the same way.
+
+### Next
+- **Unchanged from the release-day section:** the SMTP key swap, the production smoke test and the backup decision.
+- **Optional follow-ups:** a "show guests" toggle on the Students directory (`include_guests=true`); admin dark mode (not approved).
