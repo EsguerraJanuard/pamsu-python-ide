@@ -2334,7 +2334,7 @@ _"Still open" item 1 of the previous section. Errol approved the migration on 20
 | New: `user_updated` records, refusals, rollback (4 tests) | Pass |
 | `test_admin_account_edit_and_audit_search.py` | Updated for the intended contract: 27 action types, a really unknown type for the 422 check, old row fields kept plus target fields |
 | `test_masterlist_import.py`, #30's setup-email test | Now decodes the MIME parts (the 2026-10-21 template encodes them) |
-| **PostgreSQL** | **Not run here** (no PostgreSQL on Errol's machine). The same migration passed on PostgreSQL 18.4 when #30 was written (10/10); only its parent revision and one value changed |
+| **PostgreSQL 18.6**, throwaway local cluster (temporary databases only) | **22 passed, 0 skipped**: `test_admin_audit_migration` (upgrade, model match, both downgrade paths), `test_alembic_migrations` (whole chain to `61330560eec5`), the 4 concurrency suites and `test_redis_tls`. Production is 17.6; no 17 run |
 | Frontend `npm run lint` / `npm run build` | Pass |
 
 ### Next
