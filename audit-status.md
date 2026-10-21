@@ -2374,5 +2374,6 @@ _Errol asked for realistic demo data that keeps the admin account. He runs the r
   - `--unattended` without its flags;
   - a database one migration behind.
 
-### Next
-- **Errol:** take a `pg_dump` backup, then run the reset against Supabase after the backend deploy that applies `61330560eec5`.
+### Done (reported by Errol, 2026-10-22)
+- **Render deployed `dev`:** migration `61330560eec5` is applied in production.
+- **Production was reset to the demo semester** with `seed.py --reset`, keeping the admin account and system settings.
