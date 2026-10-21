@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import SignOutModal from "../../components/layout/SignOutModal";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
+import Modal from "../../components/ui/Modal";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../components/ui/StateViews";
-import api, { getErrorMessage } from "../../services/api";
+import api, { ApiError, getErrorMessage } from "../../services/api";
 import { formatDate, formatDateTime, humanize } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
 import { ChangePasswordSection } from "../settings/AccountSections";
@@ -37,6 +38,10 @@ const ICONS = {
   signOut: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
   calendar: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z",
   bolt: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  pencil: "M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z",
+  refresh: "M21 12a9 9 0 11-2.64-6.36L21 8M21 3v5h-5",
+  x: "M18 6L6 18M6 6l12 12",
+  chevronLeft: "M15 18l-6-6 6-6",
 };
 
 const TABS = [
@@ -62,6 +67,46 @@ const QUICK_ACTIONS = [
 ];
 
 const OUTCOME_TONE = { succeeded: "success", failed: "danger", denied: "warning" };
+
+const AUDIT_PAGE_SIZES = [25, 50, 100];
+const EMPTY_AUDIT_FILTERS = { q: "", action_type: "", outcome: "", actor_role: "", from: "", to: "" };
+const AUDIT_OUTCOMES = ["succeeded", "failed", "denied"];
+const AUDIT_ROLES = ["admin", "instructor", "student", "system"];
+
+/**
+ * True when the server doesn't have the endpoint yet (the backend is deployed
+ * separately from this page): 405 on a path that exists with other methods,
+ * or FastAPI's bare 404 for an unknown path.
+ */
+function isMissingRoute(error) {
+  return error instanceof ApiError && (error.status === 405 || (error.status === 404 && error.data?.detail === "Not Found"));
+}
+
+/** Download rows as CSV. Cells that a spreadsheet would run as a formula are prefixed with '. */
+function downloadCsv(filename, rows) {
+  const cell = (value) => {
+    let text = String(value ?? "");
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+  const blob = new Blob([rows.map((row) => row.map(cell).join(",")).join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/** ISO instant for local midnight of a yyyy-mm-dd date, optionally days later. */
+function localDayStart(dateString, addDays = 0) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day + addDays).toISOString();
+}
+
+function matchesAccount(user, query) {
+  return [user.name, user.email, user.school_id].some((value) => value && value.toLowerCase().includes(query));
+}
 
 const TH = "px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted";
 const ELEVATED = "shadow-[0_1px_2px_rgba(28,25,23,0.04),0_12px_32px_-20px_rgba(119,37,11,0.45)]";
@@ -497,6 +542,15 @@ function UserTable({ users, caption, emptyMessage, onAction }) {
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors hover:border-psu-maroon/40 hover:bg-psu-cream hover:text-text-brand"
+                    aria-label={`Edit ${user.name}`}
+                    onClick={() => onAction(user, "edit")}
+                  >
+                    <Icon name="pencil" className="h-3.5 w-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
                     className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors hover:border-border-strong hover:bg-bg-alt"
                     aria-label={`Reset password for ${user.name}`}
                     onClick={() => onAction(user, "reset")}
@@ -555,7 +609,10 @@ function AuditTable({ logs }) {
                   <Avatar name={log.actor_name} size="sm" />
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-text-main">{log.actor_name}</p>
-                    <p className="text-xs text-text-muted">{log.actor_role ? humanize(log.actor_role) : "Automated"}</p>
+                    <p className="truncate text-xs text-text-muted">
+                      {log.actor_role ? humanize(log.actor_role) : "Automated"}
+                      {log.actor_email ? ` · ${log.actor_email}` : ""}
+                    </p>
                   </div>
                 </div>
               </td>
@@ -570,6 +627,350 @@ function AuditTable({ logs }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Dialog for correcting an account's name or university email. */
+function EditAccountModal({ user, onClose, onSaved }) {
+  const [name, setName] = useState(user?.name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const nameRef = useRef(null);
+
+  const trimmedName = name.split(/\s+/).filter(Boolean).join(" ");
+  const trimmedEmail = email.trim().toLowerCase();
+  const nameChanged = Boolean(user) && trimmedName !== user.name;
+  const emailChanged = Boolean(user) && trimmedEmail !== (user.email || "").toLowerCase();
+  const formId = "admin-edit-account-form";
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const next = {};
+    if (!trimmedName) next.name = "Enter the full name.";
+    else if (trimmedName.length > 150) next.name = "The full name must be at most 150 characters.";
+    if (!SCHOOL_EMAIL.test(trimmedEmail)) next.email = "Use an @pampangastateu.edu.ph email address.";
+    else if (trimmedEmail.startsWith("guest_")) next.email = "Addresses starting with guest_ are reserved for guest accounts.";
+    setErrors(next);
+    if (Object.keys(next).length || (!nameChanged && !emailChanged)) return;
+
+    setIsSaving(true);
+    setFormError(null);
+    try {
+      const result = await api.patch(`/admin/users/${user.user_id}`, {
+        ...(nameChanged ? { name: trimmedName } : {}),
+        ...(emailChanged ? { email: trimmedEmail } : {}),
+      });
+      onSaved(result);
+    } catch (err) {
+      if (isMissingRoute(err)) {
+        setFormError("Editing accounts needs the latest server update. Ask the system maintainer to deploy the backend, then try again.");
+      } else if (err instanceof ApiError && err.status === 409) {
+        setErrors({ email: getErrorMessage(err, "Another account already uses this email.") });
+      } else {
+        setFormError(getErrorMessage(err, "The changes could not be saved."));
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={Boolean(user)}
+      onClose={onClose}
+      title={user ? `Edit ${user.role === "instructor" ? "faculty" : "student"} account` : "Edit account"}
+      description="Correct a misspelled name or email. Role, school ID and status are changed elsewhere."
+      size="lg"
+      dismissible={!isSaving}
+      initialFocusRef={nameRef}
+      footer={
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={isSaving}>
+            Cancel
+          </button>
+          <button type="submit" form={formId} className="btn-primary" disabled={isSaving || (!nameChanged && !emailChanged)}>
+            {isSaving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      }
+    >
+      {user && (
+        <form id={formId} onSubmit={submit} noValidate className="space-y-5">
+          {formError && (
+            <InlineAlert tone="error" onDismiss={() => setFormError(null)}>
+              {formError}
+            </InlineAlert>
+          )}
+          <div className="flex items-center gap-3 rounded-lg border border-border-subtle bg-bg-alt/50 px-4 py-3">
+            <Avatar name={user.name} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-text-main">{user.name}</p>
+              <p className="truncate text-xs text-text-muted">{user.email}</p>
+            </div>
+            {user.school_id && (
+              <span className="rounded-md border border-border-subtle bg-bg-panel px-2 py-0.5 font-mono text-xs text-text-main">{user.school_id}</span>
+            )}
+          </div>
+          <div>
+            <label htmlFor="admin-edit-name" className="field-label">
+              Full name
+            </label>
+            <input
+              ref={nameRef}
+              id="admin-edit-name"
+              className="input-field py-2.5"
+              value={name}
+              maxLength={150}
+              onChange={(e) => {
+                setName(e.target.value);
+                setErrors((prev) => ({ ...prev, name: "" }));
+              }}
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? "admin-edit-name-error" : "admin-edit-name-hint"}
+              disabled={isSaving}
+              autoComplete="off"
+            />
+            {errors.name ? (
+              <FieldError id="admin-edit-name-error">{errors.name}</FieldError>
+            ) : (
+              <p id="admin-edit-name-hint" className="mt-1.5 text-xs text-text-muted">
+                First, middle and last name, as they should appear on records.
+              </p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="admin-edit-email" className="field-label">
+              University email
+            </label>
+            <input
+              id="admin-edit-email"
+              type="email"
+              className="input-field py-2.5"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors((prev) => ({ ...prev, email: "" }));
+              }}
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "admin-edit-email-error" : undefined}
+              disabled={isSaving}
+              autoComplete="off"
+            />
+            <FieldError id="admin-edit-email-error">{errors.email}</FieldError>
+          </div>
+          {emailChanged && !errors.email && (
+            <InlineAlert tone="warning">
+              The account will sign in with the new address, and any password-reset code sent to the old address stops working.
+              {user.role === "student" && " Classes that queued the new address are joined automatically."}
+            </InlineAlert>
+          )}
+        </form>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * Filtered, paged audit records from GET /admin/audit-logs/search. Until the
+ * server has that endpoint, `unsupported` is true and the page falls back to
+ * the plain newest-first list.
+ */
+function useAuditSearch(enabled) {
+  const [filters, setFilters] = useState(EMPTY_AUDIT_FILTERS);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(AUDIT_PAGE_SIZES[0]);
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [unsupported, setUnsupported] = useState(false);
+  const requestId = useRef(0);
+
+  // Typing in the search box waits for a pause before asking the server.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(filters.q.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [filters.q]);
+
+  const dateError = filters.from && filters.to && filters.from > filters.to ? "The start date must be on or before the end date." : "";
+  const { action_type: actionType, outcome, actor_role: actorRole, from, to } = filters;
+
+  const load = useCallback(async () => {
+    if (!enabled || unsupported || dateError) return;
+    const id = ++requestId.current;
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    if (search) params.set("q", search);
+    if (actionType) params.set("action_type", actionType);
+    if (outcome) params.set("outcome", outcome);
+    if (actorRole) params.set("actor_role", actorRole);
+    if (from) params.set("occurred_from", localDayStart(from));
+    if (to) params.set("occurred_to", localDayStart(to, 1));
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await api.get(`/admin/audit-logs/search?${params}`);
+      if (id === requestId.current) setData(result);
+    } catch (err) {
+      if (id !== requestId.current) return;
+      if (isMissingRoute(err)) setUnsupported(true);
+      else setError(err);
+    } finally {
+      if (id === requestId.current) setIsLoading(false);
+    }
+  }, [enabled, unsupported, dateError, page, pageSize, search, actionType, outcome, actorRole, from, to]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const setFilter = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setFilters(EMPTY_AUDIT_FILTERS);
+    setSearch("");
+    setPage(1);
+  };
+  const changePageSize = (size) => {
+    setPageSize(size);
+    setPage(1);
+  };
+  const hasFilters = Object.values(filters).some(Boolean);
+
+  return { filters, setFilter, clearFilters, hasFilters, dateError, page, setPage, pageSize, changePageSize, data, isLoading, error, unsupported, reload: load };
+}
+
+function FilterField({ id, label, className = "", children }) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-text-muted">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function AuditFilters({ audit, actionTypes }) {
+  const { filters, setFilter, clearFilters, hasFilters, dateError } = audit;
+  return (
+    <div className="border-b border-border-subtle bg-bg-alt/40 px-5 py-4 sm:px-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+        <FilterField id="audit-filter-q" label="Actor" className="sm:col-span-2 lg:col-span-4">
+          <div className="relative">
+            <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input
+              id="audit-filter-q"
+              type="search"
+              value={filters.q}
+              onChange={(e) => setFilter("q", e.target.value)}
+              placeholder="Name or email…"
+              maxLength={100}
+              className="input-field pl-9"
+            />
+          </div>
+        </FilterField>
+        <FilterField id="audit-filter-event" label="Event" className="lg:col-span-3">
+          <select id="audit-filter-event" value={filters.action_type} onChange={(e) => setFilter("action_type", e.target.value)} className="input-field">
+            <option value="">All events</option>
+            {actionTypes.map((type) => (
+              <option key={type} value={type}>
+                {humanize(type)}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField id="audit-filter-outcome" label="Outcome" className="lg:col-span-2">
+          <select id="audit-filter-outcome" value={filters.outcome} onChange={(e) => setFilter("outcome", e.target.value)} className="input-field">
+            <option value="">All outcomes</option>
+            {AUDIT_OUTCOMES.map((value) => (
+              <option key={value} value={value}>
+                {humanize(value)}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField id="audit-filter-role" label="Role" className="lg:col-span-3">
+          <select id="audit-filter-role" value={filters.actor_role} onChange={(e) => setFilter("actor_role", e.target.value)} className="input-field">
+            <option value="">All roles</option>
+            {AUDIT_ROLES.map((value) => (
+              <option key={value} value={value}>
+                {humanize(value)}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField id="audit-filter-from" label="From" className="lg:col-span-3">
+          <input
+            id="audit-filter-from"
+            type="date"
+            value={filters.from}
+            onChange={(e) => setFilter("from", e.target.value)}
+            aria-invalid={Boolean(dateError)}
+            aria-describedby={dateError ? "audit-filter-date-error" : undefined}
+            className="input-field"
+          />
+        </FilterField>
+        <FilterField id="audit-filter-to" label="To" className="lg:col-span-3">
+          <input
+            id="audit-filter-to"
+            type="date"
+            value={filters.to}
+            onChange={(e) => setFilter("to", e.target.value)}
+            aria-invalid={Boolean(dateError)}
+            aria-describedby={dateError ? "audit-filter-date-error" : undefined}
+            className="input-field"
+          />
+        </FilterField>
+        <div className="flex items-end sm:col-span-2 lg:col-span-6 lg:justify-end">
+          <button type="button" className="btn-ghost" onClick={clearFilters} disabled={!hasFilters}>
+            <Icon name="x" className="h-4 w-4" />
+            Clear filters
+          </button>
+        </div>
+      </div>
+      <FieldError id="audit-filter-date-error">{dateError}</FieldError>
+    </div>
+  );
+}
+
+function Pagination({ page, pageSize, total, onPage, onPageSize, isLoading }) {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const last = Math.min(page * pageSize, total);
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-text-muted" aria-live="polite">
+        Showing <span className="font-semibold text-text-main tabular-nums">{first}–{last}</span> of{" "}
+        <span className="font-semibold text-text-main tabular-nums">{total}</span> event{total === 1 ? "" : "s"}
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor="audit-page-size" className="text-sm text-text-muted">
+          Rows per page
+        </label>
+        <select id="audit-page-size" value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))} className="input-field w-auto py-1.5">
+          {AUDIT_PAGE_SIZES.map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center gap-1">
+          <button type="button" className="btn-secondary btn-sm" onClick={() => onPage(page - 1)} disabled={isLoading || page <= 1} aria-label="Previous page">
+            <Icon name="chevronLeft" className="h-4 w-4" />
+          </button>
+          <span className="px-2 text-sm text-text-main tabular-nums">
+            Page {Math.min(page, pageCount)} of {pageCount}
+          </span>
+          <button type="button" className="btn-secondary btn-sm" onClick={() => onPage(page + 1)} disabled={isLoading || page >= pageCount} aria-label="Next page">
+            <Icon name="chevronRight" className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -608,6 +1009,11 @@ export default function AdminDashboard() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [facultySearch, setFacultySearch] = useState("");
+  const [editingUser, setEditingUser] = useState(null);
+  const [exportingRole, setExportingRole] = useState(null);
+  const [auditVisited, setAuditVisited] = useState(false);
+  const audit = useAuditSearch(auditVisited);
   const [userAction, setUserAction] = useState(null);
   const [isActing, setIsActing] = useState(false);
   const [actionMessage, setActionMessage] = useState(null);
@@ -644,6 +1050,13 @@ export default function AdminDashboard() {
     loadSettings();
   }, [loadStats, loadUsers, loadLogs, loadSettings]);
 
+  // Without the search endpoint the audit tab shows the plain list; fetch it
+  // fresh at that moment rather than showing what was loaded at sign-in.
+  const auditUnsupported = audit.unsupported;
+  useEffect(() => {
+    if (auditUnsupported) loadLogs();
+  }, [auditUnsupported, loadLogs]);
+
   // Quick actions open a tab and then move focus to the field they name.
   useEffect(() => {
     if (!focusTarget) return undefined;
@@ -664,6 +1077,7 @@ export default function AdminDashboard() {
   const showTab = (tab) => {
     // A result message belongs to the section where the action happened.
     if (tab !== activeTab) setActionMessage(null);
+    if (tab === "audit") setAuditVisited(true);
     setActiveTab(tab);
   };
 
@@ -683,10 +1097,55 @@ export default function AdminDashboard() {
   const faculty = users.items.filter((u) => u.role === "instructor");
   const students = users.items.filter((u) => u.role === "student");
   const query = search.trim().toLowerCase();
-  const filteredStudents = useMemo(
-    () => (query ? students.filter((s) => [s.name, s.email, s.school_id].some((v) => v && v.toLowerCase().includes(query))) : students),
-    [students, query],
-  );
+  const filteredStudents = query ? students.filter((s) => matchesAccount(s, query)) : students;
+  const facultyQuery = facultySearch.trim().toLowerCase();
+  const filteredFaculty = facultyQuery ? faculty.filter((f) => matchesAccount(f, facultyQuery)) : faculty;
+
+  const handleUserAction = (user, type) => {
+    if (type === "edit") setEditingUser(user);
+    else setUserAction({ user, type, password: generateTempPassword() });
+  };
+
+  const handleAccountSaved = (result) => {
+    const previous = editingUser;
+    users.setItems((prev) => prev.map((u) => (u.user_id === result.user_id ? { ...u, name: result.name, email: result.email } : u)));
+    const changed = result.changed_fields ?? [];
+    const joined = result.pending_enrollments?.enrolled_class_ids?.length ?? 0;
+    const parts = [
+      changed.includes("name") && `the name is now ${result.name}`,
+      changed.includes("email") && `they now sign in as ${result.email}`,
+    ].filter(Boolean);
+    setActionMessage({
+      tone: "success",
+      text:
+        (parts.length ? `Saved ${previous?.name ?? "the account"}: ${parts.join(", and ")}.` : "No changes were needed.") +
+        (joined > 0 ? ` Added to ${joined} class${joined === 1 ? "" : "es"} that had queued the new address.` : ""),
+    });
+    setEditingUser(null);
+  };
+
+  /** Every account of a role, not just the pages loaded on screen. */
+  const exportAccounts = async (role) => {
+    setExportingRole(role);
+    try {
+      const all = [];
+      for (let skip = 0; ; skip += 500) {
+        const batch = await api.get(`/admin/users?skip=${skip}&limit=500`);
+        const list = Array.isArray(batch) ? batch : [];
+        all.push(...list);
+        if (list.length < 500) break;
+      }
+      const accounts = all.filter((u) => u.role === role);
+      downloadCsv(role === "instructor" ? "psu_faculty.csv" : "psu_students.csv", [
+        ["User ID", "Name", "Email", "School ID", "Active"],
+        ...accounts.map((u) => [u.user_id, u.name, u.email, u.school_id, u.is_active ? "Yes" : "No"]),
+      ]);
+    } catch (err) {
+      setActionMessage({ tone: "error", text: getErrorMessage(err, "The list could not be exported.") });
+    } finally {
+      setExportingRole(null);
+    }
+  };
 
   const runUserAction = async () => {
     if (!userAction || isActing) return;
@@ -741,18 +1200,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const exportStudents = () => {
-    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const rows = [["User ID", "Name", "Email", "School ID", "Active"], ...students.map((u) => [u.user_id, u.name, u.email, u.school_id, u.is_active])];
-    const blob = new Blob([rows.map((r) => r.map(escape).join(",")).join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "pamsu_students.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   const saveSettings = async (event) => {
     event.preventDefault();
     setIsSavingSettings(true);
@@ -760,9 +1207,10 @@ export default function AdminDashboard() {
     try {
       await api.patch("/admin/settings", {
         maintenance_mode: Boolean(settings.maintenance_mode),
-        // Required by the API but no longer editable here: send back the
-        // stored value unchanged so saving never flips it.
-        registration_enabled: Boolean(savedSettings?.registration_enabled),
+        // Accounts are provisioned by MIS only (panel requirement), so the
+        // retired public self-registration stays off. The API still requires
+        // the field.
+        registration_enabled: false,
         default_ast_strictness: settings.default_ast_strictness || "moderate",
       });
       setSavedSettings(settings);
@@ -801,8 +1249,23 @@ export default function AdminDashboard() {
     ) : users.isLoading ? (
       <LoadingState label="Loading accounts…" className="py-14" />
     ) : (
-      <UserTable users={list} caption={caption} emptyMessage={emptyMessage} onAction={(user, type) => setUserAction({ user, type, password: generateTempPassword() })} />
+      <UserTable users={list} caption={caption} emptyMessage={emptyMessage} onAction={handleUserAction} />
     );
+  const exportButton = (role, count) => (
+    <button type="button" className="btn-secondary" onClick={() => exportAccounts(role)} disabled={count === 0 || exportingRole !== null}>
+      <Icon name="download" className="h-4 w-4" />
+      {exportingRole === role ? "Exporting…" : "Export CSV"}
+    </button>
+  );
+  const searchBox = (id, label, value, onChange) => (
+    <div className="relative w-full sm:w-64">
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+      <input id={id} type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Search name, email or ID…" className="input-field pl-9" />
+    </div>
+  );
   const loadMoreUsers = users.hasMore && !users.error && (
     <button type="button" className="btn-secondary w-full" onClick={users.loadMore} disabled={users.isLoadingMore}>
       {users.isLoadingMore ? "Loading…" : "Load more accounts"}
@@ -986,7 +1449,12 @@ export default function AdminDashboard() {
 
             {activeTab === "faculty" && (
               <>
-                <PageHeader eyebrow="Accounts" title="Faculty" description="Create instructor accounts and manage their access." />
+                <PageHeader
+                  eyebrow="Accounts"
+                  title="Faculty"
+                  description="Create instructor accounts and manage their access."
+                  actions={exportButton("instructor", faculty.length)}
+                />
                 {/* Form above a full-width directory, so the table never has to
                     scroll sideways on a desktop display. */}
                 <div className="grid grid-cols-1 items-start gap-6">
@@ -997,9 +1465,16 @@ export default function AdminDashboard() {
                       description="Instructors who can sign in to the IDE."
                       icon="faculty"
                       flush
-                      actions={!users.isLoading && !users.error && <CountBadge count={faculty.length} word="account" hasMore={users.hasMore} />}
+                      actions={
+                        <>
+                          {!users.isLoading && !users.error && (
+                            <CountBadge count={faculty.length} word="account" hasMore={users.hasMore} shown={facultyQuery ? filteredFaculty.length : undefined} />
+                          )}
+                          {searchBox("admin-faculty-search", "Search faculty", facultySearch, setFacultySearch)}
+                        </>
+                      }
                     >
-                      {userListBody(faculty, "Faculty accounts", "No faculty accounts have been created yet.")}
+                      {userListBody(filteredFaculty, "Faculty accounts", facultyQuery ? "No faculty match your search." : "No faculty accounts have been created yet.")}
                     </Panel>
                     {loadMoreUsers}
                   </div>
@@ -1013,12 +1488,7 @@ export default function AdminDashboard() {
                   eyebrow="Accounts"
                   title="Students"
                   description="Create student accounts individually or from a masterlist file."
-                  actions={
-                    <button type="button" className="btn-secondary" onClick={exportStudents} disabled={students.length === 0}>
-                      <Icon name="download" className="h-4 w-4" />
-                      Export CSV
-                    </button>
-                  }
+                  actions={exportButton("student", students.length)}
                 />
                 {/* Form and masterlist side by side, full-width directory below. */}
                 <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -1073,20 +1543,7 @@ export default function AdminDashboard() {
                           {!users.isLoading && !users.error && (
                             <CountBadge count={students.length} word="account" hasMore={users.hasMore} shown={query ? filteredStudents.length : undefined} />
                           )}
-                          <div className="relative w-full sm:w-64">
-                            <label htmlFor="admin-student-search" className="sr-only">
-                              Search students
-                            </label>
-                            <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                            <input
-                              id="admin-student-search"
-                              type="search"
-                              value={search}
-                              onChange={(e) => setSearch(e.target.value)}
-                              placeholder="Search name, email or ID…"
-                              className="input-field pl-9"
-                            />
-                          </div>
+                          {searchBox("admin-student-search", "Search students", search, setSearch)}
                         </>
                       }
                     >
@@ -1100,35 +1557,103 @@ export default function AdminDashboard() {
 
             {activeTab === "audit" && (
               <>
-                <PageHeader eyebrow="Security" title="Global audit trail" description="Recorded account, classroom and academic events." />
-                <div className="space-y-4">
+                <PageHeader
+                  eyebrow="Security"
+                  title="Global audit trail"
+                  description="Recorded account, classroom and academic events."
+                  actions={
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => (audit.unsupported ? logs.load() : audit.reload())}
+                      disabled={audit.unsupported ? logs.isLoading : audit.isLoading}
+                    >
+                      <Icon name="refresh" className="h-4 w-4" />
+                      Refresh
+                    </button>
+                  }
+                />
+                {audit.unsupported ? (
+                  // The server doesn't have the search endpoint yet: plain newest-first list.
+                  <div className="space-y-4">
+                    <InlineAlert tone="info">
+                      Filters and page numbers become available after the next server update. Showing the newest events for now.
+                    </InlineAlert>
+                    <Panel
+                      title="Event log"
+                      description="Newest first."
+                      icon="shield"
+                      flush
+                      actions={!logs.isLoading && !logs.error && logs.items.length > 0 && <CountBadge count={logs.items.length} word="event" hasMore={logs.hasMore} />}
+                    >
+                      {logs.error ? (
+                        <div className="p-5 sm:p-6">
+                          <AdminErrorState error={logs.error} resource="the audit trail" onRetry={logs.load} />
+                        </div>
+                      ) : logs.isLoading ? (
+                        <LoadingState label="Loading audit trail…" className="py-14" />
+                      ) : logs.items.length === 0 ? (
+                        <div className="p-5 sm:p-6">
+                          <EmptyState title="No audit events" message="Recorded actions will appear here." />
+                        </div>
+                      ) : (
+                        <AuditTable logs={logs.items} />
+                      )}
+                    </Panel>
+                    {logs.hasMore && !logs.error && (
+                      <button type="button" className="btn-secondary w-full" onClick={logs.loadMore} disabled={logs.isLoadingMore}>
+                        {logs.isLoadingMore ? "Loading…" : "Load older events"}
+                      </button>
+                    )}
+                  </div>
+                ) : (
                   <Panel
                     title="Event log"
-                    description="Newest first."
+                    description="Newest first. Filter by actor, event, outcome, role or date."
                     icon="shield"
                     flush
-                    actions={!logs.isLoading && !logs.error && logs.items.length > 0 && <CountBadge count={logs.items.length} word="event" hasMore={logs.hasMore} />}
+                    actions={audit.data && !audit.error && <CountBadge count={audit.data.total} word={audit.hasFilters ? "matching event" : "event"} />}
+                    footer={
+                      audit.data && !audit.error && audit.data.total > 0 && (
+                        <Pagination
+                          page={audit.page}
+                          pageSize={audit.pageSize}
+                          total={audit.data.total}
+                          onPage={audit.setPage}
+                          onPageSize={audit.changePageSize}
+                          isLoading={audit.isLoading}
+                        />
+                      )
+                    }
                   >
-                    {logs.error ? (
+                    <AuditFilters audit={audit} actionTypes={audit.data?.action_types ?? []} />
+                    {audit.error ? (
                       <div className="p-5 sm:p-6">
-                        <AdminErrorState error={logs.error} resource="the audit trail" onRetry={logs.load} />
+                        <AdminErrorState error={audit.error} resource="the audit trail" onRetry={audit.reload} />
                       </div>
-                    ) : logs.isLoading ? (
+                    ) : !audit.data ? (
                       <LoadingState label="Loading audit trail…" className="py-14" />
-                    ) : logs.items.length === 0 ? (
+                    ) : audit.data.items.length === 0 ? (
                       <div className="p-5 sm:p-6">
-                        <EmptyState title="No audit events" message="Recorded actions will appear here." />
+                        <EmptyState
+                          title={audit.hasFilters ? "No matching events" : "No audit events"}
+                          message={audit.hasFilters ? "Try a wider date range or fewer filters." : "Recorded actions will appear here."}
+                          action={
+                            audit.hasFilters && (
+                              <button type="button" className="btn-secondary" onClick={audit.clearFilters}>
+                                Clear filters
+                              </button>
+                            )
+                          }
+                        />
                       </div>
                     ) : (
-                      <AuditTable logs={logs.items} />
+                      <div aria-busy={audit.isLoading} className={`transition-opacity ${audit.isLoading ? "opacity-60" : ""}`}>
+                        <AuditTable logs={audit.data.items} />
+                      </div>
                     )}
                   </Panel>
-                  {logs.hasMore && !logs.error && (
-                    <button type="button" className="btn-secondary w-full" onClick={logs.loadMore} disabled={logs.isLoadingMore}>
-                      {logs.isLoadingMore ? "Loading…" : "Load older events"}
-                    </button>
-                  )}
-                </div>
+                )}
               </>
             )}
 
@@ -1187,25 +1712,6 @@ export default function AdminDashboard() {
                             </button>
                           </div>
                         </SettingRow>
-                        {/* Public self-registration is retired; this reports the stored
-                            legacy flag (it still gates POST /registration/start) instead
-                            of offering a toggle. */}
-                        <div>
-                          <SettingRow title="Student self-registration" description="Student accounts are provisioned by MIS.">
-                            <Pill tone={savedSettings?.registration_enabled ? "warning" : "neutral"}>
-                              {savedSettings?.registration_enabled ? "Legacy API open" : "Disabled"}
-                            </Pill>
-                          </SettingRow>
-                          {savedSettings?.registration_enabled && (
-                            <div className="px-5 pb-5 sm:px-6">
-                              <InlineAlert tone="warning">
-                                Public sign-up has been removed from the app, but the legacy self-registration setting is still
-                                enabled on the server, so its registration API remains open. Ask the system maintainer to turn this
-                                setting off.
-                              </InlineAlert>
-                            </div>
-                          )}
-                        </div>
                         <fieldset className="px-5 py-5 sm:px-6">
                           <legend className="sr-only">Default AST strictness</legend>
                           <p className="text-sm font-semibold text-text-main" aria-hidden="true">
@@ -1287,6 +1793,9 @@ export default function AdminDashboard() {
           setFocusTarget(null);
         }}
       />
+      {editingUser && (
+        <EditAccountModal key={editingUser.user_id} user={editingUser} onClose={() => setEditingUser(null)} onSaved={handleAccountSaved} />
+      )}
       <SignOutModal
         isOpen={isSignOutOpen}
         onClose={() => setIsSignOutOpen(false)}

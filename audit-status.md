@@ -2076,3 +2076,86 @@ _Branch `dev` on top of `3ab3576`. Frontend only: no API, backend or migration c
 ### Next
 - **Unchanged from the release-day section:** the SMTP key swap, the production smoke test and the backup decision.
 - **Optional follow-ups:** a "show guests" toggle on the Students directory (`include_guests=true`); admin dark mode (not approved).
+
+## Admin dashboard: account editing, faculty search/export, audit filters (2026-10-21)
+
+_Branch `dev` on top of `5c4d43c` (the UI overhaul, already pushed and live on Vercel). **Backend and frontend change; no migration.** Nothing was committed or pushed by this session._
+
+### What changed
+1. **Edit action (Faculty and Students):**
+   - Each row has **Edit** before Reset password and Suspend. A dialog corrects the **full name** and **university email**. Storage is the single `users.name` column, so the name is one field.
+   - **New endpoint `PATCH /admin/users/{user_id}`** (admin only), body `{name?, email?}`:
+     - `extra="forbid"`: role, school ID, password and status can't be changed through it (422).
+     - Names are trimmed with spaces collapsed, at most 150 characters. Emails must be `@pampangastateu.edu.ph`, are lowercased, and can't start with `guest_` (reserved for self-service guests).
+     - **409** if another account already uses the email (case-insensitive). **403** for administrator accounts, including your own, and for self-service guests. **404** for an unknown account.
+     - **An email change expires every unused password-reset code for the old and the new address.** A code sent to a mistyped address can no longer be used. Reset completion already looked the account up by email, so this is a second safeguard.
+     - **A student's corrected email joins the classes that had queued it**, the same as at account creation. The response's `pending_enrollments` reports them.
+     - The response has `changed_fields`; a no-op returns `[]`.
+   - **Not audited:** no `audit_records.action_type` fits an account edit. As with the other admin actions (suspend, reset, settings), this waits for PR #30's migration. Add `user_updated` there.
+2. **Faculty directory:** the same search box as Students (name, email or ID, with an "x of y" count) and **Export CSV** in the page header.
+   - **Both exports now fetch every account**, 500 per request, not only the rows loaded on screen.
+   - Cells a spreadsheet would run as formulas (`= + - @`) are prefixed with `'`.
+   - Files are `psu_faculty.csv` and `psu_students.csv` (was `pamsu_students.csv`, per the panel's PSU naming).
+3. **Audit trail: filters and page numbers.**
+   - **New endpoint `GET /admin/audit-logs/search`** (admin only), newest first, with a stable tie-break:
+     - **Filters:** `q` (part of the actor's name or email; case-insensitive; `%` and `_` matched literally), `action_type` (the 20 allowed types), `outcome`, `actor_role` (`admin`, `instructor`, `student`, `system`), `occurred_from` (inclusive) and `occurred_to` (exclusive). An offset in the bounds is converted to UTC; a bound without one is taken as UTC.
+     - **Paging:** `page` and `page_size` (5–100). The response is `{items, total, page, page_size, action_types}`, and items also carry `actor_email`.
+   - **UI:**
+     - A filter bar: Actor search (debounced), Event, Outcome, Role, From/To dates (local days), and Clear filters.
+     - A pager footer: "Showing 26–33 of 33 events", 25/50/100 rows per page, Previous/Next with "Page 2 of 2". The header has a count badge and a Refresh button.
+     - The actor cell shows role · email.
+   - **The original `GET /admin/audit-logs` is unchanged** (a plain list). The Overview's Recent activity still uses it.
+4. **Settings:** the "Student self-registration" row and its warning are **removed**.
+   - The API still requires the field, and a save now always sends `registration_enabled: false`. Accounts are MIS-provisioned only (panel requirement), and the setting defaults to off.
+   - If production ever had it on, the next settings save closes the legacy `/registration` API.
+
+### Works with today's production backend (the deploy gap)
+Vercel publishes the frontend on push, and the backend waits for Errol's Manual Deploy. So the new page was checked against a backend that lacks both endpoints (simulated by answering the page's requests with 404/405):
+- **Audit trail:** a 404 "Not Found" from `/search` switches to the plain newest-first list with "Load older events", plus the note "Filters and page numbers become available after the next server update." The list is fetched fresh at that moment.
+- **Edit:** the old backend answers 405 (only `DELETE` exists on that path). The dialog says editing needs the latest server update and changes nothing.
+- **Faculty search, export and the Settings change** need no backend change.
+
+### Verification
+| Check | Result |
+|---|---|
+| New `tests/test_admin_account_edit_and_audit_search.py` | **24 passed**: name and email correction (sign-in moves to the new email); no-op; 9 invalid or forbidden bodies (role, school ID, password, guest_ prefix, blank or long name, foreign domain, double @, empty); 409 duplicate; 403 for admin, self and guest; 404; non-admin 403 and anonymous 401; reset codes expired for both addresses on an email change but not on a name change; pending class joined on a student email correction; none for instructors; search paging and total, name/email search, literal `%`/`_`, combined filters, system actor, date bounds (inclusive/exclusive, UTC+8 offset), 7 bad parameters → 422, non-admin 403; old list shape unchanged |
+| Full backend suite (SQLite, Windows, 03:02–03:26Z) | **953 passed, 5 skipped, 0 failed** (929 before + 24 new) |
+| Frontend `npm run lint`, `npm run build`, `git diff --check` | Clean |
+
+**Browser** (the scratch QA copy from the previous section, at 1366×768):
+- **Faculty:** the Edit, Reset password and Suspend buttons fit with no table overflow.
+- **Edit dialog:**
+  - focus starts in the name field, and Save stays disabled until something changes;
+  - the email-change warning appears;
+  - saving updated the row and showed "Saved Jose Reyes: the name is now …, and they now sign in as …";
+  - a duplicate email showed the server's 409 as a field error, a non-university email was caught in the browser, and Cancel left the row unchanged.
+- **Faculty search and export:**
+  - "reyes" found 1 row, with "1 of 5 accounts";
+  - the export, captured in the page rather than downloaded, was `psu_faculty.csv` with all 5 faculty, including the suspended one ("No").
+- **Audit trail** (33 events):
+  - pages of 25 + 8, and 50 per page;
+  - actor "BEA" → 3, plus outcome Succeeded → 0;
+  - role Admin → 5, event Classroom created → 1;
+  - from tomorrow → 0, and an inverted range shows the date error;
+  - Clear filters restores all 33.
+- **Old-backend fallback** for both endpoints, as described above.
+- **Settings:** only Maintenance mode and Default AST strictness, and the save request carried `registration_enabled: false`.
+- **Errors:** the only console error was the browser's network log of the intended 409. The backend logged no application errors (only Windows connection-reset noise).
+
+### Files
+- **Modified:**
+  - `backend/app/routers/admin.py` (the edit endpoint and the audit search; the old list now shares the row builder)
+  - `frontend/src/features/admin/AdminDashboard.jsx`
+  - `audit-status.md`
+- **Created** (untracked, add it by name):
+  - `backend/tests/test_admin_account_edit_and_audit_search.py`
+
+### What a push of this commit does
+- **Vercel deploys the dashboard at once.** Faculty search, export and the Settings change work immediately. Edit and the audit filters show "needs the server update" or the plain list until the backend is deployed.
+- **Render:** the two endpoints arrive at Errol's next Manual Deploy (which also carries #38 and `3ab3576`). **No migration.**
+
+### Next
+- **Errol:** deploy the backend, then check Edit and the audit filters on production.
+- **After delivery:**
+  - add `user_updated` (and the other admin action types) through PR #30, so edits are audited;
+  - optionally let MIS correct a student's school ID (left out on purpose: the request was names and emails).

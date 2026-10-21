@@ -1,10 +1,12 @@
 import secrets
-from typing import List, Literal
+from datetime import datetime, timezone
+from typing import List, Literal, get_args
 
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
 from app.core.system_settings import get_all_system_settings, set_system_setting
-from app.models.domain_models import AuditRecord, Classroom, User
+from app.models.domain_models import AuditRecord, Classroom, OTPChallenge, User
+from app.schemas.audit_schema import AuditActionType
 from app.schemas.enrollment_schema import PendingEnrollmentResult
 from app.services.classroom_service import (StudentNotEligibleForEnrollmentError,
                                             apply_pending_enrollments)
@@ -14,11 +16,12 @@ from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, Qu
 from fastapi.concurrency import run_in_threadpool
 from pydantic import (BaseModel, ConfigDict, Field, computed_field, field_validator,
                       model_validator)
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.services.email_service import send_provisioning_email
-from app.services.guest_service import not_self_service_guest
+from app.services.guest_service import (GUEST_EMAIL_PREFIX, is_self_service_guest,
+                                        not_self_service_guest)
 from app.services.student_provisioning_service import (MAX_MASTERLIST_BYTES,
                                                       MasterlistConflictError,
                                                       MasterlistFileError,
@@ -105,6 +108,48 @@ class UserResponse(BaseModel):
 
 class StudentCreateResponse(UserResponse):
     pending_enrollments: PendingEnrollmentResult
+
+
+class AccountUpdate(BaseModel):
+    """Corrections MIS may make to a faculty or student account."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=MAX_FULL_NAME_LENGTH)
+    email: str | None = Field(default=None, min_length=1, max_length=255)
+
+    # extra="forbid": role, school ID, password and status can't be changed here.
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    @field_validator("name")
+    @classmethod
+    def collapse_name_spaces(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        collapsed = " ".join(value.split())
+        if not collapsed:
+            raise ValueError("The name can't be blank.")
+        return collapsed
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        email = _validate_university_email(value)
+        if email.startswith(GUEST_EMAIL_PREFIX):
+            raise ValueError(f"Addresses starting with {GUEST_EMAIL_PREFIX} are reserved for guest accounts.")
+        return email
+
+    @model_validator(mode="after")
+    def require_a_change(self):
+        if self.name is None and self.email is None:
+            raise ValueError("Provide a name or an email to change.")
+        return self
+
+
+class AccountUpdateResponse(UserResponse):
+    changed_fields: List[str]
+    # Classes that had queued the corrected email (students only).
+    pending_enrollments: PendingEnrollmentResult | None = None
 
 
 class PasswordReset(BaseModel):
@@ -317,6 +362,73 @@ def toggle_user_status(
     db.commit()
     return {"message": "Status updated", "is_active": user.is_active}
 
+@router.patch("/users/{user_id}", response_model=AccountUpdateResponse)
+def update_user_account(
+    user_id: int,
+    request: AccountUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    """Correct the name or university email of a faculty or student account.
+
+    The email is the sign-in name and where password-reset codes go, so a
+    change also expires any unused reset code sent to the old or the new
+    address. For a student, classes that had queued the corrected email are
+    joined, as when the account is created.
+    """
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.role == "admin":
+        raise HTTPException(status_code=403, detail="Administrator accounts can't be edited here.")
+    if is_self_service_guest(user):
+        raise HTTPException(status_code=403, detail="Guest accounts can't be edited.")
+
+    changed_fields: list[str] = []
+    if request.name is not None and request.name != user.name:
+        user.name = request.name
+        changed_fields.append("name")
+
+    old_email = (user.email or "").lower()
+    if request.email is not None and request.email != old_email:
+        email_in_use = (
+            db.query(User.user_id)
+            .filter(func.lower(User.email) == request.email, User.user_id != user.user_id)
+            .first()
+        )
+        if email_in_use:
+            raise HTTPException(status_code=409, detail="Another account already uses this email.")
+        user.email = request.email
+        changed_fields.append("email")
+        db.query(OTPChallenge).filter(
+            OTPChallenge.purpose == "password_reset",
+            OTPChallenge.consumed_at.is_(None),
+            func.lower(OTPChallenge.email).in_([old_email, request.email]),
+        ).update({OTPChallenge.consumed_at: datetime.now(timezone.utc)}, synchronize_session=False)
+
+    pending_result = None
+    try:
+        db.flush()
+        if "email" in changed_fields and user.role == "student" and user.is_active:
+            pending_result = apply_pending_enrollments(
+                db=db,
+                student=user,
+                actor_user_id=current_admin.user_id,
+            )
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Another account already uses this email.") from exc
+    except Exception:
+        db.rollback()
+        raise
+    db.refresh(user)
+    return AccountUpdateResponse(
+        **UserResponse.model_validate(user).model_dump(),
+        changed_fields=changed_fields,
+        pending_enrollments=pending_result,
+    )
+
 @router.delete("/users/{user_id}")
 def delete_user(
     user_id: int,
@@ -366,19 +478,94 @@ def get_global_audit_logs(
     logs = db.query(AuditRecord, User.name, User.role).join(
         User, AuditRecord.actor_user_id == User.user_id, isouter=True
     ).order_by(AuditRecord.occurred_at.desc()).offset(skip).limit(limit).all()
-    
-    result = []
-    for log, name, role in logs:
-        result.append({
-            "log_id": log.audit_id,
-            "action_type": log.action_type,
-            "resource_type": log.resource_type,
-            "occurred_at": log.occurred_at,
-            "status": log.outcome,
-            "actor_name": name if name else "System",
-            "actor_role": role if role else "system"
-        })
-    return result
+
+    return [_audit_log_row(log, name, role) for log, name, role in logs]
+
+
+AUDIT_ACTION_TYPES = list(get_args(AuditActionType))
+
+
+def _audit_log_row(log: AuditRecord, name: str | None, role: str | None, email: str | None = None) -> dict:
+    row = {
+        "log_id": log.audit_id,
+        "action_type": log.action_type,
+        "resource_type": log.resource_type,
+        "occurred_at": log.occurred_at,
+        "status": log.outcome,
+        "actor_name": name if name else "System",
+        "actor_role": role if role else "system",
+    }
+    if email is not None:
+        row["actor_email"] = email
+    return row
+
+
+def _as_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
+@router.get("/audit-logs/search")
+def search_audit_logs(
+    page: int = Query(default=1, ge=1, le=100000),
+    page_size: int = Query(default=25, ge=5, le=100),
+    q: str | None = Query(default=None, max_length=100, description="Part of the actor's name or email."),
+    action_type: AuditActionType | None = Query(default=None),
+    outcome: Literal["succeeded", "failed", "denied"] | None = Query(default=None),
+    actor_role: Literal["admin", "instructor", "student", "system"] | None = Query(default=None),
+    occurred_from: datetime | None = Query(default=None, description="Inclusive. Without a time zone, UTC."),
+    occurred_to: datetime | None = Query(default=None, description="Exclusive. Without a time zone, UTC."),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    """Audit records, newest first, with filters and page numbers.
+
+    GET /admin/audit-logs keeps its plain-list shape for older dashboards.
+    """
+    if occurred_from and occurred_to and _as_utc(occurred_from) >= _as_utc(occurred_to):
+        raise HTTPException(status_code=422, detail="The start of the date range must be before its end.")
+
+    query = db.query(AuditRecord, User.name, User.role, User.email).join(
+        User, AuditRecord.actor_user_id == User.user_id, isouter=True
+    )
+
+    search = (q or "").strip().lower()
+    if search:
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        query = query.filter(
+            or_(
+                func.lower(User.name).like(pattern, escape="\\"),
+                func.lower(User.email).like(pattern, escape="\\"),
+            )
+        )
+    if action_type:
+        query = query.filter(AuditRecord.action_type == action_type)
+    if outcome:
+        query = query.filter(AuditRecord.outcome == outcome)
+    if actor_role == "system":
+        query = query.filter(AuditRecord.actor_user_id.is_(None))
+    elif actor_role:
+        query = query.filter(User.role == actor_role)
+    if occurred_from:
+        query = query.filter(AuditRecord.occurred_at >= _as_utc(occurred_from))
+    if occurred_to:
+        query = query.filter(AuditRecord.occurred_at < _as_utc(occurred_to))
+
+    total = query.order_by(None).count()
+    rows = (
+        query.order_by(AuditRecord.occurred_at.desc(), AuditRecord.audit_id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {
+        "items": [_audit_log_row(log, name, role, email or "") for log, name, role, email in rows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "action_types": AUDIT_ACTION_TYPES,
+    }
 
 @router.post("/students/bulk-register/file", response_model=MasterlistImportResult)
 async def bulk_register_students_file(
