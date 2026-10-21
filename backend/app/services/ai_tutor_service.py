@@ -16,15 +16,18 @@ GEMINI_MODEL = "models/gemini-3.8-flash"
 # One Gemini request.
 REQUEST_TIMEOUT_MS = 15_000
 
-# Gemini answers 503 ("high demand") and 429 in short spikes. The SDK
-# retries those, other 5xx answers and timeouts, waiting about 1, 2 and
-# 4 s (plus up to 1 s of jitter) between the 4 attempts. Without
-# retry_options the SDK tries only once.
+# Gemini answers 503 ("high demand") in short spikes. The SDK retries
+# those, other 5xx answers and timeouts, waiting about 1, 2 and 4 s (plus
+# up to 1 s of jitter) between the 4 attempts. Without retry_options the
+# SDK tries only once. 429 (the key's quota is used up) is not retried:
+# a retry seconds later fails too and spends more of the quota.
 RETRY_ATTEMPTS = 4
 RETRY_INITIAL_DELAY_SECONDS = 1.0
 RETRY_MAX_DELAY_SECONDS = 8.0
 RETRY_JITTER_SECONDS = 1.0
-RETRY_HTTP_STATUS_CODES = [408, 429, 500, 502, 503, 504]
+RETRY_HTTP_STATUS_CODES = [408, 500, 502, 503, 504]
+# Google's error text names the quota or overload; it holds no secrets.
+LOGGED_ERROR_MESSAGE_CHARS = 300
 
 # Shown to the student when no hint could be generated.
 TUTOR_UNAVAILABLE_MESSAGE = "The AI Tutor is unavailable right now. Review the error output and try again."
@@ -84,13 +87,22 @@ def generate_pedagogical_hint(task_instructions: str, student_code: str, error_o
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=contents,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION),
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION,
+                # No tools are used; this also skips the SDK's AFC warning.
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+            ),
         )
         text = (response.text or "").strip()
     except errors.APIError as error:
         # Gemini's own answer (for example 503 "high demand"); retries,
         # where they apply, are already used up.
-        logger.warning("AI Tutor: Gemini request failed: %s %s.", error.code, error.status)
+        logger.warning(
+            "AI Tutor: Gemini request failed: %s %s: %s",
+            error.code,
+            error.status,
+            str(error.message or "")[:LOGGED_ERROR_MESSAGE_CHARS],
+        )
         return None
     except Exception:
         logger.exception("AI Tutor request to Gemini failed.")
