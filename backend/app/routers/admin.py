@@ -1,11 +1,17 @@
+import logging
 import secrets
 from datetime import datetime, timezone
 from typing import List, Literal, get_args
+from uuid import uuid4
 
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
-from app.core.system_settings import get_all_system_settings, set_system_setting
+from app.core.system_settings import (get_all_system_settings,
+                                      read_stored_system_settings,
+                                      set_system_setting)
 from app.models.domain_models import AuditRecord, Classroom, OTPChallenge, User
+from app.routers.auth import (UNRECOGNIZED_LOGIN_IDENTIFIER,
+                              recordable_login_identifier)
 from app.schemas.audit_schema import AuditActionType
 from app.schemas.enrollment_schema import PendingEnrollmentResult
 from app.services.classroom_service import (StudentNotEligibleForEnrollmentError,
@@ -17,8 +23,13 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import (BaseModel, ConfigDict, Field, computed_field, field_validator,
                       model_validator)
 from sqlalchemy import func, or_
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
+from app.services.admin_audit_service import (AUDIT_UNAVAILABLE_DETAIL,
+                                             AdminAuditError,
+                                             record_admin_action,
+                                             record_admin_failure,
+                                             safe_error_summary)
 from app.services.email_service import send_provisioning_email
 from app.services.guest_service import (GUEST_EMAIL_PREFIX, is_self_service_guest,
                                         not_self_service_guest)
@@ -26,9 +37,51 @@ from app.services.student_provisioning_service import (MAX_MASTERLIST_BYTES,
                                                       MasterlistConflictError,
                                                       MasterlistFileError,
                                                       MasterlistImportResult,
-                                                      import_masterlist)
+                                                      import_masterlist,
+                                                      masterlist_file_type)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+logger = logging.getLogger(__name__)
+
+
+def _audit_unavailable(db: Session, error: Exception) -> HTTPException:
+    # The change and its audit record share one transaction: roll both back
+    # and say so, instead of reporting a change that has no audit record.
+    # AdminAuditError text is already reduced to class names (no values).
+    db.rollback()
+    logger.error("Admin action rolled back: %s", error)
+    return HTTPException(status_code=503, detail=AUDIT_UNAVAILABLE_DETAIL)
+
+
+def _target_user_id(log: AuditRecord) -> int | None:
+    resource_id = log.resource_id
+    if log.resource_type == "user" and resource_id.isascii() and resource_id.isdigit():
+        return int(resource_id)
+    return None
+
+
+def _displayed_resource_id_and_details(log: AuditRecord) -> tuple[str, dict]:
+    # Failed logins recorded before the login handler stopped storing
+    # unrecognized identifiers can hold whatever was typed into the email
+    # field, such as a password. Audit rows are immutable, so they are
+    # masked here instead: only well-formed university emails are shown.
+    resource_id = log.resource_id
+    details = log.audit_data or {}
+
+    if log.action_type != "login_failed":
+        return resource_id, details
+
+    if _target_user_id(log) is None and recordable_login_identifier(resource_id) is None:
+        resource_id = UNRECOGNIZED_LOGIN_IDENTIFIER
+
+    email = details.get("email")
+    if email is not None and not (isinstance(email, str) and recordable_login_identifier(email)):
+        details = {key: value for key, value in details.items() if key != "email"}
+        details["identifier"] = UNRECOGNIZED_LOGIN_IDENTIFIER
+
+    return resource_id, details
+
 
 def _validate_university_email(value: str) -> str:
     normalized_email = value.strip().lower()
@@ -227,10 +280,25 @@ def create_student(
             student=new_student,
             actor_user_id=current_admin.user_id,
         )
+        record_admin_action(
+            db,
+            actor_user_id=current_admin.user_id,
+            action_type="user_created",
+            resource_type="user",
+            resource_id=new_student.user_id,
+            audit_data={
+                "role": "student",
+                "source": "admin_student_form",
+                "enrolled_from_pending": len(pending_result.enrolled_class_ids),
+                "setup_email": "queued_after_commit",
+            },
+        )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=400, detail="Student with this email or school ID already exists") from exc
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
     except Exception:
         db.rollback()
         raise
@@ -307,10 +375,21 @@ def create_guest(
     )
     try:
         db.add(new_guest)
+        db.flush()
+        record_admin_action(
+            db,
+            actor_user_id=current_admin.user_id,
+            action_type="user_created",
+            resource_type="user",
+            resource_id=new_guest.user_id,
+            audit_data={"role": "student", "source": "admin_guest_form", "guest": True},
+        )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Guest with this email already exists") from exc
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
     db.refresh(new_guest)
     return new_guest
 
@@ -336,10 +415,22 @@ def create_instructor(
     )
     try:
         db.add(new_instructor)
+        db.flush()
+        record_admin_action(
+            db,
+            actor_user_id=current_admin.user_id,
+            action_type="user_created",
+            resource_type="user",
+            resource_id=new_instructor.user_id,
+            # The welcome email is only queued here; its delivery is not audited.
+            audit_data={"role": "instructor", "source": "admin_instructor_form", "setup_email": "queued_after_commit"},
+        )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="User already exists") from exc
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
     db.refresh(new_instructor)
     background_tasks.add_task(
         send_provisioning_email,
@@ -373,12 +464,32 @@ def toggle_user_status(
     current_admin: User = Depends(get_current_admin),
 ):
     if user_id == current_admin.user_id:
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_status_changed",
+            resource_type="user", resource_id=user_id, outcome="denied", reason="own_account",
+        )
         raise HTTPException(status_code=400, detail="Cannot modify own admin account status")
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_status_changed",
+            resource_type="user", resource_id=user_id, reason="not_found",
+        )
         raise HTTPException(status_code=404, detail="User not found")
-    user.is_active = not user.is_active
-    db.commit()
+    previous = bool(user.is_active)
+    try:
+        user.is_active = not previous
+        record_admin_action(
+            db,
+            actor_user_id=current_admin.user_id,
+            action_type="user_status_changed",
+            resource_type="user",
+            resource_id=user.user_id,
+            audit_data={"role": user.role, "previous_is_active": previous, "is_active": not previous},
+        )
+        db.commit()
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
     return {"message": "Status updated", "is_active": user.is_active}
 
 @router.patch("/users/{user_id}", response_model=AccountUpdateResponse)
@@ -397,10 +508,19 @@ def update_user_account(
     """
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_updated",
+            resource_type="user", resource_id=user_id, reason="not_found",
+        )
         raise HTTPException(status_code=404, detail="User not found")
-    if user.role == "admin":
-        raise HTTPException(status_code=403, detail="Administrator accounts can't be edited here.")
-    if is_self_service_guest(user):
+    if user.role == "admin" or is_self_service_guest(user):
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_updated",
+            resource_type="user", resource_id=user_id, outcome="denied",
+            reason="admin_account" if user.role == "admin" else "guest_account",
+        )
+        if user.role == "admin":
+            raise HTTPException(status_code=403, detail="Administrator accounts can't be edited here.")
         raise HTTPException(status_code=403, detail="Guest accounts can't be edited.")
 
     changed_fields: list[str] = []
@@ -416,6 +536,13 @@ def update_user_account(
             .first()
         )
         if email_in_use:
+            # Discard a pending name change: the failure record's own commit
+            # must not save it.
+            db.rollback()
+            record_admin_failure(
+                db, actor_user_id=current_admin.user_id, action_type="user_updated",
+                resource_type="user", resource_id=user_id, reason="email_in_use",
+            )
             raise HTTPException(status_code=409, detail="Another account already uses this email.")
         user.email = request.email
         changed_fields.append("email")
@@ -434,10 +561,26 @@ def update_user_account(
                 student=user,
                 actor_user_id=current_admin.user_id,
             )
+        if changed_fields:
+            # Which fields changed, never their old or new values.
+            record_admin_action(
+                db,
+                actor_user_id=current_admin.user_id,
+                action_type="user_updated",
+                resource_type="user",
+                resource_id=user.user_id,
+                audit_data={
+                    "role": user.role,
+                    "changed_fields": changed_fields,
+                    "enrolled_from_pending": len(pending_result.enrolled_class_ids) if pending_result else 0,
+                },
+            )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Another account already uses this email.") from exc
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
     except Exception:
         db.rollback()
         raise
@@ -455,21 +598,47 @@ def delete_user(
     current_admin: User = Depends(get_current_admin),
 ):
     if user_id == current_admin.user_id:
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_deleted",
+            resource_type="user", resource_id=user_id, outcome="denied", reason="own_account",
+        )
         raise HTTPException(status_code=400, detail="Cannot delete own admin account")
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_deleted",
+            resource_type="user", resource_id=user_id, reason="not_found",
+        )
         raise HTTPException(status_code=404, detail="User not found")
+    # The record keeps the internal id (resource_id) and the role only; the
+    # deleted account's email and school ID are deliberately not retained.
+    target_role = user.role
     try:
+        record_admin_action(
+            db,
+            actor_user_id=current_admin.user_id,
+            action_type="user_deleted",
+            resource_type="user",
+            resource_id=user.user_id,
+            audit_data={"role": target_role, "was_active": bool(user.is_active)},
+        )
         db.delete(user)
         db.commit()
     except IntegrityError as exc:
         # Classrooms, submissions, grades and audit records reference the
         # account and are kept (RESTRICT). Such accounts are deactivated.
         db.rollback()
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_deleted",
+            resource_type="user", resource_id=user_id, reason="has_dependent_records",
+            audit_data={"role": target_role},
+        )
         raise HTTPException(
             status_code=409,
             detail="This account has academic or audit records and cannot be deleted. Deactivate it instead.",
         ) from exc
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
     return {"message": "User deleted"}
 
 @router.patch("/users/{user_id}/password")
@@ -481,10 +650,27 @@ def reset_user_password(
 ):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="user_password_reset",
+            resource_type="user", resource_id=user_id, reason="not_found",
+        )
         raise HTTPException(status_code=404, detail="User not found")
-    user.password_hash = get_password_hash(request.new_password)
-    user.password_version += 1
-    db.commit()
+    try:
+        user.password_hash = get_password_hash(request.new_password)
+        user.password_version += 1
+        # Never the password or its hash: only the new version number, which
+        # also invalidates every session issued before the reset.
+        record_admin_action(
+            db,
+            actor_user_id=current_admin.user_id,
+            action_type="user_password_reset",
+            resource_type="user",
+            resource_id=user.user_id,
+            audit_data={"role": user.role, "password_version": user.password_version},
+        )
+        db.commit()
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
     return {"message": "Password reset successfully"}
 
 @router.get("/audit-logs")
@@ -494,25 +680,62 @@ def get_global_audit_logs(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
+    # audit_id breaks ties: records written in one transaction share
+    # occurred_at on PostgreSQL (now() is the transaction start time).
     logs = db.query(AuditRecord, User.name, User.role).join(
         User, AuditRecord.actor_user_id == User.user_id, isouter=True
-    ).order_by(AuditRecord.occurred_at.desc()).offset(skip).limit(limit).all()
+    ).order_by(AuditRecord.occurred_at.desc(), AuditRecord.audit_id.desc()).offset(skip).limit(limit).all()
 
-    return [_audit_log_row(log, name, role) for log, name, role in logs]
+    targets = _audit_targets(db, [log for log, _, _ in logs])
+    return [_audit_log_row(log, name, role, targets=targets) for log, name, role in logs]
 
 
 AUDIT_ACTION_TYPES = list(get_args(AuditActionType))
 
 
-def _audit_log_row(log: AuditRecord, name: str | None, role: str | None, email: str | None = None) -> dict:
+def _audit_targets(db: Session, logs: list[AuditRecord]) -> dict[int, tuple[str, str]]:
+    """Name and role of the accounts the records are about, by user id."""
+
+    target_ids = {target_id for log in logs if (target_id := _target_user_id(log)) is not None}
+    if not target_ids:
+        return {}
+    return {
+        user_id: (target_name, target_role)
+        for user_id, target_name, target_role in db.query(User.user_id, User.name, User.role).filter(
+            User.user_id.in_(target_ids)
+        )
+    }
+
+
+def _audit_log_row(
+    log: AuditRecord,
+    name: str | None,
+    role: str | None,
+    email: str | None = None,
+    *,
+    targets: dict[int, tuple[str, str]],
+) -> dict:
+    # The target is identified by the stored resource_id, so a deleted
+    # account still shows its id (target_exists is then False).
+    target_user_id = _target_user_id(log)
+    target = targets.get(target_user_id) if target_user_id is not None else None
+    resource_id, details = _displayed_resource_id_and_details(log)
     row = {
         "log_id": log.audit_id,
         "action_type": log.action_type,
         "resource_type": log.resource_type,
+        "resource_id": resource_id,
         "occurred_at": log.occurred_at,
         "status": log.outcome,
         "actor_name": name if name else "System",
         "actor_role": role if role else "system",
+        "target_user_id": target_user_id,
+        "target_exists": (target is not None) if target_user_id is not None else None,
+        "target_name": target[0] if target else None,
+        "target_role": target[1] if target else None,
+        # Privacy-validated when the record was written; stored login
+        # identifiers are masked by _displayed_resource_id_and_details.
+        "details": details,
     }
     if email is not None:
         row["actor_email"] = email
@@ -578,8 +801,9 @@ def search_audit_logs(
         .all()
     )
 
+    targets = _audit_targets(db, [log for log, _, _, _ in rows])
     return {
-        "items": [_audit_log_row(log, name, role, email or "") for log, name, role, email in rows],
+        "items": [_audit_log_row(log, name, role, email or "", targets=targets) for log, name, role, email in rows],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -603,6 +827,8 @@ async def bulk_register_students_file(
     # Read one byte past the limit so an oversized file is rejected without
     # buffering all of it; parsing and database work run off the event loop.
     content = await file.read(MAX_MASTERLIST_BYTES + 1)
+    import_id = str(uuid4())
+    failure_data = {"file_type": masterlist_file_type(file.filename)}
     try:
         result, new_users = await run_in_threadpool(
             import_masterlist,
@@ -610,11 +836,24 @@ async def bulk_register_students_file(
             content=content,
             filename=file.filename,
             actor_user_id=current_admin.user_id,
+            import_id=import_id,
         )
     except MasterlistFileError as exc:
+        await run_in_threadpool(
+            record_admin_failure, db, actor_user_id=current_admin.user_id, action_type="masterlist_imported",
+            resource_type="masterlist_import", resource_id=import_id, reason="invalid_file", audit_data=failure_data,
+        )
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except MasterlistConflictError as exc:
+        await run_in_threadpool(
+            record_admin_failure, db, actor_user_id=current_admin.user_id, action_type="masterlist_imported",
+            resource_type="masterlist_import", resource_id=import_id, reason="database_conflict", audit_data=failure_data,
+        )
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AdminAuditError as exc:
+        # import_masterlist already rolled back: no account was created.
+        logger.error("Masterlist import rolled back: %s", exc)
+        raise HTTPException(status_code=503, detail=AUDIT_UNAVAILABLE_DETAIL) from exc
 
     # Only committed accounts are notified, and no credential is included:
     # masterlist accounts have no password until the student sets one.
@@ -643,8 +882,38 @@ def update_settings(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    set_system_setting(db, "maintenance_mode", request.maintenance_mode)
-    set_system_setting(db, "default_ast_strictness", request.default_ast_strictness)
-    set_system_setting(db, "registration_enabled", request.registration_enabled)
+    requested = request.model_dump()
+    try:
+        current = read_stored_system_settings(db)
+        changes = {
+            key: {"from": current.get(key), "to": value}
+            for key, value in requested.items()
+            if current.get(key) != value
+        }
+        # All keys and the audit record are committed together, so a failure
+        # leaves every setting as it was instead of a partial update.
+        for key, value in requested.items():
+            set_system_setting(db, key, value, commit=False)
+        if changes:
+            record_admin_action(
+                db,
+                actor_user_id=current_admin.user_id,
+                action_type="system_settings_updated",
+                resource_type="system_setting",
+                resource_id="global",
+                audit_data={"changes": changes},
+            )
+        db.commit()
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.error("Settings update rolled back (%s).", safe_error_summary(exc))
+        record_admin_failure(
+            db, actor_user_id=current_admin.user_id, action_type="system_settings_updated",
+            resource_type="system_setting", resource_id="global", reason="database_error",
+            audit_data={"requested_keys": sorted(requested)},
+        )
+        raise HTTPException(status_code=503, detail="The settings could not be saved. Nothing was changed.") from exc
     return get_all_system_settings(db)
 

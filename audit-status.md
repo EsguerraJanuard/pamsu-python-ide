@@ -2310,3 +2310,34 @@ _Checked against `dev` @ `bb11f66`. From today, follow-up work is pushed straigh
 | 7 | AI Tutor: enable billing on the Gemini project; record the approved fallback in AGENTS.md | Errol |
 | 8 | Optional UI: "show guests" toggle (Students directory), "Re-apply pending enrollments" action, MIS editing a school ID, admin dark mode (not approved), rebuilding `PracticeModuleManager.jsx`/`ActivityEditor.jsx` on `PageShell` | Errol's choice |
 | 9 | `ClassroomResponse` requires `section`, but the column is nullable: a classroom created outside the API would make `GET /classrooms/mine` return 500 | Small fix; low risk today, since the API always sets it |
+
+## Admin action auditing: PR #30 ported onto `dev` (2026-10-22)
+
+_"Still open" item 1 of the previous section. Errol approved the migration on 2026-10-22 and asked for a direct push to `dev` (no PR). PR #30 (`ce86db6`, Draft) was written against `00d5971`; `dev` has since changed `admin.py` a lot (account editing, audit search, provisioning email), so it was ported by hand rather than merged._
+
+### What it does
+- **Every admin change writes an audit record in the same transaction.** If the record can't be written, the change is rolled back and the admin gets 503 ("not saved because it could not be recorded"). Refused or failed attempts (own account, not found, email in use, dependent records, invalid file) get a separate `denied`/`failed` record.
+- **Audited:** account creation (student form, guest, faculty, each masterlist row), **account edits (new: `user_updated`, which records which fields changed, never the values)**, activation/deactivation, password reset (only the new `password_version`), deletion, system settings (changed keys with from/to), and one `masterlist_imported` summary per upload (counts only).
+- **Metadata privacy:** credential-like keys (`newPassword`, `reset_code`, `api_key`…) and values (bcrypt hashes, JWTs) are rejected by pattern.
+- **Audit log API:** both `/admin/audit-logs` and `/admin/audit-logs/search` now add `resource_id`, `target_user_id`, `target_exists`, `target_name`, `target_role` and `details`. Old fields are unchanged. Stored login identifiers from failed sign-ins are masked unless they are well-formed university emails.
+- **Dashboard:** the audit table shows the affected account under "Resource" (or "Deleted account #id"). With an older backend nothing changes.
+
+### Migration `61330560eec5`
+- **Re-pointed onto `5e8a1c7d9b42`** (the production revision) and extended with `user_updated`. Single head: `61330560eec5`.
+- Widens `ck_audit_records_action_type` (+7) and `ck_audit_records_resource_type` (+`system_setting`, `masterlist_import`). No row is changed; one transaction, `lock_timeout` 10 s. Downgrade refuses once any row uses a new type.
+- **Runs on production at Errol's next Render deploy** (`start.sh` → `alembic upgrade head`). There is no backup, but the change only widens two constraints; if it fails, PostgreSQL rolls the whole migration back.
+
+### Tests
+| Run | Result |
+|---|---|
+| Full backend suite, SQLite (`DATABASE_URL`, `PAMSU_TEST_DATABASE_URL`, `REDIS_URL` unset) | **1055 passed, 8 skipped** (the PostgreSQL-only suites) |
+| New: `user_updated` records, refusals, rollback (4 tests) | Pass |
+| `test_admin_account_edit_and_audit_search.py` | Updated for the intended contract: 27 action types, a really unknown type for the 422 check, old row fields kept plus target fields |
+| `test_masterlist_import.py`, #30's setup-email test | Now decodes the MIME parts (the 2026-10-21 template encodes them) |
+| **PostgreSQL** | **Not run here** (no PostgreSQL on Errol's machine). The same migration passed on PostgreSQL 18.4 when #30 was written (10/10); only its parent revision and one value changed |
+| Frontend `npm run lint` / `npm run build` | Pass |
+
+### Next
+1. **Errol:** Render manual deploy. In the log, look for `Running upgrade 5e8a1c7d9b42 -> 61330560eec5`. Then edit a test account and check the Audit tab shows "User updated" with the account's name.
+2. Item 2 (practice submit waits on Judge0) is unblocked: its migration chains after `61330560eec5`.
+3. PR #30 can be closed as superseded.

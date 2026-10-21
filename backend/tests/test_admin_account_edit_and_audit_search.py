@@ -227,7 +227,9 @@ def test_search_pages_newest_first_with_a_total(client, people, records):
     ]
     assert [i["actor_name"] for i in second["items"]] == ["Juan Dela Crus"]
     assert beyond["items"] == [] and beyond["total"] == 6
-    assert "login_failed" in first["action_types"] and len(first["action_types"]) == 20
+    # 20 baseline types plus the 7 admin action types (migration 61330560eec5).
+    assert "login_failed" in first["action_types"] and len(first["action_types"]) == 27
+    assert {"user_created", "user_updated", "user_deleted", "system_settings_updated"} <= set(first["action_types"])
     assert first["items"][0]["actor_email"] == f"mis{DOMAIN}"
 
 
@@ -274,7 +276,7 @@ def test_search_rejects_bad_parameters_and_non_admins(client, people, records):
     admin = auth(people["admin"])
     now = datetime.now(timezone.utc)
     bad = [
-        {"action_type": "user_deleted"},
+        {"action_type": "user_teleported"},
         {"outcome": "maybe"},
         {"actor_role": "guest"},
         {"page": 0},
@@ -295,4 +297,8 @@ def test_original_audit_list_keeps_its_shape(client, people, records):
     assert response.status_code == 200
     body = response.json()
     assert isinstance(body, list) and len(body) == 2
-    assert set(body[0]) == {"log_id", "action_type", "resource_type", "occurred_at", "status", "actor_name", "actor_role"}
+    # Every original field is still there; the target fields are additions.
+    assert set(body[0]) >= {"log_id", "action_type", "resource_type", "occurred_at", "status", "actor_name", "actor_role"}
+    assert set(body[0]) - {"log_id", "action_type", "resource_type", "occurred_at", "status", "actor_name",
+                           "actor_role"} == {"resource_id", "target_user_id", "target_exists", "target_name",
+                                             "target_role", "details"}

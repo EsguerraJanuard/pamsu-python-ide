@@ -25,8 +25,12 @@ def get_system_setting(db: Session, key: str, default: Any = None) -> Any:
     return DEFAULT_SYSTEM_SETTINGS.get(key, default)
 
 
-def set_system_setting(db: Session, key: str, value: Any) -> None:
-    """Persist a system setting to the database."""
+def set_system_setting(db: Session, key: str, value: Any, *, commit: bool = True) -> None:
+    """Persist a system setting to the database.
+
+    With commit=False the change is only flushed, so several settings (and
+    their audit record) can be committed together by the caller.
+    """
     val_str = str(value).lower() if isinstance(value, bool) else str(value)
     setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
     if setting:
@@ -34,7 +38,19 @@ def set_system_setting(db: Session, key: str, value: Any) -> None:
     else:
         setting = SystemSetting(key=key, value=val_str)
         db.add(setting)
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
+
+
+def read_stored_system_settings(db: Session) -> dict[str, Any]:
+    """Current values (stored or default) without swallowing database errors."""
+    values = dict(DEFAULT_SYSTEM_SETTINGS)
+    for setting in db.query(SystemSetting).all():
+        lowered = setting.value.lower()
+        values[setting.key] = True if lowered in ("true", "1") else False if lowered in ("false", "0") else setting.value
+    return values
 
 
 def get_all_system_settings(db: Session) -> dict[str, Any]:

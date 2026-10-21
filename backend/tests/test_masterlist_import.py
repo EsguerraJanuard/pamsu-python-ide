@@ -6,6 +6,7 @@ the file. Nothing is inferred, no password is shared or emailed, and a
 database conflict creates nothing.
 """
 
+import email
 import io
 
 import pytest
@@ -13,8 +14,10 @@ from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, get_password_hash, verify_password
+from app.integrations.otp_delivery import get_otp_delivery_adapter
+from app.main import app
 from app.models.domain_models import Classroom, Enrollment, PendingEnrollment, User
-from app.services import student_provisioning_service
+from app.services import email_service, student_provisioning_service
 from app.services.student_provisioning_service import (MAX_MASTERLIST_ROWS,
                                                       UNUSABLE_PASSWORD_PREFIX)
 
@@ -172,6 +175,10 @@ def test_duplicates_inside_the_file_all_fail(client, db_session, admin, sent_ema
 
     body = response.json()
     assert (body["created"], body["failed"]) == (0, 4)
+    reasons = [row["reason"] for row in body["rows"]]
+    # Each reason names the rows that share the value, so MIS can fix the file.
+    assert reasons[0] == reasons[1] == "The same school ID appears on rows 2, 3."
+    assert reasons[2] == reasons[3] == "The same email appears on rows 4, 5."
     assert students(db_session) == []
 
 
@@ -338,3 +345,82 @@ def test_unauthenticated_import_is_rejected(client):
     response = client.post(URL, files={"file": ("m.csv", csv_bytes(f"one{DOMAIN},2023000001,One"), "text/csv")})
 
     assert response.status_code == 401
+
+
+# Ported from the preserved 2026-10-17 originals
+# (docs/remediation/preserved-untracked-2026-10-18/test_masterlist_import.py).
+
+
+def test_rendered_setup_email_contains_no_credential(monkeypatch):
+    captured = {}
+
+    class FakeSMTP:
+        # Accepts the timeout and any other keyword the sender passes.
+        def __init__(self, host, port, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def starttls(self, *args, **kwargs):
+            pass
+
+        def login(self, user, password):
+            pass
+
+        def sendmail(self, sender, recipient, message):
+            captured["message"] = message
+
+    monkeypatch.setattr(
+        email_service,
+        "get_smtp_config",
+        lambda: {"host": "smtp.test", "port": 587, "user": "u", "password": "p",
+                 "sender_name": "PAMSU", "sender_email": "noreply@pampangastateu.edu.ph"},
+    )
+    monkeypatch.setattr(email_service.smtplib, "SMTP", FakeSMTP)
+
+    email_service.send_provisioning_email(f"nina{DOMAIN}", "Nina", None, "Student")
+
+    # The message is MIME with encoded parts: check the decoded text of each.
+    texts = [
+        part.get_payload(decode=True).decode("utf-8")
+        for part in email.message_from_string(captured["message"]).walk()
+        if part.get_content_maintype() == "text"
+    ]
+    assert texts
+    for text in texts:
+        assert "PamsU@2026" not in text
+        assert "Not issued. You will set your own password." in text
+        assert "/forgot-password" in text
+
+
+def test_student_sets_password_through_reset_code_then_signs_in(client, db_session, admin, sent_emails):
+    class RecordingAdapter:
+        def __init__(self):
+            self.codes = []
+
+        def send_otp(self, *, recipient_email, otp_code, purpose, expires_in_seconds):
+            self.codes.append((recipient_email, otp_code, purpose))
+
+    adapter = RecordingAdapter()
+    app.dependency_overrides[get_otp_delivery_adapter] = lambda: adapter
+    email = f"omar{DOMAIN}"
+    upload(client, admin, csv_bytes(f"{email},2026000113,Omar Diaz"))
+
+    started = client.post("/users/password-reset/start", json={"email": email})
+    assert started.status_code == 201
+    ((recipient, code, purpose),) = adapter.codes
+    assert (recipient, purpose) == (email, "password_reset")
+
+    completed = client.post(
+        "/users/password-reset/complete",
+        json={"challenge_id": started.json()["challenge_id"], "otp_code": code, "new_password": "Chosen#Pass2026"},
+    )
+    assert completed.status_code == 200
+
+    login = client.post("/login", data={"username": email, "password": "Chosen#Pass2026"})
+    assert login.status_code == 200
+    assert login.json()["user"]["school_id"] == "2026000113"

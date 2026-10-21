@@ -621,6 +621,15 @@ function AuditTable({ logs }) {
               <td className="px-5 py-3.5 font-medium text-text-main">{humanize(log.action_type)}</td>
               <td className="px-5 py-3.5">
                 <span className="rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 text-xs font-medium text-text-muted">{humanize(log.resource_type)}</span>
+                {/* The affected account; older backends don't send target fields. */}
+                {log.target_name ? (
+                  <p className="mt-1 truncate text-xs text-text-main">
+                    {log.target_name}
+                    {log.target_role ? <span className="text-text-muted"> · {humanize(log.target_role)}</span> : null}
+                  </p>
+                ) : log.target_exists === false ? (
+                  <p className="mt-1 text-xs text-text-muted">Deleted account #{log.target_user_id}</p>
+                ) : null}
               </td>
               <td className="px-5 py-3.5 text-right">
                 <OutcomePill status={log.status} />

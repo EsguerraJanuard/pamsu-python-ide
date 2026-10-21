@@ -116,10 +116,14 @@ class User(Base):
         back_populates="instructor",
         foreign_keys="InstructorGrade.instructor_id",
     )
+    # Immutable history: passive_deletes="all" stops the ORM from setting the
+    # nullable actor_user_id to NULL when a user is deleted, so the database's
+    # ON DELETE RESTRICT applies and the delete is refused instead.
     academic_events_created = relationship(
         "AcademicEvent",
         back_populates="actor",
         foreign_keys="AcademicEvent.actor_user_id",
+        passive_deletes="all",
     )
     notifications_received = relationship(
         "Notification",
@@ -130,6 +134,7 @@ class User(Base):
         "AuditRecord",
         back_populates="actor",
         foreign_keys="AuditRecord.actor_user_id",
+        passive_deletes="all",
     )
 
     def __init__(self, **kwargs):
@@ -1867,7 +1872,15 @@ class AuditRecord(Base):
             "'grade_updated', "
             "'grade_released', "
             "'notification_marked_read', "
-            "'notifications_marked_read'"
+            "'notifications_marked_read', "
+            # Admin actions (migration 61330560eec5).
+            "'user_created', "
+            "'user_updated', "
+            "'user_status_changed', "
+            "'user_password_reset', "
+            "'user_deleted', "
+            "'system_settings_updated', "
+            "'masterlist_imported'"
             ")",
             name="ck_audit_records_action_type",
         ),
@@ -1879,7 +1892,9 @@ class AuditRecord(Base):
             "'task', "
             "'submission', "
             "'grade', "
-            "'notification'"
+            "'notification', "
+            "'system_setting', "
+            "'masterlist_import'"
             ")",
             name="ck_audit_records_resource_type",
         ),
