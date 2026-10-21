@@ -19,10 +19,12 @@ from app.core.redis_client import redis_client
 logger = logging.getLogger(__name__)
 
 HINT_TTL_SECONDS = 24 * 60 * 60
-# A failed generation is kept briefly, so asking again soon retries Gemini.
-UNAVAILABLE_TTL_SECONDS = 60
-# Longer than one Gemini call (ai_tutor_service.REQUEST_TIMEOUT_MS).
-GENERATION_LOCK_SECONDS = 60
+# A failed generation is remembered this long: polls stop and the student
+# may ask again (practice router, retry=true).
+FAILURE_TTL_SECONDS = 60
+# Longer than every Gemini attempt and the waits between them
+# (ai_tutor_service.worst_case_generation_seconds()).
+GENERATION_LOCK_SECONDS = 90
 
 # Used only while Redis is unreachable. Hints are a few hundred bytes and
 # the rate limit bounds how many are made, so a small cap is enough.
@@ -33,31 +35,60 @@ def _hint_key(attempt_id: int) -> str:
     return f"practice_ai_hint:{attempt_id}"
 
 
+def _failure_key(attempt_id: int) -> str:
+    return f"practice_ai_hint_failed:{attempt_id}"
+
+
 def _lock_key(attempt_id: int) -> str:
     return f"ai_hint_generating:{attempt_id}"
 
 
-def get_hint(attempt_id: int) -> str | None:
-    key = _hint_key(attempt_id)
-
+def _get(key: str) -> str | None:
     try:
-        hint = redis_client.get(key)
+        value = redis_client.get(key)
     except Exception:
         logger.warning("AI hint store: Redis unavailable; reading from memory.")
-        hint = None
+        value = None
 
-    # A hint saved while Redis was down exists only in memory.
-    return hint or memory_store.get(key)
+    # A value saved while Redis was down exists only in memory.
+    return value or memory_store.get(key)
 
 
-def save_hint(attempt_id: int, hint: str, *, ttl_seconds: int = HINT_TTL_SECONDS) -> None:
-    key = _hint_key(attempt_id)
+def _put(key: str, value: str, ttl_seconds: int) -> None:
+    try:
+        redis_client.set(key, value, ex=ttl_seconds)
+    except Exception:
+        logger.warning("AI hint store: Redis unavailable; keeping the value in memory.")
+        memory_store.put(key, value, ttl_seconds)
+
+
+def _delete(key: str) -> None:
+    memory_store.discard(key)
 
     try:
-        redis_client.set(key, hint, ex=ttl_seconds)
+        redis_client.delete(key)
     except Exception:
-        logger.warning("AI hint store: Redis unavailable; keeping the hint in memory.")
-        memory_store.put(key, hint, ttl_seconds)
+        logger.warning("AI hint store: Redis unavailable; the key will expire on its own.")
+
+
+def get_hint(attempt_id: int) -> str | None:
+    return _get(_hint_key(attempt_id))
+
+
+def save_hint(attempt_id: int, hint: str) -> None:
+    _put(_hint_key(attempt_id), hint, HINT_TTL_SECONDS)
+
+
+def generation_failed(attempt_id: int) -> bool:
+    return _get(_failure_key(attempt_id)) is not None
+
+
+def save_failure(attempt_id: int) -> None:
+    _put(_failure_key(attempt_id), "1", FAILURE_TTL_SECONDS)
+
+
+def clear_failure(attempt_id: int) -> None:
+    _delete(_failure_key(attempt_id))
 
 
 def claim_generation(attempt_id: int) -> bool:
@@ -75,11 +106,4 @@ def claim_generation(attempt_id: int) -> bool:
 
 
 def release_generation(attempt_id: int) -> None:
-    key = _lock_key(attempt_id)
-    memory_store.discard(key)
-
-    try:
-        redis_client.delete(key)
-    except Exception:
-        # The lock expires on its own after GENERATION_LOCK_SECONDS.
-        logger.warning("AI hint lock: Redis unavailable; could not release it early.")
+    _delete(_lock_key(attempt_id))

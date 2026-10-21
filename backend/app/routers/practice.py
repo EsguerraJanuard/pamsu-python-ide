@@ -516,13 +516,10 @@ def _generate_hint_bg(attempt_id: int, task_instructions: str, student_code: str
         if hint:
             practice_hint_store.save_hint(attempt_id, hint)
         else:
-            practice_hint_store.save_hint(
-                attempt_id,
-                TUTOR_UNAVAILABLE_MESSAGE,
-                ttl_seconds=practice_hint_store.UNAVAILABLE_TTL_SECONDS,
-            )
+            practice_hint_store.save_failure(attempt_id)
     except Exception:
         logger.exception("AI hint generation failed for practice attempt %s.", attempt_id)
+        practice_hint_store.save_failure(attempt_id)
     finally:
         practice_hint_store.release_generation(attempt_id)
 
@@ -538,6 +535,9 @@ def _generate_hint_bg(attempt_id: int, task_instructions: str, student_code: str
 def get_ai_hint(
     attempt_id: int,
     background_tasks: BackgroundTasks,
+    # After a failed generation the client sends retry=true to try again;
+    # plain polls get the "unavailable" answer until it expires.
+    retry: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_student)
 ):
@@ -552,6 +552,12 @@ def get_ai_hint(
     if hint:
         return PracticeAiHintResponse(ai_hint=hint, status="completed")
 
+    failed = practice_hint_store.generation_failed(attempt_id)
+    if failed and not retry:
+        # "completed" keeps clients that predate `unavailable` from polling
+        # (and starting a new generation) in a loop.
+        return PracticeAiHintResponse(ai_hint=TUTOR_UNAVAILABLE_MESSAGE, status="completed", unavailable=True)
+
     # Only the first caller starts a generation; later polls wait for it.
     if not practice_hint_store.claim_generation(attempt_id):
         return PracticeAiHintResponse(ai_hint=None, status="processing")
@@ -561,6 +567,9 @@ def get_ai_hint(
     except HTTPException:
         practice_hint_store.release_generation(attempt_id)
         raise
+
+    if failed:
+        practice_hint_store.clear_failure(attempt_id)
 
     error_output = attempt.execution_feedback or "The output did not match the expected output."
     if attempt.ast_feedback:

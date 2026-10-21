@@ -20,9 +20,10 @@ const PRACTICE_SUBMIT_TIMEOUT_MS = 45000;
 
 // After a failed submission the server writes an AI Tutor hint in the
 // background and answers "processing" until it is ready. Poll at this pace
-// and give up after about 40 s (the server's Gemini call times out at 20 s).
+// and give up after about 80 s: the server retries Gemini when it is busy,
+// for at most 70 s (ai_tutor_service.worst_case_generation_seconds).
 const HINT_POLL_INTERVAL_MS = 2000;
-const HINT_MAX_POLLS = 20;
+const HINT_MAX_POLLS = 40;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -85,7 +86,7 @@ function PracticeTask({ taskId }) {
   const [feedback, setFeedback] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [pasteNotice, setPasteNotice] = useState(false);
-  // null | { status: "loading" } | { status: "ready", hint } | { status: "error", message, attemptId }
+  // null | { status: "loading" } | { status: "ready", hint } | { status: "error", message, attemptId, retry? }
   const [tutor, setTutor] = useState(null);
   // Bumped for every submission, so polling for an older attempt stops.
   const hintRun = useRef(0);
@@ -128,7 +129,8 @@ function PracticeTask({ taskId }) {
     setPasteNotice(true);
   };
 
-  const fetchHint = useCallback(async (attemptId) => {
+  // retry: ask the server to start over after it reported `unavailable`.
+  const fetchHint = useCallback(async (attemptId, { retry = false } = {}) => {
     const run = ++hintRun.current;
     const isCurrent = () => isMounted.current && hintRun.current === run;
     setTutor({ status: "loading" });
@@ -136,8 +138,13 @@ function PracticeTask({ taskId }) {
       for (let poll = 0; poll <= HINT_MAX_POLLS; poll += 1) {
         if (poll > 0) await wait(HINT_POLL_INTERVAL_MS);
         if (!isCurrent()) return;
-        const result = await api.post(`/practice/attempts/${attemptId}/ai-hint`);
+        const query = retry && poll === 0 ? "?retry=true" : "";
+        const result = await api.post(`/practice/attempts/${attemptId}/ai-hint${query}`);
         if (!isCurrent()) return;
+        if (result?.unavailable) {
+          setTutor({ status: "error", attemptId, retry: true, message: "The AI Tutor is busy right now. Try again in a moment." });
+          return;
+        }
         if (result?.status === "completed" && result.ai_hint) {
           setTutor({ status: "ready", hint: result.ai_hint });
           return;
@@ -355,7 +362,7 @@ function PracticeTask({ taskId }) {
                 {tutor.status === "error" && (
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-text-muted">
                     <span>{tutor.message}</span>
-                    <button type="button" onClick={() => fetchHint(tutor.attemptId)} className="font-semibold text-text-brand hover:underline">
+                    <button type="button" onClick={() => fetchHint(tutor.attemptId, { retry: tutor.retry })} className="font-semibold text-text-brand hover:underline">
                       Try again
                     </button>
                   </div>

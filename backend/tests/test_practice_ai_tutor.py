@@ -189,11 +189,11 @@ def test_hint_is_processing_then_completed(client, student, practice_task, faile
     # "processing" although the stub answers instantly: Gemini runs in a
     # background task, never while the response waits.
     assert first.status_code == 200, first.text
-    assert first.json() == {"ai_hint": None, "status": "processing"}
+    assert first.json() == {"ai_hint": None, "status": "processing", "unavailable": False}
 
     second = ask_for_hint(client, student, failed_attempt.attempt_id)
 
-    assert second.json() == {"ai_hint": HINT, "status": "completed"}
+    assert second.json() == {"ai_hint": HINT, "status": "completed", "unavailable": False}
     assert gemini.calls == [{
         "task_instructions": practice_task.instructions,
         "student_code": BROKEN_CODE,
@@ -211,7 +211,7 @@ def test_polls_during_a_generation_do_not_start_another(client, student, failed_
 
     response = ask_for_hint(client, student, failed_attempt.attempt_id)
 
-    assert response.json() == {"ai_hint": None, "status": "processing"}
+    assert response.json() == {"ai_hint": None, "status": "processing", "unavailable": False}
     assert gemini.calls == []
 
 
@@ -229,22 +229,68 @@ def test_structure_feedback_is_part_of_the_error_sent_to_gemini(client, db_sessi
     )
 
 
-def test_unavailable_tutor_is_shown_briefly_then_retried(client, student, failed_attempt, gemini, monkeypatch):
+UNAVAILABLE = {"ai_hint": ai_tutor_service.TUTOR_UNAVAILABLE_MESSAGE, "status": "completed", "unavailable": True}
+
+
+def test_a_failed_generation_is_reported_until_the_student_retries(client, student, failed_attempt, gemini):
+    gemini.reply = None  # Gemini still failing after its retries
+
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json()["status"] == "processing"
+    # "completed" so clients that predate `unavailable` stop polling.
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json() == UNAVAILABLE
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json() == UNAVAILABLE
+    assert len(gemini.calls) == 1  # plain polls never start another generation
+
+    gemini.reply = HINT
+    retried = client.post(f"/practice/attempts/{failed_attempt.attempt_id}/ai-hint?retry=true", headers=auth(student))
+
+    assert retried.json() == {"ai_hint": None, "status": "processing", "unavailable": False}
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json() == {
+        "ai_hint": HINT, "status": "completed", "unavailable": False,
+    }
+    assert len(gemini.calls) == 2
+
+
+def test_a_failure_is_forgotten_after_a_minute(client, student, failed_attempt, gemini, monkeypatch):
     clock = FakeClock()
     monkeypatch.setattr(practice_hint_store, "memory_store", ExpiringMemoryStore(clock=clock))
     gemini.reply = None
-
     ask_for_hint(client, student, failed_attempt.attempt_id)
-    response = ask_for_hint(client, student, failed_attempt.attempt_id)
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json() == UNAVAILABLE
 
-    assert response.json() == {"ai_hint": ai_tutor_service.TUTOR_UNAVAILABLE_MESSAGE, "status": "completed"}
-
-    clock.now += practice_hint_store.UNAVAILABLE_TTL_SECONDS + 1
+    clock.now += practice_hint_store.FAILURE_TTL_SECONDS + 1
     gemini.reply = HINT
 
     assert ask_for_hint(client, student, failed_attempt.attempt_id).json()["status"] == "processing"
-    assert ask_for_hint(client, student, failed_attempt.attempt_id).json() == {"ai_hint": HINT, "status": "completed"}
-    assert len(gemini.calls) == 2
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json()["ai_hint"] == HINT
+
+
+def test_retry_counts_against_the_hint_limit(client, db_session, student, practice_task, failed_attempt, gemini):
+    for _ in range(9):
+        ask_for_hint(client, student, make_attempt(db_session, student, practice_task).attempt_id)
+    gemini.reply = None
+    ask_for_hint(client, student, failed_attempt.attempt_id)  # the 10th generation fails
+
+    refused = client.post(f"/practice/attempts/{failed_attempt.attempt_id}/ai-hint?retry=true", headers=auth(student))
+
+    assert refused.status_code == 429
+    # Still reported as unavailable, so the student can retry later.
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json() == UNAVAILABLE
+
+
+def test_an_error_in_the_background_task_is_reported_as_unavailable(client, student, failed_attempt, monkeypatch):
+    def broken(**kwargs):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(practice_router, "generate_pedagogical_hint", broken)
+    ask_for_hint(client, student, failed_attempt.attempt_id)
+
+    assert ask_for_hint(client, student, failed_attempt.attempt_id).json() == UNAVAILABLE
+    assert practice_hint_store.claim_generation(failed_attempt.attempt_id) is True  # lock released
+
+
+def test_the_generation_lock_outlasts_every_gemini_retry():
+    assert practice_hint_store.GENERATION_LOCK_SECONDS > ai_tutor_service.worst_case_generation_seconds()
 
 
 # ------------------------------------------------------------ ownership
@@ -331,7 +377,7 @@ def test_with_redis_up_hints_are_kept_in_redis_for_a_day(client, student, failed
     response = ask_for_hint(client, student, failed_attempt.attempt_id)
 
     hint_key = f"practice_ai_hint:{failed_attempt.attempt_id}"
-    assert response.json() == {"ai_hint": HINT, "status": "completed"}
+    assert response.json() == {"ai_hint": HINT, "status": "completed", "unavailable": False}
     assert fake_redis.values == {hint_key: HINT}  # the generation lock was released
     assert fake_redis.ttls[hint_key] == 24 * 60 * 60
     assert len(practice_hint_store.memory_store) == 0
@@ -352,7 +398,7 @@ def test_with_redis_down_the_tutor_works_from_memory(client, student, failed_att
     response = ask_for_hint(client, student, failed_attempt.attempt_id)
 
     assert response.status_code == 200
-    assert response.json() == {"ai_hint": HINT, "status": "completed"}
+    assert response.json() == {"ai_hint": HINT, "status": "completed", "unavailable": False}
     assert practice_hint_store.memory_store.get(f"practice_ai_hint:{failed_attempt.attempt_id}") == HINT
     assert "Redis unavailable" in caplog.text
 
@@ -376,6 +422,13 @@ def test_a_hint_saved_while_redis_was_down_is_found_after_it_returns(monkeypatch
 # ------------------------------------------------------------ Gemini service
 
 
+class FakeAPIError(Exception):
+    def __init__(self, code, status):
+        super().__init__(f"{code} {status}")
+        self.code = code
+        self.status = status
+
+
 def install_fake_sdk(monkeypatch, *, text="  A hint.  ", error=None):
     """Stand-in for the google-genai package; records how it was called."""
 
@@ -395,16 +448,21 @@ def install_fake_sdk(monkeypatch, *, text="  A hint.  ", error=None):
 
     types = ModuleType("google.genai.types")
     types.HttpOptions = lambda **kwargs: kwargs
+    types.HttpRetryOptions = lambda **kwargs: kwargs
     types.GenerateContentConfig = lambda **kwargs: kwargs
+    errors = ModuleType("google.genai.errors")
+    errors.APIError = FakeAPIError
     genai = ModuleType("google.genai")
     genai.Client = Client
     genai.types = types
+    genai.errors = errors
     google = ModuleType("google")
     google.genai = genai
 
     monkeypatch.setitem(sys.modules, "google", google)
     monkeypatch.setitem(sys.modules, "google.genai", genai)
     monkeypatch.setitem(sys.modules, "google.genai.types", types)
+    monkeypatch.setitem(sys.modules, "google.genai.errors", errors)
     monkeypatch.setenv("GEMINI_API_KEY", "test-only-not-a-real-key")
     return calls
 
@@ -420,7 +478,7 @@ def test_service_uses_gemini_3_8_flash_with_a_short_direct_prompt(monkeypatch):
 
     assert generate() == "A hint."
     assert calls["model"] == "models/gemini-3.8-flash"
-    assert calls["http_options"] == {"timeout": ai_tutor_service.REQUEST_TIMEOUT_MS}
+    assert calls["http_options"]["timeout"] == ai_tutor_service.REQUEST_TIMEOUT_MS
 
     instruction = calls["config"]["system_instruction"]
     assert not instruction.lower().startswith("you are")
@@ -434,7 +492,23 @@ def test_service_uses_gemini_3_8_flash_with_a_short_direct_prompt(monkeypatch):
     assert "<task>\nPrint `ok`.\n</task>" in calls["contents"]
 
 
-@pytest.mark.parametrize("kwargs", [{"error": RuntimeError("quota exceeded")}, {"text": ""}, {"text": None}])
+def test_service_retries_busy_and_failing_gemini_answers(monkeypatch):
+    calls = install_fake_sdk(monkeypatch)
+
+    generate()
+
+    retry = calls["http_options"]["retry_options"]
+    assert retry["attempts"] == ai_tutor_service.RETRY_ATTEMPTS > 1
+    assert {429, 500, 503, 504} <= set(retry["http_status_codes"])
+    assert retry["max_delay"] <= 10
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"error": FakeAPIError(503, "UNAVAILABLE")},
+    {"error": RuntimeError("unexpected")},
+    {"text": ""},
+    {"text": None},
+])
 def test_service_returns_none_when_gemini_fails(monkeypatch, kwargs):
     install_fake_sdk(monkeypatch, **kwargs)
 
@@ -454,3 +528,36 @@ def test_service_returns_none_without_the_sdk(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-only-not-a-real-key")
 
     assert generate() is None
+
+
+def test_the_real_sdk_retries_a_busy_model(monkeypatch):
+    """google-genai itself, with HTTP answered locally: 503, 503, then a hint."""
+
+    genai = pytest.importorskip("google.genai")
+    import time
+
+    requests = []
+
+    def answer(request):
+        requests.append(request.url.path)
+        if len(requests) < 3:
+            return httpx.Response(503, json={"error": {
+                "code": 503, "status": "UNAVAILABLE",
+                "message": "This model is currently experiencing high demand.",
+            }})
+        return httpx.Response(200, json={"candidates": [{"content": {"role": "model", "parts": [{"text": HINT}]}}]})
+
+    real_client = genai.Client
+
+    def local_client(*, api_key, http_options):
+        transport = httpx.Client(transport=httpx.MockTransport(answer))
+        return real_client(api_key=api_key, http_options=http_options.model_copy(update={"httpx_client": transport}))
+
+    waits = []
+    monkeypatch.setattr(genai, "Client", local_client)
+    monkeypatch.setattr(time, "sleep", waits.append)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-only-not-a-real-key")
+
+    assert generate() == HINT
+    assert requests == ["/v1beta/models/gemini-3.8-flash:generateContent"] * 3
+    assert len(waits) == 2
