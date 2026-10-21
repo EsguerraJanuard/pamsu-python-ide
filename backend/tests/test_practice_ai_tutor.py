@@ -19,6 +19,7 @@ import httpx
 import pytest
 from sqlalchemy.orm import Session
 
+from app.core import rate_limit
 from app.core.memory_fallback import ExpiringMemoryStore
 from app.core.security import create_access_token, get_password_hash
 from app.models.domain_models import PracticeAttempt, PracticeModule, PracticeTask, User
@@ -309,7 +310,13 @@ def test_hint_limit_is_per_student(client, db_session, student, other_student, p
     assert ask_for_hint(client, other_student, other_attempt.attempt_id).status_code == 200
 
 
-def test_polling_itself_is_limited_per_student(client, student, failed_attempt, gemini):
+def test_polling_itself_is_limited_per_student(client, student, failed_attempt, gemini, monkeypatch):
+    # Freeze the fallback counter's clock. With Redis unreachable, each request
+    # can take about a second on Windows (the connect timeout), so 61 real
+    # requests can outlast the 60-second window and the test would pass or
+    # fail depending on the machine's speed.
+    monkeypatch.setattr(rate_limit, "memory_counters", ExpiringMemoryStore(clock=lambda: 1_000.0))
+
     for _ in range(60):
         assert ask_for_hint(client, student, failed_attempt.attempt_id).status_code == 200
 

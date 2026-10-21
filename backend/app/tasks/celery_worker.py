@@ -1,8 +1,9 @@
 import logging
 import os
-import ssl
 
 from celery import Celery
+
+from app.core.redis_tls import redis_tls_options
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,8 @@ redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 if "?" in redis_url:
     redis_url = redis_url.split("?")[0]
 
-ssl_conf = {'ssl_cert_reqs': ssl.CERT_NONE} if redis_url.startswith('rediss://') else None
+# Verified TLS for rediss:// (see app.core.redis_tls).
+ssl_conf = redis_tls_options(redis_url)
 
 celery = Celery(
     __name__,

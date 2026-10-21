@@ -294,7 +294,8 @@ def test_complete_evaluation_workflow(
     assert submission_data["student_id"] == student.user_id
     assert submission_data["attempt_number"] == 1
     assert submission_data["is_official"] is True
-    assert submission_data["status"] == "awaiting_review"
+    # Saved through the same service as POST /submissions/.
+    assert submission_data["status"] == "submitted"
     assert submission_data["ast_pass_fail"] is None
     assert submission_data["jaccard_score"] is None
 
@@ -351,9 +352,19 @@ def test_complete_evaluation_workflow(
         headers=student_headers,
     )
 
+    # The review indicators are for the instructor only.
     assert get_submission_response.status_code == 200
-    assert get_submission_response.json()["ast_pass_fail"] is True
-    assert get_submission_response.json()["jaccard_score"] == 0.0
+    assert get_submission_response.json()["ast_pass_fail"] is None
+    assert get_submission_response.json()["jaccard_score"] is None
+
+    instructor_submission_response = client.get(
+        f"/execution/submissions/{sub_id}",
+        headers=instructor_headers,
+    )
+
+    assert instructor_submission_response.status_code == 200
+    assert instructor_submission_response.json()["ast_pass_fail"] is True
+    assert instructor_submission_response.json()["jaccard_score"] == 0.0
 
     db_session.expire_all()
 

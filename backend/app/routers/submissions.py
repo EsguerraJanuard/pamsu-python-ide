@@ -4,7 +4,7 @@ from typing import NoReturn
 from app.core.database import get_db
 from app.core.database_errors import database_error_summary
 from app.core.security import get_current_student
-from app.models.domain_models import User
+from app.models.domain_models import Submission, User
 from app.schemas.submission_schema import (StudentSubmissionResponse,
                                            SubmissionCreate, SubmissionStatus)
 from app.services.submission_service import (
@@ -28,7 +28,7 @@ router = APIRouter(
 )
 
 
-def _raise_submission_service_error(
+def raise_submission_service_http_exception(
     error: SubmissionServiceError,
 ) -> NoReturn:
     if isinstance(
@@ -132,7 +132,29 @@ def create_submission_endpoint(
             payload=payload,
         )
     except SubmissionServiceError as error:
-        _raise_submission_service_error(error)
+        raise_submission_service_http_exception(error)
+
+    queue_submission_processing(
+        db,
+        student_id=current_student.user_id,
+        submission=submission,
+    )
+
+    return StudentSubmissionResponse.model_validate(submission)
+
+
+def queue_submission_processing(
+    db: Session,
+    *,
+    student_id: int,
+    submission: Submission,
+) -> None:
+    """
+    Queue the background evaluation and the "submit" run of a saved attempt.
+
+    Shared by POST /submissions/ and the legacy POST /execution/submissions/
+    so every attempt gets the same structure and similarity checks.
+    """
 
     # The attempt is already committed. An unavailable queue must not turn a
     # saved submission into a 500; the instructor can still run the
@@ -153,14 +175,14 @@ def create_submission_endpoint(
             create_student_execution_request
         create_student_execution_request(
             db,
-            student_id=current_student.user_id,
+            student_id=student_id,
             payload=ExecutionRequestCreate(
                 request_kind="submit",
-                task_id=payload.task_id,
+                task_id=submission.task_id,
                 submission_id=submission.sub_id,
                 source_code=None,
                 standard_input="",
-                coding_session_id=payload.coding_session_id,
+                coding_session_id=submission.coding_session_id,
             ),
         )
     except Exception as error:
@@ -170,8 +192,6 @@ def create_submission_endpoint(
             submission.sub_id,
             database_error_summary(error),
         )
-
-    return StudentSubmissionResponse.model_validate(submission)
 
 
 @router.get(
@@ -252,7 +272,7 @@ def get_my_official_submission_endpoint(
             task_id=task_id,
         )
     except SubmissionServiceError as error:
-        _raise_submission_service_error(error)
+        raise_submission_service_http_exception(error)
 
     return StudentSubmissionResponse.model_validate(submission)
 
@@ -289,7 +309,7 @@ def get_my_submission_endpoint(
             submission_id=submission_id,
         )
     except SubmissionServiceError as error:
-        _raise_submission_service_error(error)
+        raise_submission_service_http_exception(error)
 
     return StudentSubmissionResponse.model_validate(submission)
 

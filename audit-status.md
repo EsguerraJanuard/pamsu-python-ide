@@ -1,6 +1,6 @@
 # PAMS(U) IDE — Frontend Audit Status
 
-_Last updated: 2026-10-16 · Branch: `dev` · Base commit: `b5f111f`_
+_Last updated: 2026-10-21 (newest section at the end) · Branch: `dev` · This top section: base commit `b5f111f`_
 
 ## Overall progress
 
@@ -1870,3 +1870,136 @@ _Checked with Errol (owner of the Render account, with Supabase and Brevo access
 3. **Owner:** decide on a backup.
 4. **Owner:** review PR #38. After the merge, Errol deploys the backend.
 5. **After delivery:** #30, re-pointed onto `5e8a1c7d9b42` and tested on PostgreSQL 17.
+
+## Release day: checks at `5be5142`, legacy submission route, Redis TLS (2026-10-21)
+
+_Main checkout, `dev` fast-forwarded from `bd17c3f` to `origin/dev` `5be5142` (PR #38, squash-merged by Errol on 2026-10-20 at 18:34Z). This session committed, pushed, merged and deployed nothing, and changed no production setting or database. Production was checked only with unauthenticated public reads. No credential was printed. The local PostgreSQL URL was read from `backend/.env` inside a script that refuses any non-local host and never prints it._
+
+### Production state (read-only, 2026-10-21 ~00:45Z)
+| Part | State | Evidence |
+|---|---|---|
+| Frontend (Vercel Production) | `5be5142` (#38), since 2026-10-20 18:39Z | GitHub deployment record (`vercel[bot]`, success) |
+| Backend (Render) | Healthy: `/health` 200 after a 52 s cold start (00:43Z). **Whether it runs #38 is unverified.** #38 adds no route and the API docs are off in production, so it can't be told apart from `bd17c3f` without signing in | Public `GET /health` |
+
+- **#38 is merged.** "Full backend audit" item 6 (AI Tutor) closes once Errol's backend deploy is confirmed. To check, a failed practice submit should show the tutor.
+- **Until that deploy, the tutor stays hidden.** The old backend's practice-submit response has no `attempt_id`, and the panel only appears when it has one. Nothing breaks.
+
+### Test evidence at the release tip `5be5142`
+| Check | Result |
+|---|---|
+| Merged tree vs PR #38 head `c1afdbc` | **Identical tree** (`e967fd4`), so #38's run (911 passed, 5 skipped) covers the merged code |
+| Full SQLite suite, `5be5142`, Windows | **910 passed, 5 skipped, 1 failed** (23 min 47 s, 00:42–01:07Z). The failure is a timing bug in a #38 test, not the app (next section) |
+| PostgreSQL-only suites, `5be5142`, local PostgreSQL 18.4 | **7 passed** (33 s): the migration chain through `5e8a1c7d9b42` (upgrade, downgrade, re-upgrade), plus the submission, grade, execution-idempotency and partner-execution concurrency suites. Temporary databases were dropped; `pamsu_ide_db` wasn't touched |
+
+- **First concurrency run since the panel changes.** The retake work changed `submission_service.py`.
+- **Still no PostgreSQL 17 run.** Production is on 17.6; only 18.4 is installed here.
+- **The local `backend/venv` is behind `requirements.txt`:** redis 4.6.0 (pinned 7.0.1), SQLAlchemy 2.0.50 (pinned 2.0.52), and no `google-genai`. The suite passes anyway, because the tutor tests stub the SDK. To refresh it, run `pip install -r requirements.txt` in that venv.
+
+### #38 test that depended on machine speed, fixed
+- **Failure:** `test_practice_ai_tutor.py::test_polling_itself_is_limited_per_student` sends 61 hint polls and expects the 61st to get 429 (limit 60 per 60 s).
+- **Cause:** the test setup points Redis at a closed port, so the limiter counts in memory (`core/memory_fallback.py`), in a fixed window timed by the real clock. On Windows each request waits out the 1 s Redis connect timeout (measured 1.02 s per request), so the 61 polls take about 62 s, and the window has reset before the last one. On Linux, where #38's 911-pass run was made, a refused connection fails at once.
+- **Production impact: none.** Redis is reachable there, and the limiter behaves the same either way.
+- **Fix (test only):** the test swaps in an `ExpiringMemoryStore` with a frozen clock, so all polls fall in one window. The limit is still checked: the 61st poll must return 429. It passed in 189 s, with requests slowed by a concurrent suite run, well past the 60 s window.
+
+### Item 7: legacy `POST /execution/submissions/`, fixed
+- **Problem:** the route inserted the attempt by itself, with:
+  - no `submission_created` audit record, academic event or instructor notification;
+  - no background evaluation and no submit run.
+
+  Nothing in the frontend calls it, but any signed-in student can. So a student could hand in an official attempt that **skipped the structure and similarity checks** and left no audit trail. The instructor saw it as "awaiting_review" with no indicators.
+- **Change:**
+  - The route keeps its own checks first, so its documented 403/404/409 codes and its **strict deadline** don't change: a retake allowance still works only through `POST /submissions/`.
+  - It then saves through `create_student_submission`, the same service `POST /submissions/` uses. The attempt, audit record, academic event and instructor notification commit together, and a failed audit or notification write returns 503 with nothing saved.
+  - Afterwards it calls `queue_submission_processing`, the background-evaluation and submit-run step, now shared with `POST /submissions/` in `routers/submissions.py`.
+- **Side effects:**
+  - The status is now `submitted`, as for every other attempt, instead of `awaiting_review`.
+  - A graded task with no class now gets 404, as on the main route; before, it was accepted.
+  - The route also uses one Judge0 run per attempt, like the main route.
+- **Not chosen:** removing the route. Nothing calls it, but removal changes the public API, so it's left to the owner.
+
+### Related: legacy `GET /execution/submissions/{sub_id}` showed students the review indicators, fixed
+- **Problem:** the route returned the full `SubmissionResponse` to students, including `jaccard_score` and `ast_pass_fail`. The schema marks both as instructor-only, and the student routes (`StudentSubmissionResponse`) leave them out. A student could check their own similarity score after evaluation, rework a copied solution and submit again before the deadline.
+- **Change:** students get both fields as `null`. Instructors (owner only) still get the values. The stored row isn't changed.
+
+### Item 10: `rediss://` certificate checks, fixed
+- **Problem:** both the API's Redis client (`core/redis_client.py`) and Celery (`tasks/celery_worker.py`, broker and result backend) used `ssl_cert_reqs=none`. That accepts any certificate, so anyone able to intercept the connection could read or change the queue, rate-limit counters, token revocations and tutor hints.
+- **Change:** a new `core/redis_tls.py` used by both:
+  - `rediss://` URLs get `CERT_REQUIRED`, checked against certifi's CA bundle (`certifi` is already pinned). `redis://` URLs are unchanged.
+  - **Emergency switch:** `REDIS_SSL_CERT_REQS=none` restores the old behaviour, with a warning in the log. Any other value still verifies.
+- **Checked with the production pins** (redis 7.0.1, kombu 5.6.2, celery 5.6.3, certifi 2026.7.22, in a scratch venv) against badssl.com test hosts:
+  - **Default:** a valid certificate is accepted (the connection then fails only because the host isn't Redis). Self-signed, expired, wrong-host and untrusted-root certificates are **rejected**, by redis-py and by Celery.
+  - **With `=none`:** all four bad certificates are accepted, which is the old behaviour.
+- **Not verified:** Upstash's own certificate (production credentials aren't available here). Upstash serves a publicly trusted certificate, so it should validate.
+  - **After Errol's next deploy, check the Render log:** the Celery worker line `Connected to rediss://…` with no `CERTIFICATE_VERIFY_FAILED`. A Run in the smoke test proves it end to end.
+  - **If the log shows the error:** set `REDIS_SSL_CERT_REQS=none` on Render with **"Save and deploy"** (no rebuild), then tell the owner.
+
+### Tests for this session's changes
+| Check | Result |
+|---|---|
+| New `tests/test_legacy_submission_route.py` | **6 passed**: same records as `/submissions/` (audit record, academic event, instructor notification, evaluation queued, submit run); newest attempt official; documented 403/404 codes; still 409 after the deadline even with a retake allowance, and the allowance stays usable on `/submissions/`; nothing saved when the audit write fails (503); student GET hides the indicators, instructor GET shows them, other users get 403 |
+| New `tests/test_redis_tls.py` | **12 passed**: `redis://` gets no TLS options; default, `required`, unknown values → verify with certifi; `none` → off with a warning; no certifi → system store; in a fresh process, the API client and Celery broker and backend all get the same options |
+| `tests/test_api_workflow.py` (updated) | Passed. The legacy submit now expects `submitted`; the student GET expects `null` indicators; an instructor GET was added that expects the values |
+| Mutation checks | With the old `execution.py`, 3 of the 6 legacy-route tests fail (records, 503 rollback, hidden indicators); the other 3 pin down unchanged behaviour. With the old `redis_client.py` and `celery_worker.py`, both connection-point tests fail |
+| Full SQLite suite with these changes (01:03–01:26Z) | **928 passed, 5 skipped, 1 failed.** 928 = the baseline's 910 plus the 18 new tests. The one failure is the same timing test: the run collected it before its fix |
+| `tests/test_practice_ai_tutor.py` after the fix (whole file) | **24 passed** (8 min 44 s) |
+| **Final tree** (the full run above plus the test-only fix) | **929 passed, 5 skipped, 0 failed** across the two runs. No single end-to-end run of the final tree; the only difference is that one test function |
+| pyflakes on the changed files, `git diff --check` | Clean |
+
+### What a push of this commit does
+- **Vercel:** rebuilds the same frontend. No frontend file changed.
+- **Render:** nothing until Errol's next Manual Deploy. That deploy, needed anyway for #38, also carries items 7 and 10. **No migration** (the head stays `5e8a1c7d9b42`).
+- **To deploy #38 alone:** Errol deploys first, and the push comes after.
+
+### Production smoke test for today (supersedes the 2026-10-20 list)
+Same rules as before: test accounts only, write down every record created, don't use Vercel previews, and stop on a critical failure. Errol watches the Render logs.
+0. Warm up: `/health` returns 200. In the Render log, the Celery worker connected to `rediss://` with no certificate error.
+1. Sign in as student, instructor and admin; a wrong password is refused. **Use the admin dashboard's "Change password" now**, so only the owner knows the admin password.
+2. "Forgot password?" for a test student (after the SMTP key swap): **the email arrives**, the code works, the new password signs in.
+3. Masterlist import of one test row: **the setup email arrives** with no credential in it. Then step 2 for that student.
+4. **Create an activity** (the 2026-10-20 422 gap): use "Analyze the activity", fill in a scenario and solution explanation, set "Required at least N" on one rule, and publish. Enroll the test student.
+5. Workspace **Run**: output appears, not stuck at "queued". Errol sees the Celery task and the Judge0 callback.
+6. **Submit:** saved and listed. The evaluation completes, and the Grading Bench shows the structure check (found/needed) and a suggested score.
+7. **Practice:** a correct submit shows a result within 15 s. **A failing submit shows the AI Tutor hint** (only after the #38 deploy).
+8. **Grading Bench:** grade, save, release. The student sees the grade, the notification and "How the solution works".
+9. **Edit the deadline** of the test activity: the student gets "Deadline changed". Close the deadline, use "Allow another attempt", and the student's late attempt is accepted once.
+10. **Faculty lockout**, on a *test instructor*, never the only admin: 5 wrong passwords, then the lockout message.
+11. Admin creates a test faculty account with a middle name.
+12. Log out: the old session is rejected.
+13. Optional: guest sign-in lands in the sandbox only. The first guest sign-in moves the sandbox to the admin, which is expected.
+
+### "Full backend audit" → "Still open": status now
+| # | Item | Status |
+|---|---|---|
+| 1 | PostgreSQL migration and concurrency suites | Run on 18.4 (2026-10-18, and again today at `5be5142`). **15/17 not run** |
+| 2 | Admin actions not audited | PR #30, **deferred until after delivery** |
+| 3 | Redis fail-open | Done (#35) |
+| 4 | Guest accounts | Done (#36) |
+| 5 | Practice submit waits on Judge0 | Waits for #30 (its migration chains after `61330560eec5`) |
+| 6 | AI Tutor | **Merged (#38).** Close once Errol's deploy is confirmed |
+| 7 | Legacy `POST /execution/submissions/` | **Fixed this session** (plus the legacy GET) |
+| 8 | Default AST strictness | Done (#37) |
+| 9 | Retakes, enrollment decisions, instructor temporary-password email | Retakes done (panel work). The other two need owner decisions |
+| 10 | `rediss://` certificate checks | **Fixed this session** |
+
+### Files
+- **Modified:**
+  - `backend/app/core/redis_client.py`
+  - `backend/app/routers/execution.py`
+  - `backend/app/routers/submissions.py`
+  - `backend/app/tasks/celery_worker.py`
+  - `backend/tests/test_api_workflow.py`
+  - `backend/tests/test_practice_ai_tutor.py` (frozen clock in the polling-limit test)
+  - `audit-status.md`
+- **Created** (untracked: **add them explicitly**. `redis_client.py` and `celery_worker.py` import `redis_tls.py`, so without it the backend won't start):
+  - `backend/app/core/redis_tls.py`
+  - `backend/tests/test_legacy_submission_route.py`
+  - `backend/tests/test_redis_tls.py`
+
+### Next
+1. **Owner:** commit and push this session's work. Agree the timing with Errol (see "What a push of this commit does").
+2. **Errol:** Manual Deploy on Render (#38 plus this commit). Check the Celery `rediss://` connection line in the log.
+3. **Unchanged from the release-checks section:** the SMTP key swap with Errol, the smoke test above, and the backup decision. **The release is not production-ready until those are done.**
+4. **After delivery:**
+   - #30, re-pointed onto `5e8a1c7d9b42` and tested on PostgreSQL 17; then item 5;
+   - owner decisions for item 9;
+   - whether to remove the legacy `/execution/submissions/` routes.

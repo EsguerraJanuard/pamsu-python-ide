@@ -9,6 +9,8 @@ from app.integrations.partner_auth import (PartnerExecutionIdentity,
                                            get_authenticated_execution_partner)
 from app.models.domain_models import (CodingSession, Enrollment, Submission,
                                       Task, User)
+from app.routers.submissions import (queue_submission_processing,
+                                     raise_submission_service_http_exception)
 from app.schemas.execution_schema import (
     ExecutionRequestCreate, ExecutionRequestKind, ExecutionStatus,
     Judge0CallbackPayload, PartnerExecutionResultUpdate,
@@ -25,9 +27,10 @@ from app.services.execution_service import (
     ExecutionWorkerUpdateInvalidError, apply_partner_execution_result_update,
     create_student_execution_request, get_student_execution_request,
     list_student_execution_requests)
+from app.services.submission_service import (SubmissionServiceError,
+                                             create_student_submission)
 from fastapi import (APIRouter, Depends, Header, HTTPException, Path, Query,
                      status)
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -320,7 +323,11 @@ def raise_execution_service_http_exception(
         "Creates a new immutable code-submission attempt for the "
         "authenticated student. Previous attempts remain stored, "
         "while the newest accepted attempt becomes official. "
-        "This endpoint does not execute student code."
+        "The attempt is saved exactly like POST /submissions/: with its "
+        "accountability record and instructor notification, and with "
+        "background evaluation and the submit run queued. Unlike "
+        "POST /submissions/, this route never accepts an attempt after "
+        "the deadline. This endpoint does not execute student code."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -339,6 +346,13 @@ def raise_execution_service_http_exception(
                 "the deadline has passed, the coding session belongs "
                 "to another activity, or a concurrent attempt conflict "
                 "occurred."
+            ),
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": (
+                "The submission, required accountability record, "
+                "academic event, or instructor notification could not "
+                "be saved. No new attempt was created."
             ),
         },
     },
@@ -366,61 +380,26 @@ def create_submission(
         task_id=task.task_id,
     )
 
+    # The checks above keep this route's documented status codes and its
+    # strict deadline. The attempt itself goes through the same service as
+    # POST /submissions/, so it can't skip the audit record, the instructor
+    # notification or the background evaluation.
     try:
-        previous_attempts = (
-            db.query(Submission)
-            .filter(
-                Submission.student_id == current_student.user_id,
-                Submission.task_id == task.task_id,
-            )
-            .order_by(Submission.attempt_number.desc())
-            .with_for_update()
-            .all()
-        )
-
-        next_attempt_number = (
-            previous_attempts[0].attempt_number + 1 if previous_attempts else 1
-        )
-
-        for previous_attempt in previous_attempts:
-            if previous_attempt.is_official:
-                previous_attempt.is_official = False
-
-        new_submission = Submission(
+        new_submission = create_student_submission(
+            db,
             student_id=current_student.user_id,
-            task_id=task.task_id,
-            coding_session_id=submission_data.coding_session_id,
-            attempt_number=next_attempt_number,
-            raw_code=submission_data.raw_code,
-            standard_input=submission_data.standard_input,
-            status="awaiting_review",
-            is_official=True,
-            accepted_at=get_utc_now(),
-            jaccard_score=None,
-            ast_pass_fail=None,
+            payload=submission_data,
         )
+    except SubmissionServiceError as error:
+        raise_submission_service_http_exception(error)
 
-        db.add(new_submission)
-        db.commit()
-        db.refresh(new_submission)
+    queue_submission_processing(
+        db,
+        student_id=current_student.user_id,
+        submission=new_submission,
+    )
 
-        return new_submission
-
-    except IntegrityError as exc:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "A submission attempt was created "
-                "at the same time. Please retry "
-                "the submission."
-            ),
-        ) from exc
-
-    except Exception:
-        db.rollback()
-        raise
+    return new_submission
 
 
 @router.get(
@@ -430,9 +409,10 @@ def create_submission(
     operation_id="get_submission",
     summary="Get an authorized legacy submission",
     description=(
-        "Students may retrieve only their own submissions. "
-        "Instructors may retrieve submissions only for tasks "
-        "that they own."
+        "Students may retrieve only their own submissions, without the "
+        "instructor-only review indicators (jaccard_score and "
+        "ast_pass_fail are null). Instructors may retrieve submissions "
+        "only for tasks that they own."
     ),
     responses={
         status.HTTP_403_FORBIDDEN: {
@@ -454,7 +434,7 @@ def get_submission(
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> Submission:
+) -> SubmissionResponse:
     submission = get_submission_or_404(
         db=db,
         sub_id=sub_id,
@@ -466,7 +446,20 @@ def get_submission(
         current_user=current_user,
     )
 
-    return submission
+    response = SubmissionResponse.model_validate(submission)
+
+    # The similarity and structure indicators are for instructor review
+    # only (see InstructorSubmissionResponse). A student who could read
+    # them could rework a copied solution until it no longer looks similar.
+    if current_user.role == "student":
+        response = response.model_copy(
+            update={
+                "jaccard_score": None,
+                "ast_pass_fail": None,
+            }
+        )
+
+    return response
 
 
 # ------------------------------------------------------------------

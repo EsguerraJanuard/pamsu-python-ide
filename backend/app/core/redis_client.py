@@ -2,6 +2,8 @@ import os
 
 import redis
 
+from app.core.redis_tls import redis_tls_options
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 # Remove leftover query params to avoid parsing conflicts
 if "?" in REDIS_URL:
@@ -18,8 +20,7 @@ kwargs = {
     "decode_responses": True,
     "socket_connect_timeout": REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS,
 }
-if REDIS_URL.startswith("rediss://"):
-    kwargs["ssl_cert_reqs"] = "none"
+kwargs.update(redis_tls_options(REDIS_URL) or {})
 
 # Connection pool for synchronous Redis client
 redis_client = redis.Redis.from_url(
