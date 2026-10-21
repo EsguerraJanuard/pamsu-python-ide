@@ -423,10 +423,11 @@ def test_a_hint_saved_while_redis_was_down_is_found_after_it_returns(monkeypatch
 
 
 class FakeAPIError(Exception):
-    def __init__(self, code, status):
+    def __init__(self, code, status, message="Gemini error"):
         super().__init__(f"{code} {status}")
         self.code = code
         self.status = status
+        self.message = message
 
 
 def install_fake_sdk(monkeypatch, *, text="  A hint.  ", error=None):
@@ -450,6 +451,7 @@ def install_fake_sdk(monkeypatch, *, text="  A hint.  ", error=None):
     types.HttpOptions = lambda **kwargs: kwargs
     types.HttpRetryOptions = lambda **kwargs: kwargs
     types.GenerateContentConfig = lambda **kwargs: kwargs
+    types.AutomaticFunctionCallingConfig = lambda **kwargs: kwargs
     errors = ModuleType("google.genai.errors")
     errors.APIError = FakeAPIError
     genai = ModuleType("google.genai")
@@ -499,8 +501,21 @@ def test_service_retries_busy_and_failing_gemini_answers(monkeypatch):
 
     retry = calls["http_options"]["retry_options"]
     assert retry["attempts"] == ai_tutor_service.RETRY_ATTEMPTS > 1
-    assert {429, 500, 503, 504} <= set(retry["http_status_codes"])
+    assert {500, 502, 503, 504} <= set(retry["http_status_codes"])
+    # A used-up quota is not retried: it would fail again and spend more.
+    assert 429 not in retry["http_status_codes"]
     assert retry["max_delay"] <= 10
+    # No tools are used, so automatic function calling is off.
+    assert calls["config"]["automatic_function_calling"] == {"disable": True}
+
+
+def test_service_logs_googles_reason_for_a_failure(monkeypatch, caplog):
+    reason = "You exceeded your current quota. Quota exceeded for metric: generate_content_free_tier_requests"
+    install_fake_sdk(monkeypatch, error=FakeAPIError(429, "RESOURCE_EXHAUSTED", reason))
+
+    assert generate() is None
+    assert f"429 RESOURCE_EXHAUSTED: {reason}" in caplog.text
+    assert "Traceback" not in caplog.text
 
 
 @pytest.mark.parametrize("kwargs", [
@@ -530,11 +545,43 @@ def test_service_returns_none_without_the_sdk(monkeypatch):
     assert generate() is None
 
 
-def test_the_real_sdk_retries_a_busy_model(monkeypatch):
-    """google-genai itself, with HTTP answered locally: 503, 503, then a hint."""
+def real_sdk_answering(monkeypatch, answer):
+    """google-genai itself, with every HTTP request answered by `answer`."""
 
     genai = pytest.importorskip("google.genai")
     import time
+
+    real_client = genai.Client
+
+    def local_client(*, api_key, http_options):
+        transport = httpx.Client(transport=httpx.MockTransport(answer))
+        return real_client(api_key=api_key, http_options=http_options.model_copy(update={"httpx_client": transport}))
+
+    waits = []
+    monkeypatch.setattr(genai, "Client", local_client)
+    monkeypatch.setattr(time, "sleep", waits.append)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-only-not-a-real-key")
+    return waits
+
+
+def test_the_real_sdk_does_not_retry_a_used_up_quota(monkeypatch):
+    requests = []
+
+    def answer(request):
+        requests.append(request.url.path)
+        return httpx.Response(429, json={"error": {
+            "code": 429, "status": "RESOURCE_EXHAUSTED", "message": "You exceeded your current quota.",
+        }})
+
+    waits = real_sdk_answering(monkeypatch, answer)
+
+    assert generate() is None
+    assert len(requests) == 1
+    assert waits == []
+
+
+def test_the_real_sdk_retries_a_busy_model(monkeypatch):
+    """google-genai itself, with HTTP answered locally: 503, 503, then a hint."""
 
     requests = []
 
@@ -547,16 +594,7 @@ def test_the_real_sdk_retries_a_busy_model(monkeypatch):
             }})
         return httpx.Response(200, json={"candidates": [{"content": {"role": "model", "parts": [{"text": HINT}]}}]})
 
-    real_client = genai.Client
-
-    def local_client(*, api_key, http_options):
-        transport = httpx.Client(transport=httpx.MockTransport(answer))
-        return real_client(api_key=api_key, http_options=http_options.model_copy(update={"httpx_client": transport}))
-
-    waits = []
-    monkeypatch.setattr(genai, "Client", local_client)
-    monkeypatch.setattr(time, "sleep", waits.append)
-    monkeypatch.setenv("GEMINI_API_KEY", "test-only-not-a-real-key")
+    waits = real_sdk_answering(monkeypatch, answer)
 
     assert generate() == HINT
     assert requests == ["/v1beta/models/gemini-3.8-flash:generateContent"] * 3
