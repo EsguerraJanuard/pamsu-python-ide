@@ -290,7 +290,11 @@ def test_an_error_in_the_background_task_is_reported_as_unavailable(client, stud
 
 
 def test_the_generation_lock_outlasts_every_gemini_retry():
-    assert practice_hint_store.GENERATION_LOCK_SECONDS > ai_tutor_service.worst_case_generation_seconds()
+    worst_case = ai_tutor_service.worst_case_generation_seconds()
+
+    assert practice_hint_store.GENERATION_LOCK_SECONDS > worst_case
+    # PracticeWorkspace.jsx polls for about 80 s and says "at most 70 s".
+    assert worst_case <= 70
 
 
 # ------------------------------------------------------------ ownership
@@ -431,9 +435,12 @@ class FakeAPIError(Exception):
 
 
 def install_fake_sdk(monkeypatch, *, text="  A hint.  ", error=None):
-    """Stand-in for the google-genai package; records how it was called."""
+    """
+    Stand-in for the google-genai package; records how it was called.
+    `error` is raised for every model, or is a {model: error} dict.
+    """
 
-    calls = {}
+    calls = {"models": [], "attempts": []}
 
     class Client:
         def __init__(self, *, api_key, http_options):
@@ -443,8 +450,11 @@ def install_fake_sdk(monkeypatch, *, text="  A hint.  ", error=None):
 
         def generate_content(self, *, model, contents, config):
             calls.update(model=model, contents=contents, config=config)
-            if error:
-                raise error
+            calls["models"].append(model)
+            calls["attempts"].append(calls["http_options"]["retry_options"]["attempts"])
+            failure = error.get(model) if isinstance(error, dict) else error
+            if failure:
+                raise failure
             return SimpleNamespace(text=text)
 
     types = ModuleType("google.genai.types")
@@ -479,7 +489,7 @@ def test_service_uses_gemini_3_8_flash_with_a_short_direct_prompt(monkeypatch):
     calls = install_fake_sdk(monkeypatch)
 
     assert generate() == "A hint."
-    assert calls["model"] == "models/gemini-3.8-flash"
+    assert calls["models"] == ["models/gemini-3.8-flash"]
     assert calls["http_options"]["timeout"] == ai_tutor_service.REQUEST_TIMEOUT_MS
 
     instruction = calls["config"]["system_instruction"]
@@ -500,7 +510,7 @@ def test_service_retries_busy_and_failing_gemini_answers(monkeypatch):
     generate()
 
     retry = calls["http_options"]["retry_options"]
-    assert retry["attempts"] == ai_tutor_service.RETRY_ATTEMPTS > 1
+    assert retry["attempts"] == ai_tutor_service.GEMINI_ATTEMPTS > 1
     assert {500, 502, 503, 504} <= set(retry["http_status_codes"])
     # A used-up quota is not retried: it would fail again and spend more.
     assert 429 not in retry["http_status_codes"]
@@ -509,12 +519,38 @@ def test_service_retries_busy_and_failing_gemini_answers(monkeypatch):
     assert calls["config"]["automatic_function_calling"] == {"disable": True}
 
 
-def test_service_logs_googles_reason_for_a_failure(monkeypatch, caplog):
-    reason = "You exceeded your current quota. Quota exceeded for metric: generate_content_free_tier_requests"
+@pytest.mark.parametrize(("code", "status"), [(503, "UNAVAILABLE"), (429, "RESOURCE_EXHAUSTED")])
+def test_service_falls_back_to_3_6_flash_when_3_8_is_busy_or_out_of_quota(monkeypatch, code, status):
+    calls = install_fake_sdk(monkeypatch, error={"models/gemini-3.8-flash": FakeAPIError(code, status)})
+
+    assert generate() == "A hint."
+    assert calls["models"] == ["models/gemini-3.8-flash", "models/gemini-3.6-flash"]
+    assert calls["attempts"] == [ai_tutor_service.GEMINI_ATTEMPTS, ai_tutor_service.FALLBACK_ATTEMPTS]
+
+
+@pytest.mark.parametrize("error", [FakeAPIError(400, "INVALID_ARGUMENT"), RuntimeError("unexpected")])
+def test_service_does_not_fall_back_for_other_failures(monkeypatch, error):
+    calls = install_fake_sdk(monkeypatch, error={"models/gemini-3.8-flash": error})
+
+    assert generate() is None
+    assert calls["models"] == ["models/gemini-3.8-flash"]
+
+
+def test_service_does_not_fall_back_after_an_empty_answer(monkeypatch):
+    calls = install_fake_sdk(monkeypatch, text="")
+
+    assert generate() is None
+    assert calls["models"] == ["models/gemini-3.8-flash"]
+
+
+def test_service_logs_googles_full_reason_for_each_model(monkeypatch, caplog):
+    # A real 429 text runs to about 500 characters before the quota metric.
+    reason = "You exceeded your current quota. " + "x" * 500 + " Quota exceeded for metric: free_tier_requests"
     install_fake_sdk(monkeypatch, error=FakeAPIError(429, "RESOURCE_EXHAUSTED", reason))
 
     assert generate() is None
-    assert f"429 RESOURCE_EXHAUSTED: {reason}" in caplog.text
+    assert f"models/gemini-3.8-flash failed: 429 RESOURCE_EXHAUSTED: {reason}" in caplog.text
+    assert f"models/gemini-3.6-flash failed: 429 RESOURCE_EXHAUSTED: {reason}" in caplog.text
     assert "Traceback" not in caplog.text
 
 
@@ -535,7 +571,7 @@ def test_service_returns_none_without_an_api_key(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "")
 
     assert generate() is None
-    assert calls == {}
+    assert calls["models"] == []
 
 
 def test_service_returns_none_without_the_sdk(monkeypatch):
@@ -564,6 +600,12 @@ def real_sdk_answering(monkeypatch, answer):
     return waits
 
 
+PRIMARY_PATH = "/v1beta/models/gemini-3.8-flash:generateContent"
+FALLBACK_PATH = "/v1beta/models/gemini-3.6-flash:generateContent"
+BUSY = {"error": {"code": 503, "status": "UNAVAILABLE", "message": "This model is currently experiencing high demand."}}
+HINT_RESPONSE = {"candidates": [{"content": {"role": "model", "parts": [{"text": HINT}]}}]}
+
+
 def test_the_real_sdk_does_not_retry_a_used_up_quota(monkeypatch):
     requests = []
 
@@ -576,8 +618,25 @@ def test_the_real_sdk_does_not_retry_a_used_up_quota(monkeypatch):
     waits = real_sdk_answering(monkeypatch, answer)
 
     assert generate() is None
-    assert len(requests) == 1
+    # One request per model, no retries.
+    assert requests == [PRIMARY_PATH, FALLBACK_PATH]
     assert waits == []
+
+
+def test_the_real_sdk_falls_back_when_3_8_flash_stays_busy(monkeypatch):
+    requests = []
+
+    def answer(request):
+        requests.append(request.url.path)
+        if request.url.path == PRIMARY_PATH:
+            return httpx.Response(503, json=BUSY)
+        return httpx.Response(200, json=HINT_RESPONSE)
+
+    waits = real_sdk_answering(monkeypatch, answer)
+
+    assert generate() == HINT
+    assert requests == [PRIMARY_PATH] * ai_tutor_service.GEMINI_ATTEMPTS + [FALLBACK_PATH]
+    assert len(waits) == ai_tutor_service.GEMINI_ATTEMPTS - 1
 
 
 def test_the_real_sdk_retries_a_busy_model(monkeypatch):
@@ -588,14 +647,11 @@ def test_the_real_sdk_retries_a_busy_model(monkeypatch):
     def answer(request):
         requests.append(request.url.path)
         if len(requests) < 3:
-            return httpx.Response(503, json={"error": {
-                "code": 503, "status": "UNAVAILABLE",
-                "message": "This model is currently experiencing high demand.",
-            }})
-        return httpx.Response(200, json={"candidates": [{"content": {"role": "model", "parts": [{"text": HINT}]}}]})
+            return httpx.Response(503, json=BUSY)
+        return httpx.Response(200, json=HINT_RESPONSE)
 
     waits = real_sdk_answering(monkeypatch, answer)
 
     assert generate() == HINT
-    assert requests == ["/v1beta/models/gemini-3.8-flash:generateContent"] * 3
+    assert requests == [PRIMARY_PATH] * 3
     assert len(waits) == 2
