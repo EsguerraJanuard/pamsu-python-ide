@@ -357,3 +357,79 @@ def test_the_worker_closes_the_attempt_after_its_last_try(client, db_session, st
     body = poll(client, student, attempt_id).json()
     assert body["status"] == "failed"
     assert body["execution_feedback"] == practice.RUNNER_UNAVAILABLE_MESSAGE
+
+
+# ------------------------------------------------------------ no double runs
+
+
+def _response(status: int) -> httpx.Response:
+    return httpx.Response(status, request=httpx.Request("POST", "https://judge0.example.test/submissions"))
+
+
+@pytest.mark.parametrize(("error", "outcome"), [
+    (httpx.ConnectError("refused"), "retry"),
+    (httpx.ConnectTimeout("slow connect"), "retry"),
+    (httpx.HTTPStatusError("busy", request=_response(429).request, response=_response(429)), "retry"),
+    (httpx.HTTPStatusError("down", request=_response(503).request, response=_response(503)), "retry"),
+    (httpx.HTTPStatusError("bad", request=_response(422).request, response=_response(422)), "fail"),
+    (httpx.ReadTimeout("no answer"), "wait"),
+    (httpx.RemoteProtocolError("cut off"), "wait"),
+    (RuntimeError("database read failed"), "retry"),
+])
+def test_retries_only_when_judge0_certainly_did_not_queue_the_code(error, outcome):
+    assert celery_worker.judge0_dispatch_outcome(error) == outcome
+
+
+def failing_judge0(monkeypatch, error):
+    sent = []
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def post(self, url, json, headers):
+            sent.append(url)
+            raise error
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    return sent
+
+
+def test_a_lost_answer_is_not_resent(client, db_session, student, practice_task, worker_db, monkeypatch):
+    # Judge0 may have queued it: a second send could run (and bill) it twice.
+    sent = failing_judge0(monkeypatch, httpx.ReadTimeout("no answer"))
+    attempt_id = submit(client, student, practice_task).json()["attempt_id"]
+
+    celery_worker.dispatch_practice_attempt.run(attempt_id)
+
+    assert len(sent) == 1
+    # Still pending: the callback can complete it, or the 120 s expiry closes it.
+    assert poll(client, student, attempt_id).json()["status"] == "pending"
+
+
+def test_an_unsent_submission_is_retried(client, db_session, student, practice_task, worker_db, monkeypatch):
+    failing_judge0(monkeypatch, httpx.ConnectError("refused"))
+    attempt_id = submit(client, student, practice_task).json()["attempt_id"]
+
+    # Called outside a worker, Celery's retry re-raises the error it was given.
+    with pytest.raises(httpx.ConnectError):
+        celery_worker.dispatch_practice_attempt.run(attempt_id)
+
+    assert poll(client, student, attempt_id).json()["status"] == "pending"
+
+
+def test_a_refused_submission_is_closed_at_once(client, db_session, student, practice_task, worker_db, monkeypatch):
+    failing_judge0(monkeypatch, httpx.HTTPStatusError("bad", request=_response(422).request, response=_response(422)))
+    attempt_id = submit(client, student, practice_task).json()["attempt_id"]
+
+    celery_worker.dispatch_practice_attempt.run(attempt_id)
+
+    body = poll(client, student, attempt_id).json()
+    assert body["status"] == "failed"
+    assert body["execution_feedback"] == practice.RUNNER_ERROR_MESSAGE

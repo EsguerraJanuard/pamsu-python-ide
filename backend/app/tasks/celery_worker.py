@@ -67,13 +67,41 @@ def judge0_connection() -> tuple[str, dict[str, str]]:
     return judge0_url.rstrip("/"), headers
 
 
+def judge0_dispatch_outcome(error: Exception) -> str:
+    """
+    What to do after a failed Judge0 submission, without paying twice:
+
+    - "retry": Judge0 certainly did not queue it (no connection, or it
+      answered 429/5xx), so sending again is safe;
+    - "fail": Judge0 refused the submission itself (another 4xx), and
+      sending it again would be refused the same way;
+    - "wait": the request may have reached Judge0 (the answer timed out or
+      broke off). Sending it again could run, and bill, the code twice, so
+      the attempt stays pending: the callback completes it, or the 120 s
+      expiry closes it (app.services.practice_evaluation_service).
+    """
+
+    import httpx
+
+    if isinstance(error, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)):
+        return "retry"
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        return "retry" if status == 429 or status >= 500 else "fail"
+    if isinstance(error, httpx.TransportError):
+        return "wait"
+    # Not a network error (e.g. the database read): nothing was sent.
+    return "retry"
+
+
 @celery.task(bind=True, max_retries=2)
 def dispatch_practice_attempt(self, attempt_id: int) -> None:
     """
     Send a pending solo-practice attempt to Judge0. Judge0 calls back to
     /practice/internal/judge0-callback with the result; nothing here waits
-    for the run. After the last failed try the attempt is closed as failed,
-    so the page stops waiting (app.services.practice_evaluation_service).
+    for the run. Retries only when Judge0 certainly did not queue the code
+    (judge0_dispatch_outcome); after the last failed try the attempt is
+    closed as failed, so the page stops waiting.
     """
 
     import httpx
@@ -94,12 +122,19 @@ def dispatch_practice_attempt(self, attempt_id: int) -> None:
             response.raise_for_status()
     except Exception as error:
         db.rollback()
+        outcome = judge0_dispatch_outcome(error)
         logger.error(
-            "Failed to dispatch practice attempt %s to Judge0 (attempt %s): %s",
+            "Failed to dispatch practice attempt %s to Judge0 (attempt %s): %s; %s.",
             attempt_id,
             self.request.retries + 1,
             type(error).__name__,
+            outcome,
         )
+        if outcome == "wait":
+            return
+        if outcome == "fail":
+            practice.mark_attempt_failed(db, attempt_id=attempt_id, message=practice.RUNNER_ERROR_MESSAGE)
+            return
         if self.request.retries >= self.max_retries:
             practice.mark_attempt_failed(db, attempt_id=attempt_id, message=practice.RUNNER_UNAVAILABLE_MESSAGE)
             return
@@ -130,6 +165,10 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         if not request_record:
             logger.error(f"ExecutionRequest {execution_request_id} not found.")
             return
+        # A retry after Judge0 already answered (its callback finished the
+        # request) must not send the code, and pay for it, again.
+        if request_record.status != "queued":
+            return
 
         import base64
 
@@ -158,11 +197,19 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
             response.raise_for_status()
             data = response.json()
             
-            # The worker_task_id will be the token returned by the partner
+            # The worker_task_id will be the token returned by the partner.
+            # Judge0's callback can arrive before this runs (a short program
+            # on a quiet Judge0); it already recorded the result and the
+            # token, so only a request that is still queued becomes "running".
             token = data.get("token")
             if token:
-                request_record.worker_task_id = token
-                request_record.status = "running"
+                db.query(ExecutionRequest).filter(
+                    ExecutionRequest.execution_id == execution_request_id,
+                    ExecutionRequest.status == "queued",
+                ).update(
+                    {ExecutionRequest.worker_task_id: token, ExecutionRequest.status: "running"},
+                    synchronize_session=False,
+                )
                 db.commit()
 
     except Exception as e:
@@ -175,13 +222,21 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         )
         if self.request.retries >= self.max_retries:
             try:
-                db.begin()
-                req = db.query(ExecutionRequest).filter(ExecutionRequest.execution_id == execution_request_id).first()
-                if req:
-                    req.status = "failed"
-                    # Shown to the student: no provider URL or error detail.
-                    req.stderr = "System error: the code execution service could not be reached. Please try again."
-                    db.commit()
+                # Only a request nothing has answered yet: a callback that
+                # arrived meanwhile keeps its result.
+                db.query(ExecutionRequest).filter(
+                    ExecutionRequest.execution_id == execution_request_id,
+                    ExecutionRequest.status.in_(("queued", "running")),
+                    ExecutionRequest.completed_at.is_(None),
+                ).update(
+                    {
+                        ExecutionRequest.status: "failed",
+                        # Shown to the student: no provider URL or error detail.
+                        ExecutionRequest.stderr: "System error: the code execution service could not be reached. Please try again.",
+                    },
+                    synchronize_session=False,
+                )
+                db.commit()
             except Exception:
                 db.rollback()
             raise

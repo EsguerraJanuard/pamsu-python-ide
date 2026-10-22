@@ -2570,3 +2570,57 @@ The fallback to `gemini-3.6-flash` (only on 503/429 from 3.8 Flash) is now the w
    - update his AGENTS.md copy.
 3. **Both:** the production smoke test (2026-10-21 list).
 4. **Optional:** the same password-free invite for the single-student form.
+
+## October 22 follow-up: closing the known gaps (2026-10-22)
+
+_After `8e9b377`. Januard asked what could still be done about the "known gaps" in `errol_handoff_oct22.md`. Nothing here touched production._
+
+### Fixed
+| Gap | What changed |
+|---|---|
+| **IDE Run: early Judge0 callback overwritten (real bug, found by the new contract test)** | **Before:** `dispatch_to_partner` set `status = "running"` after Judge0 answered its POST. If Judge0's callback had already arrived (a short program on a quiet Judge0), that write replaced `completed` with `running`, and the run looked stuck forever. Its final "failed" write after retries could likewise erase a result.<br>**Now:**<ul><li>"running" is set only on a request that is still `queued`;</li><li>"failed" is set only on a request nothing has answered;</li><li>a retry whose request was already answered sends nothing.</li></ul>No schema change |
+| Practice dispatch could send the code twice (two paid runs) | `judge0_dispatch_outcome()` decides what happens after a failed send:<ul><li>**retry** only when Judge0 certainly did not queue the code (connect error, 429, 5xx);</li><li>**fail** at once on another 4xx;</li><li>**wait** when the answer was lost after sending (read timeout, broken connection): the attempt stays pending, and the callback or the 120 s expiry finishes it</li></ul> |
+| Practice callback never tested against a Judge0-shaped server | **`mock_judge0/` rewritten** as a Judge0 CE stand-in:<ul><li>`POST /submissions` (`base64_encoded`, `wait`, `expected_output`, `callback_url`), `GET /submissions/{token}`;</li><li>status ids 3/4/5/11;</li><li>a PUT callback with base64 fields, like Judge0.</li></ul>The old mock needed fields the backend never sends. Docker Compose still uses the real Judge0 1.13.1 image.<br>**Results:**<ul><li>new `tests/test_mock_judge0_contract.py` (9 tests): real worker code → mock → real callback routes, for practice (pass, wrong output, runtime error, time limit) and the IDE Run, plus the race regressions;</li><li>**live over real HTTP** (uvicorn backend + uvicorn mock, real task code in threads): practice submits answered in 122–149 ms and finished in 1.4–2.0 s; IDE Run `stdout='Hello, PAMSU\n'`; `POST /submissions/` made exactly one submit run</li></ul> |
+| Backup workflow never run on GitHub | New **`.github/workflows/backup-tool-selftest.yml`**:<ul><li>no secrets: a throwaway `postgres:17` service, the same client install and packages as the nightly job;</li><li>back up → verify → restore, then both safety guards;</li><li>runs when the tool or the workflow changes (so on this push), or by hand.</li></ul>Its shell steps were rehearsed on the local 17.6 cluster, including a failure correctly stopping the step |
+| Windows test runs took ~45 min | `conftest.py` defaults `REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS` to 0.05 s (same "Redis unavailable" path). Full suite: **6.6 min**, no setting needed |
+| 3 AI Tutor SDK tests skipped locally | `google-genai==2.28.0` (the pinned version) installed in the local venv: `test_practice_ai_tutor.py` **39/39, none skipped** |
+| Brevo free plan (~300 emails/day) | A masterlist upload that creates more than 250 accounts now shows an amber warning: some welcome emails may not go out today; use "Forgot password?" tomorrow; split large lists. Browser-checked with a 260-row file |
+
+### Looked at and left as is (why)
+- **Cached old frontend (PWA):** `registerType: 'autoUpdate'` already swaps in a new bundle on the next page load. Only tabs opened before Vercel deployed `404d88a` and still open at Errol's deploy are affected; a reload fixes them. An hourly forced update was rejected: it could reload a student's page in the middle of coding.
+- **IDE Run retries** still resend after a lost answer. Unlike practice, an execution request has no expiry, so not resending could leave a run waiting forever. A duplicate's callback is refused (409), and the race fixes keep the first result.
+- **Need people or a decision, not code:**
+  - the real RapidAPI Judge0 run (production only: Errol's deploy, then the checks in the handoff);
+  - faculty invites until that deploy (the old backend still emails a temporary password);
+  - backup artifacts in a public repository (encrypted; a private repository copy is safer);
+  - GitHub's 60-day pause of scheduled workflows;
+  - the single-student form's emailed password (Januard's 2026-10-21 spec).
+- **Local venv ≠ Render:** this machine runs Python 3.13; Render runs 3.11.4. `pip install -r requirements.txt` stops at `greenlet==3.2.5`, which has no Windows build for 3.13, so a few pins differ locally (pydantic 2.13.3, google-auth 2.58.1, anyio 4.13.0). A Python 3.11 venv would match production exactly.
+
+### Tests
+| Run | Result |
+|---|---|
+| Full backend suite (SQLite, no environment settings) | **1127 passed, 14 skipped** (only the PostgreSQL suites), 0 failed |
+| New `test_mock_judge0_contract.py` | 9 passed |
+| `test_practice_async_submit.py` (+11 for the dispatch outcomes) | 34 passed |
+| Live HTTP run, backend + mock Judge0 | practice ×3, IDE Run, submit run: all as expected |
+| Frontend lint / build | Pass |
+
+### Files
+- **Modified:**
+  - `backend/app/tasks/celery_worker.py`
+  - `backend/tests/conftest.py`
+  - `backend/tests/test_practice_async_submit.py`
+  - `mock_judge0/main.py`
+  - `frontend/src/features/admin/AdminDashboard.jsx`
+  - `docs/operations/database-backups.md`
+- **New:**
+  - `backend/tests/test_mock_judge0_contract.py`
+  - `.github/workflows/backup-tool-selftest.yml`
+  - `errol_handoff_oct22.md`, updated to match
+
+### What a push does
+- **Vercel:** the masterlist warning.
+- **GitHub:** the backup self-test runs once.
+- **Render (Errol's deploy):** the IDE Run race fix and the practice dispatch change.
+- No migration beyond `b7e4c2a91f03`.

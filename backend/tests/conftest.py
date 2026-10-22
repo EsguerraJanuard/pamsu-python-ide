@@ -14,6 +14,10 @@ os.environ["OTP_SECRET_KEY"] = "test-only-otp-secret-key-0123456789abcdef"
 # Port 1 refuses connections immediately: Redis-backed features take their
 # documented "Redis unavailable" paths without waiting on timeouts.
 os.environ["REDIS_URL"] = "redis://127.0.0.1:1/0"
+# Except on Windows, which takes ~2 s to refuse a closed port (the whole
+# suite then takes ~45 min). A short connect timeout gives the same
+# "Redis unavailable" path in milliseconds on every system.
+os.environ.setdefault("REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS", "0.05")
 for variable in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS", "GEMINI_API_KEY", "JUDGE0_API_KEY"):
     os.environ[variable] = ""
 

@@ -7,6 +7,7 @@ Production runs on the Supabase **free tier, which keeps no backups**, and `star
 | Backup tool (dump, check, encrypt, rotate, restore) | `ops/backup_database.py` | free |
 | Nightly automatic backup | `.github/workflows/database-backup.yml` (GitHub Actions) | free (public repository) |
 | Backup before a risky deploy | the same tool, run by hand | free |
+| Self-test on GitHub (no secrets, throwaway PostgreSQL 17 container) | `.github/workflows/backup-tool-selftest.yml`: runs when the tool or the backup workflow changes, or by hand | free |
 
 **Why not a Render cron job?** Render cron jobs have no free tier (minimum $1 per month per job), and free Render instances have no persistent disk to keep backups on.
 

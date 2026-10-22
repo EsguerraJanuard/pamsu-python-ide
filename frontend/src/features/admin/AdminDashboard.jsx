@@ -11,6 +11,8 @@ import { useAuth } from "../auth/AuthContext";
 import { ChangePasswordSection } from "../settings/AccountSections";
 
 const PAGE_SIZE = 50;
+// Brevo's free plan: ~300 emails a day; leave room for password-reset codes.
+const BREVO_SAFE_DAILY_EMAILS = 250;
 const RECENT_ACTIVITY_COUNT = 6;
 const SCHOOL_EMAIL = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
 const SCHOOL_ID = /^(\d{10}|\d{4}-\d{5})$/;
@@ -1508,10 +1510,14 @@ export default function AdminDashboard() {
       const created = res?.created ?? 0;
       const failedRows = (res?.rows ?? []).filter((row) => row.status === "failed");
       setBulkMessage({
-        tone: failedRows.length > 0 || pendingLeft > 0 ? "warning" : "success",
+        tone: failedRows.length > 0 || pendingLeft > 0 || created > BREVO_SAFE_DAILY_EMAILS ? "warning" : "success",
         text:
           `${created} account${created === 1 ? "" : "s"} created, ${res?.skipped ?? 0} already existed, ${failedRows.length} row${failedRows.length === 1 ? "" : "s"} failed.` +
           (created > 0 ? " Each new student is emailed their account details and a link to set their own password." : "") +
+          // Brevo's free plan sends about 300 emails a day, password-reset codes included.
+          (created > BREVO_SAFE_DAILY_EMAILS
+            ? ` The email service sends about 300 emails a day, so some of these welcome emails may not go out today. Students who don't get one can use "Forgot password?" tomorrow; split large masterlists across days.`
+            : "") +
           (fromPending > 0 ? ` ${fromPending} queued class enrollment${fromPending === 1 ? " was" : "s were"} completed.` : "") +
           (pendingLeft > 0 ? ` ${pendingLeft} stay${pendingLeft === 1 ? "s" : ""} pending because the class is inactive or could not be joined.` : ""),
         rows: failedRows,
