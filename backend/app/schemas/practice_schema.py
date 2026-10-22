@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from app.schemas.execution_schema import MAX_SOURCE_CODE_LENGTH
 from pydantic import BaseModel, Field
@@ -40,6 +40,10 @@ class PracticeSubmissionRequest(BaseModel):
 class PracticeSubmissionResponse(BaseModel):
     # The AI Tutor endpoint (/practice/attempts/{attempt_id}/ai-hint) needs it.
     attempt_id: int
+    # "pending" until Judge0's result arrives (poll GET
+    # /practice/attempts/{attempt_id}), then "completed" (judged) or "failed"
+    # (the code could not be run; it does not count as a try).
+    status: Literal["pending", "completed", "failed"] = "completed"
     is_successful: bool
     execution_feedback: Optional[str] = None
     ast_feedback: Optional[List[str]] = None

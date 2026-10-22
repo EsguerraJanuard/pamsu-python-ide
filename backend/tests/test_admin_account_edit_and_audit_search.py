@@ -95,7 +95,9 @@ def test_name_only_and_unchanged_values(client, people):
         {"name": "   "},
         {"name": "x" * 151},
         {"role": "admin"},
-        {"name": "Ana Reyes", "school_id": "2026999999"},
+        # School IDs can be corrected since 2026-10-22, but only to a
+        # student number (see test_mis_enrollment_followups.py).
+        {"name": "Ana Reyes", "school_id": "GST9999999"},
         {"name": "Ana Reyes", "password": "NewPass#2026"},
     ],
 )

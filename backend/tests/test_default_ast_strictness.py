@@ -6,16 +6,12 @@ level used for practice modules (which have no instructor). Instructors
 keep the level they chose.
 """
 
-from types import SimpleNamespace
-
-import httpx
 import pytest
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, get_password_hash
 from app.core.system_settings import get_default_ast_strictness, set_system_setting
-from app.models.domain_models import PracticeModule, PracticeTask, User
-from app.routers import practice as practice_router
+from app.models.domain_models import PracticeAttempt, PracticeModule, PracticeTask, User
 
 DOMAIN = "@pampangastateu.edu.ph"
 TWO_LOOPS = "for i in range(1):\n    pass\nfor j in range(1):\n    print('ok')\n"
@@ -58,27 +54,6 @@ def practice_task(db_session):
     return task
 
 
-@pytest.fixture
-def judge0_accepts(monkeypatch):
-    """Judge0 reports "Accepted" without any network call."""
-
-    class FakeClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
-        def post(self, *args, **kwargs):
-            return SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"status": {"id": 3}})
-
-    monkeypatch.setattr(practice_router, "httpx",
-                        SimpleNamespace(Client=FakeClient, Timeout=httpx.Timeout, HTTPError=httpx.HTTPError))
-
-
 # ------------------------------------------------------------ setting
 
 
@@ -118,11 +93,21 @@ def test_new_instructor_starts_at_the_admin_default(client, db_session, admin):
 
 @pytest.mark.parametrize(("default", "passes"), [("moderate", True), ("lax", True), ("strict", False)])
 def test_practice_structure_check_uses_the_admin_default(client, db_session, student, practice_task,
-                                                         judge0_accepts, default, passes):
+                                                         default, passes):
     set_system_setting(db_session, "default_ast_strictness", default)
 
     response = client.post(f"/practice/tasks/{practice_task.task_id}/submit", json={"code": TWO_LOOPS},
                            headers=auth(student))
-
     assert response.status_code == 200, response.text
-    assert response.json()["is_successful"] is passes
+    attempt = db_session.get(PracticeAttempt, response.json()["attempt_id"])
+
+    # Judge0 reports "Accepted"; the structure check runs when its callback arrives.
+    callback = client.put(
+        f"/practice/internal/judge0-callback?attempt_id={attempt.attempt_id}&correlation_id={attempt.correlation_id}",
+        json={"status": {"id": 3}},
+    )
+    assert callback.status_code == 200, callback.text
+
+    result = client.get(f"/practice/attempts/{attempt.attempt_id}", headers=auth(student)).json()
+    assert result["status"] == "completed"
+    assert result["is_successful"] is passes

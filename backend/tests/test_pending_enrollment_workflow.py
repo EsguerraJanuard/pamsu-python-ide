@@ -135,6 +135,7 @@ def test_bulk_enroll_enrolls_existing_students_and_queues_unknown_addresses(clie
         "invalid": 1,
         "already_enrolled": 0,
         "ineligible": 0,
+        "suspended": 0,
     }
     assert [e.class_id for e in enrollments_for(db_session, f"Maria.Santos{DOMAIN}")] == [classroom.class_id]
     assert pending_for(db_session, f"maria.santos{DOMAIN}") == []

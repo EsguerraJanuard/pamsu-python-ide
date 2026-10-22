@@ -152,8 +152,11 @@ def queue_submission_processing(
     """
     Queue the background evaluation and the "submit" run of a saved attempt.
 
-    Shared by POST /submissions/ and the legacy POST /execution/submissions/
-    so every attempt gets the same structure and similarity checks.
+    POST /submissions/ is the only way to create an attempt (the legacy
+    POST /execution/submissions/ was removed on 2026-10-22), and this is the
+    only place that creates "submit" execution requests: POST
+    /execution/requests/ refuses them, so each attempt gets exactly one
+    paid Judge0 submit run.
     """
 
     # The attempt is already committed. An unavailable queue must not turn a

@@ -492,18 +492,31 @@ def bulk_enroll_students(
     existing_users = db.query(User).filter(func.lower(User.email).in_(valid_emails)).all()
     existing_user_map = {u.email.lower(): u for u in existing_users}
 
+    from app.services.guest_service import is_self_service_guest
+
     enrolled_count = 0
     queued_count = 0
     already_enrolled_count = 0
     ineligible_count = 0
+    suspended_count = 0
     occurred_at = get_utc_now()
 
     try:
         for email in valid_emails:
             user = existing_user_map.get(email)
 
-            if user is not None and user.role != "student":
+            # Self-service guests stay in the guest sandbox (owner decision,
+            # 2026-10-19), so instructors can't add them either.
+            if user is not None and (user.role != "student" or is_self_service_guest(user)):
                 ineligible_count += 1
+                continue
+
+            # Enrollment decision 1 (2026-10-22): a suspended student is
+            # reported, not enrolled, the same rule as the pending-enrollment
+            # retry. Nothing is queued: the account exists, and the
+            # instructor can add the student again after MIS reactivates it.
+            if user is not None and not user.is_active:
+                suspended_count += 1
                 continue
 
             if user is not None:
@@ -585,6 +598,7 @@ def bulk_enroll_students(
         invalid=invalid_count,
         already_enrolled=already_enrolled_count,
         ineligible=ineligible_count,
+        suspended=suspended_count,
     )
 
 
@@ -620,9 +634,17 @@ def apply_pending_enrollments(
     The caller owns the outer transaction and must commit it.
     """
 
+    from app.services.guest_service import is_self_service_guest
+
     if student.role != "student" or not student.is_active:
         raise StudentNotEligibleForEnrollmentError(
             "Pending enrollments can only be applied to an active student account."
+        )
+
+    # Enrollment decision 4: guests never complete queued class enrollments.
+    if is_self_service_guest(student):
+        raise StudentNotEligibleForEnrollmentError(
+            "Guest accounts can't be enrolled in classes."
         )
 
     result = PendingEnrollmentResult()

@@ -160,8 +160,6 @@ def test_required_api_paths_and_status_codes():
         "/submissions/",
         "/submissions/official/{task_id}",
         "/submissions/{submission_id}",
-        "/execution/submissions/",
-        "/execution/submissions/{sub_id}",
         "/execution/requests/",
         "/execution/requests/{execution_id}",
         "/execution/internal/partner-results",
@@ -257,7 +255,11 @@ def test_required_api_paths_and_status_codes():
         in paths["/instructors/tasks/{task_id}/execution-requests"]["get"]["responses"]
     )
 
-    assert "201" in paths["/execution/submissions/"]["post"]["responses"]
+    assert "201" in paths["/submissions/"]["post"]["responses"]
+
+    # The legacy duplicates were removed on 2026-10-22.
+    assert "/execution/submissions/" not in paths
+    assert "/execution/submissions/{sub_id}" not in paths
 
     assert "200" in paths["/evaluation/submissions/{sub_id}"]["post"]["responses"]
 

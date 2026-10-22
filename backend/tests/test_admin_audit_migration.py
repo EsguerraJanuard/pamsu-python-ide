@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import pytest
 from alembic import command
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import IntegrityError
@@ -33,6 +34,11 @@ NEW_ACTIONS = {
     "masterlist_imported",
 }
 NEW_RESOURCES = {"system_setting", "masterlist_import"}
+
+
+def build_script_head() -> str:
+    # Later revisions (b7e4c2a91f03, practice attempt status) chain after this one.
+    return ScriptDirectory.from_config(build_alembic_config()).get_current_head()
 
 
 def _insert_audit(url: URL, action_type: str, resource_type: str) -> None:
@@ -102,6 +108,8 @@ def test_upgrade_allows_admin_types_and_matches_the_model(temporary_postgresql_d
     for constraint in ("ck_audit_records_action_type", "ck_audit_records_resource_type"):
         assert _database_values(url, constraint) == _model_values(constraint)
 
+    # `alembic check` compares the model with a database at head.
+    command.upgrade(config, "head")
     command.check(config)
 
 
@@ -142,4 +150,5 @@ def test_downgrade_restores_baseline_lists_when_unused(temporary_postgresql_data
         _insert_audit(url, "user_created", "user")
 
     command.upgrade(config, "head")
-    assert _scalar(url, "SELECT version_num FROM alembic_version") == REVISION
+    assert _scalar(url, "SELECT version_num FROM alembic_version") == build_script_head()
+    assert NEW_ACTIONS <= _database_values(url, "ck_audit_records_action_type")

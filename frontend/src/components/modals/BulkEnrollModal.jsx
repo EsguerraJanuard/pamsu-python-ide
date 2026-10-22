@@ -88,6 +88,7 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
               ["Invalid", result.invalid ?? 0, "text-text-rose"],
               ...(result.already_enrolled > 0 ? [["Already in class", result.already_enrolled, "text-text-main"]] : []),
               ...(result.ineligible > 0 ? [["Not a student account", result.ineligible, "text-text-amber"]] : []),
+              ...(result.suspended > 0 ? [["Suspended account", result.suspended, "text-text-amber"]] : []),
             ].map(([label, value, tone]) => (
               <div key={label} className="rounded-lg border border-border-subtle p-3">
                 <dd className={`text-2xl font-bold ${tone}`}>{value}</dd>
@@ -104,8 +105,15 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
           )}
           {result.ineligible > 0 && (
             <InlineAlert tone="warning" className="mt-4">
-              {result.ineligible === 1 ? "1 address belongs" : `${result.ineligible} addresses belong`} to a faculty or
-              admin account and {result.ineligible === 1 ? "was" : "were"} not enrolled.
+              {result.ineligible === 1 ? "1 address belongs" : `${result.ineligible} addresses belong`} to a faculty,
+              admin or guest account and {result.ineligible === 1 ? "was" : "were"} not enrolled.
+            </InlineAlert>
+          )}
+          {result.suspended > 0 && (
+            <InlineAlert tone="warning" className="mt-4">
+              {result.suspended === 1 ? "1 student's account is" : `${result.suspended} students' accounts are`} suspended
+              by MIS, so {result.suspended === 1 ? "it was" : "they were"} not enrolled. Add{" "}
+              {result.suspended === 1 ? "the student" : "them"} again after MIS reactivates the account.
             </InlineAlert>
           )}
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

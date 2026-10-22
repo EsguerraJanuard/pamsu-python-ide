@@ -86,28 +86,15 @@ def failed_attempt(db_session, student, practice_task):
     return make_attempt(db_session, student, practice_task)
 
 
-@pytest.fixture
-def judge0(monkeypatch):
-    """Judge0 answers with state["result"] without any network call."""
+def judge0_calls_back(client, db: Session, attempt_id: int, result: dict):
+    """Deliver Judge0's callback for an attempt (no network call is made)."""
 
-    state = {"result": {"status": {"id": 3}}}
-
-    class FakeClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
-        def post(self, *args, **kwargs):
-            return SimpleNamespace(raise_for_status=lambda: None, json=lambda: state["result"])
-
-    monkeypatch.setattr(practice_router, "httpx",
-                        SimpleNamespace(Client=FakeClient, Timeout=httpx.Timeout, HTTPError=httpx.HTTPError))
-    return state
+    db.expire_all()
+    correlation_id = db.get(PracticeAttempt, attempt_id).correlation_id
+    return client.put(
+        f"/practice/internal/judge0-callback?attempt_id={attempt_id}&correlation_id={correlation_id}",
+        json=result,
+    )
 
 
 @pytest.fixture
@@ -166,10 +153,8 @@ class FakeClock:
     ({"status": {"id": 11}, "stderr": base64.b64encode(NAME_ERROR.encode()).decode()}, False),
     ({"status": {"id": 3}}, True),
 ])
-def test_submit_response_includes_the_attempt_id(client, db_session, student, practice_task, judge0,
+def test_submit_response_includes_the_attempt_id(client, db_session, student, practice_task,
                                                  judge0_result, passes):
-    judge0["result"] = judge0_result
-
     response = client.post(f"/practice/tasks/{practice_task.task_id}/submit", json={"code": BROKEN_CODE},
                            headers=auth(student))
 
@@ -177,7 +162,12 @@ def test_submit_response_includes_the_attempt_id(client, db_session, student, pr
     body = response.json()
     attempt = db_session.query(PracticeAttempt).one()
     assert body["attempt_id"] == attempt.attempt_id
-    assert body["is_successful"] is passes
+    assert body["status"] == "pending"
+
+    assert judge0_calls_back(client, db_session, attempt.attempt_id, judge0_result).status_code == 200
+    result = client.get(f"/practice/attempts/{attempt.attempt_id}", headers=auth(student)).json()
+    assert result["status"] == "completed"
+    assert result["is_successful"] is passes
 
 
 # ------------------------------------------------------------ hint flow

@@ -50,8 +50,13 @@ def _is_guest_identity(email: str, school_id: str) -> bool:
     )
 
 
+def is_guest_identity(*, role: str | None, email: str | None, school_id: str | None) -> bool:
+    """is_self_service_guest() for plain values (API responses, imports)."""
+    return role == "student" and _is_guest_identity(email or "", school_id or "")
+
+
 def is_self_service_guest(user: User) -> bool:
-    return user.role == "student" and _is_guest_identity(user.email or "", user.school_id or "")
+    return is_guest_identity(role=user.role, email=user.email, school_id=user.school_id)
 
 
 def self_service_guest_filter():

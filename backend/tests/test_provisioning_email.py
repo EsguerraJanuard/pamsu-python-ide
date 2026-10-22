@@ -277,16 +277,25 @@ def test_failed_student_creation_sends_nothing(client, db_session, queued):
     assert len(queued) == 1
 
 
-def test_faculty_creation_emails_the_credentials_with_the_account_id(client, db_session, queued):
+@pytest.mark.parametrize("password", [None, "Temp#2026pw"])
+def test_faculty_creation_emails_a_set_password_link_never_a_password(client, db_session, queued, password):
     admin = make_admin(db_session)
     headers = {"Authorization": f"Bearer {create_access_token({'sub': str(admin.user_id)})}"}
+    body = {"email": f"maria.santos{DOMAIN}", "first_name": "Maria", "last_name": "Santos"}
+    if password:
+        # Older clients still send one: it is set, but not emailed.
+        body["password"] = password
 
-    response = client.post("/admin/instructors", headers=headers, json={
-        "email": f"maria.santos{DOMAIN}", "first_name": "Maria", "last_name": "Santos", "password": "Temp#2026pw",
-    })
+    response = client.post("/admin/instructors", headers=headers, json=body)
 
     assert response.status_code == 200, response.text
     ((args, kwargs),) = queued
-    assert args == (f"maria.santos{DOMAIN}", "Maria", "Temp#2026pw", "Instructor")
+    assert args == (f"maria.santos{DOMAIN}", "Maria", None, "Instructor")
     assert kwargs["last_name"] == "Santos"
     assert kwargs["school_id"] == response.json()["school_id"] and kwargs["school_id"].startswith("FAC")
+    # The None password selects the template's "set your own password" link.
+    found = parts(build(recipient_email=args[0], temp_password=None, role="Instructor"))
+    assert "/forgot-password" in found["text/plain"]
+    # Only a password-free account can't sign in until the instructor sets one.
+    created = db_session.get(User, response.json()["user_id"])
+    assert created.password_hash.startswith("$2") is bool(password)

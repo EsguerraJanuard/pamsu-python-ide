@@ -13,10 +13,16 @@ import { useTheme } from "../theme/ThemeContext";
 import ThemeToggle from "../theme/ThemeToggle";
 import { defineEditorThemes, editorThemeFor } from "../workspace/editorThemes";
 
-// The server runs the code on Judge0 before it answers (it waits up to 15 s
-// for Judge0, then checks the structure), so this request gets more time
-// than the 15 s default.
+// The server saves the attempt and answers at once with status "pending";
+// Judge0 runs the code in the background and the page polls the attempt
+// until it is "completed" or "failed". The server closes an attempt that has
+// waited 2 minutes, so polling always ends. Servers from before this change
+// still run Judge0 inside the submit request (up to 15 s) and answer with the
+// verdict and no status, so the request keeps a longer timeout.
 const PRACTICE_SUBMIT_TIMEOUT_MS = 45000;
+const ATTEMPT_POLL_INTERVAL_MS = 1500;
+const ATTEMPT_MAX_WAIT_MS = 130000;
+const NOT_CHECKED_MESSAGE = "Your code could not be checked this time. It does not count as a try — please run it again.";
 
 // After a failed submission the server writes an AI Tutor hint in the
 // background and answers "processing" until it is ready. Poll at this pace
@@ -90,6 +96,7 @@ function PracticeTask({ taskId }) {
   const [tutor, setTutor] = useState(null);
   // Bumped for every submission, so polling for an older attempt stops.
   const hintRun = useRef(0);
+  const submitRun = useRef(0);
 
   useEffect(() => {
     isMounted.current = true;
@@ -164,21 +171,60 @@ function PracticeTask({ taskId }) {
     }
   }, []);
 
+  // Polls a pending attempt until Judge0's verdict is recorded. Returns null
+  // when the page moved on (unmounted or a newer submission started).
+  const waitForVerdict = async (attemptId, run) => {
+    const isCurrent = () => isMounted.current && submitRun.current === run;
+    const deadline = Date.now() + ATTEMPT_MAX_WAIT_MS;
+    let failedPolls = 0;
+    while (Date.now() < deadline) {
+      await wait(ATTEMPT_POLL_INTERVAL_MS);
+      if (!isCurrent()) return null;
+      let attempt;
+      try {
+        attempt = await api.get(`/practice/attempts/${attemptId}`);
+        failedPolls = 0;
+      } catch (err) {
+        // The attempt is saved and keeps running: ride out a brief outage.
+        failedPolls += 1;
+        if (failedPolls >= 3) throw err;
+        continue;
+      }
+      if (!isCurrent()) return null;
+      if (attempt?.status !== "pending") return attempt;
+    }
+    return { status: "still_pending" };
+  };
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
+    const run = ++submitRun.current;
     setIsSubmitting(true);
     setFeedback(null);
     setSubmitError("");
     hintRun.current += 1;
     setTutor(null);
     try {
-      const result = await api.post(`/practice/tasks/${taskId}/submit`, { code }, {}, PRACTICE_SUBMIT_TIMEOUT_MS);
+      let result = await api.post(`/practice/tasks/${taskId}/submit`, { code }, {}, PRACTICE_SUBMIT_TIMEOUT_MS);
       if (!isMounted.current) return;
+      // Older servers answer with the verdict itself (no status field).
+      if (result?.status === "pending") {
+        result = await waitForVerdict(result.attempt_id, run);
+        if (!result) return;
+      }
+      if (result?.status === "still_pending") {
+        setSubmitError("Your code is still being checked. Wait a moment, then run it again.");
+        return;
+      }
+      if (result?.status === "failed") {
+        setSubmitError(NOT_CHECKED_MESSAGE);
+        return;
+      }
       setFeedback(result);
       // An older backend sends no attempt_id; it has no tutor to ask.
       if (result && !result.is_successful && Number.isInteger(result.attempt_id)) fetchHint(result.attempt_id);
     } catch (err) {
-      if (!isMounted.current) return;
+      if (!isMounted.current || submitRun.current !== run) return;
       if (err?.status === NETWORK_ERROR_STATUS) setSubmitError("Could not reach the server. Your code was not evaluated.");
       else if (err?.status === TIMEOUT_ERROR_STATUS) setSubmitError("The evaluator took too long to respond. The code runner may be offline — please try again.");
       else if (err?.status === 429) setSubmitError("You're submitting too quickly. Wait a few seconds and try again.");
@@ -285,7 +331,7 @@ function PracticeTask({ taskId }) {
             {isSubmitting && (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />
             )}
-            {isSubmitting ? "Evaluating…" : "Run & check"}
+            {isSubmitting ? "Checking…" : "Run & check"}
           </button>
         </div>
       </header>
@@ -406,8 +452,12 @@ function PracticeTask({ taskId }) {
               Output
             </div>
             <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap p-4 font-mono text-xs text-text-main">
-              {feedback?.execution_feedback || (
-                <span className="text-text-muted">Select Run &amp; check to evaluate your solution. Its output appears here.</span>
+              {isSubmitting ? (
+                <span className="text-text-muted">Running your code in the sandbox…</span>
+              ) : (
+                feedback?.execution_feedback || (
+                  <span className="text-text-muted">Select Run &amp; check to evaluate your solution. Its output appears here.</span>
+                )
               )}
             </pre>
           </div>

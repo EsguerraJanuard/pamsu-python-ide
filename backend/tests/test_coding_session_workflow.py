@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_password_hash
 from app.models.domain_models import (
     CodingSession,
+    ExecutionRequest,
     User,
 )
 
@@ -806,6 +807,20 @@ def test_execution_requests_increment_backend_session_counter(
 
     assert end_response.status_code == 200
 
+    # The automatic submit run is linked to the session and uses the
+    # submitted snapshot.
+    submit_run = (
+        db_session.query(ExecutionRequest)
+        .filter(ExecutionRequest.submission_id == submission["sub_id"])
+        .one()
+    )
+
+    assert submit_run.request_kind == "submit"
+    assert submit_run.coding_session_id == session_id
+    assert submit_run.source_code == submission["raw_code"]
+
+    # Clients cannot add a second submit run (refused before any counter
+    # changes, so the ended session's counter stays put).
     submit_response = create_execution_request(
         client,
         student_token=setup["student_token"],
@@ -814,9 +829,7 @@ def test_execution_requests_increment_backend_session_counter(
         submission_id=submission["sub_id"],
     )
 
-    assert submit_response.status_code == 201
-    assert submit_response.json()["coding_session_id"] == session_id
-    assert submit_response.json()["source_code"] == submission["raw_code"]
+    assert submit_response.status_code == 409
 
     after_submit_response = client.get(
         (f"/activities/coding-sessions/{session_id}"),
@@ -824,7 +837,7 @@ def test_execution_requests_increment_backend_session_counter(
     )
 
     assert after_submit_response.status_code == 200
-    assert after_submit_response.json()["run_attempt_count"] == 4
+    assert after_submit_response.json()["run_attempt_count"] == 3
 
     stored_session = db_session.get(
         CodingSession,
@@ -835,7 +848,7 @@ def test_execution_requests_increment_backend_session_counter(
 
     db_session.refresh(stored_session)
 
-    assert stored_session.run_attempt_count == 4
+    assert stored_session.run_attempt_count == 3
 
     forged_counter_response = client.patch(
         (f"/activities/coding-sessions/{session_id}/activity"),
@@ -849,7 +862,7 @@ def test_execution_requests_increment_backend_session_counter(
 
     db_session.refresh(stored_session)
 
-    assert stored_session.run_attempt_count == 4
+    assert stored_session.run_attempt_count == 3
 
 
 def test_instructor_can_review_only_owned_coding_sessions(

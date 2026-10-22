@@ -59,7 +59,7 @@ const STRICTNESS = [
 ];
 
 const QUICK_ACTIONS = [
-  { id: "add-faculty", icon: "userPlus", title: "Add a faculty account", text: "Create an instructor sign-in with a temporary password.", tab: "faculty", focus: "provision-instructor-email" },
+  { id: "add-faculty", icon: "userPlus", title: "Add a faculty account", text: "Invite an instructor; they set their own password.", tab: "faculty", focus: "provision-instructor-email" },
   { id: "add-student", icon: "userPlus", title: "Add a student account", text: "Register one student by university email and school ID.", tab: "students", focus: "provision-student-email" },
   { id: "masterlist", icon: "upload", title: "Import a masterlist", text: "Create many student accounts from a CSV or .xlsx file.", tab: "students", focus: "admin-bulk-file" },
   { id: "audit", icon: "shield", title: "Review the audit trail", text: "Check sign-ins and account changes.", tab: "audit" },
@@ -293,11 +293,13 @@ function useAdminList(endpoint) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
+  const page = (skip) => `${endpoint}${endpoint.includes("?") ? "&" : "?"}skip=${skip}&limit=${PAGE_SIZE}`;
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await api.get(`${endpoint}?skip=0&limit=${PAGE_SIZE}`);
+      const data = await api.get(`${endpoint}${endpoint.includes("?") ? "&" : "?"}skip=0&limit=${PAGE_SIZE}`);
       const list = Array.isArray(data) ? data : [];
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
@@ -311,7 +313,7 @@ function useAdminList(endpoint) {
   const loadMore = async () => {
     setIsLoadingMore(true);
     try {
-      const data = await api.get(`${endpoint}?skip=${items.length}&limit=${PAGE_SIZE}`);
+      const data = await api.get(page(items.length));
       const list = Array.isArray(data) ? data : [];
       setItems((prev) => [...prev, ...list]);
       setHasMore(list.length === PAGE_SIZE);
@@ -348,6 +350,27 @@ function TextField({ id, label, hint, error, ...props }) {
   );
 }
 
+/** True for a 422 that only says the (older) server requires a password. */
+function isPasswordRequired(error) {
+  const detail = error instanceof ApiError && error.status === 422 ? error.data?.detail : null;
+  return Array.isArray(detail) && detail.length > 0 && detail.every((item) => item?.type === "missing" && item?.loc?.at(-1) === "password");
+}
+
+/**
+ * Faculty accounts are created without a password: the instructor sets one
+ * from the welcome email. A server from before 2026-10-22 still requires one;
+ * then a random temporary password is sent instead (that server emails it).
+ */
+async function createFaculty(payload) {
+  try {
+    return { created: await api.post("/admin/instructors", payload) };
+  } catch (err) {
+    if (!isPasswordRequired(err)) throw err;
+    const fallbackPassword = generateTempPassword();
+    return { created: await api.post("/admin/instructors", { ...payload, password: fallbackPassword }), fallbackPassword };
+  }
+}
+
 function ProvisionForm({ role, onCreated }) {
   const isStudent = role === "student";
   const empty = { email: "", first_name: "", middle_name: "", last_name: "", school_id: "", password: generateTempPassword() };
@@ -370,7 +393,7 @@ function ProvisionForm({ role, onCreated }) {
     const fullName = [form.first_name, form.middle_name, form.last_name].map((part) => part.trim()).filter(Boolean).join(" ");
     if (fullName.length > 150) next.last_name = "The full name must be at most 150 characters.";
     if (isStudent && !SCHOOL_ID.test(form.school_id.trim())) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
-    if (form.password.length < 8) next.password = "Use at least 8 characters.";
+    if (isStudent && form.password.length < 8) next.password = "Use at least 8 characters.";
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -382,10 +405,22 @@ function ProvisionForm({ role, onCreated }) {
         first_name: form.first_name.trim(),
         middle_name: form.middle_name.trim() || null,
         last_name: form.last_name.trim(),
-        password: form.password,
-        ...(isStudent ? { school_id: form.school_id.trim() } : {}),
+        ...(isStudent ? { school_id: form.school_id.trim(), password: form.password } : {}),
       };
-      const created = await api.post(isStudent ? "/admin/students" : "/admin/instructors", payload);
+      if (!isStudent) {
+        const { fallbackPassword } = await createFaculty(payload);
+        setResult({
+          tone: "success",
+          text: fallbackPassword
+            ? // A server from before 2026-10-22 still requires a password and emails it.
+              `Account created for ${payload.email}. This server still emails a temporary password; if the email doesn't arrive, it is ${fallbackPassword}.`
+            : `Account created for ${payload.email}. The instructor is emailed a link to set their own password. If the email doesn't arrive, they can use "Forgot password?" on the sign-in page with this address.`,
+        });
+        setForm({ ...empty, password: generateTempPassword() });
+        onCreated?.();
+        return;
+      }
+      const created = await api.post("/admin/students", payload);
       const pending = created?.pending_enrollments;
       const joined = pending?.enrolled_class_ids?.length ?? 0;
       const waiting = pending?.skipped?.length ?? 0;
@@ -425,7 +460,7 @@ function ProvisionForm({ role, onCreated }) {
       onSubmit={handleSubmit}
       noValidate
       title={isStudent ? "Create student account" : "Create faculty account"}
-      description={isStudent ? "For one student. The sign-in details are emailed automatically." : "The sign-in details are emailed to the instructor automatically."}
+      description={isStudent ? "For one student. The sign-in details are emailed automatically." : "The instructor is emailed a link to set their own password."}
       icon="userPlus"
       footer={
         <div className="@container">
@@ -451,7 +486,13 @@ function ProvisionForm({ role, onCreated }) {
           {isStudent ? (
             <TextField id={`${prefix}-school-id`} label="School ID" placeholder="2026000001 or 2026-00001" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />
           ) : (
-            passwordField
+            <div className="flex items-start gap-3 rounded-lg border border-border-subtle bg-bg-alt/50 px-4 py-3">
+              <Icon name="key" className="mt-0.5 h-4 w-4 shrink-0 text-text-brand" />
+              <p className="text-sm text-text-muted">
+                <span className="font-semibold text-text-main">No password to share.</span> The welcome email links to "Forgot password?", where the
+                instructor gets a one-time code and chooses their own password.
+              </p>
+            </div>
           )}
         </div>
         <div className="grid grid-cols-1 gap-5 rounded-lg border border-border-subtle bg-bg-alt/40 p-4 @xl:grid-cols-3">
@@ -498,7 +539,16 @@ function TemporaryPasswordField({ prefix, value, error, disabled, onChange, onGe
   );
 }
 
-function UserTable({ users, caption, emptyMessage, onAction }) {
+/** Self-service guest ("Continue as Guest Student"). Older servers don't send is_guest. */
+function isGuestAccount(user) {
+  if (typeof user.is_guest === "boolean") return user.is_guest;
+  return user.role === "student" && /^guest_/i.test(user.email || "") && /^GST/.test(user.school_id || "");
+}
+
+const ROW_ACTION =
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors disabled:cursor-not-allowed disabled:opacity-60";
+
+function UserTable({ users, caption, emptyMessage, onAction, busyUserId = null }) {
   if (users.length === 0) {
     return (
       <div className="p-5 sm:p-6">
@@ -508,7 +558,7 @@ function UserTable({ users, caption, emptyMessage, onAction }) {
   }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[680px] text-sm">
+      <table className="w-full min-w-[820px] text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="border-b border-border-subtle bg-bg-alt/70">
           <tr>
@@ -519,13 +569,19 @@ function UserTable({ users, caption, emptyMessage, onAction }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-border-subtle">
-          {users.map((user) => (
+          {users.map((user) => {
+            const guest = isGuestAccount(user);
+            const busy = busyUserId === user.user_id;
+            return (
             <tr key={user.user_id} className="transition-colors hover:bg-psu-cream/70">
               <td className="px-5 py-3.5">
                 <div className="flex items-center gap-3">
                   <Avatar name={user.name} />
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-text-main">{user.name}</p>
+                    <p className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-semibold text-text-main">{user.name}</span>
+                      {guest && <Pill tone="warning">Guest</Pill>}
+                    </p>
                     <p className="truncate text-xs text-text-muted">{user.email}</p>
                   </div>
                 </div>
@@ -542,24 +598,42 @@ function UserTable({ users, caption, emptyMessage, onAction }) {
               </td>
               <td className="px-5 py-3.5">
                 <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors hover:border-psu-maroon/40 hover:bg-psu-cream hover:text-text-brand"
-                    aria-label={`Edit ${user.name}`}
-                    onClick={() => onAction(user, "edit")}
-                  >
-                    <Icon name="pencil" className="h-3.5 w-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors hover:border-border-strong hover:bg-bg-alt"
-                    aria-label={`Reset password for ${user.name}`}
-                    onClick={() => onAction(user, "reset")}
-                  >
-                    <Icon name="key" className="h-3.5 w-3.5" />
-                    Reset password
-                  </button>
+                  {/* Guest accounts expire on their own; they can only be suspended or reactivated. */}
+                  {!guest && (
+                    <button
+                      type="button"
+                      className={`${ROW_ACTION} hover:border-psu-maroon/40 hover:bg-psu-cream hover:text-text-brand`}
+                      aria-label={`Edit ${user.name}`}
+                      onClick={() => onAction(user, "edit")}
+                    >
+                      <Icon name="pencil" className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
+                  )}
+                  {!guest && user.role === "student" && (
+                    <button
+                      type="button"
+                      className={`${ROW_ACTION} hover:border-psu-maroon/40 hover:bg-psu-cream hover:text-text-brand`}
+                      aria-label={`Re-apply pending class enrollments for ${user.name}`}
+                      title="Enroll this student in classes that queued their email"
+                      onClick={() => onAction(user, "apply")}
+                      disabled={busy || !user.is_active}
+                    >
+                      <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+                      {busy ? "Applying…" : "Re-apply pending"}
+                    </button>
+                  )}
+                  {!guest && (
+                    <button
+                      type="button"
+                      className={`${ROW_ACTION} hover:border-border-strong hover:bg-bg-alt`}
+                      aria-label={`Reset password for ${user.name}`}
+                      onClick={() => onAction(user, "reset")}
+                    >
+                      <Icon name="key" className="h-3.5 w-3.5" />
+                      Reset password
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold transition-colors ${
@@ -576,7 +650,8 @@ function UserTable({ users, caption, emptyMessage, onAction }) {
                 </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -642,10 +717,18 @@ function AuditTable({ logs }) {
   );
 }
 
-/** Dialog for correcting an account's name or university email. */
+/** True for the 422 an older server gives for a field it doesn't accept yet. */
+function isUnsupportedField(error, field) {
+  const detail = error instanceof ApiError && error.status === 422 ? error.data?.detail : null;
+  return Array.isArray(detail) && detail.some((item) => item?.type === "extra_forbidden" && item?.loc?.at(-1) === field);
+}
+
+/** Dialog for correcting an account's name or university email, or a student's school ID. */
 function EditAccountModal({ user, onClose, onSaved }) {
+  const isStudent = user?.role === "student";
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
+  const [schoolId, setSchoolId] = useState(user?.school_id ?? "");
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -653,8 +736,11 @@ function EditAccountModal({ user, onClose, onSaved }) {
 
   const trimmedName = name.split(/\s+/).filter(Boolean).join(" ");
   const trimmedEmail = email.trim().toLowerCase();
+  const trimmedSchoolId = schoolId.trim();
   const nameChanged = Boolean(user) && trimmedName !== user.name;
   const emailChanged = Boolean(user) && trimmedEmail !== (user.email || "").toLowerCase();
+  const schoolIdChanged = isStudent && trimmedSchoolId !== (user.school_id || "");
+  const anyChange = nameChanged || emailChanged || schoolIdChanged;
   const formId = "admin-edit-account-form";
 
   const submit = async (event) => {
@@ -664,8 +750,9 @@ function EditAccountModal({ user, onClose, onSaved }) {
     else if (trimmedName.length > 150) next.name = "The full name must be at most 150 characters.";
     if (!SCHOOL_EMAIL.test(trimmedEmail)) next.email = "Use an @pampangastateu.edu.ph email address.";
     else if (trimmedEmail.startsWith("guest_")) next.email = "Addresses starting with guest_ are reserved for guest accounts.";
+    if (schoolIdChanged && !SCHOOL_ID.test(trimmedSchoolId)) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
     setErrors(next);
-    if (Object.keys(next).length || (!nameChanged && !emailChanged)) return;
+    if (Object.keys(next).length || !anyChange) return;
 
     setIsSaving(true);
     setFormError(null);
@@ -673,13 +760,17 @@ function EditAccountModal({ user, onClose, onSaved }) {
       const result = await api.patch(`/admin/users/${user.user_id}`, {
         ...(nameChanged ? { name: trimmedName } : {}),
         ...(emailChanged ? { email: trimmedEmail } : {}),
+        ...(schoolIdChanged ? { school_id: trimmedSchoolId } : {}),
       });
       onSaved(result);
     } catch (err) {
       if (isMissingRoute(err)) {
         setFormError("Editing accounts needs the latest server update. Ask the system maintainer to deploy the backend, then try again.");
+      } else if (isUnsupportedField(err, "school_id")) {
+        setErrors({ school_id: "Changing school IDs needs the latest server update. Save the other changes without it, or ask the system maintainer to deploy the backend." });
       } else if (err instanceof ApiError && err.status === 409) {
-        setErrors({ email: getErrorMessage(err, "Another account already uses this email.") });
+        const message = getErrorMessage(err, "Another account already uses this email.");
+        setErrors(/school ID/i.test(message) ? { school_id: message } : { email: message });
       } else {
         setFormError(getErrorMessage(err, "The changes could not be saved."));
       }
@@ -693,7 +784,11 @@ function EditAccountModal({ user, onClose, onSaved }) {
       isOpen={Boolean(user)}
       onClose={onClose}
       title={user ? `Edit ${user.role === "instructor" ? "faculty" : "student"} account` : "Edit account"}
-      description="Correct a misspelled name or email. Role, school ID and status are changed elsewhere."
+      description={
+        isStudent
+          ? "Correct a misspelled name, email or school ID. Role and status are changed elsewhere."
+          : "Correct a misspelled name or email. Role and status are changed elsewhere."
+      }
       size="lg"
       dismissible={!isSaving}
       initialFocusRef={nameRef}
@@ -702,7 +797,7 @@ function EditAccountModal({ user, onClose, onSaved }) {
           <button type="button" className="btn-secondary" onClick={onClose} disabled={isSaving}>
             Cancel
           </button>
-          <button type="submit" form={formId} className="btn-primary" disabled={isSaving || (!nameChanged && !emailChanged)}>
+          <button type="submit" form={formId} className="btn-primary" disabled={isSaving || !anyChange}>
             {isSaving ? "Saving…" : "Save changes"}
           </button>
         </div>
@@ -772,6 +867,35 @@ function EditAccountModal({ user, onClose, onSaved }) {
             />
             <FieldError id="admin-edit-email-error">{errors.email}</FieldError>
           </div>
+          {isStudent && (
+            <div>
+              <label htmlFor="admin-edit-school-id" className="field-label">
+                School ID
+              </label>
+              <input
+                id="admin-edit-school-id"
+                className="input-field py-2.5 font-mono"
+                value={schoolId}
+                placeholder="2026000001 or 2026-00001"
+                maxLength={10}
+                onChange={(e) => {
+                  setSchoolId(e.target.value);
+                  setErrors((prev) => ({ ...prev, school_id: "" }));
+                }}
+                aria-invalid={Boolean(errors.school_id)}
+                aria-describedby={errors.school_id ? "admin-edit-school-id-error" : "admin-edit-school-id-hint"}
+                disabled={isSaving}
+                autoComplete="off"
+              />
+              {errors.school_id ? (
+                <FieldError id="admin-edit-school-id-error">{errors.school_id}</FieldError>
+              ) : (
+                <p id="admin-edit-school-id-hint" className="mt-1.5 text-xs text-text-muted">
+                  The student number from the MIS masterlist. Masterlist uploads are matched on it.
+                </p>
+              )}
+            </div>
+          )}
           {emailChanged && !errors.email && (
             <InlineAlert tone="warning">
               The account will sign in with the new address, and any password-reset code sent to the old address stops working.
@@ -781,6 +905,154 @@ function EditAccountModal({ user, onClose, onSaved }) {
         </form>
       )}
     </Modal>
+  );
+}
+
+const PENDING_VIEWS = [
+  ["ready", "Ready to apply"],
+  ["waiting", "Waiting"],
+];
+
+/** Why a queued enrollment can't be applied yet. */
+function pendingStatus(item) {
+  if (item.ready) return { tone: "success", text: "Ready" };
+  if (!item.class_active) return { tone: "neutral", text: "Class archived" };
+  if (item.user_id == null) return { tone: "warning", text: "No account yet" };
+  if (item.student_active === false) return { tone: "neutral", text: "Account suspended" };
+  return { tone: "neutral", text: "Not a student account" };
+}
+
+/**
+ * Class enrollments that instructors queued for university emails (GET
+ * /admin/pending-enrollments). "Ready" rows have an active student account
+ * and an active class, so applying enrolls them now. Until the server has the
+ * endpoint, the panel says so and the directory's row action still works.
+ */
+function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
+  const [view, setView] = useState("ready");
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [unsupported, setUnsupported] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setData(await api.get(`/admin/pending-enrollments?state=${view}&limit=50`));
+    } catch (err) {
+      if (isMissingRoute(err)) setUnsupported(true);
+      else setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [view]);
+
+  useEffect(() => {
+    load();
+  }, [load, refreshKey]);
+
+  return (
+    <Panel
+      title="Queued class enrollments"
+      description="Addresses instructors added to a class before the student had an account. Only MIS sees them."
+      icon="classroom"
+      flush
+      actions={
+        !unsupported && (
+          <>
+            {data && !error && (
+              <span className="badge badge-neutral tabular-nums" aria-live="polite">
+                {plural(data.ready ?? 0, "ready enrollment")}
+              </span>
+            )}
+            <div className="flex gap-1 rounded-lg border border-border-subtle bg-bg-panel p-1" role="group" aria-label="Show queued enrollments">
+              {PENDING_VIEWS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={view === value}
+                  onClick={() => setView(value)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    view === value ? "bg-psu-maroon text-white" : "text-text-muted hover:bg-bg-alt hover:text-text-main"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )
+      }
+    >
+      {unsupported ? (
+        <div className="p-5 sm:p-6">
+          <InlineAlert tone="info">
+            This list appears after the next server update. Until then, use &ldquo;Re-apply pending&rdquo; on a student&apos;s row in the directory.
+          </InlineAlert>
+        </div>
+      ) : error ? (
+        <div className="p-5 sm:p-6">
+          <AdminErrorState error={error} resource="queued enrollments" onRetry={load} />
+        </div>
+      ) : !data ? (
+        <ListSkeleton rows={3} />
+      ) : data.items.length === 0 ? (
+        <div className="p-5 sm:p-6">
+          <EmptyState
+            className="py-8"
+            title={view === "ready" ? "Nothing to apply" : "Nothing waiting"}
+            message={
+              view === "ready"
+                ? "Every queued address with an active student account has been enrolled."
+                : "No queued address is waiting for an account or a reactivated class."
+            }
+          />
+        </div>
+      ) : (
+        <div aria-busy={isLoading} className={`transition-opacity ${isLoading ? "opacity-60" : ""}`}>
+          <ul className="divide-y divide-border-subtle">
+            {data.items.map((item) => {
+              const status = pendingStatus(item);
+              const busy = busyUserId === item.user_id;
+              return (
+                <li key={item.pending_id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center sm:px-6">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-text-main">{item.student_name || item.email}</p>
+                    <p className="truncate text-xs text-text-muted">
+                      {item.student_name ? `${item.email} · ` : ""}
+                      {[item.class_name, item.subject_code, item.section].filter(Boolean).join(" · ")}
+                      {" · queued "}
+                      {formatDate(item.queued_at)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Pill tone={status.tone}>{status.text}</Pill>
+                    {item.ready && (
+                      <button
+                        type="button"
+                        className="btn-secondary btn-sm"
+                        disabled={busyUserId !== null}
+                        onClick={() => onApply({ user_id: item.user_id, name: item.student_name || item.email, is_active: true })}
+                        aria-label={`Apply queued enrollments for ${item.student_name || item.email}`}
+                      >
+                        <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+                        {busy ? "Applying…" : "Apply"}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          {data.total > data.items.length && (
+            <p className="border-t border-border-subtle px-5 py-3 text-xs text-text-muted sm:px-6">
+              Showing the newest {data.items.length} of {data.total}.
+            </p>
+          )}
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -1010,7 +1282,8 @@ export default function AdminDashboard() {
 
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(null);
-  const users = useAdminList("/admin/users");
+  const [showGuests, setShowGuests] = useState(false);
+  const users = useAdminList(showGuests ? "/admin/users?include_guests=true" : "/admin/users");
   const logs = useAdminList("/admin/audit-logs");
 
   const [settings, setSettings] = useState(null);
@@ -1027,6 +1300,8 @@ export default function AdminDashboard() {
   const audit = useAuditSearch(auditVisited);
   const [userAction, setUserAction] = useState(null);
   const [isActing, setIsActing] = useState(false);
+  const [applyingUserId, setApplyingUserId] = useState(null);
+  const [pendingRefresh, setPendingRefresh] = useState(0);
   const [actionMessage, setActionMessage] = useState(null);
   const [bulkMessage, setBulkMessage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -1056,10 +1331,14 @@ export default function AdminDashboard() {
   const { load: loadLogs } = logs;
   useEffect(() => {
     loadStats();
-    loadUsers();
     loadLogs();
     loadSettings();
-  }, [loadStats, loadUsers, loadLogs, loadSettings]);
+  }, [loadStats, loadLogs, loadSettings]);
+
+  // Separate, so the "Show guests" switch reloads only the account list.
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   // Without the search endpoint the audit tab shows the plain list; fetch it
   // fresh at that moment rather than showing what was loaded at sign-in.
@@ -1114,17 +1393,53 @@ export default function AdminDashboard() {
 
   const handleUserAction = (user, type) => {
     if (type === "edit") setEditingUser(user);
+    else if (type === "apply") applyPendingEnrollments(user);
     else setUserAction({ user, type, password: generateTempPassword() });
+  };
+
+  /** Enroll a student in the classes that queued their email (safe to repeat). */
+  const applyPendingEnrollments = async (user) => {
+    if (applyingUserId !== null) return;
+    setApplyingUserId(user.user_id);
+    try {
+      const result = await api.post(`/admin/students/${user.user_id}/pending-enrollments/apply`);
+      const joined = result?.enrolled_class_ids?.length ?? 0;
+      const already = result?.already_enrolled_class_ids?.length ?? 0;
+      const waiting = result?.skipped?.length ?? 0;
+      const parts = [
+        joined > 0 && `added to ${plural(joined, "class")}`,
+        already > 0 && `${plural(already, "queued class")} already had them`,
+        waiting > 0 && `${plural(waiting, "class")} still waiting (archived or busy; try again later)`,
+      ].filter(Boolean);
+      setActionMessage({
+        tone: waiting > 0 ? "warning" : "success",
+        text: parts.length ? `${user.name}: ${parts.join(", ")}.` : `${user.name} has no queued class enrollments.`,
+      });
+      setPendingRefresh((n) => n + 1);
+    } catch (err) {
+      setActionMessage({
+        tone: "error",
+        text:
+          err instanceof ApiError && err.status === 409
+            ? `${user.name} can't be enrolled: ${getErrorMessage(err, "only active student accounts can join classes.")}`
+            : getErrorMessage(err, "The queued enrollments could not be applied."),
+      });
+    } finally {
+      setApplyingUserId(null);
+    }
   };
 
   const handleAccountSaved = (result) => {
     const previous = editingUser;
-    users.setItems((prev) => prev.map((u) => (u.user_id === result.user_id ? { ...u, name: result.name, email: result.email } : u)));
+    users.setItems((prev) =>
+      prev.map((u) => (u.user_id === result.user_id ? { ...u, name: result.name, email: result.email, school_id: result.school_id ?? u.school_id } : u)),
+    );
     const changed = result.changed_fields ?? [];
     const joined = result.pending_enrollments?.enrolled_class_ids?.length ?? 0;
     const parts = [
       changed.includes("name") && `the name is now ${result.name}`,
       changed.includes("email") && `they now sign in as ${result.email}`,
+      changed.includes("school_id") && `the school ID is now ${result.school_id}`,
     ].filter(Boolean);
     setActionMessage({
       tone: "success",
@@ -1260,7 +1575,7 @@ export default function AdminDashboard() {
     ) : users.isLoading ? (
       <LoadingState label="Loading accounts…" className="py-14" />
     ) : (
-      <UserTable users={list} caption={caption} emptyMessage={emptyMessage} onAction={handleUserAction} />
+      <UserTable users={list} caption={caption} emptyMessage={emptyMessage} onAction={handleUserAction} busyUserId={applyingUserId} />
     );
   const exportButton = (role, count) => (
     <button type="button" className="btn-secondary" onClick={() => exportAccounts(role)} disabled={count === 0 || exportingRole !== null}>
@@ -1546,7 +1861,7 @@ export default function AdminDashboard() {
                   <div className="min-w-0 space-y-4 lg:col-span-2">
                     <Panel
                       title="Student directory"
-                      description="Guest accounts are not listed."
+                      description={showGuests ? "Including self-service guest accounts." : "Self-service guest accounts are hidden."}
                       icon="students"
                       flush
                       actions={
@@ -1554,6 +1869,21 @@ export default function AdminDashboard() {
                           {!users.isLoading && !users.error && (
                             <CountBadge count={students.length} word="account" hasMore={users.hasMore} shown={query ? filteredStudents.length : undefined} />
                           )}
+                          <div className="flex items-center gap-2">
+                            <span id="admin-show-guests-label" className="text-xs font-semibold text-text-muted">
+                              Show guests
+                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={showGuests}
+                              aria-labelledby="admin-show-guests-label"
+                              onClick={() => setShowGuests((on) => !on)}
+                              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${showGuests ? "bg-psu-maroon" : "bg-border-strong"}`}
+                            >
+                              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${showGuests ? "translate-x-[22px]" : "translate-x-0.5"}`} aria-hidden="true" />
+                            </button>
+                          </div>
                           {searchBox("admin-student-search", "Search students", search, setSearch)}
                         </>
                       }
@@ -1561,6 +1891,7 @@ export default function AdminDashboard() {
                       {userListBody(filteredStudents, "Student accounts", query ? "No students match your search." : "No student accounts yet.")}
                     </Panel>
                     {loadMoreUsers}
+                    <PendingEnrollmentsPanel onApply={applyPendingEnrollments} busyUserId={applyingUserId} refreshKey={pendingRefresh} />
                   </div>
                 </div>
               </>

@@ -49,17 +49,73 @@ celery.conf.update(
     },
 )
 
-@celery.task(bind=True, max_retries=3)
-def dispatch_to_partner(self, execution_request_id: str) -> None:
-    import httpx
-    from app.core.database import SessionLocal
-    from app.models.domain_models import ExecutionRequest
-    
+def judge0_connection() -> tuple[str, dict[str, str]]:
+    """Judge0 base URL and auth headers (RapidAPI or a self-hosted token)."""
+
     judge0_url = os.getenv("JUDGE0_API_URL", "http://mock_judge0:8001")
     if judge0_url and not judge0_url.startswith("http"):
         judge0_url = f"https://{judge0_url}"
     judge0_key = os.getenv("JUDGE0_API_KEY")
     judge0_host = os.getenv("JUDGE0_HOST")
+
+    headers: dict[str, str] = {}
+    if judge0_key:
+        headers["X-RapidAPI-Key"] = judge0_key
+        headers["X-Auth-Token"] = judge0_key
+    if judge0_host:
+        headers["X-RapidAPI-Host"] = judge0_host
+    return judge0_url.rstrip("/"), headers
+
+
+@celery.task(bind=True, max_retries=2)
+def dispatch_practice_attempt(self, attempt_id: int) -> None:
+    """
+    Send a pending solo-practice attempt to Judge0. Judge0 calls back to
+    /practice/internal/judge0-callback with the result; nothing here waits
+    for the run. After the last failed try the attempt is closed as failed,
+    so the page stops waiting (app.services.practice_evaluation_service).
+    """
+
+    import httpx
+    from app.core.database import SessionLocal
+    from app.services import practice_evaluation_service as practice
+
+    db = SessionLocal()
+    try:
+        payload = practice.prepare_dispatch(db, attempt_id)
+        # Committed reads only: end the transaction before the network call.
+        db.rollback()
+        if payload is None:
+            return
+
+        judge0_url, headers = judge0_connection()
+        with httpx.Client(timeout=httpx.Timeout(10.0)) as client:
+            response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload, headers=headers)
+            response.raise_for_status()
+    except Exception as error:
+        db.rollback()
+        logger.error(
+            "Failed to dispatch practice attempt %s to Judge0 (attempt %s): %s",
+            attempt_id,
+            self.request.retries + 1,
+            type(error).__name__,
+        )
+        if self.request.retries >= self.max_retries:
+            practice.mark_attempt_failed(db, attempt_id=attempt_id, message=practice.RUNNER_UNAVAILABLE_MESSAGE)
+            return
+        # Practice is interactive: retry quickly, and only twice.
+        raise self.retry(exc=error, countdown=3)
+    finally:
+        db.close()
+
+
+@celery.task(bind=True, max_retries=3)
+def dispatch_to_partner(self, execution_request_id: str) -> None:
+    import httpx
+    from app.core.database import SessionLocal
+    from app.models.domain_models import ExecutionRequest
+
+    judge0_url, headers = judge0_connection()
     webhook_base = os.getenv("WEBHOOK_BASE_URL", "http://backend:8000")
     
     db = SessionLocal()
@@ -97,14 +153,6 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         }
         
         # Dispatch to partner with base64_encoded=true
-        
-        headers = {}
-        if judge0_key:
-            headers["X-RapidAPI-Key"] = judge0_key
-            headers["X-Auth-Token"] = judge0_key
-        if judge0_host:
-            headers["X-RapidAPI-Host"] = judge0_host
-
         with httpx.Client(timeout=httpx.Timeout(10.0, read=10.0)) as client:
             response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload, headers=headers)
             response.raise_for_status()

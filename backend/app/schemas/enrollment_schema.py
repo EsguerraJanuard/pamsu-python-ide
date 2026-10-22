@@ -152,7 +152,17 @@ class BulkEnrollmentResponse(BaseModel):
     )
     ineligible: int = Field(
         default=0,
-        description="Number of addresses that belong to a non-student account and were not enrolled.",
+        description=(
+            "Number of addresses that belong to a faculty, admin or self-service "
+            "guest account and were not enrolled."
+        ),
+    )
+    suspended: int = Field(
+        default=0,
+        description=(
+            "Number of students whose account MIS has suspended. They are not "
+            "enrolled or queued; add them again once MIS reactivates them."
+        ),
     )
 
     model_config = ConfigDict(

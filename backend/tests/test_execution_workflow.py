@@ -572,6 +572,20 @@ def test_submit_request_uses_immutable_submission_snapshot(
 
     submission = submission_response.json()
 
+    # POST /submissions/ queued the submit run itself, from the stored
+    # snapshot (code and standard input).
+    stored_request = (
+        db_session.query(ExecutionRequest)
+        .filter(ExecutionRequest.submission_id == submission["sub_id"])
+        .one()
+    )
+
+    assert stored_request.request_kind == "submit"
+    assert stored_request.source_code == submitted_code
+    assert stored_request.standard_input == "PAMSU\n"
+    assert stored_request.status == "queued"
+
+    # A client cannot add a second (paid) submit run for the same attempt.
     execution_response = create_execution_request(
         client,
         student_token=setup["student_token"],
@@ -581,24 +595,13 @@ def test_submit_request_uses_immutable_submission_snapshot(
         standard_input=("THIS MUST BE IGNORED\n"),
     )
 
-    assert execution_response.status_code == 201
-
-    execution_request = execution_response.json()
-
-    assert execution_request["request_kind"] == "submit"
-    assert execution_request["submission_id"] == submission["sub_id"]
-    assert execution_request["source_code"] == submitted_code
-    assert execution_request["standard_input"] == "PAMSU\n"
-    assert execution_request["status"] == "queued"
-
-    stored_request = db_session.get(
-        ExecutionRequest,
-        execution_request["execution_id"],
+    assert execution_response.status_code == 409
+    assert (
+        db_session.query(ExecutionRequest)
+        .filter(ExecutionRequest.submission_id == submission["sub_id"])
+        .count()
+        == 1
     )
-
-    assert stored_request is not None
-    assert stored_request.source_code == submitted_code
-    assert stored_request.standard_input == "PAMSU\n"
 
     stored_submission = db_session.get(
         Submission,

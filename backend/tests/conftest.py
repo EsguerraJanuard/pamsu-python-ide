@@ -103,7 +103,7 @@ def celery_calls(monkeypatch):
 
     calls: list[tuple[str, tuple]] = []
 
-    for task_name in ("dispatch_to_partner", "evaluate_submission_background_task"):
+    for task_name in ("dispatch_to_partner", "evaluate_submission_background_task", "dispatch_practice_attempt"):
         task = getattr(celery_worker, task_name)
         monkeypatch.setattr(
             task,

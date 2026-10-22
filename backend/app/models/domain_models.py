@@ -2164,17 +2164,41 @@ class PracticeProgress(Base):
     task = relationship("PracticeTask", back_populates="progress_records")
 
 
+PRACTICE_ATTEMPT_STATUSES = ("pending", "completed", "failed")
+
+
 class PracticeAttempt(Base):
     __tablename__ = "practice_attempts"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'completed', 'failed')",
+            name="ck_practice_attempts_status",
+        ),
+        UniqueConstraint(
+            "correlation_id",
+            name="uq_practice_attempts_correlation_id",
+        ),
+    )
 
     attempt_id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     task_id = Column(Integer, ForeignKey("practice_tasks.task_id", ondelete="CASCADE"), nullable=False)
     submitted_code = Column(Text, nullable=False)
+    # False until the attempt is judged; pending and failed attempts keep it
+    # false and are left out of the practice statistics.
     is_successful = Column(Boolean, default=False, nullable=False)
     execution_feedback = Column(Text, nullable=True)
     ast_feedback = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # Judge0 runs the attempt in the background (migration b7e4c2a91f03):
+    # 'pending' until its callback arrives, 'completed' once judged, 'failed'
+    # when the code could not be run. Rows written before then were judged
+    # synchronously, hence the 'completed' server default.
+    status = Column(String(20), nullable=False, default="completed", server_default="completed")
+    # Random UUID sent only to Judge0 (in the callback URL); the callback must
+    # present it. Never included in a student response.
+    correlation_id = Column(String(36), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
     student = relationship("User")
     task = relationship("PracticeTask", back_populates="attempts")

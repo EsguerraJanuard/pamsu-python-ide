@@ -2377,3 +2377,179 @@ _Errol asked for realistic demo data that keeps the admin account. He runs the r
 ### Done (reported by Errol, 2026-10-22)
 - **Render deployed `dev`:** migration `61330560eec5` is applied in production.
 - **Production was reset to the demo semester** with `seed.py --reset`, keeping the admin account and system settings.
+
+## October 22 handoff: owner decisions, practice submit, MIS features, backups (2026-10-22)
+
+_Branch `dev`, starting from `6c8db89` (Errol's latest, fast-forwarded before any change). Januard set a **zero-budget policy** and delegated the remaining owner decisions to engineering judgment. Nothing here was pushed, deployed or run against production. All database work used throwaway local databases._
+
+### The 2026-10-22 "Still open" list: status now
+| # | Item | Status |
+|---|---|---|
+| 1 | Admin actions not audited | **Done earlier** (Errol, `61330560eec5`, deployed) |
+| 2 | Practice submit waits on Judge0 (up to 15 s) | **Fixed in code.** Migration `b7e4c2a91f03`. Goes live at Errol's next Render deploy |
+| 3 | PostgreSQL 17 run | Migration and concurrency suites run on **PostgreSQL 18.4** (throwaway cluster): **28 passed**. **No 17 run yet:** this machine has no PostgreSQL 17, and downloading it needs the owner's OK |
+| 4 | Release blockers | **Code side ready.** SMTP: [rotation steps](docs/operations/smtp-key-rotation.md) and `ops/check_smtp.py`, but **Errol must rotate the key**. Backup: tool and workflow ready, but **need the secrets** (below). Production smoke test: **not run** |
+| 5 | Legacy `/execution/submissions/` routes; who creates submit runs | **Decided and done** (removed; `POST /submissions/` only) |
+| 6 | Enrollment questions; instructor temporary-password email | **Decided and done** |
+| 7 | Gemini billing; AGENTS.md | Billing: **no** (zero budget); the approved `gemini-3.6-flash` fallback stays. AGENTS.md updated **locally**: it is gitignored, so Errol must update his own copy |
+| 8 | Optional UI | **Done:** "Show guests", "Re-apply pending", School ID editing, a new queued-enrollments panel. **Not done (not requested):** admin dark mode, the `PageShell` rebuilds |
+| 9 | `ClassroomResponse` requires `section` | **Fixed** |
+
+### Decisions taken (owner delegated, 2026-10-22)
+| Question | Decision | Why |
+|---|---|---|
+| Remove the legacy `/execution/submissions/` routes? | **Removed** (both now 404) | Dependency check: the frontend, `qa/`, `load_tests/` and `mock_judge0` never call them; only tests did. They duplicated `POST /submissions/`, `GET /submissions/{id}` and `GET /instructors/submissions/{id}`, and the POST was the item 7 bypass |
+| Should `POST /submissions/` create its own execution request? | **Yes, and only it.** `POST /execution/requests/` now refuses `request_kind: "submit"` (409) | Each attempt gets exactly one paid Judge0 submit run, made from the stored snapshot. The frontend only sends `run` |
+| Rate limit on run requests | **5 per 10 s per student** (`POST /execution/requests/`) | Each one is a paid Judge0 run, and the route had no limit |
+| Suspended students in bulk enroll (enrollment decision 1) | **Refused and reported** (`suspended` count); nothing queued | Same rule as the pending-enrollment retry |
+| Pending rows for archived classes (2) | **Kept; applied after reactivation** (unchanged, confirmed) | Keeps the instructor's intent without blocking |
+| Class capacity (3) | **None** (no schema change) | No institutional requirement yet |
+| Guests and pending enrollments (4) | **Self-service guests are never enrolled** (bulk enroll counts them as `ineligible`; the retry refuses them). Admin-created guests stay normal students | 2026-10-19 owner decision: guests stay in the sandbox |
+| Who sees queued addresses (5) | **MIS only:** new `GET /admin/pending-enrollments`. Instructors keep the counts in their bulk-enroll result. No notifications | Addresses are personal data. Instructors see the student in the roster once enrolled |
+| School ID matching for pending rows (6) | **No:** email only | Would need a migration and an instructor input |
+| Instructor temporary-password email | **No password is ever emailed to faculty.** The account is created without a usable password, and the welcome email links to "Forgot password?" (one-time code) | Plaintext passwords in email are the weak point. Same pattern as masterlist students. MIS keeps "Reset password" as a fallback |
+
+The single-student form (`POST /admin/students`) still emails the MIS-chosen temporary password, per Januard's 2026-10-21 spec. Switching it to the same password-free invite is recommended, as a separate change.
+
+### 1. Practice submit returns at once (item 2, the 3-second rule)
+- **Flow** (same pattern as the IDE Run button):
+  1. `POST /practice/tasks/{id}/submit` saves a `pending` attempt and queues `dispatch_practice_attempt` (Celery). It answers immediately with `status: "pending"` and the `attempt_id`.
+  2. The worker sends the code to Judge0 with a callback URL (`WEBHOOK_BASE_URL/practice/internal/judge0-callback?attempt_id=…&correlation_id=…`).
+  3. Judge0 calls back. The callback records the verdict (status 3 plus the structure check) and counts the try in `practice_progress`.
+  4. The page polls `GET /practice/attempts/{id}` every 1.5 s.
+- **Cost unchanged:** one Judge0 submission per attempt. Judge0 itself is never polled (that would be a paid request each time).
+- **States:** `pending`, `completed` (judged), or `failed`.
+  - `failed` means the code never ran: queue down, Judge0 error status 13/14/missing, or no answer within 120 s (closed when the page next reads it).
+  - Failed and pending attempts don't count as tries, are left out of the growth statistics, and get no AI hint (409 while pending, 400 when failed).
+- **The callback is public** (Judge0 sends no credentials). It is bound to one attempt by a random UUID `correlation_id` that only the server and Judge0 see; students never receive it.
+  - An unknown pair gets 404.
+  - A finished attempt gets 409, and nothing changes.
+- **Concurrency** (`services/practice_evaluation_service.py`):
+  - the attempt row is locked `FOR UPDATE`, so a duplicate delivery is applied once;
+  - the progress row is locked too, and when no row exists yet a savepoint plus the `(student_id, task_id)` unique constraint let two simultaneous verdicts both count, in one row;
+  - the stale-attempt expiry is a conditional `UPDATE … WHERE status = 'pending'`, so it can't overwrite a verdict being recorded.
+- **Migration `b7e4c2a91f03`** (chained after `61330560eec5`; single head):
+  - `practice_attempts.status` VARCHAR(20) NOT NULL DEFAULT `'completed'` + `ck_practice_attempts_status`;
+  - `correlation_id` VARCHAR(36), unique;
+  - `completed_at` timestamptz.
+  - **Additive only.** Existing rows read as `completed` (they were judged synchronously), and the old code still works on the new schema during Render's switch-over.
+  - `lock_timeout` 10 s. PostgreSQL 11+ adds the defaulted column without rewriting the table.
+  - Downgrade drops the columns, and refuses while any attempt is pending or failed.
+- **Measured locally** (scratch copy with a fake Judge0 that answers after 2 s): submit answers in **149 ms** (it used to wait up to 15 s). The page shows "Checking…", then "Passed".
+- **Frontend** (`PracticeWorkspace.jsx`):
+  - polls the attempt and tolerates up to two failed polls in a row;
+  - shows "could not be checked, does not count" for `failed`;
+  - **still works with today's production backend**, which answers with the verdict and no `status`.
+
+### 2. MIS features (item 8)
+- **Show guests** (Student directory switch): uses `GET /admin/users?include_guests=true`, which production already has.
+  - Guest rows get a "Guest" badge and only Suspend/Activate.
+  - Account lists now include `is_guest`; older servers fall back to the `guest_`/`GST` pattern.
+- **Re-apply pending** on each active student row: calls `POST /admin/students/{id}/pending-enrollments/apply`, which production already has. It reports classes joined and classes still waiting.
+- **Queued class enrollments** panel ("Ready to apply" / "Waiting", per-row Apply), from the new admin-only `GET /admin/pending-enrollments`.
+  - Each row says why it waits: no account yet, class archived, or account suspended.
+  - Until Errol deploys, the panel says it needs the server update.
+- **School ID editing** (Edit dialog, students only): `PATCH /admin/users/{id}` accepts `school_id`.
+  - Format: 10 digits or `2026-00001`.
+  - 409 if another account uses it; faculty get 400.
+  - Audited as `user_updated` with `changed_fields: ["school_id"]`, never the value.
+  - Older servers get a clear "needs the latest server update" message.
+- **Faculty form:** no password field. With an older server (422 "password missing"), it retries once with a generated temporary password and shows it, the 2026-10-21 behaviour. Audit metadata records `sign_in_setup` (`set_by_instructor` / `set_by_admin`).
+- **Instructor bulk enroll** result shows the new "Suspended account" count, and the ineligible text now mentions guests.
+- **Browser-checked** on a scratch copy (SQLite, ports 8021/5181, fake Judge0): every item above, including a duplicate School ID refused under the field. No console errors besides that expected 409.
+
+### 3. `ClassroomResponse.section` (item 9)
+Optional in responses, so a class with no section (seed or SQL) no longer makes `GET /classrooms/` or `GET /classrooms/mine` return 500. Create and update still require a section.
+
+### 4. Backups at zero cost (release blocker)
+- **`ops/backup_database.py`**: `backup | verify | decrypt | restore | generate-key`.
+  - `pg_dump` custom format of the `public` schema, after checking that pg_dump's version is at least the server's.
+  - Refuses a dump without `users`/`alembic_version` data.
+  - Fernet encryption before the file reaches the output folder.
+  - JSON manifest (SHA-256, revision; no data) and `--keep N` rotation.
+  - `restore` only into an **empty** database, in one transaction.
+  - The URL is never printed or put on a command line (libpq variables).
+- **`.github/workflows/database-backup.yml`**: nightly at 02:30 Manila, plus a manual run.
+  - Installs the PostgreSQL 17 client and uploads only the encrypted dump (artifact kept 14 days).
+  - **Off until** repository variable `DATABASE_BACKUP_ENABLED=true` and secrets `BACKUP_DATABASE_URL` (Supabase **Session pooler**, port 5432: GitHub runners are IPv4-only) and `BACKUP_ENCRYPTION_KEY` exist.
+  - The repository is **public** (artifacts downloadable by anyone signed in), so the run refuses to start without the key. A private copy of the workflow is the stronger option (documented).
+- **Not Render cron:** it has no free tier ($1/month minimum per cron job), and free instances have no persistent disk.
+- **Tested** on PostgreSQL 18.4 (throwaway):
+  - backup → verify → decrypt → restore into an empty database: 250/250 users, revision `b7e4c2a91f03`, `alembic check` clean;
+  - rotation;
+  - wrong key refused;
+  - no key with `--require-encryption`: nothing dumped;
+  - restore over a database with tables: refused.
+  - Plus 10 unit tests.
+- Guide: [`docs/operations/database-backups.md`](docs/operations/database-backups.md). It includes **"back up by hand before every deploy with a migration"** (this one included).
+
+### 5. SMTP/Brevo key rotation (release blocker)
+[`docs/operations/smtp-key-rotation.md`](docs/operations/smtp-key-rotation.md):
+1. generate a new key in Brevo;
+2. check it with `ops/check_smtp.py` (asks for the key without echoing it; logs in; optional test email; prints only SMTP codes);
+3. set `SMTP_PASS` on Render, then Save and deploy;
+4. test "Forgot password?";
+5. delete the old key.
+
+Also covers sender verification and the free plan's 300 emails/day. **Still to be done by Errol.**
+
+### 6. Gemini fallback and AGENTS.md (item 7)
+The fallback to `gemini-3.6-flash` (only on 503/429 from 3.8 Flash) is now the written rule. AGENTS.md is in `.gitignore`, so the update exists only in this machine's local copy; Errol must make the same change in his. Billing stays off under the zero-budget policy. If both free quotas run out, the tutor reports "busy" and students can retry.
+
+### Tests
+| Run | Result |
+|---|---|
+| Baseline at `6c8db89` before any change (SQLite, `REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS=0.05`, see note) | 1053 passed, 11 skipped |
+| Full backend suite after the changes (SQLite, same setting) | **1104 passed, 17 skipped, 0 failed** (skipped: the PostgreSQL-only suites, run separately below, and 3 tests that need `google-genai`, which this local venv lacks) |
+| **PostgreSQL 18.4** throwaway cluster: whole migration chain (up, down to base, up, `alembic check`), `test_admin_audit_migration`, new `test_practice_attempt_status_migration`, new `test_practice_callback_concurrency`, the 4 existing concurrency suites, `test_redis_tls` | **28 passed** |
+| The three practice/submission/grade concurrency suites, repeated 5 times | 5/5 runs green |
+| Frontend `npm run lint` / `npm run build` | Pass |
+
+- **New tests:** `test_practice_async_submit.py` (23), `test_practice_callback_concurrency.py` (3, PostgreSQL), `test_practice_attempt_status_migration.py` (3, PostgreSQL), `test_mis_enrollment_followups.py` (19), `test_backup_database_script.py` (10).
+- **Rewritten:** `test_legacy_submission_route.py` (the routes stay gone; one submit run per attempt; run-request limit).
+- **Updated to the new contracts:**
+  - `test_api_workflow`, `test_coding_session_workflow`, `test_execution_workflow`, `test_openapi_contracts` (no legacy routes; no client submit runs);
+  - `test_practice_ai_tutor`, `test_default_ast_strictness` (callback flow);
+  - `test_provisioning_email` (faculty email has no password);
+  - `test_pending_enrollment_workflow` (`suspended` field);
+  - `test_admin_account_edit_and_audit_search` (school ID now editable);
+  - `test_admin_audit_migration` (`61330560eec5` is no longer head).
+- **Note for Windows test runs:** connecting to the closed Redis port in `conftest.py` takes ~2 s per call on Windows, so the suite took ~45 min. With `REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS=0.05` (an existing setting) it takes ~9 min, with the same "Redis down" behaviour.
+
+### What a push of this commit does
+- **Vercel (at once):**
+  - the practice page keeps working against the current backend (it still answers synchronously);
+  - "Show guests" and "Re-apply pending" work immediately;
+  - School ID editing, the queued-enrollments panel and password-free faculty invites say "needs the latest server update", or fall back (faculty), until Errol deploys.
+- **Render (Errol's Manual Deploy):**
+  - **take a backup first** (`ops/backup_database.py`, guide §3);
+  - the deploy runs migration `b7e4c2a91f03` (look for `Running upgrade 61330560eec5 -> b7e4c2a91f03`).
+  - The Celery worker in the same container picks up `dispatch_practice_attempt`.
+  - `WEBHOOK_BASE_URL` must stay set (the IDE Run already needs it).
+  - **After deploying, check practice:** submit a correct and a wrong solution on the live site. Both should finish within a few seconds, and the wrong one should show the AI Tutor.
+- Browsers with an old cached bundle (PWA) show "Not passed yet / Checking your code…" without polling until they reload. Short-lived, because Vercel deploys before Errol does.
+
+### Files
+- **Backend:**
+  - `alembic/versions/b7e4c2a91f03_track_practice_attempt_status.py` (new);
+  - `app/services/practice_evaluation_service.py` (new);
+  - `app/models/domain_models.py`, `app/routers/practice.py`, `app/routers/execution.py`, `app/routers/submissions.py`, `app/routers/admin.py`;
+  - `app/schemas/practice_schema.py`, `app/schemas/enrollment_schema.py`, `app/schemas/classroom_schema.py`;
+  - `app/services/classroom_service.py`, `app/services/guest_service.py`, `app/tasks/celery_worker.py`;
+  - tests as listed above.
+- **Frontend:** `features/practice/PracticeWorkspace.jsx`, `features/admin/AdminDashboard.jsx`, `components/modals/BulkEnrollModal.jsx`.
+- **Operations (new):** `ops/backup_database.py`, `ops/check_smtp.py`, `.github/workflows/database-backup.yml`, `docs/operations/database-backups.md`, `docs/operations/smtp-key-rotation.md`.
+- **Local only (gitignored):** `AGENTS.md`.
+
+### Next (people)
+1. **Januard:** push.
+   - Generate the backup key (`ops/backup_database.py generate-key`) and keep a copy offline.
+   - Add the two secrets and the variable from guide §2, then run the workflow once.
+2. **Errol:**
+   - rotate the Brevo key (`docs/operations/smtp-key-rotation.md`);
+   - send Januard the Session pooler URI privately;
+   - take a manual backup, then Manual Deploy;
+   - check the practice page and the admin panel;
+   - update his AGENTS.md copy.
+3. **Both:** the production smoke test (2026-10-21 list).
+4. **Optional:** a PostgreSQL **17** run of the migration and concurrency suites (needs the PostgreSQL 17 binaries; 18.4 passed), and the same password-free invite for the single-student form.
