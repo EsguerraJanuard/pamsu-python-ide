@@ -1,6 +1,6 @@
 # Handoff for Errol: October 22 sprint
 
-_Prepared 2026-10-22. Code on `dev`: `404d88a` (the sprint), `8e9b377` (PostgreSQL 17 record) and the gap follow-up commit after them. Vercel deploys each push to `dev` automatically; **the backend waits for your Manual Deploy.** Full details: `audit-status.md`, sections "October 22 handoff" and "October 22 follow-up"._
+_Prepared 2026-10-22. Code on `dev`: `404d88a` (the sprint), `8e9b377` (PostgreSQL 17 record), `b285d44` (gap follow-up) and the student-invite commit after them. Vercel deploys each push to `dev` automatically; **the backend waits for your Manual Deploy.** Full details: `audit-status.md`, sections "October 22 handoff" and "October 22 follow-up"._
 
 ## 1. Executive summary
 
@@ -8,7 +8,7 @@ _Prepared 2026-10-22. Code on `dev`: `404d88a` (the sprint), `8e9b377` (PostgreS
 - **The remaining owner decisions are made and built:**
   - the legacy routes are removed;
   - the enrollment rules are set;
-  - faculty invites no longer email a password;
+  - faculty and student invites no longer email a password;
   - three MIS features are added.
 - **Ops tooling is added at zero cost:** encrypted `pg_dump` backups with a nightly GitHub Action, and a Brevo key rotation guide with a checker script.
 - **Testing:** the backend suite passed (1104 passed, 0 failed). The migration and concurrency suites passed on PostgreSQL **17.6** and 18.4.
@@ -87,9 +87,10 @@ _Prepared 2026-10-22. Code on `dev`: `404d88a` (the sprint), `8e9b377` (PostgreS
   - Audited as `user_updated` with `changed_fields: ["school_id"]`, never the value.
 - **Re-apply pending:** a button on each active student row (`POST /admin/students/{id}/pending-enrollments/apply`).
 - **Queued class enrollments** panel, with "Ready to apply" and "Waiting" views and per-row Apply. It uses the new **admin-only** `GET /admin/pending-enrollments`, and each row shows why it waits: no account, class archived, or suspended.
-- **Faculty invites:** no password field.
-  - The account is created with an unusable password, and the welcome email links to "Forgot password?" (one-time code).
+- **Faculty and single-student invites:** no password field on either form.
+  - The account is created with an unusable password, and the welcome email links to "Forgot password?" (one-time code). **No account type ever gets a password by email now**, masterlist included.
   - Audit metadata gets `sign_in_setup`.
+  - Until your deploy, the forms fall back to a generated temporary password, because the old server requires one.
 - **Enrollment rules:**
   - bulk enroll reports **suspended** students (new `suspended` count) and **self-service guests** (counted as `ineligible`) instead of enrolling them;
   - the pending-enrollment retry refuses guests.
@@ -126,12 +127,11 @@ Guide: `docs/operations/smtp-key-rotation.md`. Checker: `ops/check_smtp.py`, whi
   - [ ] a wrong submit shows the error and the AI Tutor hint;
   - [ ] the IDE Run still works;
   - [ ] an admin School ID edit saves, and the Queued class enrollments panel loads;
-  - [ ] a new faculty account gets the set-password email, with no password in it.
+  - [ ] a new faculty account and a new single student both get the set-password email, with no password in it.
 - [ ] Send Januard the **Supabase Session pooler URI** privately, for the backup secret.
 - [ ] Update **your local AGENTS.md**. It is gitignored. The approved rule is `gemini-3.8-flash`, falling back to `gemini-3.6-flash` only on 503/429.
 
 ### Januard
-- [ ] After pushing the follow-up commit, check that **Actions → Backup tool self-test** passes. It runs by itself because the workflow is new.
 - [ ] Run `ops/backup_database.py generate-key` and keep the key offline as well.
 - [ ] Add the secrets `BACKUP_DATABASE_URL` and `BACKUP_ENCRYPTION_KEY`, and the variable `DATABASE_BACKUP_ENABLED=true`. Then run **Actions → Database backup** once.
 
@@ -140,18 +140,18 @@ Guide: `docs/operations/smtp-key-rotation.md`. Checker: `ops/check_smtp.py`, whi
 
 ### Known gaps and untested edge cases (after the follow-up)
 - [ ] **Real Judge0 (RapidAPI) is only testable in production.** The practice callback is proven against a Judge0-shaped mock and over real HTTP, and the IDE Run already uses the same callback mechanism in production. If the callback can't reach `WEBHOOK_BASE_URL`, attempts close as "could not be checked" after 120 s. The post-deploy checks above cover this.
-- [ ] **Until your deploy, faculty invites fall back to the old flow:** the old backend still requires a password and emails it, so the UI generates one and shows it to MIS. School ID editing and the queued-enrollments panel show "needs the latest server update" until then.
+- [ ] **Until your deploy, faculty and student invites fall back to the old flow:** the old backend still requires a password and emails it, so the UI generates one and shows it to MIS. School ID editing and the queued-enrollments panel show "needs the latest server update" until then.
 - [ ] **The nightly backup itself** needs the secrets (Januard) and one manual run. The new self-test proves the install, tool and restore on GitHub, but not the Supabase connection.
   - Artifacts in this **public** repo are encrypted but downloadable; a private repo copy is safer.
   - GitHub pauses scheduled workflows after 60 days with no repo activity.
 - [ ] The **IDE Run** still retries after a lost answer, unlike practice: execution requests have no expiry, so not retrying could leave a run waiting forever. A duplicate is refused (409), and the race fix keeps the first result.
 - [ ] Tabs opened before Vercel deployed `404d88a` and still open at your deploy show "Checking your code…" without polling until they reload. `autoUpdate` fixes this on the next page load.
-- [ ] The single-student form (`POST /admin/students`) still emails an MIS-chosen temporary password, per Januard's 2026-10-21 spec. Switching it to the password-free invite is recommended.
 - [ ] Brevo's free plan is ~300 emails a day. Masterlist uploads that create more than 250 accounts now show a warning in the UI, but the limit itself remains.
 - [ ] The local venv is Python 3.13; Render is 3.11.4. `greenlet==3.2.5` has no 3.13 Windows build, so a few pins differ locally. A Python 3.11 venv would match production exactly.
 - [ ] Not done (not requested): admin dark mode, and rebuilding `PracticeModuleManager.jsx`/`ActivityEditor.jsx` on `PageShell`.
 - [x] ~~Practice dispatch could pay for two runs~~: fixed (no resend after a lost answer).
 - [x] ~~IDE Run could look stuck after an early callback~~: fixed.
 - [x] ~~`mock_judge0` outdated~~: rewritten as a Judge0 CE stand-in, with a contract test.
-- [x] ~~Backup workflow never run on GitHub~~: self-test workflow added.
+- [x] ~~Backup workflow never run on GitHub~~: self-test workflow added; it **passed on GitHub** on the `b285d44` push.
+- [x] ~~Single-student form emails a temporary password~~: now password-free, like faculty (Januard approved).
 - [x] ~~Windows test runs ~45 min; 3 AI Tutor tests skipped~~: 6.6 min by default; `google-genai` installed, 39/39.

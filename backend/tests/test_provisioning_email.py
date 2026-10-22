@@ -251,20 +251,28 @@ def queued(monkeypatch):
     return calls
 
 
-def test_single_student_creation_emails_the_credentials(client, db_session, queued):
+@pytest.mark.parametrize("password", [None, "R3Fce-aFFdr!"])
+def test_single_student_creation_emails_a_set_password_link_never_a_password(client, db_session, queued, password):
     admin = make_admin(db_session)
     headers = {"Authorization": f"Bearer {create_access_token({'sub': str(admin.user_id)})}"}
-
-    response = client.post("/admin/students", headers=headers, json={
+    body = {
         "email": f"Juan.DelaCruz{DOMAIN}", "first_name": "Juan", "middle_name": "P.", "last_name": "Dela Cruz",
-        "school_id": "2026000101", "password": "R3Fce-aFFdr!",
-    })
+        "school_id": "2026000101",
+    }
+    if password:
+        # Older clients still send one: it is set, but not emailed.
+        body["password"] = password
+
+    response = client.post("/admin/students", headers=headers, json=body)
 
     assert response.status_code == 200, response.text
     assert queued == [(
-        (f"juan.delacruz{DOMAIN}", "Juan", "R3Fce-aFFdr!", "Student"),
+        (f"juan.delacruz{DOMAIN}", "Juan", None, "Student"),
         {"last_name": "Dela Cruz", "school_id": "2026000101"},
     )]
+    created = db_session.get(User, response.json()["user_id"])
+    # Only a password-free account can't sign in until the student sets one.
+    assert created.password_hash.startswith("$2") is bool(password)
 
 
 def test_failed_student_creation_sends_nothing(client, db_session, queued):

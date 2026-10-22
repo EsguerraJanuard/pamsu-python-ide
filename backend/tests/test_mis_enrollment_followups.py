@@ -270,3 +270,25 @@ def test_a_classroom_without_a_section_does_not_break_the_class_list(client, db_
     assert [row["section"] for row in instructor_view.json()] == [None]
     assert student_view.status_code == 200, student_view.text
     assert [row["classroom"]["section"] for row in student_view.json()] == [None]
+
+
+# ------------------------------------------------------------ students without a password
+
+
+def test_students_can_be_created_without_a_password(client, db_session, people):
+    classroom = make_classroom(db_session, people["instructor"], "CLASSC01")
+    db_session.add(PendingEnrollment(class_id=classroom.class_id, email=f"2026000050{DOMAIN}"))
+    db_session.commit()
+
+    response = client.post("/admin/students", headers=auth(people["admin"]), json={
+        "email": f"2026000050{DOMAIN}", "first_name": "Rosa", "last_name": "Lim", "school_id": "2026000050",
+    })
+
+    assert response.status_code == 200, response.text
+    # Classes that queued the address are still joined on creation.
+    assert response.json()["pending_enrollments"]["enrolled_class_ids"] == [classroom.class_id]
+    created = db_session.query(User).filter(User.email == f"2026000050{DOMAIN}").one()
+    # Not a bcrypt hash: nothing verifies until the student sets a password.
+    assert not created.password_hash.startswith("$2")
+    record = next(r for r in audits(db_session, "user_created") if r.resource_id == str(created.user_id))
+    assert record.audit_data["sign_in_setup"] == "set_by_student"

@@ -151,6 +151,11 @@ class InstructorCreate(_AccountCreateBase):
 
 class StudentCreate(_AccountCreateBase):
     school_id: str = Field(..., pattern=STUDENT_SCHOOL_ID_PATTERN)
+    # Optional since 2026-10-22, as for faculty: the student sets their own
+    # password from the welcome email ("Forgot password?"), and the email
+    # never carries one. A password sent by an older client is still set,
+    # so MIS can hand it over in person, but it is not emailed.
+    password: str | None = Field(default=None, min_length=8, max_length=128)
 
 
 class UserResponse(BaseModel):
@@ -289,7 +294,11 @@ def create_student(
         email=request.email,
         name=request.full_name,
         role="student",
-        password_hash=get_password_hash(request.password),
+        # Without a password the account can't sign in until the student sets
+        # one with the reset code (the welcome email links there).
+        password_hash=(
+            get_password_hash(request.password) if request.password else make_unusable_password_hash()
+        ),
         school_id=request.school_id,
         email_verified=True,
         is_active=True,
@@ -315,6 +324,9 @@ def create_student(
                 "source": "admin_student_form",
                 "enrolled_from_pending": len(pending_result.enrolled_class_ids),
                 "setup_email": "queued_after_commit",
+                # Who sets the first password: the student (reset code from the
+                # welcome email) or MIS (an older client sent one).
+                "sign_in_setup": "set_by_admin" if request.password else "set_by_student",
             },
         )
         db.commit()
@@ -327,12 +339,13 @@ def create_student(
         db.rollback()
         raise
     db.refresh(new_student)
-    # Sent only after the commit, like the faculty welcome email.
+    # Sent only after the commit, like the faculty welcome email. Never a
+    # password: it links to "Forgot password?", like masterlist accounts.
     background_tasks.add_task(
         send_provisioning_email,
         new_student.email,
         request.first_name,
-        request.password,
+        None,
         "Student",
         last_name=request.last_name,
         school_id=new_student.school_id,

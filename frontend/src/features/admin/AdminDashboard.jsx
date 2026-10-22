@@ -62,7 +62,7 @@ const STRICTNESS = [
 
 const QUICK_ACTIONS = [
   { id: "add-faculty", icon: "userPlus", title: "Add a faculty account", text: "Invite an instructor; they set their own password.", tab: "faculty", focus: "provision-instructor-email" },
-  { id: "add-student", icon: "userPlus", title: "Add a student account", text: "Register one student by university email and school ID.", tab: "students", focus: "provision-student-email" },
+  { id: "add-student", icon: "userPlus", title: "Add a student account", text: "Register one student; they set their own password.", tab: "students", focus: "provision-student-email" },
   { id: "masterlist", icon: "upload", title: "Import a masterlist", text: "Create many student accounts from a CSV or .xlsx file.", tab: "students", focus: "admin-bulk-file" },
   { id: "audit", icon: "shield", title: "Review the audit trail", text: "Check sign-ins and account changes.", tab: "audit" },
   { id: "settings", icon: "settings", title: "System settings", text: "Maintenance mode and the default AST strictness.", tab: "settings" },
@@ -359,23 +359,37 @@ function isPasswordRequired(error) {
 }
 
 /**
- * Faculty accounts are created without a password: the instructor sets one
- * from the welcome email. A server from before 2026-10-22 still requires one;
- * then a random temporary password is sent instead (that server emails it).
+ * Accounts are created without a password: the person sets one from the
+ * welcome email ("Forgot password?"). A server from before 2026-10-22 still
+ * requires one; then a random temporary password is sent instead (that
+ * server emails it), and the caller shows it to MIS.
  */
-async function createFaculty(payload) {
+async function createAccount(endpoint, payload) {
   try {
-    return { created: await api.post("/admin/instructors", payload) };
+    return { created: await api.post(endpoint, payload) };
   } catch (err) {
     if (!isPasswordRequired(err)) throw err;
     const fallbackPassword = generateTempPassword();
-    return { created: await api.post("/admin/instructors", { ...payload, password: fallbackPassword }), fallbackPassword };
+    return { created: await api.post(endpoint, { ...payload, password: fallbackPassword }), fallbackPassword };
   }
+}
+
+function NoPasswordNote({ who }) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-border-subtle bg-bg-alt/50 px-4 py-3">
+      <Icon name="key" className="mt-0.5 h-4 w-4 shrink-0 text-text-brand" />
+      <p className="text-sm text-text-muted">
+        <span className="font-semibold text-text-main">No password to share.</span> The welcome email links to &ldquo;Forgot password?&rdquo;, where
+        the {who} gets a one-time code and chooses their own password.
+      </p>
+    </div>
+  );
 }
 
 function ProvisionForm({ role, onCreated }) {
   const isStudent = role === "student";
-  const empty = { email: "", first_name: "", middle_name: "", last_name: "", school_id: "", password: generateTempPassword() };
+  const who = isStudent ? "student" : "instructor";
+  const empty = { email: "", first_name: "", middle_name: "", last_name: "", school_id: "" };
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState({});
   const [result, setResult] = useState(null);
@@ -395,7 +409,6 @@ function ProvisionForm({ role, onCreated }) {
     const fullName = [form.first_name, form.middle_name, form.last_name].map((part) => part.trim()).filter(Boolean).join(" ");
     if (fullName.length > 150) next.last_name = "The full name must be at most 150 characters.";
     if (isStudent && !SCHOOL_ID.test(form.school_id.trim())) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
-    if (isStudent && form.password.length < 8) next.password = "Use at least 8 characters.";
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -407,22 +420,9 @@ function ProvisionForm({ role, onCreated }) {
         first_name: form.first_name.trim(),
         middle_name: form.middle_name.trim() || null,
         last_name: form.last_name.trim(),
-        ...(isStudent ? { school_id: form.school_id.trim(), password: form.password } : {}),
+        ...(isStudent ? { school_id: form.school_id.trim() } : {}),
       };
-      if (!isStudent) {
-        const { fallbackPassword } = await createFaculty(payload);
-        setResult({
-          tone: "success",
-          text: fallbackPassword
-            ? // A server from before 2026-10-22 still requires a password and emails it.
-              `Account created for ${payload.email}. This server still emails a temporary password; if the email doesn't arrive, it is ${fallbackPassword}.`
-            : `Account created for ${payload.email}. The instructor is emailed a link to set their own password. If the email doesn't arrive, they can use "Forgot password?" on the sign-in page with this address.`,
-        });
-        setForm({ ...empty, password: generateTempPassword() });
-        onCreated?.();
-        return;
-      }
-      const created = await api.post("/admin/students", payload);
+      const { created, fallbackPassword } = await createAccount(isStudent ? "/admin/students" : "/admin/instructors", payload);
       const pending = created?.pending_enrollments;
       const joined = pending?.enrolled_class_ids?.length ?? 0;
       const waiting = pending?.skipped?.length ?? 0;
@@ -430,13 +430,15 @@ function ProvisionForm({ role, onCreated }) {
         joined > 0 && `Added to ${joined} class${joined === 1 ? "" : "es"} that had queued this email.`,
         waiting > 0 && `${waiting} queued class${waiting === 1 ? " is" : "es are"} inactive or could not be joined and stay${waiting === 1 ? "s" : ""} pending.`,
       ].filter(Boolean).join(" ");
+      const signIn = fallbackPassword
+        ? // A server from before 2026-10-22 still requires a password and emails it.
+          `This server still emails a temporary password; if the email doesn't arrive, it is ${fallbackPassword}.`
+        : `The ${who} is emailed a link to set their own password. If the email doesn't arrive, they can use "Forgot password?" on the sign-in page with this address.`;
       setResult({
         tone: waiting > 0 ? "warning" : "success",
-        // Delivery happens after the response and isn't confirmed, so the
-        // password stays visible here in case the email doesn't arrive.
-        text: `Account created for ${payload.email}. Their sign-in details, including the temporary password, are being emailed to them. If the email doesn't arrive, the temporary password is ${payload.password}.${enrollmentNote ? ` ${enrollmentNote}` : ""}`,
+        text: `Account created for ${payload.email}. ${signIn}${enrollmentNote ? ` ${enrollmentNote}` : ""}`,
       });
-      setForm({ ...empty, password: generateTempPassword() });
+      setForm(empty);
       onCreated?.();
     } catch (err) {
       setResult({ tone: "error", text: getErrorMessage(err, "The account could not be created.") });
@@ -446,23 +448,13 @@ function ProvisionForm({ role, onCreated }) {
   };
 
   const prefix = `provision-${role}`;
-  const passwordField = (
-    <TemporaryPasswordField
-      prefix={prefix}
-      value={form.password}
-      error={errors.password}
-      disabled={isSaving}
-      onChange={set("password")}
-      onGenerate={() => setForm((p) => ({ ...p, password: generateTempPassword() }))}
-    />
-  );
   return (
     <Panel
       as="form"
       onSubmit={handleSubmit}
       noValidate
       title={isStudent ? "Create student account" : "Create faculty account"}
-      description={isStudent ? "For one student. The sign-in details are emailed automatically." : "The instructor is emailed a link to set their own password."}
+      description={isStudent ? "For one student. They are emailed a link to set their own password." : "The instructor is emailed a link to set their own password."}
       icon="userPlus"
       footer={
         <div className="@container">
@@ -488,13 +480,7 @@ function ProvisionForm({ role, onCreated }) {
           {isStudent ? (
             <TextField id={`${prefix}-school-id`} label="School ID" placeholder="2026000001 or 2026-00001" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />
           ) : (
-            <div className="flex items-start gap-3 rounded-lg border border-border-subtle bg-bg-alt/50 px-4 py-3">
-              <Icon name="key" className="mt-0.5 h-4 w-4 shrink-0 text-text-brand" />
-              <p className="text-sm text-text-muted">
-                <span className="font-semibold text-text-main">No password to share.</span> The welcome email links to "Forgot password?", where the
-                instructor gets a one-time code and chooses their own password.
-              </p>
-            </div>
+            <NoPasswordNote who={who} />
           )}
         </div>
         <div className="grid grid-cols-1 gap-5 rounded-lg border border-border-subtle bg-bg-alt/40 p-4 @xl:grid-cols-3">
@@ -502,42 +488,9 @@ function ProvisionForm({ role, onCreated }) {
           <TextField id={`${prefix}-middle`} label="Middle name (optional)" value={form.middle_name} onChange={set("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} />
           <TextField id={`${prefix}-last`} label="Last name" value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} />
         </div>
-        {isStudent && <div className="@xl:max-w-[calc(50%-0.625rem)]">{passwordField}</div>}
+        {isStudent && <NoPasswordNote who={who} />}
       </div>
     </Panel>
-  );
-}
-
-function TemporaryPasswordField({ prefix, value, error, disabled, onChange, onGenerate }) {
-  return (
-    <div>
-      <label htmlFor={`${prefix}-password`} className="field-label">
-        Temporary password
-      </label>
-      <div className="flex gap-2">
-        <input
-          id={`${prefix}-password`}
-          type="text"
-          value={value}
-          onChange={onChange}
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${prefix}-password-error` : `${prefix}-password-hint`}
-          className="input-field py-2.5 font-mono"
-          disabled={disabled}
-          autoComplete="off"
-        />
-        <button type="button" className="btn-secondary shrink-0" onClick={onGenerate} disabled={disabled}>
-          Generate
-        </button>
-      </div>
-      {error ? (
-        <FieldError id={`${prefix}-password-error`}>{error}</FieldError>
-      ) : (
-        <p id={`${prefix}-password-hint`} className="mt-1.5 text-xs text-text-muted">
-          Account credentials will be automatically emailed to the user.
-        </p>
-      )}
-    </div>
   );
 }
 

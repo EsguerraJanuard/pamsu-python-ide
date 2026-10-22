@@ -2624,3 +2624,27 @@ _After `8e9b377`. Januard asked what could still be done about the "known gaps" 
 - **GitHub:** the backup self-test runs once.
 - **Render (Errol's deploy):** the IDE Run race fix and the practice dispatch change.
 - No migration beyond `b7e4c2a91f03`.
+
+## Student accounts without an emailed password (2026-10-22)
+
+_After `b285d44`. Januard approved switching the single-student form to the same password-free invite as faculty (previously his 2026-10-21 spec emailed the MIS-chosen temporary password)._
+
+- **Backend (`POST /admin/students`):**
+  - `password` is optional. Without one, the account gets an unusable password marker.
+  - The welcome email **never** contains a password; it links to "Forgot password?" (one-time code), like masterlist accounts and faculty invites.
+  - A password sent by an older client is still set, so MIS could hand it over in person, but it is not emailed.
+  - Audit metadata adds `sign_in_setup` (`set_by_student` / `set_by_admin`).
+  - Queued class enrollments are still joined on creation.
+- **Frontend (`AdminDashboard.jsx`):** one `createAccount()` path for both forms.
+  - The student form no longer has a password field, and shows the same "No password to share" note.
+  - **With today's production backend** (which still requires a password), the form retries once with a generated temporary password and shows it. That is the old behaviour, until Errol deploys.
+  - The unused `TemporaryPasswordField` component is removed; "Reset password" in the directory is unchanged.
+- **Now no account type ever receives a password by email:** single student, masterlist, or faculty.
+- **Verified:**
+  - Browser, new backend: a student whose address was queued got the set-your-own-password message and joined the class.
+  - Browser, production's current code (`6c8db89`): the old server answered 422 (password missing), then 200 with the generated password, and the fallback message showed.
+  - Tests:
+    - `test_provisioning_email.py`: the student email is never given a password, with or without one sent;
+    - `test_mis_enrollment_followups.py`: a password-free student, its audit metadata and the queued class.
+- **Deploy:** frontend at once (Vercel), using the fallback until Errol deploys. Backend at Errol's next deploy. No migration.
+- **GitHub:** the backup self-test ran on the `b285d44` push and **passed**. Every step went green: PostgreSQL 17 client install, backup, verify, restore, both guards.
