@@ -2387,7 +2387,7 @@ _Branch `dev`, starting from `6c8db89` (Errol's latest, fast-forwarded before an
 |---|---|---|
 | 1 | Admin actions not audited | **Done earlier** (Errol, `61330560eec5`, deployed) |
 | 2 | Practice submit waits on Judge0 (up to 15 s) | **Fixed in code.** Migration `b7e4c2a91f03`. Goes live at Errol's next Render deploy |
-| 3 | PostgreSQL 17 run | Migration and concurrency suites run on **PostgreSQL 18.4** (throwaway cluster): **28 passed**. **No 17 run yet:** this machine has no PostgreSQL 17, and downloading it needs the owner's OK |
+| 3 | PostgreSQL 17 run | **Done.** Migration and concurrency suites on **PostgreSQL 17.6** (production's version) and 18.4, throwaway local clusters: **28 passed on each**. The upgrade also ran on the demo semester's data (see "PostgreSQL 17.6 run") |
 | 4 | Release blockers | **Code side ready.** SMTP: [rotation steps](docs/operations/smtp-key-rotation.md) and `ops/check_smtp.py`, but **Errol must rotate the key**. Backup: tool and workflow ready, but **need the secrets** (below). Production smoke test: **not run** |
 | 5 | Legacy `/execution/submissions/` routes; who creates submit runs | **Decided and done** (removed; `POST /submissions/` only) |
 | 6 | Enrollment questions; instructor temporary-password email | **Decided and done** |
@@ -2502,7 +2502,8 @@ The fallback to `gemini-3.6-flash` (only on 503/429 from 3.8 Flash) is now the w
 | Baseline at `6c8db89` before any change (SQLite, `REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS=0.05`, see note) | 1053 passed, 11 skipped |
 | Full backend suite after the changes (SQLite, same setting) | **1104 passed, 17 skipped, 0 failed** (skipped: the PostgreSQL-only suites, run separately below, and 3 tests that need `google-genai`, which this local venv lacks) |
 | **PostgreSQL 18.4** throwaway cluster: whole migration chain (up, down to base, up, `alembic check`), `test_admin_audit_migration`, new `test_practice_attempt_status_migration`, new `test_practice_callback_concurrency`, the 4 existing concurrency suites, `test_redis_tls` | **28 passed** |
-| The three practice/submission/grade concurrency suites, repeated 5 times | 5/5 runs green |
+| **PostgreSQL 17.6** (official EDB binaries, the production version): the same 28 tests | **28 passed**, 0 skipped |
+| Concurrency suites repeated 5 times | 5/5 green on 18.4 (practice, submission, grade) and on 17.6 (all five suites) |
 | Frontend `npm run lint` / `npm run build` | Pass |
 
 - **New tests:** `test_practice_async_submit.py` (23), `test_practice_callback_concurrency.py` (3, PostgreSQL), `test_practice_attempt_status_migration.py` (3, PostgreSQL), `test_mis_enrollment_followups.py` (19), `test_backup_database_script.py` (10).
@@ -2515,6 +2516,22 @@ The fallback to `gemini-3.6-flash` (only on 503/429 from 3.8 Flash) is now the w
   - `test_admin_account_edit_and_audit_search` (school ID now editable);
   - `test_admin_audit_migration` (`61330560eec5` is no longer head).
 - **Note for Windows test runs:** connecting to the closed Redis port in `conftest.py` takes ~2 s per call on Windows, so the suite took ~45 min. With `REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS=0.05` (an existing setting) it takes ~9 min, with the same "Redis down" behaviour.
+
+### PostgreSQL 17.6 run (owner approved the download, 2026-10-22)
+- **Binaries:**
+  - EDB's `postgresql-17.6-1-windows-x64-binaries.zip` from `get.enterprisedb.com`, the Windows source postgresql.org links to;
+  - 329,891,687 bytes; SHA-256 `d378882abd001a186735acd6f6ba716bca6ccd192e800412d4fd15ed25376b3e`.
+  - EDB doesn't code-sign the individual binaries (the installed 18.4 isn't signed either).
+  - Kept in the session scratchpad only: nothing installed, no Windows service.
+- **Cluster:** throwaway, `127.0.0.1:55417`, temporary data folder, stopped afterwards. No deadlock or crash in its log.
+- **Suites:** 28 passed, 0 skipped. The concurrency suites passed 5 times in a row.
+- **Backup tool on 17:**
+  - pg_dump 17.6 → verify → restore into an empty database: 300/300 users, revision `b7e4c2a91f03`, `alembic check` clean;
+  - pg_dump 18 against a 17 server is accepted too (newer client).
+- **Production-like upgrade:**
+  - the demo semester (`seed.py --reset --unattended`: 183 students, 1,862 practice attempts, 1,245 progress rows) was stepped back to `61330560eec5`, production's revision, then upgraded with `alembic upgrade head`;
+  - all 1,862 attempts read as `completed`, with `correlation_id`/`completed_at` empty, and `alembic check` is clean;
+  - the migration itself takes well under a second: the whole command took 3.5 s, about the same as Alembic's start-up alone (4.5 s).
 
 ### What a push of this commit does
 - **Vercel (at once):**
@@ -2552,4 +2569,4 @@ The fallback to `gemini-3.6-flash` (only on 503/429 from 3.8 Flash) is now the w
    - check the practice page and the admin panel;
    - update his AGENTS.md copy.
 3. **Both:** the production smoke test (2026-10-21 list).
-4. **Optional:** a PostgreSQL **17** run of the migration and concurrency suites (needs the PostgreSQL 17 binaries; 18.4 passed), and the same password-free invite for the single-student form.
+4. **Optional:** the same password-free invite for the single-student form.
