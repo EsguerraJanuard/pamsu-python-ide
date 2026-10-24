@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.models.domain_models import (Classroom, CodingSession, Enrollment,
                                       Task, User)
@@ -7,6 +7,13 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 MAX_DATABASE_COUNTER_VALUE = 2_147_483_647
+
+# Nothing ends a session when a student closes the tab, so Live Monitoring
+# only lists sessions with a recent heartbeat. The workspace sends one every
+# 30 seconds; browsers can slow a background tab to about one a minute, so
+# three minutes allows for a missed beat. Keep in step with
+# LIVE_SESSION_WINDOW_MS in frontend/src/hooks/useBehaviorTracking.js.
+LIVE_SESSION_WINDOW = timedelta(minutes=3)
 
 
 class CodingSessionServiceError(Exception):
@@ -463,9 +470,12 @@ def get_all_active_instructor_sessions(
     instructor_id: int,
 ) -> list[dict]:
     """
-    Get all active sessions across all classrooms owned by the instructor.
+    Get the live sessions across all classrooms owned by the instructor:
+    not ended, with activity or a heartbeat within LIVE_SESSION_WINDOW.
     Returns a list of dictionaries that can be validated by GlobalCodingSessionResponse.
     """
+    live_since = _utc_now() - LIVE_SESSION_WINDOW
+
     rows = (
         db.query(
             CodingSession,
@@ -478,7 +488,8 @@ def get_all_active_instructor_sessions(
         .join(Classroom, Task.class_id == Classroom.class_id)
         .filter(
             Classroom.instructor_id == instructor_id,
-            CodingSession.ended_at.is_(None)
+            CodingSession.ended_at.is_(None),
+            CodingSession.last_activity_at >= live_since,
         )
         .order_by(
             CodingSession.started_at.desc(),

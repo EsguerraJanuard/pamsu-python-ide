@@ -1248,7 +1248,10 @@ def grant_submission_retake_endpoint(
     summary="List all active coding sessions for instructor's classrooms",
     description=(
         "Returns active coding sessions globally across all tasks "
-        "and classrooms owned by the authenticated instructor."
+        "and classrooms owned by the authenticated instructor. A "
+        "session is listed only while it has not ended and its "
+        "workspace sent activity or a heartbeat in the last three "
+        "minutes."
     ),
 )
 def list_global_active_coding_sessions_endpoint(

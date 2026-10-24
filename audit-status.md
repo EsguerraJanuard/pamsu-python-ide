@@ -2648,3 +2648,47 @@ _After `b285d44`. Januard approved switching the single-student form to the same
     - `test_mis_enrollment_followups.py`: a password-free student, its audit metadata and the queued class.
 - **Deploy:** frontend at once (Vercel), using the fallback until Errol deploys. Backend at Errol's next deploy. No migration.
 - **GitHub:** the backup self-test ran on the `b285d44` push and **passed**. Every step went green: PostgreSQL 17 client install, backup, verify, restore, both guards.
+
+## Telemetry pipeline: sessions, Live Monitoring and grading-bench indicators (2026-10-24)
+
+_After `4deae1e`. QA BUG-01 (grading bench: dashes and "No coding-session record is linked to this submission") and BUG-02 (Live Monitoring: "No active sessions" while a student codes). Nothing here touched production._
+
+### Root cause
+- **The backend was fine.** These routes exist and are registered at the URLs the frontend calls:
+  - `POST /activities/coding-sessions/` and `PATCH /activities/coding-sessions/{id}/activity`;
+  - `GET /instructors/coding-sessions/live` and `GET /instructors/coding-sessions/{id}`.
+
+  `POST /submissions/` also accepts `coding_session_id`.
+- **The Workspace never opened a session.** The Oct 16 frontend audit removed the dead WebSocket and the hook's 404 call (`PATCH /users/me/integrity`, never registered), but nothing replaced them. The Workspace kept its own counters and never used the hook. With no session row, Live Monitoring was empty; with no `coding_session_id` on submissions, the grading bench showed dashes.
+
+### Fixed
+| Where | Change |
+|---|---|
+| `frontend/src/hooks/useBehaviorTracking.js` | With a `taskId`:<ul><li>starts or resumes the session on mount (one shared request, so StrictMode's double mount opens one session);</li><li>sends new counts every 5 s and a zero-count heartbeat every 30 s, each request capped at the schema limits;</li><li>retries a failed start every 15 s (network, 5xx, 409) and starts again when the session is gone (404) or ended (409).</li></ul>Shown counts are the server totals plus anything unsent; `flush()` sends now. Without a `taskId` (practice) nothing is sent |
+| `frontend/src/features/workspace/Workspace.jsx` | <ul><li>Uses the hook.</li><li>**Run** sends `coding_session_id`, so the server counts runs.</li><li>**Submit** sends the last counts first (waits at most 5 s), then `coding_session_id`.</li><li>A 404 on a request carrying a session id is refused before anything is saved, so Run and Submit retry once without it: indicators never block a submission.</li><li>The Session panel now says the instructor sees the counts while the student works.</li></ul> |
+| `backend/app/services/coding_session_service.py` (and the endpoint description) | The live list is sessions that are not ended **and** had activity or a heartbeat within `LIVE_SESSION_WINDOW` (3 min). Nothing ends a session when a tab closes, so without this every student who ever opened a workspace would stay "Open" |
+| `frontend/src/features/instructor/LiveMonitoring.jsx` | Badge: Open / Inactive (quiet for more than 3 min) / Ended. The per-activity list also shows past sessions |
+| `frontend/src/features/practice/PracticeWorkspace.jsx` | New hook API (`recordBlockedPaste`); still local only |
+
+### Decisions
+- **No end on refresh or leaving the page.** A reload would otherwise reset the counts. A reload resumes the same session, and a resubmission links the same session, so the official attempt shows the totals.
+- **No send on tab close.** Closing a tab fires "hidden", which would add a false tab switch.
+
+### Tests
+| Run | Result |
+|---|---|
+| `test_coding_session_workflow.py`, 2 new tests:<ul><li>live list: owner only; drops a session quiet for 4 min; a heartbeat brings it back; drops it once ended;</li><li>grading-bench path: submission record, then the linked session's counts.</li></ul> | 8 passed. The live test fails against the old service |
+| Full backend suite (SQLite) | **1131 passed, 14 skipped**, 0 failed |
+| Frontend lint / build | Pass |
+| Browser: scratch backend and mock Judge0, student and instructor on two origins | <ul><li>Live Monitoring empty, then the student opens the workspace: one session, still one after a reload.</li><li>Blocked pastes, pointer exits and tab switches synced; the Live Monitoring card shows "Open" with the counts.</li><li>Run linked (run count 1); Submit linked (`coding_session_id` stored).</li><li>Grading bench: Tab switches 2, Blocked pastes 2, Pointer exits 3.</li><li>Session backdated 10 min: gone from "All active sessions", "Inactive" in the activity view.</li></ul>Pointer exits, pastes and tab switches were fired as DOM events: the browser tool cannot move the pointer out of the window or hide a tab |
+
+### Also fixed: names in the per-activity view
+- **Before:** filtering Live Monitoring to one activity showed "Student #id" and a blank subtitle. `GET /instructors/tasks/{id}/coding-sessions` returns no names; only the global list does. This was already the case before this pass.
+- **Now:** the page takes names from the class roster, as the grading bench does (`GET /classrooms/{id}/members`, which includes removed students). The subtitle shows the activity and class.
+- **Why not in the API:** `test_session_privacy_contracts.py` pins the fields of `InstructorCodingSessionResponse` (session fields and `student_id` only), so the response is left unchanged. This also works with the backend in production now.
+- **Browser-checked:** the card reads "Juan Dela Cruz · Double the number · Computer Programming 1", with one roster request per class.
+
+### What a push does
+- **Vercel (at once):** the Workspace opens sessions and links runs and submissions. This works with the backend in production now (the session routes are in `6c8db89` and `404d88a`), so the frontend alone fixes both bugs.
+- **Render (Errol's deploy):** the 3-minute live window. Until then, "All active sessions" also lists students who left, with the "Inactive" badge.
+- No migration.

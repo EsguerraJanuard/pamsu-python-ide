@@ -7,6 +7,16 @@ import api from "../../services/api";
 import { classLabel } from "../../utils/format";
 
 const POLL_MS = 10000;
+// Same window as LIVE_SESSION_WINDOW in backend/app/services/coding_session_service.py:
+// an open workspace sends a heartbeat every 30 seconds.
+const LIVE_WINDOW_MS = 3 * 60 * 1000;
+
+function sessionState(session, now) {
+  if (session.ended_at) return { label: "Ended", badge: "badge-neutral" };
+  const quietFor = now - new Date(session.last_activity_at).getTime();
+  if (Number.isFinite(quietFor) && quietFor > LIVE_WINDOW_MS) return { label: "Inactive", badge: "badge-neutral" };
+  return { label: "Open", badge: "badge-success" };
+}
 
 function timeAgo(value) {
   if (!value) return "—";
@@ -27,6 +37,9 @@ export default function LiveMonitoring() {
   const [error, setError] = useState(null);
   const [refreshError, setRefreshError] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  // student_id → name. The per-activity session list carries no names, so
+  // they come from the class roster (as on the grading bench).
+  const [rosterNames, setRosterNames] = useState({});
   const hasLoaded = useRef(false);
 
   useEffect(() => {
@@ -69,6 +82,28 @@ export default function LiveMonitoring() {
     }, POLL_MS);
     return () => window.clearInterval(interval);
   }, [fetchSessions]);
+
+  const selectedTask = scope === "all" ? null : tasks.find((t) => String(t.task_id) === scope);
+  const selectedClassId = selectedTask?.class_id ?? null;
+
+  useEffect(() => {
+    if (!selectedClassId) return undefined;
+    let cancelled = false;
+    api
+      .get(`/classrooms/${selectedClassId}/members`)
+      .then((members) => {
+        if (cancelled || !Array.isArray(members)) return;
+        // Includes removed students, who may still have past sessions. Ids are
+        // account ids, so names from earlier classes stay valid.
+        setRosterNames((prev) => ({ ...prev, ...Object.fromEntries(members.map((m) => [m.student_id, m.name])) }));
+      })
+      .catch(() => {
+        // Names are a convenience; cards fall back to the student number.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClassId]);
 
   const classMap = useMemo(() => Object.fromEntries(classrooms.map((c) => [c.class_id, c])), [classrooms]);
   const taskOptions = [
@@ -132,17 +167,24 @@ export default function LiveMonitoring() {
       ) : (
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleSessions.map((session) => {
-            const isOpen = !session.ended_at;
+            const state = sessionState(session, lastUpdated ? lastUpdated.getTime() : NaN);
             return (
               <li key={session.session_id} className="card p-5">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="truncate text-sm font-semibold text-text-main">{session.student_name || `Student #${session.student_id}`}</h2>
+                    <h2 className="truncate text-sm font-semibold text-text-main">
+                      {session.student_name || rosterNames[session.student_id] || `Student #${session.student_id}`}
+                    </h2>
                     <p className="truncate text-xs text-text-muted">
-                      {[session.task_title, session.classroom_name].filter(Boolean).join(" · ")}
+                      {[
+                        session.task_title || selectedTask?.title,
+                        session.classroom_name || classMap[selectedTask?.class_id]?.name,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
-                  <span className={`badge ${isOpen ? "badge-success" : "badge-neutral"}`}>{isOpen ? "Open" : "Ended"}</span>
+                  <span className={`badge ${state.badge}`}>{state.label}</span>
                 </div>
                 <dl className="grid grid-cols-3 gap-2 text-center">
                   {[

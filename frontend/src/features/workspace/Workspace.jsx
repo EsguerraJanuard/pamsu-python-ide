@@ -9,6 +9,7 @@ import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/ui/StateViews";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { requiredRuleIds, ruleLabel, ruleMinCount } from "../../utils/astRules";
+import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 import { useAuth } from "../auth/AuthContext";
 import api, { getErrorMessage, NETWORK_ERROR_STATUS, TIMEOUT_ERROR_STATUS } from "../../services/api";
 import { classLabel, formatDateTime } from "../student/studentData";
@@ -21,6 +22,8 @@ const BLANK_TEMPLATE = "# Write your solution below.\n";
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLLS = 20;
 const SUBMIT_TIMEOUT_MS = 45000;
+// Longest a submit waits to send the last indicator counts first.
+const FLUSH_WAIT_MS = 5000;
 
 const TERMINAL_STATES = ["completed", "syntax_error", "runtime_error", "timed_out", "memory_limit", "output_limit", "process_limit", "cancelled", "failed"];
 
@@ -119,11 +122,14 @@ function ActivityWorkspace({ activityId, userId }) {
   const [notice, setNotice] = useState(null);
 
   const [internalClipboard, setInternalClipboard] = useState("");
-  const [blockedPasteCount, setBlockedPasteCount] = useState(0);
-  const [mouseLeaveCount, setMouseLeaveCount] = useState(0);
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [runAttemptCount, setRunAttemptCount] = useState(0);
+  // Opens (or resumes) this activity's coding session and keeps its counts in
+  // sync, so Live Monitoring and the grading bench can show them.
+  const tracking = useBehaviorTracking({ taskId: activityId });
+  const { tabSwitchCount, blockedPasteCount, mouseLeaveCount } = tracking;
+  // Fallbacks for when no session could be opened.
+  const [localRunCount, setLocalRunCount] = useState(0);
   const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
+  const runAttemptCount = tracking.session ? tracking.session.run_attempt_count : localRunCount;
 
   const [showProblemPanel, setShowProblemPanel] = useState(() => window.matchMedia("(min-width: 1280px)").matches);
   const [showReviewPanel, setShowReviewPanel] = useState(false);
@@ -184,20 +190,6 @@ function ActivityWorkspace({ activityId, userId }) {
     return () => window.clearTimeout(timer);
   }, [code, draftStorageKey, activity]);
 
-  // Activity indicators: counts only, never content.
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.hidden) setTabSwitchCount((c) => c + 1);
-    };
-    const handleMouseLeave = () => setMouseLeaveCount((c) => c + 1);
-    document.addEventListener("visibilitychange", handleVisibility);
-    document.documentElement.addEventListener("mouseleave", handleMouseLeave);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
-
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1280px)");
     const handleScreenChange = (event) => {
@@ -250,7 +242,7 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const recordBlockedPaste = () => {
-    setBlockedPasteCount((c) => c + 1);
+    tracking.recordBlockedPaste();
     setLastBlockedPasteIso(new Date().toISOString());
     showNotice("Pasting from outside the workspace is blocked. Use the workspace Copy / Paste buttons.");
   };
@@ -271,14 +263,27 @@ function ActivityWorkspace({ activityId, userId }) {
     setActivePanel("output");
     setExecutionStatus("running");
     setOutput("Sending your code to the sandbox…");
-    setRunAttemptCount((c) => c + 1);
+    setLocalRunCount((c) => c + 1);
     try {
-      const request = await api.post("/execution/requests/", {
+      const runBody = {
         request_kind: "run",
         task_id: Number(activityId),
         source_code: code,
         standard_input: standardInput || "",
-      });
+      };
+      const sessionId = tracking.sessionId;
+      let request;
+      try {
+        // Linking the run lets the server count it on the coding session.
+        request = await api.post("/execution/requests/", sessionId ? { ...runBody, coding_session_id: sessionId } : runBody);
+      } catch (err) {
+        // 404 is refused before anything is saved; if the session was the
+        // cause, run without it rather than block the student.
+        if (err?.status !== 404 || !sessionId) throw err;
+        request = await api.post("/execution/requests/", runBody);
+      }
+      // Fetch the session's updated run count for the Session panel.
+      tracking.flush();
       const result = await pollExecution(request.execution_id);
       if (!isMounted.current) return;
       if (!result) {
@@ -322,14 +327,30 @@ function ActivityWorkspace({ activityId, userId }) {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
+      // Send the last counts first so the linked session is complete; never
+      // hold up the submission for longer than FLUSH_WAIT_MS.
+      const flushed = await Promise.race([tracking.flush(), delay(FLUSH_WAIT_MS).then(() => null)]);
+      const linkedSession = flushed || tracking.session;
+      const sessionId = linkedSession?.session_id ?? null;
+      const submitBody = { task_id: Number(activityId), raw_code: code };
+
       // Submitting can take longer than other requests while the server queues evaluation.
-      const submission = await api.post(
-        "/submissions/",
-        { task_id: Number(activityId), raw_code: code },
-        {},
-        SUBMIT_TIMEOUT_MS,
-      );
+      let submission;
       try {
+        submission = await api.post(
+          "/submissions/",
+          sessionId ? { ...submitBody, coding_session_id: sessionId } : submitBody,
+          {},
+          SUBMIT_TIMEOUT_MS,
+        );
+      } catch (err) {
+        // 404 is refused before anything is saved. If the session was the
+        // cause, submit without it: indicators must never block a submission.
+        if (err?.status !== 404 || !sessionId) throw err;
+        submission = await api.post("/submissions/", submitBody, {}, SUBMIT_TIMEOUT_MS);
+      }
+      try {
+        const lastBlockedPasteAt = linkedSession?.last_blocked_paste_at ?? lastBlockedPasteIso;
         await api.post("/logs/behavioral/", {
           sub_id: submission.sub_id,
           tab_switches_count: tabSwitchCount,
@@ -337,7 +358,7 @@ function ActivityWorkspace({ activityId, userId }) {
           mouseleave_count: mouseLeaveCount,
           run_attempt_count: runAttemptCount,
           idle_duration_seconds: 0,
-          ...(lastBlockedPasteIso && { last_blocked_paste_at: lastBlockedPasteIso }),
+          ...(lastBlockedPasteAt && { last_blocked_paste_at: lastBlockedPasteAt }),
         });
       } catch (logErr) {
         // The submission is already recorded; indicator sync is best-effort.
@@ -815,8 +836,8 @@ function ActivityWorkspace({ activityId, userId }) {
                   ))}
                 </dl>
                 <p className="leading-relaxed text-text-muted">
-                  These counts are sent with your submission as review indicators for your instructor. They are not scores
-                  and not proof of misconduct.
+                  Your instructor sees these counts while you work on this activity and with your submission, as review
+                  indicators. They are not scores and not proof of misconduct.
                 </p>
                 <p className="leading-relaxed text-text-muted">
                   Clipboard contents, keystrokes, browsing history, screen, camera and microphone are never collected.

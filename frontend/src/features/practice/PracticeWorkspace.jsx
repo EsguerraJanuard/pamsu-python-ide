@@ -81,7 +81,8 @@ export default function PracticeWorkspace() {
 function PracticeTask({ taskId }) {
   const navigate = useNavigate();
   const { settings } = useEditorSettings();
-  const { tabSwitchCount, mouseLeaveCount, blockedPasteCount, setBlockedPasteCount } = useBehaviorTracking({ sessionId: null });
+  // Practice is ungraded: no coding session, so the counts stay in this browser.
+  const { tabSwitchCount, mouseLeaveCount, blockedPasteCount, recordBlockedPaste: countBlockedPaste } = useBehaviorTracking();
   const isMounted = useRef(true);
 
   const [state, setState] = useState({ status: "loading" });
@@ -132,7 +133,7 @@ function PracticeTask({ taskId }) {
   }, [loadTask]);
 
   const recordBlockedPaste = () => {
-    setBlockedPasteCount((c) => c + 1);
+    countBlockedPaste();
     setPasteNotice(true);
   };
 
