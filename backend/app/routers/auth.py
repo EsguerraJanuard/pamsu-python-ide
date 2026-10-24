@@ -20,6 +20,7 @@ from app.services.login_security_service import (faculty_lockout_remaining,
                                                  lockout_message)
 from app.services.guest_service import (GUEST_LIMIT_REACHED_DETAIL,
                                         create_self_service_guest,
+                                        ensure_sandbox_demo_activity,
                                         get_or_create_sandbox_classroom,
                                         guest_limit_reached)
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,6 +28,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -365,6 +367,14 @@ def login_guest(db: Session = Depends(get_db)):
         )
         db.add(enroll)
         db.commit()
+
+        # A sandbox with nothing in it is no demo. A failure here must not
+        # stop the guest signing in: they just see an empty class this time.
+        try:
+            ensure_sandbox_demo_activity(db, sandbox_class)
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception("Could not add the demo activity to the guest sandbox.")
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

@@ -2721,3 +2721,67 @@ _Errol's Manual Deploy ran `alembic upgrade head` from `61330560eec5`. `b7e4c2a9
 ### Notes
 - **These fixes do not help an attempt made while the old backend is still serving.** That old code still holds hint transactions open. The `start.sh` retries cover a hint that finishes within about 2 minutes; quiet hours are still the safest time to deploy.
 - The admin welcome emails (`POST /admin/students`, `/admin/instructors`, masterlist upload) have the same pattern on `users`: the session stays open while the emails send. Left as is: they don't hold up a practice migration, and a masterlist send is rare.
+
+## Guest demo activity, 24-hour guest cleanup, password visibility toggles (2026-10-24)
+
+_After `c138ddd`. Januard's request. **Replaces the 2026-10-19 rule** "guests are deactivated 7 days after creation, never deleted" (backend audit "Still open" item 4, above)._
+
+### 1. Demo activity in the Guest Sandbox Classroom
+- **Before:** guests landed in an empty class, with nothing to run, check or submit.
+- **Now:** every guest sign-in makes sure the sandbox (`SANDBOX01`, one classroom shared by all guests, admin-owned) has a published **"Python Basics: For Loop"** (`ensure_sandbox_demo_activity` in `guest_service.py`). The activity:
+  - reads `n` and counts down to 1, then prints `Liftoff!`;
+  - has a description, a scenario, plain-text instructions (the workspace does not render Markdown), starter code, and a solution explanation;
+  - requires `require_for_loop` and `require_print_call`;
+  - uses `paste_policy` `internal_only`, so outside pastes are blocked and counted;
+  - is graded, with no due date;
+  - has one visible sample test case (input `5`) and one hidden one (input `3`), both checked against a reference solution in the tests.
+- **Found by title in the sandbox,** so:
+  - the sandbox that already exists in production gets it at the next guest sign-in;
+  - an admin's edits, or unpublishing it, are kept: it is never recreated over them;
+  - a locked re-check stops two simultaneous first guests from both adding it.
+- **Recorded** with an `activity_created` audit record (actor: system).
+- **A failure never blocks a guest sign-in:** the guest just sees an empty class that time.
+- **The sandbox stays shared, not one per guest.** It is admin-owned (2026-10-19 decision), so guest sessions do not appear on any instructor's Live Monitoring page. Guests still produce real sessions, indicators, runs and submissions.
+
+### 2. Guests deleted after 24 hours
+- `GUEST_LIFETIME` is now 24 h.
+  - `get_current_user` refuses an older guest with "This guest account has expired…".
+  - Each new guest sign-in deletes up to 50 expired self-service guests in the same transaction (`delete_expired_guests`).
+  - The daily guest cap is 100, so the cleanup always keeps up. A batch is a handful of bulk `DELETE`s: the sign-in that ran a cleanup on PostgreSQL took 191 ms.
+- **Deleted with each guest,** children first because most of these foreign keys are `ON DELETE RESTRICT`:
+  - enrollment, coding sessions, run and submit requests, partner updates;
+  - submissions, indicator logs, AST analyses and findings, similarity results, instructor grades;
+  - notifications to the guest or about the guest's events;
+  - the academic events and **audit records whose actor is the guest**;
+  - practice attempts and progress.
+- **Trade-off (owner request):** the audit trail is otherwise immutable. Guest-actor rows are the one exception, so throwaway guest activity cannot fill the free-tier database. Records other people wrote about a guest (an admin's grade audit, for example) stay.
+- **Kept:** the shared sandbox, the demo activity, and admin-created guests (`POST /admin/guests`, which keep the student rules).
+- **No "bind to a permanent account":** accounts still come only from MIS.
+- **Logging:** the count is logged at INFO (`Deleted N expired guest account(s)…`), which the default log setup does not print, like the other service INFO lines.
+
+### 3. Password fields: an eye button inside each field
+- **New `frontend/src/components/ui/PasswordInput.jsx`:**
+  - each field has its own show/hide button (eye / eye-slash) inside its right edge;
+  - `aria-label` switches between "Show password" and "Hide password", and `aria-controls` points at the field;
+  - clicking it keeps the cursor in the field;
+  - it is disabled while the form saves.
+- **New `.input-password` style (`index.css`):** 44 px tall, rounded-xl, a soft shadow, a hover border, a 4 px focus ring, and the red error state.
+- **`ChangePasswordSection` (`AccountSections.jsx`)** is the one form used by the student Settings page, instructor Settings and the MIS admin Settings tab, so all three change together:
+  - the "Show passwords" checkbox is removed;
+  - fields are spaced 20 px apart, at most 36rem wide;
+  - the submit button sits under a divider, full width on phones.
+- The login, register and forgot-password pages already had an inline eye button and are unchanged.
+
+### Tests
+| Run | Result |
+|---|---|
+| `test_guest_accounts.py` (18) | Pass. The 3 tests of the 7-day rule became 24-hour and deletion tests. New tests cover: a full deletion against real API data (session, runs, submission, indicator log, evaluation and similarity, AST finding, grade, partner update, practice attempt, audit, event, notification) while a recent guest keeps everything; batches; demo creation, visibility, sample case and structure check; demo added once, with admin edits kept; demo test cases match the reference solution |
+| Mutation check | Removing one delete step (indicator logs) makes the deletion test fail with `FOREIGN KEY constraint failed` |
+| Full backend suite (SQLite) | **1136 passed, 14 skipped**, 0 failed |
+| Frontend lint / build | Pass |
+| Browser, scratch backend on a throwaway **PostgreSQL 18.4** cluster (`alembic upgrade head` from empty, including `b7e4c2a91f03`) | <ul><li>"Continue as Guest Student": the demo activity is listed and the workspace opens with it.</li><li>Typed solution: Check structure says "All required structures were found."; Run with the prefilled sample prints 5…1 and Liftoff!; Submit recorded attempt 1.</li><li>Guest backdated 25 h, then a second guest signs in: the first guest and its enrollment, session, 2 run/submit requests, submission, indicator log, audit record, academic event and notification are deleted. The sandbox, the demo and its audit record stay.</li><li>Password forms: student (dark), instructor (dark) and admin (light): three eye buttons and no checkbox in each; one field revealed with the others still masked; the cursor stays in the field; error states; no sideways scroll at 375 px.</li></ul> |
+
+### What a push does
+- **Vercel (at once):** the new password fields.
+- **Render (Errol's deploy):** the demo activity and the 24-hour cleanup. No migration.
+- **Until Errol deploys, production keeps the old guest rules** (empty sandbox, deactivated after 7 days). The first guest sign-in after the deploy adds the demo activity and starts deleting guests older than 24 hours, 50 per sign-in.

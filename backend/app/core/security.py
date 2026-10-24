@@ -181,8 +181,8 @@ def get_current_user(
             detail="This account is inactive.",
         )
 
-    # Self-service guests stop working 7 days after creation, even before
-    # the next guest sign-in deactivates them in the database.
+    # Self-service guests stop working 24 hours after creation, even before
+    # the next guest sign-in deletes them from the database.
     if guest_has_expired(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

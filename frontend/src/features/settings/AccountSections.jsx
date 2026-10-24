@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import PasswordInput from "../../components/ui/PasswordInput";
 import { FieldError, InlineAlert } from "../../components/ui/StateViews";
 import api, { getErrorMessage } from "../../services/api";
 import { useAuth } from "../auth/AuthContext";
@@ -97,7 +98,6 @@ export function ChangePasswordSection({ divided = false }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [passwords, setPasswords] = useState(EMPTY_PASSWORDS);
-  const [showPasswords, setShowPasswords] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -181,22 +181,20 @@ export function ChangePasswordSection({ divided = false }) {
         </InlineAlert>
       )}
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="max-w-xl space-y-5">
         {fields.map((field) => (
           <div key={field.key}>
             <label htmlFor={field.id} className="field-label">
               {field.label}
             </label>
-            <input
+            <PasswordInput
               id={field.id}
-              type={showPasswords ? "text" : "password"}
               value={passwords[field.key]}
               onChange={(event) => update(field.key, event.target.value)}
               autoComplete={field.autoComplete}
               aria-invalid={Boolean(fieldErrors[field.key])}
               aria-describedby={fieldErrors[field.key] ? `${field.id}-error` : undefined}
               disabled={isSaving || success}
-              className="input-field"
             />
             <FieldError id={`${field.id}-error`}>{fieldErrors[field.key]}</FieldError>
             {field.key === "newPassword" && strength && !fieldErrors.newPassword && (
@@ -213,17 +211,8 @@ export function ChangePasswordSection({ divided = false }) {
           </div>
         ))}
 
-        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-muted">
-            <input
-              type="checkbox"
-              checked={showPasswords}
-              onChange={() => setShowPasswords((v) => !v)}
-              className="h-4 w-4 rounded border-border-strong accent-psu-maroon"
-            />
-            Show passwords
-          </label>
-          <button type="submit" disabled={isSaving || success} className="btn-primary">
+        <div className="flex justify-end border-t border-border-subtle pt-5">
+          <button type="submit" disabled={isSaving || success} className="btn-primary w-full sm:w-auto">
             {isSaving ? "Updating…" : "Update password"}
           </button>
         </div>
