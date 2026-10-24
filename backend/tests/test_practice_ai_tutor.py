@@ -195,6 +195,41 @@ def test_hint_is_processing_then_completed(client, student, practice_task, faile
     assert len(gemini.calls) == 1
 
 
+def test_the_request_releases_its_database_session_before_gemini_runs(client, student, failed_attempt,
+                                                                     monkeypatch):
+    # FastAPI closes a request's session only after its background tasks. A
+    # hint that kept it would hold a pooled connection, and a lock on
+    # practice_attempts, for as long as Gemini takes (up to ~67 s). On
+    # 2026-10-24 such a lock made migration b7e4c2a91f03 time out on Render.
+    from app.core.database import get_db
+    from app.main import app
+    from tests.conftest import TestingSessionLocal
+
+    sessions = []
+
+    def tracking_get_db():
+        db = TestingSessionLocal()
+        sessions.append(db)
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = tracking_get_db
+    open_when_gemini_ran = []
+
+    def fake_generate(**kwargs):
+        open_when_gemini_ran.append([db.in_transaction() for db in sessions])
+        return HINT
+
+    monkeypatch.setattr(practice_router, "generate_pedagogical_hint", fake_generate)
+
+    response = ask_for_hint(client, student, failed_attempt.attempt_id)
+
+    assert response.json()["status"] == "processing"
+    assert open_when_gemini_ran == [[False]]
+
+
 def test_polls_during_a_generation_do_not_start_another(client, student, failed_attempt, gemini):
     # As if an earlier request had started a generation that is still running.
     assert practice_hint_store.claim_generation(failed_attempt.attempt_id) is True

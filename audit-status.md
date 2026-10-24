@@ -2692,3 +2692,32 @@ _After `4deae1e`. QA BUG-01 (grading bench: dashes and "No coding-session record
 - **Vercel (at once):** the Workspace opens sessions and links runs and submissions. This works with the backend in production now (the session routes are in `6c8db89` and `404d88a`), so the frontend alone fixes both bugs.
 - **Render (Errol's deploy):** the 3-minute live window. Until then, "All active sessions" also lists students who left, with the "Inactive" badge.
 - No migration.
+
+## Render deploy of `4870f19` stopped on migration `b7e4c2a91f03` (2026-10-24)
+
+_Errol's Manual Deploy ran `alembic upgrade head` from `61330560eec5`. `b7e4c2a91f03` (Oct 22, practice attempt status) failed with `LockNotAvailable: canceling statement due to lock timeout` on `ALTER TABLE practice_attempts ADD COLUMN status ...`._
+
+### What happened
+- **The migration did what it was written to do.** It waits at most 10 s (`SET LOCAL lock_timeout`) for the table lock, then fails and rolls back, rather than stalling every practice request behind it. Each migration runs in its own transaction, so **the production database is unchanged** (still `61330560eec5`, no partial columns). Render normally keeps the previous deploy serving while a new one fails to start (Errol to confirm the site stayed up).
+- **Something held `practice_attempts` for more than 10 s.** The likeliest holder in production's code is the AI hint route.
+  - It reads the attempt, then calls Gemini in a FastAPI background task (up to about 67 s).
+  - With the pinned FastAPI 0.128.8, a request's database session closes only **after** its background tasks. This was checked with the pinned packages in a scratch folder: the session opened, the background task started and finished, and only then did the session close.
+  - So each hint kept its transaction open, with its lock on `practice_attempts` and one of the 10 pooled connections, for the whole Gemini call. Any hint in progress while the migration runs makes it fail.
+  - Other possible holders: a backup (`pg_dump`) or a Supabase dashboard query still running. Errol can confirm with the SQL in the message to him.
+
+### Fixed
+| Where | Change |
+|---|---|
+| `backend/app/routers/practice.py` (`get_ai_hint`) | Copies what the background task needs, then closes the session **before** scheduling the Gemini call. No hint holds a connection or a lock any more |
+| `backend/start.sh` | `alembic upgrade head` is tried up to 5 times, 20 s apart (about 2 min at most), before the start fails. A migration that loses its lock race rolls back cleanly, so trying again is safe |
+
+### Tests
+| Run | Result |
+|---|---|
+| New `test_the_request_releases_its_database_session_before_gemini_runs` | Failed before the change (session still in a transaction when Gemini ran), passes after |
+| `test_practice_ai_tutor.py` and `test_practice_async_submit.py` | 74 passed |
+| `start.sh`, LF copy, with stand-in `alembic`/`celery`/`uvicorn`/`sleep` | Fails twice then works: starts the server. Always fails: exits 1 after 5 attempts and never starts the server |
+
+### Notes
+- **These fixes do not help an attempt made while the old backend is still serving.** That old code still holds hint transactions open. The `start.sh` retries cover a hint that finishes within about 2 minutes; quiet hours are still the safest time to deploy.
+- The admin welcome emails (`POST /admin/students`, `/admin/instructors`, masterlist upload) have the same pattern on `users`: the session stays open while the emails send. Left as is: they don't hold up a practice migration, and a masterlist send is rare.

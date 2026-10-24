@@ -519,12 +519,20 @@ def get_ai_hint(
     error_output = attempt.execution_feedback or "The output did not match the expected output."
     if attempt.ast_feedback:
         error_output += "\n" + "\n".join(str(message) for message in attempt.ast_feedback)
+    task_instructions = attempt.task.instructions
+    submitted_code = attempt.submitted_code
+
+    # FastAPI closes this request's session only after its background tasks.
+    # Close it now, so the hint never holds a pooled connection, or a lock on
+    # practice_attempts, for as long as Gemini takes (up to ~67 s). Such a lock
+    # made a migration time out on Render on 2026-10-24.
+    db.close()
 
     background_tasks.add_task(
         _generate_hint_bg,
         attempt_id,
-        attempt.task.instructions,
-        attempt.submitted_code,
+        task_instructions,
+        submitted_code,
         error_output,
     )
 
