@@ -11,6 +11,7 @@ from app.integrations.otp_email import OTPEmailAdapterRejectedError
 # Bounds every SMTP connect and command so a stalled relay cannot hold a
 # worker thread indefinitely.
 SMTP_TIMEOUT_SECONDS = 15
+DEFAULT_SMTP_HOST = "smtp-relay.brevo.com"
 
 
 class OTPDeliveryUnavailableError(RuntimeError):
@@ -24,8 +25,10 @@ class SMTPEmailAdapter:
     """
 
     def __init__(self):
-        self.host = os.getenv("SMTP_HOST", "")
-        self.port = int(os.getenv("SMTP_PORT", "587"))
+        # Same defaults as the account-setup email (email_service): without
+        # them, reset codes failed while welcome emails still went out.
+        self.host = os.getenv("SMTP_HOST") or DEFAULT_SMTP_HOST
+        self.port = int(os.getenv("SMTP_PORT") or "587")
         self.user = os.getenv("SMTP_USER", "")
         self.password = os.getenv("SMTP_PASS", "")
         self.sender_name = os.getenv("SMTP_SENDER_NAME", "PSU Python IDE")
@@ -42,8 +45,8 @@ class SMTPEmailAdapter:
         purpose: str,
         expires_in_seconds: int,
     ) -> None:
-        if not self.host or not self.user or not self.password:
-            raise OTPDeliveryUnavailableError("SMTP configuration is missing.")
+        if not self.user or not self.password:
+            raise OTPDeliveryUnavailableError("SMTP configuration is missing (SMTP_USER and SMTP_PASS).")
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = f"{self.sender_name} - Verification Code"
@@ -136,7 +139,8 @@ def get_otp_delivery_adapter() -> OTPDeliveryAdapter:
     FastAPI dependency provider for OTP email delivery.
     """
     
-    if os.getenv("SMTP_HOST") and os.getenv("SMTP_USER") and os.getenv("SMTP_PASS"):
+    # SMTP_HOST is optional (Brevo's relay by default), as for welcome emails.
+    if os.getenv("SMTP_USER") and os.getenv("SMTP_PASS"):
         return SMTPEmailAdapter()
     
     return UnavailableOTPDeliveryAdapter()

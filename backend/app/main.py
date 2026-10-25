@@ -5,6 +5,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.database_errors import handle_unhandled_database_error
 from app.core.request_context import (RequestContextMiddleware,
+                                      configure_app_logging,
                                       configure_request_logging)
 from app.integrations.partner_auth import PARTNER_EXECUTION_TOKEN_HEADER
 from app.routers import (activities, admin, registration, audit_records, auth, classrooms,
@@ -204,6 +205,7 @@ OPENAPI_TAGS = [
 settings = get_settings()
 
 request_logger = configure_request_logging(log_level=settings.log_level)
+configure_app_logging(log_level=settings.log_level)
 
 documentation_url = "/docs" if settings.enable_api_docs else None
 

@@ -105,6 +105,33 @@ def configure_request_logging(
     return logger
 
 
+APP_LOGGER_NAME = "app"
+
+
+def configure_app_logging(
+    *,
+    log_level: str,
+) -> logging.Logger:
+    """
+    Give the application's module loggers (app.*) a stderr handler.
+
+    Without one, Python printed only their warnings and errors, so INFO lines
+    such as "Provisioning email sent" never reached the server log. Records
+    still propagate, so pytest's caplog keeps seeing them.
+    """
+
+    logger = logging.getLogger(APP_LOGGER_NAME)
+    logger.setLevel(log_level)
+
+    if not any(getattr(handler, "_pamsu_app_handler", False) for handler in logger.handlers):
+        handler = logging.StreamHandler(sys.stderr)
+        setattr(handler, "_pamsu_app_handler", True)
+        handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+        logger.addHandler(handler)
+
+    return logger
+
+
 def get_current_correlation_id() -> str | None:
     """
     Return the correlation ID associated with the current request context.

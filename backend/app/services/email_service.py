@@ -69,7 +69,7 @@ def _logo_bytes() -> bytes | None:
         return None
 
 
-def _mask_email(email: str) -> str:
+def mask_email(email: str) -> str:
     """j***@pampangastateu.edu.ph: enough to trace a delivery, not to identify."""
     local, _, domain = (email or "").partition("@")
     return f"{local[:1]}***@{domain}" if domain else "***"
@@ -247,7 +247,7 @@ def send_provisioning_email(
 
     # Without credentials (local development, tests) nothing is sent.
     if not config["user"] or not config["password"]:
-        logger.warning("SMTP credentials missing; provisioning email to %s not sent.", _mask_email(recipient_email))
+        logger.warning("SMTP credentials missing; provisioning email to %s not sent.", mask_email(recipient_email))
         return
 
     message = build_provisioning_message(
@@ -266,14 +266,14 @@ def send_provisioning_email(
             server.starttls()
             server.login(config["user"], config["password"])
             server.sendmail(config["sender_email"], [recipient_email], message.as_string())
-        logger.info("Provisioning email sent to %s.", _mask_email(recipient_email))
+        logger.info("Provisioning email sent to %s.", mask_email(recipient_email))
     except Exception as error:
         # Class name and SMTP code only (e.g. SMTPAuthenticationError 535 = wrong
         # key, SMTPSenderRefused = sender not verified in Brevo); the error text
         # can echo the message or the address.
         logger.error(
             "Provisioning email to %s failed (%s %s).",
-            _mask_email(recipient_email),
+            mask_email(recipient_email),
             type(error).__name__,
             getattr(error, "smtp_code", "") or "",
         )

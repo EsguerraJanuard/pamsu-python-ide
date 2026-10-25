@@ -20,6 +20,7 @@ from app.schemas.otp_schema import (OTPChallengeResponse,
                                     RegistrationCompleteResponse,
                                     RegistrationStartRequest)
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN, UserResponse
+from app.services.email_service import mask_email
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -640,7 +641,16 @@ def deliver_password_reset_otp_in_background(
             purpose="password_reset",
         )
     except OTPDeliveryError:
-        logger.error("Password reset code delivery failed.")
+        logger.error("Password reset code to %s was not sent.", mask_email(email))
+    else:
+        # "Sent" means the relay accepted it; Brevo's log shows what came next.
+        logger.info("Password reset code to %s accepted by the mail relay.", mask_email(email))
+
+
+def _log_reset_without_account(email: str) -> None:
+    # The response is the same either way (no account enumeration); only the
+    # server log says that no code went out.
+    logger.info("Password reset requested for %s, which no account uses; no code sent.", mask_email(email))
 
 
 def _find_user_by_email(db: Session, email: str) -> User | None:
@@ -729,6 +739,8 @@ def start_password_reset(
             email=normalized_email,
             otp_code=otp_code,
         )
+    elif not account_exists:
+        _log_reset_without_account(normalized_email)
 
     return build_password_reset_challenge_response(
         challenge_id=challenge_id,
@@ -857,6 +869,8 @@ def resend_password_reset_otp(
             email=challenge.email,
             otp_code=otp_code,
         )
+    elif not account_exists:
+        _log_reset_without_account(challenge.email)
 
     return build_password_reset_challenge_response(
         challenge_id=challenge.challenge_id,
