@@ -2,6 +2,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr, formatdate, make_msgid
 from typing import NoReturn
 
 from app.integrations.otp_email import OTPEmailAdapter as OTPDeliveryAdapter
@@ -28,7 +29,10 @@ class SMTPEmailAdapter:
         self.user = os.getenv("SMTP_USER", "")
         self.password = os.getenv("SMTP_PASS", "")
         self.sender_name = os.getenv("SMTP_SENDER_NAME", "PSU Python IDE")
-        self.sender_email = os.getenv("SMTP_SENDER_EMAIL", self.user)
+        # Same sender as the account-setup email (email_service). The SMTP
+        # login is Brevo's relay account name, not a verified sender, so
+        # Brevo refuses or drops mail sent from it.
+        self.sender_email = os.getenv("SMTP_SENDER_EMAIL") or "noreply@pampangastateu.edu.ph"
 
     def send_otp(
         self,
@@ -43,8 +47,11 @@ class SMTPEmailAdapter:
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = f"{self.sender_name} - Verification Code"
-        msg["From"] = f"{self.sender_name} <{self.sender_email}>"
+        msg["From"] = formataddr((self.sender_name, self.sender_email))
         msg["To"] = recipient_email
+        # Gmail rejects or spam-files mail without these.
+        msg["Date"] = formatdate(localtime=False)
+        msg["Message-ID"] = make_msgid(domain=self.sender_email.partition("@")[2] or None)
 
         purpose_str = "verify your email address"
         if purpose == "registration":
@@ -95,9 +102,12 @@ This code will expire in {minutes} minutes. If you did not request this code, yo
             with smtplib.SMTP(self.host, self.port, timeout=SMTP_TIMEOUT_SECONDS) as server:
                 server.starttls()
                 server.login(self.user, self.password)
-                server.sendmail(self.sender_email, recipient_email, msg.as_string())
+                server.sendmail(self.sender_email, [recipient_email], msg.as_string())
         except Exception as e:
-            raise OTPEmailAdapterRejectedError(f"SMTP delivery failed: {str(e)}")
+            # Class name and SMTP code only (535 = wrong key, SMTPSenderRefused =
+            # sender not verified in Brevo); the error text can echo the address.
+            summary = " ".join(str(part) for part in (type(e).__name__, getattr(e, "smtp_code", None)) if part)
+            raise OTPEmailAdapterRejectedError(f"SMTP delivery failed ({summary}).") from None
 
 
 class UnavailableOTPDeliveryAdapter:

@@ -5,7 +5,7 @@ import SignOutModal from "../../components/layout/SignOutModal";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import Modal from "../../components/ui/Modal";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../components/ui/StateViews";
-import api, { ApiError, getErrorMessage } from "../../services/api";
+import api, { ApiError, getErrorMessage, TIMEOUT_ERROR_STATUS } from "../../services/api";
 import { formatDate, formatDateTime, humanize } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
 import { ChangePasswordSection } from "../settings/AccountSections";
@@ -14,6 +14,10 @@ const PAGE_SIZE = 50;
 // Brevo's free plan: ~300 emails a day; leave room for password-reset codes.
 const BREVO_SAFE_DAILY_EMAILS = 250;
 const RECENT_ACTIVITY_COUNT = 6;
+// The backend's hosting stops it when idle and takes about a minute to start
+// again. A settings page left open that long would otherwise fail its save
+// after the 15 s default (QA ADM-27).
+const SETTINGS_SAVE_TIMEOUT_MS = 90000;
 const SCHOOL_EMAIL = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
 const SCHOOL_ID = /^(\d{10}|\d{4}-\d{5})$/;
 
@@ -74,6 +78,15 @@ const AUDIT_PAGE_SIZES = [25, 50, 100];
 const EMPTY_AUDIT_FILTERS = { q: "", action_type: "", outcome: "", actor_role: "", from: "", to: "" };
 const AUDIT_OUTCOMES = ["succeeded", "failed", "denied"];
 const AUDIT_ROLES = ["admin", "instructor", "student", "system"];
+
+// A status change names the state the account was put in; the new state is in
+// the record's details. Records without it keep the generic label.
+function auditEventLabel(log) {
+  if (log.action_type === "user_status_changed" && typeof log.details?.is_active === "boolean") {
+    return log.details.is_active ? "User activated" : "User deactivated";
+  }
+  return humanize(log.action_type);
+}
 
 /**
  * True when the server doesn't have the endpoint yet (the backend is deployed
@@ -648,7 +661,7 @@ function AuditTable({ logs }) {
                   </div>
                 </div>
               </td>
-              <td className="px-5 py-3.5 font-medium text-text-main">{humanize(log.action_type)}</td>
+              <td className="px-5 py-3.5 font-medium text-text-main">{auditEventLabel(log)}</td>
               <td className="px-5 py-3.5">
                 <span className="rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 text-xs font-medium text-text-muted">{humanize(log.resource_type)}</span>
                 {/* The affected account; older backends don't send target fields. */}
@@ -1497,10 +1510,25 @@ export default function AdminDashboard() {
         // the field.
         registration_enabled: false,
         default_ast_strictness: settings.default_ast_strictness || "moderate",
-      });
+      }, {}, SETTINGS_SAVE_TIMEOUT_MS);
       setSavedSettings(settings);
       setSettingsMessage({ tone: "success", text: "Settings saved." });
     } catch (err) {
+      if (err?.status === TIMEOUT_ERROR_STATUS) {
+        // The save may still have gone through: show what the server holds.
+        try {
+          const stored = await api.get("/admin/settings", {}, SETTINGS_SAVE_TIMEOUT_MS);
+          setSavedSettings(stored);
+          if (stored.maintenance_mode === Boolean(settings.maintenance_mode)
+            && stored.default_ast_strictness === (settings.default_ast_strictness || "moderate")) {
+            setSettings(stored);
+            setSettingsMessage({ tone: "success", text: "Settings saved." });
+            return;
+          }
+        } catch {
+          // Fall through to the timeout message.
+        }
+      }
       setSettingsMessage({ tone: "error", text: getErrorMessage(err, "Settings could not be saved.") });
     } finally {
       setIsSavingSettings(false);
@@ -1690,7 +1718,7 @@ export default function AdminDashboard() {
                               <p className="truncate text-sm text-text-main">
                                 <span className="font-semibold">{log.actor_name}</span>
                                 <span className="text-text-muted"> · </span>
-                                {humanize(log.action_type)}
+                                {auditEventLabel(log)}
                               </p>
                               <p className="truncate text-xs text-text-muted">
                                 {log.actor_role ? humanize(log.actor_role) : "Automated"} · {humanize(log.resource_type)} ·{" "}
