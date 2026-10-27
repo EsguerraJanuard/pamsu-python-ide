@@ -2796,6 +2796,7 @@ _After `c138ddd`. Januard's request. **Replaces the 2026-10-19 rule** "guests ar
 ### 2. Guest sign-out prompt
 - `SignOutModal.jsx` shows guests "Want to experience more of the system? Enroll at Pampanga State University today!" with **Close** and **Sign Out**. Other accounts keep the usual confirmation.
 - The sign-in response now says `is_guest`. Until the backend is deployed, the browser falls back to the guest email and school ID pattern (`features/auth/guest.js`, shared with the admin directory).
+- **Follow-up (after `d14cd0f`):** the prompt now says "Want to experience more of this IDE?" and has an **Enroll at PSU** button. It opens PSU's admission page, https://sms.pampangastateu.edu.ph/padmission, in a new tab, and the address is shown under the button. Enrolling is now the main button; Sign Out and Close stay in the footer. Checked in the browser as a guest, including at 375 px.
 
 ### 3. Live Monitoring: live sessions only
 - **Backend:** `GET /instructors/tasks/{id}/coding-sessions?live_only=true` drops ended sessions and sessions with no heartbeat for 3 minutes, the same rule as `/instructors/coding-sessions/live`.
