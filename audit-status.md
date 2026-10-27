@@ -2863,3 +2863,62 @@ New `hooks/useUrlFilters.js` keeps each page's filters in the address, so they s
   - Live Monitoring uses `active_only`, and the page hides quiet sessions itself;
   - the edit form still sends `name`.
 - **Render (Errol's deploy):** minimal token claims, `is_guest`, `live_only`, strict join codes, the settings cache. **No migration.** Sessions from before the deploy keep working until they expire.
+
+## AST auto-detect difficulty: end-to-end check and fixes (2026-10-27)
+
+### How the difficulty is calculated
+- **Three levels, one table.** Each AST rule has a lowest level at which it may be required: `RULE_LEVELS` in `backend/app/services/ast_analyzer.py` and the groups in `frontend/src/utils/astRules.js` (a test now keeps the two identical).
+  - Beginner: Output & Input, Control Flow.
+  - Intermediate: Functions, Data Structures, File Handling.
+  - Expert: OOP & Advanced (classes, try/except, lambda, import, match, yield, assert, raise, decorators, async/await).
+- **Difficulty = the highest level among the constructs.** There are no points or weights; nesting depth and repeat counts do not change the level.
+- **Analyzer ("Analyze and suggest"):** a reference solution is evidence and alone sets the level; without one, phrases in the problem text are used.
+  - Ignored in a solution because every level uses them: any call (`print()` is a call), print, tuples (`a, b = b, a`), pass, and import (`import math`/`random`).
+- **Editor:** the chosen difficulty is a ceiling. Rules above it are hidden and removed when the level is lowered, so the checklist can never need more than the difficulty.
+- **Backend (new):** the same rule is enforced on `POST /instructors/tasks/` and `PATCH /instructors/tasks/{id}`.
+
+### Problems found and fixed
+- **Problem-text false positives (6 of 8 sample beginner problems got the wrong level):**
+  - "Invalid input" was read as try/except (Expert);
+  - "raises a number to the power" as `raise` (Expert);
+  - "Library fines" and "In this module" as `import` (Expert);
+  - "Define a variable" as a function (Intermediate);
+  - "Save your file as lab3.py" as file handling (Intermediate).
+  - The phrases now need explicit wording: "raise a ValueError", "import the math module", "read from a file", "text file". "prints"/"displays" now count as print.
+- **Solutions rated too low:** list and set literals, `del`, `global`/`nonlocal`, `assert` and `async`/`await` were not read from solutions. They now set the level and are suggested.
+- **No backend validation:**
+  - unknown rule names and malformed rule settings were saved, and the grader then fails every submission;
+  - a difficulty below the rules was accepted;
+  - an explicit `null` for `difficulty` (or `title`, `required_ast_rules`, `starter_code` and other required columns) on PATCH crashed with a 500.
+  - Now these get a 422 with a readable message. "Required at least" is capped at 20, as in the editor.
+- **POST without `difficulty`** used to save "beginner" whatever the rules. It is now set from the rules (auto-detect). A higher level chosen by hand is kept.
+- **PATCH:** the check runs on the result of the update, and only when `difficulty` or `required_ast_rules` is sent. Older activities that break the rule (see the seed data below) can still have their deadline or title edited.
+- **Editor:**
+  - **Live status under the difficulty buttons:** "Detected from the checklist: <level>", recalculated on every rule toggle.
+    - It says "Set automatically by the analysis" or "Matches the selected level".
+    - A level above the checklist is marked **Manual override**, with a **Use <level>** button.
+  - **Clicking the selected level** no longer re-adds the starting rules. After an analysis it used to add an `input()` requirement the demo solution does not use.
+  - **Lowering the level** only removes the rules above it; raising it still adds that level's starting rules.
+  - **Edit mode:** rules above the saved difficulty used to be hidden but kept and sent back. They are now listed under "Below the checklist", with **Raise to <level>** and **Remove**.
+  - **Unknown rule names** are dropped on load.
+
+### Seed data relabeled (team decision: keep the level table)
+- Four activities in `backend/seed_content.py` required Expert rules but were labeled Intermediate. They are now **Expert**:
+  - `queue_sim`, "Enrollment Line Queue" (`import`);
+  - `csv_parse`, "Parsing Enrollment Records" (`import`);
+  - `json_record`, "Student Record as JSON" (`import`);
+  - `validate_input`, "Validating Payment Amounts" (try/except).
+- The level table is unchanged, so the manuscript's difficulty definitions still match `astRules.js`.
+- `test_seed_activities_meet_their_rule_levels` fails if a seed activity again needs more than its label. `seed.py` writes to the database directly, past the API check.
+- **Already-seeded databases keep the old labels** until they are re-seeded or the activities are edited. The editor flags them with "Below the checklist" and **Raise to Expert**.
+
+### Tests
+| Run | Result |
+|---|---|
+| Full backend suite (SQLite) | **1209 passed, 14 skipped**, 0 failed. One existing test was updated: `test_task_workflow.py` now raises the difficulty to Intermediate in the same PATCH that adds a function rule |
+| New `tests/test_activity_difficulty.py` | 38 passed (the seed check was added after the full-suite run): phrase false positives and true positives, solution levels, noise ignored, backend and editor tables identical, POST auto-detect / refuse / keep-higher, PATCH result check, older activities editable, nulls refused |
+| Browser, scratch SQLite backend | <ul><li>Demo "Even or Odd" analysis: Beginner, with for, if and print.</li><li>Clicking Beginner again added nothing.</li><li>Raising to Intermediate matched the checklist.</li><li>Unticking the function rules showed Manual override; "Use Beginner" fixed it, and the activity saved as Beginner with 3 rules.</li><li>Older Intermediate + import activity: the warning showed; saving a checklist change was refused with the backend message; Raise to Expert, then save: 200.</li></ul> |
+
+### What a push does
+- **Vercel (at once):** the editor changes. They work with the backend now on Render.
+- **Render (Errol's deploy):** the analyzer changes and the new validation. **No migration.**

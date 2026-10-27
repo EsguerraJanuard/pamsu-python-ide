@@ -102,6 +102,20 @@ export function ruleLevel(ruleId) {
   return group ? group.levels[0] : "beginner";
 }
 
+const LEVEL_IDS = DIFFICULTY_LEVELS.map((level) => level.id);
+
+/**
+ * Difficulty detected from required rules: the highest level among them,
+ * "beginner" when there are none. Same rule as the backend
+ * (highest_level in backend/app/services/ast_analyzer.py).
+ */
+export function levelForRules(ruleIds) {
+  return ruleIds.reduce((highest, ruleId) => {
+    const level = ruleLevel(ruleId);
+    return LEVEL_IDS.indexOf(level) > LEVEL_IDS.indexOf(highest) ? level : highest;
+  }, "beginner");
+}
+
 /** Minimum count from a stored rule configuration (true, a number, or { min_count }). */
 export function ruleMinCount(configuration) {
   if (typeof configuration === "number") return configuration;

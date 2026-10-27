@@ -76,6 +76,7 @@ from app.services.task_service import (TaskAccessDeniedError,
                                        TaskClassAccessDeniedError,
                                        TaskClassInactiveError,
                                        TaskClassNotFoundError,
+                                       TaskDifficultyError,
                                        TaskNotFoundError,
                                        TaskNotificationWorkflowError,
                                        TaskPublicationError,
@@ -140,6 +141,15 @@ def raise_task_service_http_exception(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        TaskDifficultyError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -646,6 +656,7 @@ def create_task_endpoint(
         TaskClassNotFoundError,
         TaskClassAccessDeniedError,
         TaskClassInactiveError,
+        TaskDifficultyError,
         TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)
@@ -805,6 +816,7 @@ def update_task_endpoint(
         TaskClassInactiveError,
         TaskUpdateEmptyError,
         TaskPublicationError,
+        TaskDifficultyError,
         TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)

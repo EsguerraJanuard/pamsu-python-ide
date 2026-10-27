@@ -3,6 +3,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.services.ast_evaluator import (SUPPORTED_AST_RULES,
+                                        normalize_rule_configuration)
+
 ActivityType = Literal[
     "laboratory",
     "homework",
@@ -70,13 +73,17 @@ def normalize_response_datetime(
     return value.astimezone(timezone.utc)
 
 
+# Same limit as the "Required at least" field in the activity editor.
+MAX_RULE_MIN_COUNT = 20
+
+
 def validate_ast_rules(
     value: dict[str, Any],
 ) -> dict[str, Any]:
     if len(value) > 50:
         raise ValueError("A task may contain at most 50 AST rules.")
 
-    for rule_name in value:
+    for rule_name, configuration in value.items():
         if not isinstance(rule_name, str):
             raise ValueError("Each AST rule must use a string key.")
 
@@ -85,6 +92,21 @@ def validate_ast_rules(
 
         if rule_name != rule_name.strip():
             raise ValueError("AST rule keys cannot begin or end with whitespace.")
+
+        # The evaluator fails every submission on an unknown rule or a
+        # malformed configuration, so neither may be saved.
+        if rule_name not in SUPPORTED_AST_RULES:
+            raise ValueError(f"'{rule_name}' is not a supported AST rule.")
+
+        try:
+            _, minimum_count, _ = normalize_rule_configuration(configuration)
+        except ValueError as error:
+            raise ValueError(f"{rule_name}: {error}") from error
+
+        if minimum_count > MAX_RULE_MIN_COUNT:
+            raise ValueError(
+                f"{rule_name}: a rule can require at most {MAX_RULE_MIN_COUNT} uses."
+            )
 
     return value
 
@@ -124,9 +146,12 @@ class TaskBase(BaseModel):
         default="laboratory",
         description="Laboratory or homework activity.",
     )
-    difficulty: ActivityDifficulty = Field(
-        default="beginner",
-        description="Difficulty level of the activity.",
+    difficulty: ActivityDifficulty | None = Field(
+        default=None,
+        description=(
+            "Difficulty level of the activity. When omitted, it is set from "
+            "the required AST rules. It cannot be lower than those rules need."
+        ),
     )
     required_ast_rules: dict[str, Any] = Field(
         default_factory=dict,
@@ -271,6 +296,28 @@ class TaskUpdate(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
+
+    # These columns cannot be empty. Leave a field out to keep its value;
+    # an explicit null used to reach the database and fail with a 500.
+    @field_validator(
+        "title",
+        "activity_type",
+        "difficulty",
+        "required_ast_rules",
+        "starter_code",
+        "paste_policy",
+        "is_graded",
+        mode="before",
+    )
+    @classmethod
+    def reject_null(
+        cls,
+        value: Any,
+    ) -> Any:
+        if value is None:
+            raise ValueError("This field cannot be empty. Leave it out to keep the current value.")
+
+        return value
 
     @field_validator("title")
     @classmethod

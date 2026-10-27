@@ -11,6 +11,9 @@ from app.schemas.task_test_case_schema import (TaskTestCaseCreate,
 from app.services.academic_event_service import (AcademicEventWorkflowError,
                                                  notify_activity_deadline_changed,
                                                  notify_activity_published)
+from app.services.ast_analyzer import (highest_level, required_rule_names,
+                                       rule_label, rule_level,
+                                       rules_above_level)
 from app.services.audit_service import AuditServiceError, create_audit_record
 from app.services.notification_service import NotificationServiceError
 from sqlalchemy.orm import Session
@@ -55,6 +58,10 @@ class TaskUpdateEmptyError(TaskServiceError):
 
 class TaskPublicationError(TaskServiceError):
     pass
+
+
+class TaskDifficultyError(TaskServiceError):
+    """The difficulty is lower than the required AST rules need."""
 
 
 class TaskNotificationWorkflowError(
@@ -247,6 +254,36 @@ def validate_task_for_publication(
     return classroom
 
 
+def resolve_task_difficulty(
+    *,
+    difficulty: str | None,
+    rules: dict[str, Any] | None,
+) -> str:
+    """Difficulty to save for these required AST rules.
+
+    Without a difficulty, it is the highest level the rules need (the same
+    levels as the activity editor). A given difficulty is kept unless it is
+    lower than the rules need, which the editor never allows.
+    """
+    if difficulty is None:
+        return highest_level(required_rule_names(rules))
+
+    too_high = rules_above_level(difficulty, rules)
+
+    if too_high:
+        needed = highest_level(too_high).capitalize()
+        names = ", ".join(
+            f"{rule_label(rule).lower()} ({rule_level(rule).capitalize()})"
+            for rule in too_high
+        )
+        raise TaskDifficultyError(
+            f"{difficulty.capitalize()} difficulty is too low for these required "
+            f"rules: {names}. Set the difficulty to {needed} or remove those rules."
+        )
+
+    return difficulty
+
+
 def create_task(
     *,
     db: Session,
@@ -261,6 +298,11 @@ def create_task(
         require_active=True,
     )
 
+    difficulty = resolve_task_difficulty(
+        difficulty=task_data.difficulty,
+        rules=task_data.required_ast_rules,
+    )
+
     occurred_at = get_utc_now()
 
     task = Task(
@@ -272,7 +314,7 @@ def create_task(
         scenario=task_data.scenario,
         solution_explanation=task_data.solution_explanation,
         activity_type=task_data.activity_type,
-        difficulty=task_data.difficulty,
+        difficulty=difficulty,
         required_ast_rules=task_data.required_ast_rules,
         starter_code=task_data.starter_code,
         paste_policy=task_data.paste_policy,
@@ -435,6 +477,15 @@ def update_task(
             class_id=candidate_class_id,
             instructor_id=instructor_id,
             due_at=candidate_due_at,
+        )
+
+    # Checked on the result of the update: a lower difficulty must still
+    # allow the saved rules, and new rules must fit the saved difficulty.
+    # Other edits (a deadline, a title) leave older activities untouched.
+    if "difficulty" in update_data or "required_ast_rules" in update_data:
+        resolve_task_difficulty(
+            difficulty=update_data.get("difficulty", task.difficulty),
+            rules=update_data.get("required_ast_rules", task.required_ast_rules),
         )
 
     changed_fields = sorted(

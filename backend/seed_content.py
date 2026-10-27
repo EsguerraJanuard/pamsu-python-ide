@@ -379,7 +379,7 @@ _add(ActivityTemplate(
     key="queue_sim",
     title="Laboratory 2: Enrollment Line Queue",
     activity_type="laboratory",
-    difficulty="intermediate",
+    difficulty="expert",
     description="Simulate a first-come, first-served queue with collections.deque.",
     scenario=(
         "During enrollment week the Registrar serves students at two windows, alternating between "
@@ -499,7 +499,7 @@ _add(ActivityTemplate(
     key="csv_parse",
     title="Laboratory 1: Parsing Enrollment Records",
     activity_type="laboratory",
-    difficulty="intermediate",
+    difficulty="expert",
     description="Read CSV text with the csv module and total the enrolled units.",
     scenario=(
         "The Registrar exports enrollment records as CSV. The department needs each student's load "
@@ -538,7 +538,7 @@ _add(ActivityTemplate(
     key="json_record",
     title="Laboratory 2: Student Record as JSON",
     activity_type="laboratory",
-    difficulty="intermediate",
+    difficulty="expert",
     description="Represent a student record as a dictionary and serialize it with json.dumps.",
     scenario=(
         "The student portal exchanges records with other offices as JSON. Produce one student's "
@@ -571,7 +571,7 @@ _add(ActivityTemplate(
     key="validate_input",
     title="Homework 1: Validating Payment Amounts",
     activity_type="homework",
-    difficulty="intermediate",
+    difficulty="expert",
     description="Use try/except to reject payment amounts that are not valid numbers.",
     scenario=(
         "The cashier's kiosk receives amounts typed by students. Bad entries must be rejected "

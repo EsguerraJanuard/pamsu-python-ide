@@ -1,7 +1,8 @@
 import re
+from collections.abc import Iterable
 from typing import Any
 
-from app.services.ast_evaluator import SUPPORTED_AST_RULES
+from app.services.ast_evaluator import SUPPORTED_AST_RULES, is_rule_enabled
 from app.services.ast_safety import parse_python_source
 
 # Activity-creation assistant. It only suggests a difficulty level and AST
@@ -49,9 +50,18 @@ RULE_LEVELS: dict[str, str] = {
     "require_await": "expert",
 }
 
-# Constructs suggested from a reference solution. Constructs that almost every
-# program contains (any call, print, literals, pass, import) would only add
-# noise, so the instructor adds those by hand when they matter.
+# Older activities may still use these rule names (see ast_evaluator.py).
+LEGACY_RULE_NAMES = {
+    "require_function": "require_function_def",
+    "require_class": "require_class_def",
+}
+
+# Constructs read from a reference solution. They are suggested as
+# requirements and set the difficulty. Left out because they appear in
+# programs of every level and would only add noise: any call (print() is a
+# call), print, tuples (a, b = b, a), pass, and import (import math or
+# import random is common in beginner work). The instructor adds those by
+# hand when they matter.
 SOLUTION_SUGGESTIBLE_RULES = (
     "require_input_call",
     "require_if_statement",
@@ -62,18 +72,29 @@ SOLUTION_SUGGESTIBLE_RULES = (
     "require_with_statement",
     "require_function_def",
     "require_return_statement",
+    "require_global",
+    "require_nonlocal",
+    "require_list",
     "require_dict",
+    "require_set",
     "require_list_comprehension",
     "require_dict_comprehension",
+    "require_del_statement",
     "require_open_call",
     "require_class_def",
     "require_try_except",
     "require_lambda",
     "require_yield",
+    "require_assert_statement",
     "require_raise_statement",
     "require_decorator",
+    "require_async_function",
+    "require_await",
     "require_match_statement",
 )
+
+# Standard-library modules named in problem text ("use the math module").
+_MODULE_NAMES = r"(?:math|random|datetime|time|os|sys|statistics|string|json|csv|collections|itertools|functools)"
 
 # Phrases in a problem description that point to a construct. Matching is
 # case-insensitive on whole words; every match is reported so the instructor
@@ -83,7 +104,7 @@ DESCRIPTION_PATTERNS: dict[str, tuple[str, ...]] = {
         r"input", r"ask(?:s)? the user", r"prompt(?:s)? the user", r"user enters?",
         r"enter (?:a|an|the|their|his|her|two|three)",
     ),
-    "require_print_call": (r"print", r"display", r"output"),
+    "require_print_call": (r"prints?", r"displays?", r"outputs?"),
     "require_if_statement": (
         r"if", r"otherwise", r"condition(?:al|s)?", r"check (?:if|whether)",
         r"determine (?:if|whether)",
@@ -96,28 +117,41 @@ DESCRIPTION_PATTERNS: dict[str, tuple[str, ...]] = {
         r"while loop", r"while", r"until", r"keep asking", r"repeatedly ask",
     ),
     "require_break_statement": (r"break", r"stop the loop", r"exit the loop"),
-    "require_function_def": (
-        r"function", r"functions", r"define a", r"def",
-    ),
+    # Not "define a": beginner problems say "define a variable".
+    "require_function_def": (r"function", r"functions", r"def"),
     "require_return_statement": (r"return", r"returns"),
     "require_list": (r"list", r"lists", r"array", r"arrays"),
     "require_dict": (r"dictionary", r"dictionaries", r"dict", r"key-value", r"key value pairs?"),
     "require_list_comprehension": (r"list comprehension",),
     "require_dict_comprehension": (r"dictionary comprehension", r"dict comprehension"),
+    # Reading or writing a file, not "save your file as lab3.py".
     "require_open_call": (
-        r"file", r"files", r"read from a", r"write to a", r"\.txt", r"\.csv", r"csv",
+        r"text files?",
+        r"file (?:handling|input|output|operations?)",
+        r"(?:read|reads|reading|write|writes|writing|append|appends|appending|save|saves|saving"
+        r"|store|stores|storing|load|loads|loading)(?: \w+){0,3} (?:to|from|into) (?:a|an|the) (?:\w+ )?files?",
+        r"open(?:s|ing)? (?:a|an|the) (?:\w+ )?files?",
+        r"\.txt", r"\.csv", r"csv",
     ),
     "require_class_def": (
         r"(?:create|define|write|design) (?:a|the) class", r"class named",
         r"object-oriented", r"oop", r"inherit(?:s|ance)?", r"constructor",
     ),
+    # Not "invalid input": beginner problems print "Invalid input" from an if.
     "require_try_except": (
         r"exceptions?", r"error handling", r"handle (?:the )?errors?",
-        r"invalid input", r"try/except", r"try-except", r"without crashing",
+        r"try/except", r"try-except", r"without crashing",
     ),
     "require_lambda": (r"lambda", r"anonymous function"),
-    "require_import": (r"import", r"module", r"library"),
-    "require_raise_statement": (r"raise", r"raises"),
+    # Not a bare "module" or "library" ("In this module", "Library fines").
+    "require_import": (
+        r"import statements?",
+        r"imports? (?:a|an|the) (?:\w+ )?(?:module|library)",
+        r"import " + _MODULE_NAMES,
+        _MODULE_NAMES + r" (?:module|library)",
+    ),
+    # Raising an error, not "raise a number to the power of 2".
+    "require_raise_statement": (r"raises? (?:an? |the )?\w*(?:error|exception)s?",),
 }
 
 def _compile_phrase(pattern: str) -> re.Pattern[str]:
@@ -143,18 +177,28 @@ class SolutionParseError(ValueError):
     pass
 
 
-def _level_of(rule: str) -> str:
-    return RULE_LEVELS.get(rule, "beginner")
+def rule_level(rule: str) -> str:
+    """Lowest difficulty at which a rule may be required."""
+    return RULE_LEVELS.get(LEGACY_RULE_NAMES.get(rule, rule), "beginner")
 
 
-def _highest_level(rules: list[str]) -> str:
-    if not rules:
-        return "beginner"
-
-    return max((_level_of(rule) for rule in rules), key=DIFFICULTY_ORDER.index)
+def highest_level(rules: Iterable[str]) -> str:
+    """Highest level among the rules; beginner when there are none."""
+    return max((rule_level(rule) for rule in rules), key=DIFFICULTY_ORDER.index, default="beginner")
 
 
-def _label_of(rule: str) -> str:
+def required_rule_names(rules: dict[str, Any] | None) -> list[str]:
+    """Rule names a stored rule map actually requires (see ast_evaluator)."""
+    return [rule for rule, configuration in (rules or {}).items() if is_rule_enabled(configuration)]
+
+
+def rules_above_level(difficulty: str, rules: dict[str, Any] | None) -> list[str]:
+    """Required rules that need a higher difficulty than the given one."""
+    limit = DIFFICULTY_ORDER.index(difficulty)
+    return [rule for rule in required_rule_names(rules) if DIFFICULTY_ORDER.index(rule_level(rule)) > limit]
+
+
+def rule_label(rule: str) -> str:
     definition = SUPPORTED_AST_RULES.get(rule)
     return definition["label"] if definition else rule
 
@@ -230,8 +274,8 @@ def analyze_activity(
         constructs.append(
             {
                 "rule": rule,
-                "label": _label_of(rule),
-                "level": _level_of(rule),
+                "label": rule_label(rule),
+                "level": rule_level(rule),
                 "source": (
                     "both" if in_solution and in_description
                     else "solution" if in_solution
@@ -245,13 +289,13 @@ def analyze_activity(
     # A reference solution is evidence; description phrases are hints. When a
     # solution is given, it alone sets the difficulty.
     basis = list(solution_counts) if has_solution else list(description_terms)
-    difficulty = _highest_level(basis)
-    deciding = [rule for rule in basis if _level_of(rule) == difficulty]
+    difficulty = highest_level(basis)
+    deciding = [rule for rule in basis if rule_level(rule) == difficulty]
 
     if deciding:
         difficulty_reason = (
             f"{difficulty.capitalize()}: uses "
-            + ", ".join(_label_of(rule).lower() for rule in deciding[:3])
+            + ", ".join(rule_label(rule).lower() for rule in deciding[:3])
             + f" ({DIFFICULTY_DEFINITIONS[difficulty]})."
         )
     else:

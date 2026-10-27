@@ -275,7 +275,7 @@ SUPPORTED_AST_RULES["require_function"] = SUPPORTED_AST_RULES["require_function_
 SUPPORTED_AST_RULES["require_class"] = SUPPORTED_AST_RULES["require_class_def"]
 
 
-def _is_rule_enabled(configuration: Any) -> bool:
+def is_rule_enabled(configuration: Any) -> bool:
     if isinstance(configuration, bool):
         return configuration
 
@@ -288,7 +288,7 @@ def _is_rule_enabled(configuration: Any) -> bool:
     return True
 
 
-def _normalize_rule_configuration(
+def normalize_rule_configuration(
     configuration: Any,
 ) -> tuple[bool, int, str | None]:
     if isinstance(configuration, bool):
@@ -385,12 +385,12 @@ def evaluate_ast_details(
 
     for rule_name, configuration in rules.items():
         if rule_name not in SUPPORTED_AST_RULES:
-            if _is_rule_enabled(configuration):
+            if is_rule_enabled(configuration):
                 result["unsupported_rules"].append(rule_name)
             continue
 
         try:
-            required, minimum_count, custom_label = _normalize_rule_configuration(
+            required, minimum_count, custom_label = normalize_rule_configuration(
                 configuration
             )
         except ValueError as error:

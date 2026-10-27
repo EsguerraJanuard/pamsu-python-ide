@@ -8,6 +8,7 @@ import { classLabel } from '../../utils/format';
 import {
   AST_GROUPS,
   DIFFICULTY_LEVELS,
+  levelForRules,
   requiredRuleIds,
   ruleLabel,
   ruleLevel,
@@ -26,6 +27,9 @@ const DIFFICULTY_SUGGESTIONS = {
 const LEVEL_ORDER = DIFFICULTY_LEVELS.map((level) => level.id);
 const MAX_MIN_COUNT = 20;
 const LEGACY_RULE_IDS = { require_function: "require_function_def", require_class: "require_class_def" };
+const KNOWN_RULE_IDS = new Set(AST_GROUPS.flatMap((group) => group.rules.map((rule) => rule.id)));
+
+const levelName = (levelId) => DIFFICULTY_LEVELS.find((level) => level.id === levelId)?.label ?? levelId;
 
 const LABEL_CLASS = "block text-sm font-semibold text-text-main mb-1.5";
 const INPUT_CLASS = "w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-psu-maroon transition-colors";
@@ -34,11 +38,16 @@ const INPUT_CLASS = "w-full bg-bg-base border border-border-subtle rounded-xl p-
 const levelAllows = (difficulty, ruleId) =>
   LEVEL_ORDER.indexOf(ruleLevel(ruleId)) <= LEVEL_ORDER.indexOf(difficulty || 'expert');
 
-/** Stored rules -> editor state: { rule_id: { required: true, min_count } }. */
+/**
+ * Stored rules -> editor state: { rule_id: { required: true, min_count } }.
+ * Unknown rule names are dropped: the editor cannot show them, the grader
+ * fails every submission on them, and the backend no longer saves them.
+ */
 function toEditorRequirements(rules) {
   const requirements = {};
   requiredRuleIds(rules).forEach((ruleId) => {
     const id = LEGACY_RULE_IDS[ruleId] || ruleId;
+    if (!KNOWN_RULE_IDS.has(id)) return;
     requirements[id] = { required: true, min_count: Math.max(1, ruleMinCount(rules[ruleId])) };
   });
   return requirements;
@@ -230,6 +239,71 @@ AnalysisSummary.propTypes = {
   }).isRequired,
 };
 
+/**
+ * Live comparison of the chosen difficulty with the level the checked AST
+ * rules need (the highest level among them). Updates on every toggle.
+ */
+function DifficultyStatus({ difficulty, source, checklistLevel, ruleCount, rulesAbove, onUseChecklistLevel, onRemoveRulesAbove }) {
+  if (!difficulty) return null;
+
+  // Only possible for activities saved before the check existed.
+  if (rulesAbove.length > 0) {
+    const plural = rulesAbove.length > 1;
+    return (
+      <div role="status" className="mt-2 rounded-lg border border-psu-gold/50 bg-psu-gold/[0.06] p-3 text-xs text-text-main">
+        <p>
+          <span className="font-semibold text-text-amber">Below the checklist:</span>{' '}
+          {rulesAbove.map(ruleLabel).join(', ')} {plural ? 'need' : 'needs'} {levelName(checklistLevel)}, above
+          this activity&apos;s {levelName(difficulty)} level. Raise the difficulty or remove {plural ? 'these rules' : 'this rule'}.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" onClick={onUseChecklistLevel} className="btn-secondary btn-sm">
+            Raise to {levelName(checklistLevel)}
+          </button>
+          <button type="button" onClick={onRemoveRulesAbove} className="btn-secondary btn-sm">
+            Remove {plural ? 'these rules' : 'this rule'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const detected = (
+    <>
+      Detected from the checklist: <span className="font-semibold text-text-main">{levelName(checklistLevel)}</span>
+      {ruleCount === 0 ? ' (no rules required yet)' : ''}.
+    </>
+  );
+
+  if (difficulty === checklistLevel) {
+    return (
+      <p role="status" className="mt-1.5 text-xs text-text-muted">
+        {detected} {source === 'analyzer' ? 'Set automatically by the analysis.' : 'Matches the selected level.'}
+      </p>
+    );
+  }
+
+  return (
+    <p role="status" className="mt-1.5 text-xs text-text-muted">
+      {detected}{' '}
+      <span className="font-semibold text-text-amber">Manual override:</span> this activity stays {levelName(difficulty)}.{' '}
+      <button type="button" onClick={onUseChecklistLevel} className="font-semibold text-text-brand underline">
+        Use {levelName(checklistLevel)}
+      </button>
+    </p>
+  );
+}
+
+DifficultyStatus.propTypes = {
+  difficulty: PropTypes.string,
+  source: PropTypes.oneOf(['manual', 'analyzer', 'checklist', 'saved']),
+  checklistLevel: PropTypes.string.isRequired,
+  ruleCount: PropTypes.number.isRequired,
+  rulesAbove: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onUseChecklistLevel: PropTypes.func.isRequired,
+  onRemoveRulesAbove: PropTypes.func.isRequired,
+};
+
 // The page scrolls inside <main>, not the window.
 const scrollFormToTop = () => document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -270,6 +344,9 @@ const ActivityEditor = () => {
   const [error, setError] = useState('');
   const [createdTaskId, setCreatedTaskId] = useState(null);
 
+  // Who set the difficulty: 'manual' (a level button), 'analyzer',
+  // 'checklist' (Use/Raise to the detected level) or 'saved' (edit mode).
+  const [difficultySource, setDifficultySource] = useState(null);
   const [referenceCode, setReferenceCode] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -283,29 +360,43 @@ const ActivityEditor = () => {
     }));
   };
 
+  // A level picked by hand. Raising it (or the first pick) adds that level's
+  // starting rules; lowering it only removes rules above the new level.
+  // Clicking the current level changes nothing: it used to re-add starting
+  // rules, e.g. an input() requirement the analysis had not suggested.
   const handleDifficultyChange = (newDifficulty) => {
-    const suggestions = DIFFICULTY_SUGGESTIONS[newDifficulty];
-    const newReqs = { ...formData.requirements };
-
-    // Add missing suggestions with default count 1
-    suggestions.forEach(ruleId => {
-      if (!newReqs[ruleId]) {
-        newReqs[ruleId] = { required: true, min_count: 1 };
+    if (newDifficulty === formData.difficulty) return;
+    setFormData((prev) => {
+      const raising = !prev.difficulty || LEVEL_ORDER.indexOf(newDifficulty) > LEVEL_ORDER.indexOf(prev.difficulty);
+      const requirements = {};
+      Object.entries(prev.requirements).forEach(([ruleId, configuration]) => {
+        if (levelAllows(newDifficulty, ruleId)) requirements[ruleId] = configuration;
+      });
+      if (raising) {
+        DIFFICULTY_SUGGESTIONS[newDifficulty].forEach((ruleId) => {
+          if (!requirements[ruleId]) requirements[ruleId] = { required: true, min_count: 1 };
+        });
       }
+      return { ...prev, difficulty: newDifficulty, requirements };
     });
+    setDifficultySource('manual');
+  };
 
-    // Prune requirements that are no longer available in the new difficulty
-    Object.keys(newReqs).forEach(ruleId => {
-      if (!levelAllows(newDifficulty, ruleId)) {
-        delete newReqs[ruleId];
-      }
+  // Sets the difficulty to the level the checked rules need. No rules are
+  // added or removed: every checked rule fits that level by definition.
+  const handleUseChecklistLevel = () => {
+    setFormData((prev) => ({ ...prev, difficulty: levelForRules(Object.keys(prev.requirements)) }));
+    setDifficultySource('checklist');
+  };
+
+  const handleRemoveRulesAbove = () => {
+    setFormData((prev) => {
+      const requirements = {};
+      Object.entries(prev.requirements).forEach(([ruleId, configuration]) => {
+        if (levelAllows(prev.difficulty, ruleId)) requirements[ruleId] = configuration;
+      });
+      return { ...prev, requirements };
     });
-
-    setFormData(prev => ({
-      ...prev,
-      difficulty: newDifficulty,
-      requirements: newReqs
-    }));
   };
 
   const handleToggleRule = (ruleId, isChecked) => {
@@ -394,6 +485,7 @@ const ActivityEditor = () => {
         });
         return { ...prev, difficulty: level, requirements };
       });
+      setDifficultySource('analyzer');
       setAnalysis({ ...result, constructs: result.constructs || [], skipped });
     } catch (err) {
       setAnalysis(null);
@@ -447,6 +539,7 @@ const ActivityEditor = () => {
           difficulty: task.difficulty || '',
           allow_paste: task.paste_policy !== 'disabled',
         });
+        setDifficultySource('saved');
       } catch (err) {
         if (!cancelled) setLoadError(err);
       } finally {
@@ -604,6 +697,11 @@ const ActivityEditor = () => {
   const allVisibleRules = visibleGroups.flatMap(g => g.rules);
   const allVisibleSelected = allVisibleRules.length > 0 && allVisibleRules.every(r => formData.requirements[r.id]);
   const selectedLevel = DIFFICULTY_LEVELS.find((level) => level.id === formData.difficulty);
+  const checkedRuleIds = Object.keys(formData.requirements);
+  const checklistLevel = levelForRules(checkedRuleIds);
+  const rulesAboveLevel = formData.difficulty
+    ? checkedRuleIds.filter((ruleId) => !levelAllows(formData.difficulty, ruleId))
+    : [];
   const isPublishedTask = Boolean(original?.is_published);
   const editedClass = isEdit ? classrooms.find((cls) => cls.class_id === original?.class_id) : null;
 
@@ -868,6 +966,15 @@ const ActivityEditor = () => {
                       <p className="mt-1.5 text-xs text-text-muted">
                         {selectedLevel ? selectedLevel.definition : "Pick a level, or use “Analyze and suggest”."}
                       </p>
+                      <DifficultyStatus
+                        difficulty={formData.difficulty}
+                        source={difficultySource}
+                        checklistLevel={checklistLevel}
+                        ruleCount={checkedRuleIds.length}
+                        rulesAbove={rulesAboveLevel}
+                        onUseChecklistLevel={handleUseChecklistLevel}
+                        onRemoveRulesAbove={handleRemoveRulesAbove}
+                      />
                     </div>
 
                     <div className="flex-1 relative min-h-[200px]">
