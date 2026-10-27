@@ -155,8 +155,8 @@ export default function Login() {
     startSlowSignInHint();
     try {
       const data = await api.post("/guest", undefined, {}, SIGN_IN_TIMEOUT_MS);
-      login(data.access_token, data.user, data.user.role);
-      redirectAfterLogin(data.user.role);
+      // The role is read from the access token, not from the response body.
+      redirectAfterLogin(login(data.access_token, data.user));
     } catch (err) {
       if (err instanceof ApiError && err.status === 0) {
         setError("Cannot reach the server. Check your connection and try again.");
@@ -202,11 +202,9 @@ export default function Login() {
 
       const data = await api.post("/login", formData, {}, SIGN_IN_TIMEOUT_MS);
 
-      // Save token and user data via AuthContext
-      // login() stores in localStorage under pamsu_access_token, pamsu_user_role, pamsu_user_data
-      login(data.access_token, data.user, data.user.role);
-
-      redirectAfterLogin(data.user.role);
+      // login() keeps the token (pamsu_access_token) and the profile
+      // (pamsu_user_data); it returns the role read from the token.
+      redirectAfterLogin(login(data.access_token, data.user));
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 0) {

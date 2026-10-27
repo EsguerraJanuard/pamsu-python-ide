@@ -7,6 +7,7 @@ import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import EditClassModal from "../../components/modals/EditClassModal";
 import StudentGradebookModal from "../../components/modals/StudentGradebookModal";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
+import useUrlFilters from "../../hooks/useUrlFilters";
 import api, { getErrorMessage } from "../../services/api";
 import { formatDateTime } from "../../utils/format";
 
@@ -14,6 +15,11 @@ const MEMBER_STATUS = {
   active: { label: "Active", badge: "badge-success" },
   disabled: { label: "Paused", badge: "badge-gold" },
 };
+
+// ?tab=activities or ?q=dela — the open tab and the roster search, kept in
+// the URL for reloads and shared links.
+const URL_DEFAULTS = { tab: "roster", q: "" };
+const URL_ALLOWED = { tab: ["roster", "activities"] };
 
 export default function ClassRosterView() {
   const { id: classId } = useParams();
@@ -23,8 +29,11 @@ export default function ClassRosterView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
-  const [activeTab, setActiveTab] = useState("roster");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [urlFilters, setUrlFilters] = useUrlFilters(URL_DEFAULTS, URL_ALLOWED);
+  const activeTab = urlFilters.tab;
+  const setActiveTab = (tab) => setUrlFilters({ tab });
+  const searchQuery = urlFilters.q;
+  const setSearchQuery = (value) => setUrlFilters({ q: value });
   const [studentToRemove, setStudentToRemove] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [studentToInspect, setStudentToInspect] = useState(null);

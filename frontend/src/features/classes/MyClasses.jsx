@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import PageShell from "../../components/layout/PageShell";
 import JoinClassModal from "../../components/modals/JoinClassModal";
 import { EmptyState, ErrorState, InlineAlert, PageHeader } from "../../components/ui/StateViews";
-import api from "../../services/api";
+import { cachedGet } from "../../services/queryClient";
 import { formatDate } from "../student/studentData";
 
 const ENROLLMENT_STATUS = {
@@ -24,7 +24,7 @@ export default function MyClasses() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.get("/classrooms/mine");
+      const response = await cachedGet("/classrooms/mine");
       setClassrooms(Array.isArray(response) ? response : []);
     } catch (err) {
       setError(err);

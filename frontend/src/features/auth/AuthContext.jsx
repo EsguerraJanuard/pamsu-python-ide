@@ -1,10 +1,20 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { clearSessionTokens } from '../../services/api';
+import { clearApiCache } from '../../services/queryClient';
 import { clearAllDrafts, clearLegacyDrafts } from '../workspace/draftStorage';
+import { isTokenExpired, roleFromToken, userIdFromToken } from './token';
 
 const AuthContext = createContext(null);
 
 const SESSION_EXPIRED_FLAG = 'pamsu_session_expired';
+
+// The access token is the session: the role is read from it (token.js).
+// The profile (name, email, school ID…) comes from the sign-in response and
+// is kept here, in app state, with a copy in storage so a reload or a new
+// tab still shows it. Neither the token nor storage holds a separate role.
+const TOKEN_KEY = 'pamsu_access_token';
+const PROFILE_KEY = 'pamsu_user_data';
+const LEGACY_ROLE_KEY = 'pamsu_user_role';
 
 const EMPTY_STATE = { token: null, role: null, user: null, isLoading: false };
 
@@ -12,15 +22,6 @@ export const homePathForRole = (role) => {
   if (role === 'admin') return '/admin/dashboard';
   if (role === 'instructor') return '/instructor/dashboard';
   return '/student/dashboard';
-};
-
-const isTokenExpired = (token) => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now();
-  } catch {
-    return false;
-  }
 };
 
 const markSessionExpired = () => {
@@ -42,41 +43,80 @@ export const consumeSessionExpiredNotice = () => {
   }
 };
 
+/** Profile fields only: the role always comes from the token. */
+const profileWithoutRole = (userData) => {
+  if (!userData || typeof userData !== 'object') return null;
+  const { role: _role, ...profile } = userData;
+  return profile;
+};
+
+/**
+ * The user object pages read: the stored profile plus the role from the
+ * token. Without a stored profile (cleared storage), the account id from the
+ * token still scopes drafts and theme preferences.
+ */
+const buildUser = (token, role, profile) => {
+  const userId = userIdFromToken(token);
+  return {
+    ...(profile || {}),
+    user_id: profile?.user_id ?? userId,
+    role,
+  };
+};
+
+const removeStoredSession = () => {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(PROFILE_KEY);
+    localStorage.removeItem(LEGACY_ROLE_KEY);
+  } catch {
+    // Storage unavailable.
+  }
+};
+
+const readStoredProfile = () => {
+  try {
+    const stored = localStorage.getItem(PROFILE_KEY);
+    return stored ? profileWithoutRole(JSON.parse(stored)) : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Lazy initializer reads persistent storage instantly upon app launch
  * without triggering secondary cascading re-renders.
  */
 const getInitialAuthState = () => {
+  let storedToken;
   try {
-    const storedToken = localStorage.getItem('pamsu_access_token');
-    const storedRole = localStorage.getItem('pamsu_user_role');
-    const storedUser = localStorage.getItem('pamsu_user_data');
-
-    if (storedToken && storedRole && storedUser) {
-      if (isTokenExpired(storedToken)) {
-        markSessionExpired();
-        localStorage.removeItem('pamsu_access_token');
-        localStorage.removeItem('pamsu_user_role');
-        localStorage.removeItem('pamsu_user_data');
-        return EMPTY_STATE;
-      }
-      return {
-        token: storedToken,
-        role: storedRole,
-        user: JSON.parse(storedUser),
-        isLoading: false,
-      };
-    }
+    storedToken = localStorage.getItem(TOKEN_KEY);
+    // Written by versions before 2026-10-27; the token is the only source now.
+    localStorage.removeItem(LEGACY_ROLE_KEY);
   } catch {
-    clearSessionTokens();
-    try {
-      localStorage.removeItem('pamsu_user_data');
-    } catch {
-      // Storage unavailable.
-    }
+    return EMPTY_STATE;
   }
 
-  return EMPTY_STATE;
+  if (!storedToken) return EMPTY_STATE;
+
+  if (isTokenExpired(storedToken)) {
+    markSessionExpired();
+    removeStoredSession();
+    return EMPTY_STATE;
+  }
+
+  const role = roleFromToken(storedToken);
+  if (!role) {
+    removeStoredSession();
+    return EMPTY_STATE;
+  }
+
+  return {
+    token: storedToken,
+    role,
+    user: buildUser(storedToken, role, readStoredProfile()),
+    isLoading: false,
+  };
 };
 
 export const AuthProvider = ({ children }) => {
@@ -84,11 +124,8 @@ export const AuthProvider = ({ children }) => {
 
   const endSession = useCallback(() => {
     clearSessionTokens();
-    try {
-      localStorage.removeItem('pamsu_user_data');
-    } catch {
-      // Storage unavailable.
-    }
+    removeStoredSession();
+    clearApiCache();
     setAuthState(EMPTY_STATE);
   }, []);
 
@@ -109,25 +146,42 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('pamsu:unauthorized', handleUnauthorized);
   }, [endSession]);
 
-  const login = useCallback((newToken, userData, userRole) => {
+  /**
+   * Starts a session from a sign-in response. Returns the role read from
+   * the token; throws if the token has no valid role.
+   */
+  const login = useCallback((newToken, userData) => {
+    const role = roleFromToken(newToken);
+    if (!role) {
+      throw new Error('The sign-in response did not include a valid account role.');
+    }
+    const profile = profileWithoutRole(userData);
+
     clearLegacyDrafts();
-    localStorage.setItem('pamsu_access_token', newToken);
-    localStorage.setItem('pamsu_user_role', userRole);
-    localStorage.setItem('pamsu_user_data', JSON.stringify(userData));
+    clearApiCache();
+    localStorage.setItem(TOKEN_KEY, newToken);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    localStorage.removeItem(LEGACY_ROLE_KEY);
 
     setAuthState({
       token: newToken,
-      user: userData,
-      role: userRole,
+      role,
+      user: buildUser(newToken, role, profile),
       isLoading: false,
     });
+    return role;
   }, []);
 
   const updateUser = useCallback((newUserData) => {
-    localStorage.setItem('pamsu_user_data', JSON.stringify(newUserData));
+    const profile = profileWithoutRole(newUserData);
+    try {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    } catch {
+      // The in-memory profile still updates.
+    }
     setAuthState((prev) => ({
       ...prev,
-      user: newUserData,
+      user: buildUser(prev.token, prev.role, profile),
     }));
   }, []);
 

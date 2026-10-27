@@ -47,6 +47,8 @@ export const clearSessionTokens = async () => {
   try {
     const token = localStorage.getItem('pamsu_access_token');
     localStorage.removeItem('pamsu_access_token');
+    // Only browsers signed in before 2026-10-27 have this key: the role is
+    // now read from the access token itself (features/auth/token.js).
     localStorage.removeItem('pamsu_user_role');
     if (token) {
       // Notify backend to blacklist the token
@@ -129,10 +131,22 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
   clearTimeout(timeoutId);
   emitConnectivity(true);
 
+  const method = (options.method || 'GET').toUpperCase();
+  // Cached reads (services/queryClient.js) are refreshed after any change.
+  const announceChange = () => {
+    if (method === 'GET' || method === 'HEAD') return;
+    try {
+      window.dispatchEvent(new CustomEvent('pamsu:mutated', { detail: { endpoint, method } }));
+    } catch {
+      // Event dispatch is best-effort only.
+    }
+  };
+
   if (response.status === 204 || response.headers.get('content-length') === '0') {
     if (!response.ok) {
       throw new ApiError(parseErrorMessage(null, response.status), response.status, null);
     }
+    announceChange();
     return null;
   }
 
@@ -149,6 +163,7 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
     throw new ApiError(parseErrorMessage(data, response.status), response.status, data);
   }
 
+  announceChange();
   return data;
 };
 

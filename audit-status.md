@@ -2785,3 +2785,80 @@ _After `c138ddd`. Januard's request. **Replaces the 2026-10-19 rule** "guests ar
 - **Vercel (at once):** the new password fields.
 - **Render (Errol's deploy):** the demo activity and the 24-hour cleanup. No migration.
 - **Until Errol deploys, production keeps the old guest rules** (empty sandbox, deactivated after 7 days). The first guest sign-in after the deploy adds the demo activity and starts deleting guests older than 24 hours, 50 per sign-in.
+
+## Alpha-tester sprint: archive recovery, guest sign-out, live-only monitoring, minimal JWT, URL filters, caching (2026-10-27)
+
+### 1. Classes: Archived view and Unarchive
+- **Classes page (`ClassManagement.jsx`):** "Active" and "Archived" tabs with counts, plus a search box (name, subject, section, code).
+- An archived class has an **Unarchive** button (with a confirmation). Archiving shows a message with an **Undo** button that restores it at once.
+- Backend unchanged: `PATCH /classrooms/{id}` with `is_active` already archived and restored.
+
+### 2. Guest sign-out prompt
+- `SignOutModal.jsx` shows guests "Want to experience more of the system? Enroll at Pampanga State University today!" with **Close** and **Sign Out**. Other accounts keep the usual confirmation.
+- The sign-in response now says `is_guest`. Until the backend is deployed, the browser falls back to the guest email and school ID pattern (`features/auth/guest.js`, shared with the admin directory).
+
+### 3. Live Monitoring: live sessions only
+- **Backend:** `GET /instructors/tasks/{id}/coding-sessions?live_only=true` drops ended sessions and sessions with no heartbeat for 3 minutes, the same rule as `/instructors/coding-sessions/live`.
+- **Frontend:** the per-activity view asks for `live_only` (plus `active_only` for the older server). The page also hides ended and quiet sessions itself, so a session that goes quiet between two refreshes drops off. Every card is labelled "Live".
+
+### 4. Faculty edit form matches the create form
+- The admin Edit dialog has **University email, First name, Middle name (optional), Last name**, plus School ID for students. These are the same fields as "Create faculty/student account".
+- Only the full name is stored. The form splits it as the API does (first word, then the rest as the last name, which keeps "Dela Cruz" whole), shows "Will be saved as …", and sends `name` as before. No backend change.
+
+### 5. Class code validation
+- **Enrollment ("Join a class") code:** 6–20 ASCII letters and digits; no whitespace, punctuation or look-alike Unicode.
+  - Backend `EnrollmentJoinRequest` refuses whitespace instead of trimming it.
+  - The browser (`utils/validation.js`) trims a pasted code's outer spaces, then explains spaces or symbols before sending.
+- **Subject codes are not restricted.** PSU subject codes contain a space ("CC 102", the production demo data), so the no-space rule was applied only to the class code, which is the field students type.
+
+### 6. JWT: minimal claims, role read from the token
+- **Sign-in tokens carry only** `sub`, `pamsu_user_role` and `pwd_ver`, plus `type`, `iat`, `exp` and `jti`.
+  - Name and email are no longer in the token.
+  - `pwd_ver` stays: it ends old sessions when the password changes.
+- The backend never authorized from token claims; it reads the database user on every request.
+- **Browser:**
+  - `pamsu_user_role` is no longer stored, and it is deleted from browsers that still have it;
+  - the role is decoded from the access token (`features/auth/token.js`);
+  - the profile (name, email…) lives in `AuthContext` state, with a copy in `pamsu_user_data` that has no role in it;
+  - tokens from the older server name the claim `role`, which is also accepted.
+- **Browser-checked on a scratch backend:**
+  - instructor, admin, student and guest sign-ins;
+  - a student session in the old format, with `pamsu_user_role` tampered to "admin": routed as student, and the stale key removed;
+  - a student blocked from `/admin`.
+
+### 7. Filters in the URL
+New `hooks/useUrlFilters.js` keeps each page's filters in the address, so they survive a reload and can be shared as a link. Default values are left out of the URL, and history entries are replaced, not added.
+- Classes: `view`, `q`.
+- Admin dashboard: `tab`, `q` (students), `fq` (faculty), `guests`, and `audit_q`, `audit_event`, `audit_outcome`, `audit_role`, `audit_from`, `audit_to`.
+- Live Monitoring: `activity`, `class`.
+- Class roster: `tab`, `q`.
+- Assignments: `filter`, `q`.
+- Submissions: `filter`.
+
+### 8. Caching without Redis (zero budget)
+- **Browser:** `@tanstack/react-query` 5.104.2 (`services/queryClient.js`, `hooks/useApiQuery.js`).
+  - Lists are cached for 30 s and shared between pages: classes, activities, own submissions and instructor tasks.
+  - Every successful write (POST, PUT, PATCH, DELETE) marks the cache out of date (`pamsu:mutated` from `api.js`).
+  - Sign-in, sign-out and an expired session empty the cache, so a shared lab PC never shows the previous account's data.
+  - The review queue and live sessions are always fetched fresh.
+- **Backend:** `app/core/ttl_cache.py`, a small thread-safe in-memory cache whose entries expire.
+  - It holds the system settings, which every student request reads (maintenance mode). That was one query per request; now one every 15 s.
+  - Saving settings clears it at once in the API process. Render runs one API process; the Celery worker sees changes within 15 s.
+  - `functools.lru_cache` was not used: it never expires, so it would serve old database values forever.
+  - `/admin/stats` (3 `COUNT`s) is not cached: it is cheap, and MIS expects counts to change right after creating an account.
+
+### Tests
+| Run | Result |
+|---|---|
+| Full backend suite (SQLite) | **1172 passed, 14 skipped**, 0 failed |
+| New tests | `test_security.py` (token claims for each role and guest; a password change still ends a minimal token), `test_classroom_workflow.py` (11 bad class codes, uppercasing, a 422 from the API), `test_coding_session_workflow.py` (per-activity `live_only`), `test_ttl_cache.py` (expiry, failed loads not cached, settings read once between saves, API save takes effect at once) |
+| Frontend lint / build | Pass. Main bundle 299 kB (was 294 kB) |
+| Browser, scratch SQLite backend | <ul><li>Archived tab and search opened from a link.</li><li>Unarchive, then Archive followed by Undo.</li><li>Two filter changes in one click both kept (a bug found and fixed in `useUrlFilters`).</li><li>Live Monitoring per activity: 3 sessions in the database (live, quiet 10 min, ended); only the live one shown.</li><li>Admin: Faculty tab and search from a link; the edit dialog fields; the same name re-split counts as no change; a new last name saved.</li><li>Audit filters from a link; Clear filters resets the URL.</li><li>Join form: "SPRI NT02" and "SPRINT-02" refused with messages; "  sprint02 " joined, and the class list updated at once.</li><li>Guest prompt: Close keeps the session; Sign Out clears it. No console errors.</li></ul> |
+
+### What a push does
+- **Vercel (at once):** every frontend change above. It works with the backend now on Render:
+  - the role falls back to the old `role` claim;
+  - `is_guest` falls back to the email pattern;
+  - Live Monitoring uses `active_only`, and the page hides quiet sessions itself;
+  - the edit form still sends `name`.
+- **Render (Errol's deploy):** minimal token claims, `is_guest`, `live_only`, strict join codes, the settings cache. **No migration.** Sessions from before the deploy keep working until they expire.

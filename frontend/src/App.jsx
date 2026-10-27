@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { queryClient } from './services/queryClient';
 import { AuthProvider, useAuth, homePathForRole } from './features/auth/AuthContext';
 import ProtectedRoute from './features/auth/ProtectedRoute';
 import RoleRoute from './features/auth/RoleRoute';
@@ -57,6 +59,7 @@ const GuestRoute = () => {
 export const App = () => {
   return (
     <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
           <StudentThemeProvider>
@@ -126,6 +129,7 @@ export const App = () => {
           </StudentThemeProvider>
         </Router>
       </AuthProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };

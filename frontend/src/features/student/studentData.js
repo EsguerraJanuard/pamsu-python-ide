@@ -1,4 +1,4 @@
-import api from "../../services/api";
+import { cachedGet } from "../../services/queryClient";
 import { classLabel, formatDateTime } from "../../utils/format";
 
 export { classLabel, formatDate, formatDateTime } from "../../utils/format";
@@ -61,12 +61,16 @@ export function mapActivity(task, classMap, attemptsByTask, now = Date.now()) {
   };
 }
 
-/** Loads enrolled classes, visible activities and own submissions in parallel. */
+/**
+ * Loads enrolled classes, visible activities and own submissions in parallel.
+ * The three lists come from the shared cache (services/queryClient.js), so
+ * the dashboard, assignments and class pages reuse one another's results.
+ */
 export async function loadStudentActivities() {
   const [classrooms, tasks, submissions] = await Promise.all([
-    api.get("/classrooms/mine"),
-    api.get("/activities/"),
-    api.get("/submissions/"),
+    cachedGet("/classrooms/mine"),
+    cachedGet("/activities/"),
+    cachedGet("/submissions/"),
   ]);
 
   const classMap = {};

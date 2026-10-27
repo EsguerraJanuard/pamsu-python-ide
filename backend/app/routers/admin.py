@@ -7,6 +7,7 @@ from uuid import uuid4
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_password_hash
 from app.core.system_settings import (get_all_system_settings,
+                                      invalidate_system_settings_cache,
                                       read_stored_system_settings,
                                       set_system_setting)
 from app.models.domain_models import (AuditRecord, Classroom, OTPChallenge,
@@ -1092,10 +1093,14 @@ def update_settings(
                 audit_data={"changes": changes},
             )
         db.commit()
+        invalidate_system_settings_cache()
     except AdminAuditError as exc:
-        raise _audit_unavailable(db, exc) from exc
+        unavailable = _audit_unavailable(db, exc)
+        invalidate_system_settings_cache()
+        raise unavailable from exc
     except SQLAlchemyError as exc:
         db.rollback()
+        invalidate_system_settings_cache()
         logger.error("Settings update rolled back (%s).", safe_error_summary(exc))
         record_admin_failure(
             db, actor_user_id=current_admin.user_id, action_type="system_settings_updated",

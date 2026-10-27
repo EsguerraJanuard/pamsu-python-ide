@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PageShell from "../../components/layout/PageShell";
 import CustomSelect from "../../components/ui/CustomSelect";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
+import useApiQuery from "../../hooks/useApiQuery";
+import useUrlFilters from "../../hooks/useUrlFilters";
 import api from "../../services/api";
 import { classLabel } from "../../utils/format";
 
@@ -11,11 +13,23 @@ const POLL_MS = 10000;
 // an open workspace sends a heartbeat every 30 seconds.
 const LIVE_WINDOW_MS = 3 * 60 * 1000;
 
-function sessionState(session, now) {
-  if (session.ended_at) return { label: "Ended", badge: "badge-neutral" };
+// ?activity=12&class=BSIT%201A — kept in the URL so a reload keeps the view.
+const FILTER_DEFAULTS = { activity: "all", class: "all" };
+
+function isQuiet(session, now) {
   const quietFor = now - new Date(session.last_activity_at).getTime();
-  if (Number.isFinite(quietFor) && quietFor > LIVE_WINDOW_MS) return { label: "Inactive", badge: "badge-neutral" };
-  return { label: "Open", badge: "badge-success" };
+  return Number.isFinite(quietFor) && quietFor > LIVE_WINDOW_MS;
+}
+
+/**
+ * Only live sessions are shown: never one that has ended, and never one whose
+ * workspace sent nothing for three minutes (a tab closed without "end").
+ * The server applies the same rule (live_only); this also covers a server
+ * that predates it, and sessions that go quiet between two refreshes.
+ */
+function liveSessionsOnly(sessions, now) {
+  const open = sessions.filter((session) => !session.ended_at);
+  return Number.isFinite(now) ? open.filter((session) => !isQuiet(session, now)) : open;
 }
 
 function timeAgo(value) {
@@ -28,10 +42,11 @@ function timeAgo(value) {
 }
 
 export default function LiveMonitoring() {
-  const [classrooms, setClassrooms] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [scope, setScope] = useState("all");
-  const [classFilter, setClassFilter] = useState("all");
+  const [filters, setFilters] = useUrlFilters(FILTER_DEFAULTS);
+  const scope = filters.activity;
+  const classFilter = filters.class;
+  const setScope = (value) => setFilters({ activity: value });
+  const setClassFilter = (value) => setFilters({ class: value });
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,20 +57,21 @@ export default function LiveMonitoring() {
   const [rosterNames, setRosterNames] = useState({});
   const hasLoaded = useRef(false);
 
-  useEffect(() => {
-    Promise.all([api.get("/classrooms/"), api.get("/instructors/tasks/")])
-      .then(([classRes, taskRes]) => {
-        setClassrooms(Array.isArray(classRes) ? classRes : []);
-        setTasks((Array.isArray(taskRes) ? taskRes : []).filter((t) => t.is_published));
-      })
-      .catch(() => {
-        // Filters are optional; the session list reports its own errors.
-      });
-  }, []);
+  // Filter lists come from the shared cache; they are optional, and the
+  // session list reports its own errors.
+  const classroomsQuery = useApiQuery("/classrooms/");
+  const tasksQuery = useApiQuery("/instructors/tasks/");
+  const classrooms = useMemo(() => (Array.isArray(classroomsQuery.data) ? classroomsQuery.data : []), [classroomsQuery.data]);
+  const tasks = useMemo(() => (Array.isArray(tasksQuery.data) ? tasksQuery.data.filter((t) => t.is_published) : []), [tasksQuery.data]);
 
   const fetchSessions = useCallback(async () => {
     try {
-      const url = scope === "all" ? "/instructors/coding-sessions/live" : `/instructors/tasks/${scope}/coding-sessions`;
+      // live_only: not ended, heartbeat within three minutes. active_only is
+      // the older server's closest filter (drops ended sessions).
+      const url =
+        scope === "all"
+          ? "/instructors/coding-sessions/live"
+          : `/instructors/tasks/${encodeURIComponent(scope)}/coding-sessions?live_only=true&active_only=true`;
       const response = await api.get(url);
       setSessions(Array.isArray(response) ? response : []);
       setLastUpdated(new Date());
@@ -112,15 +128,16 @@ export default function LiveMonitoring() {
   ];
   const classOptions = [{ value: "all", label: "All classes" }, ...classrooms.map((c) => ({ value: c.name, label: c.name }))];
 
+  const liveSessions = liveSessionsOnly(sessions, lastUpdated ? lastUpdated.getTime() : NaN);
   const visibleSessions =
-    scope === "all" && classFilter !== "all" ? sessions.filter((s) => s.classroom_name === classFilter) : sessions;
+    scope === "all" && classFilter !== "all" ? liveSessions.filter((s) => s.classroom_name === classFilter) : liveSessions;
 
   return (
     <PageShell role="instructor">
       <PageHeader
         eyebrow="Monitoring & grading"
         title="Live Monitoring"
-        description="Students with an open coding session. Refreshes every 10 seconds while this tab is visible."
+        description="Students working right now. Ended sessions, and sessions with no activity for 3 minutes, drop off. Refreshes every 10 seconds while this tab is visible."
         actions={
           <button type="button" onClick={fetchSessions} className="btn-secondary btn-sm">
             Refresh now
@@ -167,7 +184,6 @@ export default function LiveMonitoring() {
       ) : (
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleSessions.map((session) => {
-            const state = sessionState(session, lastUpdated ? lastUpdated.getTime() : NaN);
             return (
               <li key={session.session_id} className="card p-5">
                 <div className="mb-3 flex items-start justify-between gap-3">
@@ -184,7 +200,10 @@ export default function LiveMonitoring() {
                         .join(" · ")}
                     </p>
                   </div>
-                  <span className={`badge ${state.badge}`}>{state.label}</span>
+                  <span className="badge badge-success">
+                    <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" aria-hidden="true" />
+                    Live
+                  </span>
                 </div>
                 <dl className="grid grid-cols-3 gap-2 text-center">
                   {[

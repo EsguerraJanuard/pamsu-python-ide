@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageShell from "../../components/layout/PageShell";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
+import useUrlFilters from "../../hooks/useUrlFilters";
 import ActivityCard from "../student/ActivityCard";
 import { isActiveActivity, loadStudentActivities } from "../student/studentData";
 
@@ -11,6 +12,10 @@ const FILTERS = [
   { label: "Submitted", value: "submitted" },
   { label: "Past due", value: "past_due" },
 ];
+
+// ?filter=open&q=loops — kept in the URL for reloads and shared links.
+const URL_DEFAULTS = { filter: "all", q: "" };
+const URL_ALLOWED = { filter: FILTERS.map((option) => option.value) };
 
 function matchesFilter(activity, filter) {
   if (filter === "open") return isActiveActivity(activity);
@@ -24,8 +29,11 @@ export default function Assignments() {
   const [hasClasses, setHasClasses] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [urlFilters, setUrlFilters] = useUrlFilters(URL_DEFAULTS, URL_ALLOWED);
+  const filter = urlFilters.filter;
+  const searchQuery = urlFilters.q;
+  const setFilter = (value) => setUrlFilters({ filter: value });
+  const setSearchQuery = (value) => setUrlFilters({ q: value });
 
   const fetchActivities = useCallback(async () => {
     setIsLoading(true);
@@ -138,8 +146,7 @@ export default function Assignments() {
                     type="button"
                     className="btn-secondary"
                     onClick={() => {
-                      setFilter("all");
-                      setSearchQuery("");
+                      setUrlFilters({ filter: "all", q: "" });
                     }}
                   >
                     Clear filters

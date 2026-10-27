@@ -437,7 +437,16 @@ def list_instructor_task_coding_sessions(
     task_id: int,
     student_id: int | None = None,
     active_only: bool = False,
+    live_only: bool = False,
 ) -> list[CodingSession]:
+    """
+    Coding sessions for one of the instructor's activities.
+
+    active_only keeps sessions that have not ended. live_only also drops
+    sessions whose workspace has been quiet for longer than
+    LIVE_SESSION_WINDOW (a closed tab that never sent "end"), the same rule
+    as get_all_active_instructor_sessions.
+    """
     task = _get_instructor_owned_task(
         db,
         instructor_id=instructor_id,
@@ -453,9 +462,14 @@ def list_instructor_task_coding_sessions(
             CodingSession.student_id == student_id,
         )
 
-    if active_only:
+    if active_only or live_only:
         query = query.filter(
             CodingSession.ended_at.is_(None),
+        )
+
+    if live_only:
+        query = query.filter(
+            CodingSession.last_activity_at >= _utc_now() - LIVE_SESSION_WINDOW,
         )
 
     return query.order_by(

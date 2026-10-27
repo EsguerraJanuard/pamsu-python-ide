@@ -109,6 +109,32 @@ def create_access_token(
     )
 
 
+# The role travels in a namespaced claim so it cannot be mistaken for a
+# standard JWT claim. The browser reads it for routing only; the backend
+# never authorizes from it (see SECURITY BOUNDARY below).
+ROLE_CLAIM = "pamsu_user_role"
+
+
+def create_user_access_token(
+    user: User,
+    expires_delta: timedelta | None = None,
+) -> str:
+    """
+    A sign-in token with the minimal claim set: the account id (`sub`), its
+    role (`pamsu_user_role`) and its password version (`pwd_ver`, which ends
+    the session when the password changes). Name, email and other profile
+    details are returned in the sign-in response body instead.
+    """
+    return create_access_token(
+        data={
+            "sub": str(user.user_id),
+            ROLE_CLAIM: user.role,
+            "pwd_ver": user.password_version,
+        },
+        expires_delta=expires_delta,
+    )
+
+
 def credentials_exception() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -257,9 +283,11 @@ def get_current_student(
 # stale JWT claims.
 
 # TOKEN BOUNDARY:
-# Access tokens contain a string subject, access-token type, issued-at time,
-# expiration time, and unique token identifier. Client-supplied expiration
-# settings do not alter the configured default token lifetime.
+# Access tokens contain a string subject, the pamsu_user_role claim, the
+# password version, access-token type, issued-at time, expiration time, and
+# unique token identifier. Names, emails and other profile data are not put
+# in tokens. Client-supplied expiration settings do not alter the configured
+# default token lifetime.
 
 # PARTNER INTEGRATION:
 # Celery workers and sandbox services must not reuse browser access tokens as

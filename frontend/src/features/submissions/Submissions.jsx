@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 
 import PageShell from "../../components/layout/PageShell";
 import { EmptyState, ErrorState, PageHeader, SkeletonList } from "../../components/ui/StateViews";
-import api from "../../services/api";
+import useUrlFilters from "../../hooks/useUrlFilters";
+import { cachedGet } from "../../services/queryClient";
 import { classLabel, formatDateTime } from "../student/studentData";
 import { SUBMISSION_STATUS, formatScore, loadReleasedGrades } from "./submissionData";
 
@@ -13,20 +14,26 @@ const FILTERS = [
   { label: "Graded", value: "graded" },
 ];
 
+// ?filter=graded — kept in the URL for reloads and shared links.
+const URL_DEFAULTS = { filter: "all" };
+const URL_ALLOWED = { filter: FILTERS.map((option) => option.value) };
+
 export default function Submissions() {
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [urlFilters, setUrlFilters] = useUrlFilters(URL_DEFAULTS, URL_ALLOWED);
+  const filter = urlFilters.filter;
+  const setFilter = (value) => setUrlFilters({ filter: value });
 
   const fetchSubmissions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const [submissions, activities, classrooms, grades] = await Promise.all([
-        api.get("/submissions/"),
-        api.get("/activities/"),
-        api.get("/classrooms/mine"),
+        cachedGet("/submissions/"),
+        cachedGet("/activities/"),
+        cachedGet("/classrooms/mine"),
         loadReleasedGrades(),
       ]);
 

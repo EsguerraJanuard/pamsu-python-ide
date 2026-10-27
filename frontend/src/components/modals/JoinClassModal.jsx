@@ -2,6 +2,7 @@ import { useState } from "react";
 import api, { getErrorMessage } from "../../services/api";
 import Modal from "../ui/Modal";
 import { FieldError } from "../ui/StateViews";
+import { classCodeError } from "../../utils/validation";
 
 export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
   const [code, setCode] = useState("");
@@ -17,10 +18,13 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const trimmed = code.trim();
+    // Spaces around a pasted code are dropped; anything else must already
+    // be letters and digits only (the server refuses the rest too).
+    const trimmed = code.trim().toUpperCase();
+    const problem = classCodeError(trimmed);
 
-    if (trimmed.length < 6) {
-      setError("Enter the class code from your instructor (at least 6 characters).");
+    if (problem) {
+      setError(problem);
       return;
     }
 
@@ -66,15 +70,22 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
             if (error) setError("");
           }}
           placeholder="e.g. QATEST1"
+          maxLength={40}
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck="false"
           aria-invalid={Boolean(error)}
-          aria-describedby={error ? "class-code-error" : undefined}
+          aria-describedby={error ? "class-code-error" : "class-code-hint"}
           className="input-field font-mono tracking-widest"
           disabled={isLoading}
         />
-        <FieldError id="class-code-error">{error}</FieldError>
+        {error ? (
+          <FieldError id="class-code-error">{error}</FieldError>
+        ) : (
+          <p id="class-code-hint" className="mt-1.5 text-xs text-text-muted">
+            Letters and numbers only, no spaces.
+          </p>
+        )}
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={handleClose} disabled={isLoading} className="btn-secondary">

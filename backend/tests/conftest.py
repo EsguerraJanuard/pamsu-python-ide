@@ -88,15 +88,20 @@ def reset_redis_memory_fallback():
     # revocation and AI Tutor hints use the in-memory fallback; start each
     # test empty.
     from app.core import rate_limit, token_revocation
+    from app.core.ttl_cache import clear_all_caches
     from app.services import practice_hint_store
 
     stores = (rate_limit.memory_counters, token_revocation.revoked_in_memory, practice_hint_store.memory_store)
 
+    # In-process caches (system settings) must not carry values from one
+    # test's database into the next.
     for store in stores:
         store.clear()
+    clear_all_caches()
     yield
     for store in stores:
         store.clear()
+    clear_all_caches()
 
 
 @pytest.fixture(autouse=True)

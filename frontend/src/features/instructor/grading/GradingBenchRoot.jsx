@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import PageShell from "../../../components/layout/PageShell";
 import { EmptyState, ErrorState, PageHeader } from "../../../components/ui/StateViews";
 import api from "../../../services/api";
+import { cachedGet } from "../../../services/queryClient";
 
 export default function GradingBenchRoot() {
   const [classes, setClasses] = useState([]);
@@ -16,7 +17,7 @@ export default function GradingBenchRoot() {
     setError(null);
     try {
       const [classRes, queueRes] = await Promise.all([
-        api.get("/classrooms/"),
+        cachedGet("/classrooms/"),
         api.get("/instructors/review-queue?page_size=1"),
       ]);
       setClasses(Array.isArray(classRes) ? classRes : []);

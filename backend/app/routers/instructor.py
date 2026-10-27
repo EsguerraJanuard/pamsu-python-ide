@@ -1299,6 +1299,14 @@ def list_task_coding_sessions_endpoint(
         default=False,
         description=("Return only coding sessions that have not ended."),
     ),
+    live_only: bool = Query(
+        default=False,
+        description=(
+            "Return only live sessions: not ended, with activity or a "
+            "heartbeat in the last three minutes (as on "
+            "/coding-sessions/live)."
+        ),
+    ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> list[InstructorCodingSessionResponse]:
@@ -1309,6 +1317,7 @@ def list_task_coding_sessions_endpoint(
             task_id=task_id,
             student_id=student_id,
             active_only=active_only,
+            live_only=live_only,
         )
     except CodingSessionServiceError as exc:
         raise_coding_session_service_http_exception(exc)

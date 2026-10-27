@@ -1093,6 +1093,75 @@ def test_live_monitoring_lists_only_open_sessions_with_a_recent_heartbeat(
     assert live_sessions(setup["instructor_token"]) == []
 
 
+def test_activity_live_filter_drops_ended_and_quiet_sessions(
+    client,
+    db_session,
+):
+    setup = setup_coding_session_context(
+        client,
+        db_session,
+        instructor_school_id="8100000010",
+        instructor_email=("sessionfaculty10@pampangastateu.edu.ph"),
+        student_school_id="8200000010",
+        student_email=("sessionstudent10@pampangastateu.edu.ph"),
+        task_title="Per-activity Live Filter",
+    )
+    task_id = setup["task"]["task_id"]
+
+    def task_sessions(**params) -> list[str]:
+        response = client.get(
+            f"/instructors/tasks/{task_id}/coding-sessions",
+            headers=bearer_header(setup["instructor_token"]),
+            params=params,
+        )
+
+        assert response.status_code == 200
+
+        return [session["session_id"] for session in response.json()]
+
+    start_response = start_coding_session(
+        client,
+        student_token=setup["student_token"],
+        task_id=task_id,
+    )
+    assert start_response.status_code == 201
+    session_id = start_response.json()["session_id"]
+
+    assert task_sessions(live_only=True) == [session_id]
+
+    # Quiet for longer than the 3-minute heartbeat window: still open in
+    # the database, but no longer live.
+    stored_session = db_session.get(CodingSession, session_id)
+    stored_session.last_activity_at = datetime.now(timezone.utc) - timedelta(
+        minutes=3,
+        seconds=5,
+    )
+    db_session.commit()
+
+    assert task_sessions(live_only=True) == []
+    assert task_sessions(active_only=True) == [session_id]
+
+    heartbeat_response = update_coding_session(
+        client,
+        student_token=setup["student_token"],
+        session_id=session_id,
+    )
+    assert heartbeat_response.status_code == 200
+    assert task_sessions(live_only=True) == [session_id]
+
+    end_response = end_coding_session(
+        client,
+        student_token=setup["student_token"],
+        session_id=session_id,
+    )
+    assert end_response.status_code == 200
+
+    # Ended sessions never count as live, and the unfiltered list keeps
+    # them for review.
+    assert task_sessions(live_only=True) == []
+    assert task_sessions() == [session_id]
+
+
 def test_grading_bench_reads_indicators_from_the_linked_session(
     client,
     db_session,

@@ -5,6 +5,7 @@ import PageShell from "../../components/layout/PageShell";
 import CreateClassModal from "../../components/modals/CreateClassModal";
 import { EmptyState, ErrorState, PageHeader, SkeletonList } from "../../components/ui/StateViews";
 import api from "../../services/api";
+import { cachedGet } from "../../services/queryClient";
 import { classLabel, formatDateTime } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
 
@@ -42,8 +43,9 @@ export default function InstructorDashboard() {
     setError(null);
     try {
       const [classRes, tasksRes, reviewRes] = await Promise.all([
-        api.get("/classrooms/"),
-        api.get("/instructors/tasks/"),
+        cachedGet("/classrooms/"),
+        cachedGet("/instructors/tasks/"),
+        // The review queue changes as students submit: always fetched fresh.
         api.get("/instructors/review-queue?page_size=5"),
       ]);
       setClasses(Array.isArray(classRes) ? classRes : []);

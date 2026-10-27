@@ -9,7 +9,7 @@ from app.core.rate_limit import enforce_rate_limit, limit_per_ip
 from app.core.token_revocation import revoke_token
 from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
                                MAINTENANCE_MODE_MESSAGE, SECRET_KEY,
-                               create_access_token, get_password_hash,
+                               create_user_access_token, get_password_hash,
                                oauth2_scheme, verify_password)
 from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
@@ -22,7 +22,8 @@ from app.services.guest_service import (GUEST_LIMIT_REACHED_DETAIL,
                                         create_self_service_guest,
                                         ensure_sandbox_demo_activity,
                                         get_or_create_sandbox_classroom,
-                                        guest_limit_reached)
+                                        guest_limit_reached,
+                                        is_guest_identity)
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -63,6 +64,12 @@ class AuthenticatedUserResponse(BaseModel):
     def last_name(self) -> str:
         parts = self.name.split()
         return " ".join(parts[1:]) if len(parts) > 1 else ""
+
+    @computed_field
+    @property
+    def is_guest(self) -> bool:
+        """A self-service guest ("Continue as Guest Student")."""
+        return is_guest_identity(role=self.role, email=self.email, school_id=self.school_id)
 
 
 class TokenResponse(BaseModel):
@@ -271,14 +278,8 @@ def login(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
     )
 
-    access_token = create_access_token(
-        data={
-            "sub": str(user.user_id),
-            "role": user.role,
-            "name": user.name,
-            "email": user.email,
-            "pwd_ver": user.password_version,
-        },
+    access_token = create_user_access_token(
+        user,
         expires_delta=access_token_expires,
     )
 
@@ -306,6 +307,8 @@ def login(
 # The OAuth2 username field contains the verified university email.
 # The client cannot select or modify its account role.
 # JWT identity and role claims come only from the persisted User record.
+# The token carries only sub, pamsu_user_role and pwd_ver (plus type, iat,
+# exp and jti); the profile shown in the browser comes from `user` above.
 
 @router.post(
     "/logout",
@@ -377,14 +380,8 @@ def login_guest(db: Session = Depends(get_db)):
             logger.exception("Could not add the demo activity to the guest sandbox.")
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={
-            "sub": str(guest.user_id),
-            "role": guest.role,
-            "name": guest.name,
-            "email": guest.email,
-            "pwd_ver": guest.password_version,
-        },
+    access_token = create_user_access_token(
+        guest,
         expires_delta=access_token_expires,
     )
     

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import SignOutModal from "../../components/layout/SignOutModal";
@@ -8,7 +8,9 @@ import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHead
 import api, { ApiError, getErrorMessage, TIMEOUT_ERROR_STATUS } from "../../services/api";
 import { formatDate, formatDateTime, humanize } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
+import { isGuestUser } from "../auth/guest";
 import { ChangePasswordSection } from "../settings/AccountSections";
+import useUrlFilters from "../../hooks/useUrlFilters";
 
 const PAGE_SIZE = 50;
 // Brevo's free plan: ~300 emails a day; leave room for password-reset codes.
@@ -76,6 +78,22 @@ const OUTCOME_TONE = { succeeded: "success", failed: "danger", denied: "warning"
 
 const AUDIT_PAGE_SIZES = [25, 50, 100];
 const EMPTY_AUDIT_FILTERS = { q: "", action_type: "", outcome: "", actor_role: "", from: "", to: "" };
+// Audit filters live in the URL (?audit_event=login_failed&audit_from=…), so
+// a reload or a shared link reopens the same search.
+const AUDIT_URL_KEYS = {
+  q: "audit_q",
+  action_type: "audit_event",
+  outcome: "audit_outcome",
+  actor_role: "audit_role",
+  from: "audit_from",
+  to: "audit_to",
+};
+const AUDIT_URL_DEFAULTS = Object.fromEntries(Object.values(AUDIT_URL_KEYS).map((key) => [key, ""]));
+
+// ?tab=students&q=dela%20cruz&guests=1 — the open tab and the directory
+// searches, kept in the URL for reloads and shared links.
+const PAGE_URL_DEFAULTS = { tab: "overview", q: "", fq: "", guests: "" };
+const PAGE_URL_ALLOWED = { tab: TABS.map((tab) => tab.id), guests: ["1"] };
 const AUDIT_OUTCOMES = ["succeeded", "failed", "denied"];
 const AUDIT_ROLES = ["admin", "instructor", "student", "system"];
 
@@ -508,10 +526,7 @@ function ProvisionForm({ role, onCreated }) {
 }
 
 /** Self-service guest ("Continue as Guest Student"). Older servers don't send is_guest. */
-function isGuestAccount(user) {
-  if (typeof user.is_guest === "boolean") return user.is_guest;
-  return user.role === "student" && /^guest_/i.test(user.email || "") && /^GST/.test(user.school_id || "");
-}
+const isGuestAccount = isGuestUser;
 
 const ROW_ACTION =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors disabled:cursor-not-allowed disabled:opacity-60";
@@ -691,18 +706,45 @@ function isUnsupportedField(error, field) {
   return Array.isArray(detail) && detail.some((item) => item?.type === "extra_forbidden" && item?.loc?.at(-1) === field);
 }
 
-/** Dialog for correcting an account's name or university email, or a student's school ID. */
+/**
+ * Splits a stored full name for the edit form. Only the full name is stored,
+ * so the split is the API's (first word, then the rest as the last name,
+ * which keeps surnames like "Dela Cruz" whole). Joining the three fields
+ * gives back the same name, so saving without edits changes nothing.
+ */
+function splitFullName(user) {
+  const parts = (user?.name || "").split(/\s+/).filter(Boolean);
+  return {
+    first_name: user?.first_name ?? parts[0] ?? "",
+    middle_name: "",
+    last_name: user?.last_name ?? parts.slice(1).join(" "),
+  };
+}
+
+const joinName = (...parts) => parts.join(" ").split(/\s+/).filter(Boolean).join(" ");
+
+/**
+ * Dialog for correcting an account. It has the same editable fields as the
+ * create forms: university email, first, middle and last name, and (for
+ * students) the school ID. Role and status are changed elsewhere.
+ */
 function EditAccountModal({ user, onClose, onSaved }) {
   const isStudent = user?.role === "student";
-  const [name, setName] = useState(user?.name ?? "");
+  const [nameParts, setNameParts] = useState(() => splitFullName(user));
   const [email, setEmail] = useState(user?.email ?? "");
   const [schoolId, setSchoolId] = useState(user?.school_id ?? "");
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const nameRef = useRef(null);
+  const emailRef = useRef(null);
 
-  const trimmedName = name.split(/\s+/).filter(Boolean).join(" ");
+  const setNamePart = (field) => (e) => {
+    const value = e.target.value;
+    setNameParts((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "", name: "" }));
+  };
+
+  const trimmedName = joinName(nameParts.first_name, nameParts.middle_name, nameParts.last_name);
   const trimmedEmail = email.trim().toLowerCase();
   const trimmedSchoolId = schoolId.trim();
   const nameChanged = Boolean(user) && trimmedName !== user.name;
@@ -714,8 +756,9 @@ function EditAccountModal({ user, onClose, onSaved }) {
   const submit = async (event) => {
     event.preventDefault();
     const next = {};
-    if (!trimmedName) next.name = "Enter the full name.";
-    else if (trimmedName.length > 150) next.name = "The full name must be at most 150 characters.";
+    if (!nameParts.first_name.trim()) next.first_name = "First name is required.";
+    if (!nameParts.last_name.trim()) next.last_name = "Last name is required.";
+    if (trimmedName.length > 150) next.last_name = "The full name must be at most 150 characters.";
     if (!SCHOOL_EMAIL.test(trimmedEmail)) next.email = "Use an @pampangastateu.edu.ph email address.";
     else if (trimmedEmail.startsWith("guest_")) next.email = "Addresses starting with guest_ are reserved for guest accounts.";
     if (schoolIdChanged && !SCHOOL_ID.test(trimmedSchoolId)) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
@@ -754,12 +797,12 @@ function EditAccountModal({ user, onClose, onSaved }) {
       title={user ? `Edit ${user.role === "instructor" ? "faculty" : "student"} account` : "Edit account"}
       description={
         isStudent
-          ? "Correct a misspelled name, email or school ID. Role and status are changed elsewhere."
-          : "Correct a misspelled name or email. Role and status are changed elsewhere."
+          ? "The same details as when the account was created: email, name and school ID. Role and status are changed elsewhere."
+          : "The same details as when the account was created: email and name. Role and status are changed elsewhere."
       }
-      size="lg"
+      size="xl"
       dismissible={!isSaving}
-      initialFocusRef={nameRef}
+      initialFocusRef={emailRef}
       footer={
         <div className="flex justify-end gap-2">
           <button type="button" className="btn-secondary" onClick={onClose} disabled={isSaving}>
@@ -788,81 +831,50 @@ function EditAccountModal({ user, onClose, onSaved }) {
               <span className="rounded-md border border-border-subtle bg-bg-panel px-2 py-0.5 font-mono text-xs text-text-main">{user.school_id}</span>
             )}
           </div>
-          <div>
-            <label htmlFor="admin-edit-name" className="field-label">
-              Full name
-            </label>
-            <input
-              ref={nameRef}
-              id="admin-edit-name"
-              className="input-field py-2.5"
-              value={name}
-              maxLength={150}
-              onChange={(e) => {
-                setName(e.target.value);
-                setErrors((prev) => ({ ...prev, name: "" }));
-              }}
-              aria-invalid={Boolean(errors.name)}
-              aria-describedby={errors.name ? "admin-edit-name-error" : "admin-edit-name-hint"}
-              disabled={isSaving}
-              autoComplete="off"
-            />
-            {errors.name ? (
-              <FieldError id="admin-edit-name-error">{errors.name}</FieldError>
-            ) : (
-              <p id="admin-edit-name-hint" className="mt-1.5 text-xs text-text-muted">
-                First, middle and last name, as they should appear on records.
-              </p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="admin-edit-email" className="field-label">
-              University email
-            </label>
-            <input
+          <div className={`grid grid-cols-1 gap-5 ${isStudent ? "sm:grid-cols-2" : ""}`}>
+            <TextField
+              ref={emailRef}
               id="admin-edit-email"
+              label="University email"
               type="email"
-              className="input-field py-2.5"
+              autoComplete="off"
+              placeholder="name@pampangastateu.edu.ph"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
                 setErrors((prev) => ({ ...prev, email: "" }));
               }}
-              aria-invalid={Boolean(errors.email)}
-              aria-describedby={errors.email ? "admin-edit-email-error" : undefined}
+              error={errors.email}
               disabled={isSaving}
-              autoComplete="off"
             />
-            <FieldError id="admin-edit-email-error">{errors.email}</FieldError>
-          </div>
-          {isStudent && (
-            <div>
-              <label htmlFor="admin-edit-school-id" className="field-label">
-                School ID
-              </label>
-              <input
+            {isStudent && (
+              <TextField
                 id="admin-edit-school-id"
+                label="School ID"
                 className="input-field py-2.5 font-mono"
-                value={schoolId}
                 placeholder="2026000001 or 2026-00001"
                 maxLength={10}
+                value={schoolId}
                 onChange={(e) => {
                   setSchoolId(e.target.value);
                   setErrors((prev) => ({ ...prev, school_id: "" }));
                 }}
-                aria-invalid={Boolean(errors.school_id)}
-                aria-describedby={errors.school_id ? "admin-edit-school-id-error" : "admin-edit-school-id-hint"}
+                error={errors.school_id}
+                hint="The student number from the MIS masterlist. Masterlist uploads are matched on it."
                 disabled={isSaving}
                 autoComplete="off"
               />
-              {errors.school_id ? (
-                <FieldError id="admin-edit-school-id-error">{errors.school_id}</FieldError>
-              ) : (
-                <p id="admin-edit-school-id-hint" className="mt-1.5 text-xs text-text-muted">
-                  The student number from the MIS masterlist. Masterlist uploads are matched on it.
-                </p>
-              )}
-            </div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-5 rounded-lg border border-border-subtle bg-bg-alt/40 p-4 sm:grid-cols-3">
+            <TextField id="admin-edit-first" label="First name" value={nameParts.first_name} onChange={setNamePart("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} autoComplete="off" />
+            <TextField id="admin-edit-middle" label="Middle name (optional)" value={nameParts.middle_name} onChange={setNamePart("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} autoComplete="off" />
+            <TextField id="admin-edit-last" label="Last name" value={nameParts.last_name} onChange={setNamePart("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} autoComplete="off" />
+          </div>
+          {nameChanged && !errors.first_name && !errors.last_name && (
+            <p className="-mt-2 text-xs text-text-muted">
+              Will be saved as <span className="font-semibold text-text-main">{trimmedName}</span>.
+            </p>
           )}
           {emailChanged && !errors.email && (
             <InlineAlert tone="warning">
@@ -1030,8 +1042,12 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
  * the plain newest-first list.
  */
 function useAuditSearch(enabled) {
-  const [filters, setFilters] = useState(EMPTY_AUDIT_FILTERS);
-  const [search, setSearch] = useState("");
+  const [urlFilters, setUrlFilters] = useUrlFilters(AUDIT_URL_DEFAULTS);
+  const filters = useMemo(
+    () => Object.fromEntries(Object.entries(AUDIT_URL_KEYS).map(([field, key]) => [field, urlFilters[key]])),
+    [urlFilters],
+  );
+  const [search, setSearch] = useState(() => filters.q.trim());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(AUDIT_PAGE_SIZES[0]);
   const [data, setData] = useState(null);
@@ -1078,11 +1094,11 @@ function useAuditSearch(enabled) {
   }, [load]);
 
   const setFilter = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setUrlFilters({ [AUDIT_URL_KEYS[key]]: value });
     setPage(1);
   };
   const clearFilters = () => {
-    setFilters(EMPTY_AUDIT_FILTERS);
+    setUrlFilters(Object.fromEntries(Object.entries(AUDIT_URL_KEYS).map(([field, key]) => [key, EMPTY_AUDIT_FILTERS[field]])));
     setSearch("");
     setPage(1);
   };
@@ -1243,14 +1259,15 @@ function SettingRow({ labelId, title, description, children }) {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { logout, user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [pageFilters, setPageFilters] = useUrlFilters(PAGE_URL_DEFAULTS, PAGE_URL_ALLOWED);
+  const activeTab = pageFilters.tab;
   const [pendingTab, setPendingTab] = useState(null);
   const [focusTarget, setFocusTarget] = useState(null);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(null);
-  const [showGuests, setShowGuests] = useState(false);
+  const showGuests = pageFilters.guests === "1";
   const users = useAdminList(showGuests ? "/admin/users?include_guests=true" : "/admin/users");
   const logs = useAdminList("/admin/audit-logs");
 
@@ -1260,11 +1277,15 @@ export default function AdminDashboard() {
   const [settingsMessage, setSettingsMessage] = useState(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  const [search, setSearch] = useState("");
-  const [facultySearch, setFacultySearch] = useState("");
+  const search = pageFilters.q;
+  const setSearch = (value) => setPageFilters({ q: value });
+  const facultySearch = pageFilters.fq;
+  const setFacultySearch = (value) => setPageFilters({ fq: value });
   const [editingUser, setEditingUser] = useState(null);
   const [exportingRole, setExportingRole] = useState(null);
-  const [auditVisited, setAuditVisited] = useState(false);
+  // The audit search loads only once its tab has been opened (or the page
+  // was opened on it from a link).
+  const [auditVisited, setAuditVisited] = useState(() => activeTab === "audit");
   const audit = useAuditSearch(auditVisited);
   const [userAction, setUserAction] = useState(null);
   const [isActing, setIsActing] = useState(false);
@@ -1336,7 +1357,7 @@ export default function AdminDashboard() {
     // A result message belongs to the section where the action happened.
     if (tab !== activeTab) setActionMessage(null);
     if (tab === "audit") setAuditVisited(true);
-    setActiveTab(tab);
+    setPageFilters({ tab });
   };
 
   const changeTab = (tab) => {
@@ -1865,7 +1886,7 @@ export default function AdminDashboard() {
                               role="switch"
                               aria-checked={showGuests}
                               aria-labelledby="admin-show-guests-label"
-                              onClick={() => setShowGuests((on) => !on)}
+                              onClick={() => setPageFilters({ guests: showGuests ? "" : "1" })}
                               className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${showGuests ? "bg-psu-maroon" : "bg-border-strong"}`}
                             >
                               <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${showGuests ? "translate-x-[22px]" : "translate-x-0.5"}`} aria-hidden="true" />
