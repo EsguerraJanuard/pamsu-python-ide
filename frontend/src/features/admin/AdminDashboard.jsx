@@ -50,6 +50,8 @@ const ICONS = {
   refresh: "M21 12a9 9 0 11-2.64-6.36L21 8M21 3v5h-5",
   x: "M18 6L6 18M6 6l12 12",
   chevronLeft: "M15 18l-6-6 6-6",
+  copy: "M11 9h9a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-9a2 2 0 012-2zM5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1",
+  tick: "M20 6L9 17l-5-5",
 };
 
 const TABS = [
@@ -151,6 +153,44 @@ function generateTempPassword() {
   crypto.getRandomValues(bytes);
   const core = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
   return `${core.slice(0, 5)}-${core.slice(5)}!`;
+}
+
+/**
+ * Put text on the clipboard. Without the Clipboard API (a page served over
+ * plain http) or when the browser refuses it, the text in `element` is
+ * selected so Ctrl+C copies it, and the older copy command is tried.
+ * Resolves to "copied", "selected" (copy it by hand) or "failed".
+ */
+async function copyText(text, element) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return "copied";
+  } catch {
+    // No Clipboard API here, or the browser refused it.
+  }
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  if (element) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    selection?.addRange(range);
+  }
+  const putText = (event) => {
+    if (!event.clipboardData) return;
+    event.clipboardData.setData("text/plain", text);
+    event.preventDefault();
+  };
+  document.addEventListener("copy", putText);
+  let copied;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  } finally {
+    document.removeEventListener("copy", putText);
+  }
+  if (copied) return "copied";
+  return element ? "selected" : "failed";
 }
 
 function formatTime(value) {
@@ -458,7 +498,122 @@ function NoPasswordNote({ who }) {
   );
 }
 
-function ProvisionForm({ role, onCreated }) {
+const COPY_NAMES = { email: "Email", password: "Temporary password" };
+
+function copyFeedback({ target, result }) {
+  if (result === "copied") return target === "both" ? "Email and password copied, one per line." : `${COPY_NAMES[target]} copied.`;
+  if (result === "selected") return `The browser blocked copying, so the ${target === "email" ? "email" : "password"} is selected: press Ctrl+C (⌘C on a Mac) to copy it.`;
+  return "The browser blocked copying. Copy the email and the password one at a time.";
+}
+
+/**
+ * A generated temporary password with the email it signs in with, each in its
+ * own box with a Copy button. It stays until the admin dismisses it; the
+ * password lives only in the caller's state, never in storage, the URL or logs.
+ */
+function TemporaryPassword({ title, description, email, password, onDismiss }) {
+  const headingId = `${useId()}-title`;
+  const panelRef = useRef(null);
+  const valueRefs = { email: useRef(null), password: useRef(null) };
+  const [feedback, setFeedback] = useState(null);
+  const resetTimer = useRef(null);
+
+  // Arrives after a dialog closes, possibly far from where the admin is
+  // looking: bring it into view and move focus to it.
+  useEffect(() => {
+    const panel = panelRef.current;
+    panel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    panel?.focus({ preventScroll: true });
+    return () => window.clearTimeout(resetTimer.current);
+  }, []);
+
+  const copy = async (target) => {
+    const text = target === "both" ? `${email}\n${password}` : target === "email" ? email : password;
+    const result = await copyText(text, valueRefs[target]?.current);
+    window.clearTimeout(resetTimer.current);
+    setFeedback({ target, result });
+    // Only the "Copied" label goes back; the block itself stays.
+    if (result === "copied") resetTimer.current = window.setTimeout(() => setFeedback(null), 2500);
+  };
+
+  const copyButton = (target, label, srLabel) => {
+    const done = feedback?.target === target && feedback.result === "copied";
+    return (
+      <button type="button" onClick={() => copy(target)} className="btn-secondary btn-sm min-w-[5.5rem] shrink-0">
+        <Icon name={done ? "tick" : "copy"} className="h-3.5 w-3.5" />
+        {done ? "Copied" : label}
+        <span className="sr-only"> {srLabel}</span>
+      </button>
+    );
+  };
+
+  const field = (target, label) => (
+    <div>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">{label}</dt>
+      <dd className="mt-1 flex items-center gap-2">
+        {/* select-all: one click selects the whole value, dash and "!" included. */}
+        <code
+          ref={valueRefs[target]}
+          className="min-w-0 flex-1 select-all break-all rounded-lg border border-border-strong bg-bg-panel px-3 py-2 font-mono text-sm text-text-main"
+        >
+          {target === "email" ? email : password}
+        </code>
+        {copyButton(target, "Copy", label.toLowerCase())}
+      </dd>
+    </div>
+  );
+
+  return (
+    <section
+      ref={panelRef}
+      tabIndex={-1}
+      aria-labelledby={headingId}
+      className="scroll-mt-24 rounded-lg border border-emerald-600/25 bg-emerald-600/[0.07] px-4 py-4 focus:outline-none sm:px-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <Icon name="check" className="mt-0.5 h-4 w-4 shrink-0 text-text-emerald" />
+          <div className="min-w-0">
+            <h2 id={headingId} className="break-words text-sm font-semibold text-text-emerald">
+              {title}
+            </h2>
+            {description && <p className="mt-0.5 text-sm text-text-main">{description}</p>}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="shrink-0 rounded p-0.5 text-text-emerald opacity-70 transition hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2"
+          aria-label="Dismiss the temporary password"
+        >
+          <Icon name="x" className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
+      </div>
+
+      <dl className="mt-4 max-w-xl space-y-3">
+        {field("email", "Email")}
+        {field("password", "Temporary password")}
+      </dl>
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+        {copyButton("both", "Copy both", "email and password")}
+        <p role="status" aria-live="polite" className="min-w-0 flex-1 text-xs font-medium text-text-main">
+          {feedback ? copyFeedback(feedback) : ""}
+        </p>
+      </div>
+
+      <p className="mt-3 flex items-start gap-2 border-t border-emerald-600/20 pt-3 text-xs text-text-muted">
+        <Icon name="key" className="mt-px h-3.5 w-3.5 shrink-0 text-text-brand" />
+        <span>
+          <span className="font-semibold text-text-main">Share it securely.</span> It is shown only here: once you dismiss this, it can&rsquo;t be
+          shown again.
+        </span>
+      </p>
+    </section>
+  );
+}
+
+function ProvisionForm({ role, onCreated, onTemporaryPassword }) {
   const isStudent = role === "student";
   const who = isStudent ? "student" : "instructor";
   const empty = { email: "", first_name: "", middle_name: "", last_name: "", school_id: "" };
@@ -504,8 +659,16 @@ function ProvisionForm({ role, onCreated }) {
       ].filter(Boolean).join(" ");
       const signIn = fallbackPassword
         ? // A server from before 2026-10-22 still requires a password and emails it.
-          `This server still emails a temporary password; if the email doesn't arrive, it is ${fallbackPassword}.`
+          "This server still emails a temporary password; if the email doesn't arrive, share the one shown at the top of the page."
         : `The ${who} is emailed a link to set their own password. If the email doesn't arrive, they can use "Forgot password?" on the sign-in page with this address.`;
+      if (fallbackPassword) {
+        onTemporaryPassword?.({
+          title: `Temporary password for ${fullName}`,
+          description: "This server also emails it. Share it only if the email doesn't arrive.",
+          email: payload.email,
+          password: fallbackPassword,
+        });
+      }
       setResult({
         tone: waiting > 0 ? "warning" : "success",
         text: `Account created for ${payload.email}. ${signIn}${enrollmentNote ? ` ${enrollmentNote}` : ""}`,
@@ -1342,6 +1505,10 @@ export default function AdminDashboard() {
   const [applyingUserId, setApplyingUserId] = useState(null);
   const [pendingRefresh, setPendingRefresh] = useState(0);
   const [actionMessage, setActionMessage] = useState(null);
+  // A generated password shown to the admin: kept only here (never stored or
+  // logged), across tab changes, until they dismiss it or another replaces it.
+  const [temporaryPassword, setTemporaryPassword] = useState(null);
+  const temporaryPasswordCount = useRef(0);
   const [bulkMessage, setBulkMessage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileRef = useRef(null);
@@ -1436,6 +1603,11 @@ export default function AdminDashboard() {
     }
   };
 
+  const showTemporaryPassword = (details) => {
+    temporaryPasswordCount.current += 1;
+    setTemporaryPassword({ ...details, id: temporaryPasswordCount.current });
+  };
+
   const handleUserAction = (user, type) => {
     if (type === "edit") setEditingUser(user);
     else if (type === "apply") applyPendingEnrollments(user);
@@ -1527,7 +1699,13 @@ export default function AdminDashboard() {
         setActionMessage({ tone: "success", text: `${user.name} is now ${(res?.is_active ?? !user.is_active) ? "active" : "suspended"}.` });
       } else {
         await api.patch(`/admin/users/${user.user_id}/password`, { new_password: password });
-        setActionMessage({ tone: "success", text: `Password for ${user.email} was reset to ${password} — share it securely.` });
+        setActionMessage(null);
+        showTemporaryPassword({
+          title: `Password reset for ${user.name}`,
+          description: "They sign in with this email and temporary password.",
+          email: user.email,
+          password,
+        });
       }
     } catch (err) {
       setActionMessage({ tone: "error", text: getErrorMessage(err, "The action could not be completed.") });
@@ -1708,6 +1886,19 @@ export default function AdminDashboard() {
         </aside>
 
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 lg:py-8">
+          {/* Outside the per-tab wrapper, so a tab change doesn't remount it. */}
+          {temporaryPassword && (
+            <div className="mx-auto mb-5 w-full max-w-6xl">
+              <TemporaryPassword
+                key={temporaryPassword.id}
+                title={temporaryPassword.title}
+                description={temporaryPassword.description}
+                email={temporaryPassword.email}
+                password={temporaryPassword.password}
+                onDismiss={() => setTemporaryPassword(null)}
+              />
+            </div>
+          )}
           <div key={activeTab} className="animate-page-fade mx-auto w-full max-w-6xl">
             {actionMessage && (
               <InlineAlert tone={actionMessage.tone} onDismiss={() => setActionMessage(null)} className="mb-5">
@@ -1849,7 +2040,7 @@ export default function AdminDashboard() {
                 {/* Form above a full-width directory, so the table never has to
                     scroll sideways on a desktop display. */}
                 <div className="grid grid-cols-1 items-start gap-6">
-                  <ProvisionForm role="instructor" onCreated={() => { facultyList.load(); loadStats(); }} />
+                  <ProvisionForm role="instructor" onCreated={() => { facultyList.load(); loadStats(); }} onTemporaryPassword={showTemporaryPassword} />
                   <div className="min-w-0 space-y-4">
                     <Panel
                       title="Faculty directory"
@@ -1884,7 +2075,7 @@ export default function AdminDashboard() {
                 {/* Form and masterlist side by side, full-width directory below. */}
                 <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div>
-                    <ProvisionForm role="student" onCreated={() => { studentList.load(); loadStats(); }} />
+                    <ProvisionForm role="student" onCreated={() => { studentList.load(); loadStats(); }} onTemporaryPassword={showTemporaryPassword} />
                   </div>
                   <div>
                     <Panel title="Bulk register from masterlist" description="New students are emailed their account details automatically." icon="upload">
