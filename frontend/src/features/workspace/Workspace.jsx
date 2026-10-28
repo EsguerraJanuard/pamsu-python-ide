@@ -9,6 +9,7 @@ import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/ui/StateViews";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { requiredRuleIds, ruleLabel, ruleMinCount } from "../../utils/astRules";
+import { pollDelay } from "../../utils/polling";
 import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 import { useAuth } from "../auth/AuthContext";
 import api, { getErrorMessage, NETWORK_ERROR_STATUS, TIMEOUT_ERROR_STATUS } from "../../services/api";
@@ -19,8 +20,8 @@ import { draftKeyFor, readDraft, saveDraft } from "./draftStorage";
 import { defineEditorThemes, editorThemeFor } from "./editorThemes";
 
 const BLANK_TEMPLATE = "# Write your solution below.\n";
-const POLL_INTERVAL_MS = 1500;
-const MAX_POLLS = 20;
+// Checks for the run result follow utils/polling.js and stop after 30 s.
+const POLL_MAX_WAIT_MS = 30000;
 const SUBMIT_TIMEOUT_MS = 45000;
 // Longest a submit waits to send the last indicator counts first.
 const FLUSH_WAIT_MS = 5000;
@@ -249,8 +250,10 @@ function ActivityWorkspace({ activityId, userId }) {
 
   // ── Execution ────────────────────────────────────────────────────────
   const pollExecution = async (executionId) => {
-    for (let attempt = 0; attempt < MAX_POLLS; attempt += 1) {
-      await delay(POLL_INTERVAL_MS);
+    for (let waited = 0; waited < POLL_MAX_WAIT_MS; ) {
+      const pause = pollDelay(waited);
+      await delay(pause);
+      waited += pause;
       if (!isMounted.current) return null;
       const result = await api.get(`/execution/requests/${executionId}`);
       if (TERMINAL_STATES.includes(result.status)) return result;

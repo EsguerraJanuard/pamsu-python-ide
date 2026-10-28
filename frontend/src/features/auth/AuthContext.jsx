@@ -146,6 +146,41 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('pamsu:unauthorized', handleUnauthorized);
   }, [endSession]);
 
+  // Tabs share the stored token, and every request reads it from storage.
+  // Follow a sign-out or sign-in made in another tab: otherwise this tab kept
+  // sending requests without a token (a 401 every 5 s from the workspace
+  // heartbeat), or with another account's token (alpha tester, 2026-10-28).
+  // The "storage" event fires only in the other tabs.
+  const currentToken = authState.token;
+  useEffect(() => {
+    const handleStorage = (event) => {
+      // key is null when another tab cleared all of storage.
+      if (event.key !== null && event.key !== TOKEN_KEY && event.key !== PROFILE_KEY) return;
+      const next = getInitialAuthState();
+      if (next.token === currentToken) {
+        // Same session: keep the profile in step (sign-in writes it just
+        // after the token; a name change in Settings rewrites it).
+        if (next.token && event.key === PROFILE_KEY) setAuthState(next);
+        return;
+      }
+      if (!next.token) {
+        // Signed out (or the session ended) in another tab. That tab already
+        // told the server, so this one only forgets the session.
+        clearApiCache();
+        setAuthState(EMPTY_STATE);
+      } else if (!currentToken || userIdFromToken(next.token) === userIdFromToken(currentToken)) {
+        // Signed in in another tab, or the same account signed in again.
+        setAuthState(next);
+      } else {
+        // Another account signed in: start again from its home page, so
+        // nothing loaded for the previous account stays on screen.
+        window.location.replace(homePathForRole(next.role));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [currentToken]);
+
   /**
    * Starts a session from a sign-in response. Returns the role read from
    * the token; throws if the token has no valid role.

@@ -604,19 +604,48 @@ def create_instructor(
     )
     return new_instructor
 
+def _like_pattern(text: str) -> str:
+    """A LIKE pattern that matches `text` anywhere, with % and _ taken literally."""
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
 @router.get("/users", response_model=List[UserResponse])
 def list_users(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=500),
     include_guests: bool = Query(default=False, description="Also list self-service guest accounts."),
+    role: Literal["student", "instructor"] | None = Query(default=None, description="Only accounts with this role."),
+    q: str | None = Query(
+        default=None, max_length=100, description="Part of the name, email or school ID (any case)."
+    ),
+    order: Literal["oldest", "newest"] = Query(
+        default="oldest", description="'newest' lists the most recently created accounts first."
+    ),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
+    # Search and role run here, over every account, so a match is found
+    # without paging through the directory first (alpha tester, 2026-10-28).
     query = db.query(User).filter(User.role != "admin")
     if not include_guests:
         query = query.filter(not_self_service_guest())
-    users = query.order_by(User.user_id).offset(skip).limit(limit).all()
-    return users
+    if role:
+        query = query.filter(User.role == role)
+    search = (q or "").strip().lower()
+    if search:
+        pattern = _like_pattern(search)
+        query = query.filter(
+            or_(
+                func.lower(User.name).like(pattern, escape="\\"),
+                func.lower(User.email).like(pattern, escape="\\"),
+                func.lower(User.school_id).like(pattern, escape="\\"),
+            )
+        )
+    # The default stays oldest first: the CSV export pages through it, and
+    # accounts created meanwhile then land after the pages already read.
+    sort_key = User.user_id.desc() if order == "newest" else User.user_id
+    return query.order_by(sort_key).offset(skip).limit(limit).all()
 
 @router.patch("/users/{user_id}/status")
 def toggle_user_status(
@@ -961,8 +990,7 @@ def search_audit_logs(
 
     search = (q or "").strip().lower()
     if search:
-        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        pattern = f"%{escaped}%"
+        pattern = _like_pattern(search)
         query = query.filter(
             or_(
                 func.lower(User.name).like(pattern, escape="\\"),

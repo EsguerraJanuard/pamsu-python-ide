@@ -2922,3 +2922,87 @@ New `hooks/useUrlFilters.js` keeps each page's filters in the address, so they s
 ### What a push does
 - **Vercel (at once):** the editor changes. They work with the backend now on Render.
 - **Render (Errol's deploy):** the analyzer changes and the new validation. **No migration.**
+
+## Alpha tester 2: account search, Run speed, console 400/401 (2026-10-28)
+
+### 1. Account search finds every account
+- **Cause:** the admin directory loaded 50 accounts at a time, oldest first, and the search box filtered only the pages already in the browser. Faculty and students shared that one list.
+  - A new account has the highest ID, so it sat past the first page. Neither the list nor a search showed it until "Load more accounts" reached it.
+  - Creating an account reloaded the first page, which still did not include it.
+  - React Query caching was not involved: the directory does not use it.
+- **Backend:** `GET /admin/users` takes three new parameters. It stays a plain list, oldest first by default, so the CSV export and older pages work as before.
+  - `role`: `student` or `instructor`.
+  - `q`: part of the name, email or school ID, in any case. `%` and `_` are taken literally.
+  - `order=newest`: most recently created first.
+- **Frontend (`AdminDashboard.jsx`):**
+  - Faculty and Students each have their own list, loaded when the tab is first opened. The Overview no longer loads accounts.
+  - The search runs on the server after a 300 ms pause in typing. An older answer that arrives late never replaces a newer one.
+  - Newest first, so a created account is at the top at once (the list reloads after a create or a masterlist import).
+  - During a search the count says "N matches". Export CSV asks the server for the role only (`role=`).
+  - **Before Render is deployed**, the old server ignores the new parameters. The page then also filters what it loaded, which is the behaviour before this change.
+- Also fixed: the queued-enrollment message said "2 classs" (`plural`).
+
+### 2. Run speed
+Measured on a scratch backend (SQLite) with `mock_judge0`, running the real dispatch task in a thread. The worker step was timed separately.
+
+| Step | Before | After |
+|---|---|---|
+| `POST /execution/requests/` | ~135 ms | unchanged |
+| Worker sends the code to Judge0 | ~470 ms | ~15 ms |
+| Judge0 callback handled | ~16 ms | unchanged |
+| Result ready after the POST (median of 10 runs) | 1.0 s | 0.57 s |
+| Result shown on the page (median) | 1.5 s | 1.0 s |
+
+- **Cause 1, the page:** it waited 1.5 s before its first check, then checked every 1.5 s. A result ready at 0.6 s was shown at 1.5 s.
+  - **Fix:** `utils/polling.js` checks every 0.5 s for the first 3 s, every 0.75 s until 6 s, then every 1.5 s. Used by IDE Run and practice submit.
+  - Every check time of the old schedule (1.5 s, 3 s, 4.5 s…) is still a check, so a result is never shown later than before.
+  - Cost: up to 4 more small GETs per run. Run still gives up after 30 s and practice after 130 s.
+- **Cause 2, the worker:** every dispatch built a new httpx client, which loads the CA bundle into a new SSL context. That took 370–590 ms of CPU on a laptop, and more on Render's shared free-tier CPU.
+  - **Fix:** each worker process makes the SSL context once and reuses it (`judge0_http_client()` in `celery_worker.py`). It is prepared when the worker process starts.
+  - Every call still opens its own connection, as before, so no stale-connection risk was added.
+- **Browser:** click Run to output shown: 0.74 s, 1.31 s and 1.35 s. Before, the output could not appear sooner than 1.5 s plus the POST. A wrong practice answer showed its verdict 0.65 s after submit.
+- **Not changed:**
+  - **Render cold start** (52–62 s after 15 minutes idle; measured 2026-10-20 and 10-21). A keep-warm ping would keep the Celery worker polling Upstash around the clock and use up Render's free hours. Not done (zero budget). The login page already wakes the backend with `/health`.
+  - **Judge0's own** queue and run time.
+  - **Celery concurrency:** `start.sh` does not set it, so Celery starts one worker process per CPU it sees, on a 512 MB instance. **To check (Errol):** the worker's start-up banner in the Render log ("concurrency: N"). Not verified here.
+
+### 3. Console 400 and 401
+Student and instructor sessions on the scratch backend. The server logged every request with its status.
+- **Student:** sign-in, dashboard, assignments, classes, workspace (Run three times, then a graded Submit), practice (a wrong answer, then the hint), submissions, analytics, notifications, history, settings, sign-out.
+- **Instructor:** dashboard, classes, roster, activity details, editor (Save with no changes), grading bench (class and activity), Live Monitoring, practice manager, notifications, history, settings, sign-out.
+- **Result with one tab: no 400 and no 401.** Nothing authenticated is called before sign-in; the login page calls only the public `/health`.
+
+| Response | Request | When | Verdict |
+|---|---|---|---|
+| 401 every 5 s | `PATCH /activities/coding-sessions/{id}/activity` (workspace heartbeat), and every other request from that tab | Signed out in another tab while a workspace tab stayed open. That tab sent its requests without a token and never noticed: the client ends a session on a 401 only when it sent a token | **Bug, fixed** |
+| 403, or the wrong account | any | Another account signed in in another tab. The open tab used the new account's token behind the old page | **Bug, fixed** |
+| 401, once | the next request after the token expires (30 min, unless Render sets `ACCESS_TOKEN_EXPIRE_MINUTES`) | Session expired | Expected. The session ends and the login page says so; other open tabs now follow without a request |
+| 401 | `POST /login` | Wrong password | Expected |
+| 400 | `PATCH /users/me/password` (wrong current password), `POST /users/password-reset/complete` (wrong code), `POST /instructors/tasks/analyze-solution` (the solution does not parse) | Wrong input | Expected. The page shows the message |
+| 400 | `PATCH /instructors/tasks/{id}` with nothing to change; `POST /practice/attempts/{id}/ai-hint` for a passed or unrun attempt | — | Never sent by the pages (checked in the code and the browser) |
+
+- **Fix (`AuthContext.jsx`):** a tab follows sign-in changes made in other tabs (the `storage` event).
+  - Signed out elsewhere: this tab signs out too, without a request.
+  - The same account signed in again: the new token is used and the page stays.
+  - Another account signed in: the tab reloads to that account's home page, so nothing loaded for the previous account stays on screen.
+  - A profile change in another tab (a new name) also shows.
+- **Browser-checked:**
+  - Before the fix: 16 × 401 in 75 s from the open workspace tab.
+  - After: none, and the workspace tab went to the login page.
+  - Signing in in one tab also signed in the other. A student workspace tab moved to the instructor dashboard when an instructor signed in elsewhere.
+  - The expired session: one 401, then sign-out; the other tab followed.
+- **Not avoided: the single 401 when a token expires.** Checking expiry in the browser before each request would trust the PC clock. A lab PC whose clock runs 30 minutes fast would then sign out right after signing in.
+  - **Follow-up:** a reload already trusts the PC clock (`getInitialAuthState`), so such a PC is signed out on every reload.
+
+### Tests
+| Run | Result |
+|---|---|
+| Full backend suite (SQLite) | **1224 passed, 14 skipped**, 0 failed |
+| New `tests/test_admin_user_search.py` | 10 passed: an account past the first page is found by name, email and school ID; newest first; paging through matches; role filter; admins never listed; `%` and `_` literal; blank search; guests only when shown; bad parameters refused; an account created through the API is found at once; students refused |
+| New `tests/test_judge0_dispatch_client.py` | 4 passed: one SSL context shared by clients, a new one in a forked process, ready at worker start, a failing warm-up does not stop the worker. The existing Judge0 dispatch tests (43) pass unchanged |
+| Frontend lint / build | Pass. Main bundle 299 kB (unchanged) |
+| Browser, scratch SQLite backend and `mock_judge0` | <ul><li>Directory newest first, 50 rows and "50+ accounts".</li><li>Typing "juan" made one request and found the oldest student (not on the first page): "1 match".</li><li>A created student was at the top at once and found by school ID.</li><li>The guests switch reloaded only the student list; the Faculty tab loaded its own list.</li><li>Run and practice timings above; the 400/401 checks above.</li></ul> |
+
+### What a push does
+- **Vercel (at once):** the per-tab directory and search, the faster polling, and tabs following each other's sign-in. They work with the backend now on Render: the old server ignores `role`, `q` and `order`, and the page then filters the pages it loaded, as before.
+- **Render (Errol's deploy):** the server-side search, `order=newest`, and the shared SSL context for Judge0 calls. **No migration.**

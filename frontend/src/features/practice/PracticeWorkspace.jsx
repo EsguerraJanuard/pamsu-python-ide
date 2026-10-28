@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/ui/StateV
 import { useBehaviorTracking } from "../../hooks/useBehaviorTracking";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import api, { getErrorMessage, NETWORK_ERROR_STATUS, TIMEOUT_ERROR_STATUS } from "../../services/api";
+import { pollDelay } from "../../utils/polling";
 import { useTheme } from "../theme/ThemeContext";
 import ThemeToggle from "../theme/ThemeToggle";
 import { defineEditorThemes, editorThemeFor } from "../workspace/editorThemes";
@@ -20,7 +21,7 @@ import { defineEditorThemes, editorThemeFor } from "../workspace/editorThemes";
 // still run Judge0 inside the submit request (up to 15 s) and answer with the
 // verdict and no status, so the request keeps a longer timeout.
 const PRACTICE_SUBMIT_TIMEOUT_MS = 45000;
-const ATTEMPT_POLL_INTERVAL_MS = 1500;
+// Checks follow utils/polling.js: often at first, when Judge0 usually answers.
 const ATTEMPT_MAX_WAIT_MS = 130000;
 const NOT_CHECKED_MESSAGE = "Your code could not be checked this time. It does not count as a try — please run it again.";
 
@@ -178,8 +179,11 @@ function PracticeTask({ taskId }) {
     const isCurrent = () => isMounted.current && submitRun.current === run;
     const deadline = Date.now() + ATTEMPT_MAX_WAIT_MS;
     let failedPolls = 0;
+    let waited = 0;
     while (Date.now() < deadline) {
-      await wait(ATTEMPT_POLL_INTERVAL_MS);
+      const pause = pollDelay(waited);
+      await wait(pause);
+      waited += pause;
       if (!isCurrent()) return null;
       let attempt;
       try {

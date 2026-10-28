@@ -184,8 +184,13 @@ function initials(name) {
   return `${parts[0][0]}${last}`.toUpperCase();
 }
 
+/** "class" → "classes", "match" → "matches", "account" → "accounts". */
+function pluralWord(word) {
+  return /(s|x|ch|sh)$/.test(word) ? `${word}es` : `${word}s`;
+}
+
 function plural(count, word) {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
+  return `${count} ${count === 1 ? word : pluralWord(word)}`;
 }
 
 function Icon({ name, className = "h-4 w-4", strokeWidth = 1.8 }) {
@@ -280,11 +285,10 @@ function StatCard({ icon, label, value, hint, tone = "brand" }) {
   );
 }
 
-function CountBadge({ count, word, hasMore, shown }) {
-  const total = hasMore ? `${count}+ ${word}s` : plural(count, word);
+function CountBadge({ count, word, hasMore }) {
   return (
     <span className="badge badge-neutral tabular-nums" aria-live="polite">
-      {shown === undefined ? total : `${shown} of ${total}`}
+      {hasMore ? `${count}+ ${pluralWord(word)}` : plural(count, word)}
     </span>
   );
 }
@@ -319,41 +323,78 @@ function AdminErrorState({ error, resource, onRetry }) {
   return <ErrorState error={error} resource={resource} onRetry={onRetry} />;
 }
 
+/** `value`, updated only after it has stopped changing for `delayMs`. */
+function useDebouncedValue(value, delayMs = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+/**
+ * The account directory of one tab. Role, search and order are sent to the
+ * server, so a search covers every account, not just the pages loaded so far.
+ */
+function directoryEndpoint(role, search, includeGuests) {
+  const params = new URLSearchParams({ role, order: "newest" });
+  if (includeGuests) params.set("include_guests", "true");
+  if (search) params.set("q", search);
+  return `/admin/users?${params}`;
+}
+
+/** Accounts of `role` matching `query`. The server already filters; this only matters on a server without search. */
+function directoryRows(items, role, query) {
+  return items.filter((u) => u.role === role && (!query || matchesAccount(u, query)));
+}
+
 function useAdminList(endpoint) {
   const [items, setItems] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  // A newer load (another search) makes older answers obsolete; they may
+  // arrive later than the newer one and must not replace it.
+  const requestId = useRef(0);
 
-  const page = (skip) => `${endpoint}${endpoint.includes("?") ? "&" : "?"}skip=${skip}&limit=${PAGE_SIZE}`;
+  const page = useCallback(
+    (skip) => `${endpoint}${endpoint.includes("?") ? "&" : "?"}skip=${skip}&limit=${PAGE_SIZE}`,
+    [endpoint],
+  );
 
   const load = useCallback(async () => {
+    const id = ++requestId.current;
     setIsLoading(true);
+    setIsLoadingMore(false);
     setError(null);
     try {
-      const data = await api.get(`${endpoint}${endpoint.includes("?") ? "&" : "?"}skip=0&limit=${PAGE_SIZE}`);
+      const data = await api.get(page(0));
+      if (id !== requestId.current) return;
       const list = Array.isArray(data) ? data : [];
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
     } catch (err) {
-      setError(err);
+      if (id === requestId.current) setError(err);
     } finally {
-      setIsLoading(false);
+      if (id === requestId.current) setIsLoading(false);
     }
-  }, [endpoint]);
+  }, [page]);
 
   const loadMore = async () => {
+    const id = requestId.current;
     setIsLoadingMore(true);
     try {
       const data = await api.get(page(items.length));
+      if (id !== requestId.current) return;
       const list = Array.isArray(data) ? data : [];
       setItems((prev) => [...prev, ...list]);
       setHasMore(list.length === PAGE_SIZE);
     } catch (err) {
-      setError(err);
+      if (id === requestId.current) setError(err);
     } finally {
-      setIsLoadingMore(false);
+      if (id === requestId.current) setIsLoadingMore(false);
     }
   };
 
@@ -1268,8 +1309,17 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(null);
   const showGuests = pageFilters.guests === "1";
-  const users = useAdminList(showGuests ? "/admin/users?include_guests=true" : "/admin/users");
+  // Typing waits for a pause before asking the server.
+  const query = useDebouncedValue(pageFilters.q.trim().toLowerCase());
+  const facultyQuery = useDebouncedValue(pageFilters.fq.trim().toLowerCase());
+  const facultyList = useAdminList(directoryEndpoint("instructor", facultyQuery, false));
+  const studentList = useAdminList(directoryEndpoint("student", query, showGuests));
   const logs = useAdminList("/admin/audit-logs");
+  // Each directory loads when its tab is first opened.
+  const [visitedTabs, setVisitedTabs] = useState(() => ({ [activeTab]: true }));
+  useEffect(() => {
+    setVisitedTabs((visited) => (visited[activeTab] ? visited : { ...visited, [activeTab]: true }));
+  }, [activeTab]);
 
   const [settings, setSettings] = useState(null);
   const [savedSettings, setSavedSettings] = useState(null);
@@ -1316,7 +1366,8 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const { load: loadUsers } = users;
+  const { load: loadFaculty } = facultyList;
+  const { load: loadStudents } = studentList;
   const { load: loadLogs } = logs;
   useEffect(() => {
     loadStats();
@@ -1324,10 +1375,13 @@ export default function AdminDashboard() {
     loadSettings();
   }, [loadStats, loadLogs, loadSettings]);
 
-  // Separate, so the "Show guests" switch reloads only the account list.
+  // Separate, so a search or the "Show guests" switch reloads only its list.
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    if (visitedTabs.faculty) loadFaculty();
+  }, [visitedTabs.faculty, loadFaculty]);
+  useEffect(() => {
+    if (visitedTabs.students) loadStudents();
+  }, [visitedTabs.students, loadStudents]);
 
   // Without the search endpoint the audit tab shows the plain list; fetch it
   // fresh at that moment rather than showing what was loaded at sign-in.
@@ -1373,12 +1427,14 @@ export default function AdminDashboard() {
     changeTab(action.tab);
   };
 
-  const faculty = users.items.filter((u) => u.role === "instructor");
-  const students = users.items.filter((u) => u.role === "student");
-  const query = search.trim().toLowerCase();
-  const filteredStudents = query ? students.filter((s) => matchesAccount(s, query)) : students;
-  const facultyQuery = facultySearch.trim().toLowerCase();
-  const filteredFaculty = facultyQuery ? faculty.filter((f) => matchesAccount(f, facultyQuery)) : faculty;
+  const filteredFaculty = directoryRows(facultyList.items, "instructor", facultyQuery);
+  const filteredStudents = directoryRows(studentList.items, "student", query);
+  // Status and edits change one row in place in whichever list holds it.
+  const updateListedUser = (userId, update) => {
+    for (const list of [facultyList, studentList]) {
+      list.setItems((prev) => prev.map((u) => (u.user_id === userId ? update(u) : u)));
+    }
+  };
 
   const handleUserAction = (user, type) => {
     if (type === "edit") setEditingUser(user);
@@ -1420,9 +1476,7 @@ export default function AdminDashboard() {
 
   const handleAccountSaved = (result) => {
     const previous = editingUser;
-    users.setItems((prev) =>
-      prev.map((u) => (u.user_id === result.user_id ? { ...u, name: result.name, email: result.email, school_id: result.school_id ?? u.school_id } : u)),
-    );
+    updateListedUser(result.user_id, (u) => ({ ...u, name: result.name, email: result.email, school_id: result.school_id ?? u.school_id }));
     const changed = result.changed_fields ?? [];
     const joined = result.pending_enrollments?.enrolled_class_ids?.length ?? 0;
     const parts = [
@@ -1445,7 +1499,7 @@ export default function AdminDashboard() {
     try {
       const all = [];
       for (let skip = 0; ; skip += 500) {
-        const batch = await api.get(`/admin/users?skip=${skip}&limit=500`);
+        const batch = await api.get(`/admin/users?role=${role}&skip=${skip}&limit=500`);
         const list = Array.isArray(batch) ? batch : [];
         all.push(...list);
         if (list.length < 500) break;
@@ -1469,7 +1523,7 @@ export default function AdminDashboard() {
     try {
       if (type === "status") {
         const res = await api.patch(`/admin/users/${user.user_id}/status`);
-        users.setItems((prev) => prev.map((u) => (u.user_id === user.user_id ? { ...u, is_active: res?.is_active ?? !u.is_active } : u)));
+        updateListedUser(user.user_id, (u) => ({ ...u, is_active: res?.is_active ?? !u.is_active }));
         setActionMessage({ tone: "success", text: `${user.name} is now ${(res?.is_active ?? !user.is_active) ? "active" : "suspended"}.` });
       } else {
         await api.patch(`/admin/users/${user.user_id}/password`, { new_password: password });
@@ -1509,7 +1563,7 @@ export default function AdminDashboard() {
           (pendingLeft > 0 ? ` ${pendingLeft} stay${pendingLeft === 1 ? "s" : ""} pending because the class is inactive or could not be joined.` : ""),
         rows: failedRows,
       });
-      users.load();
+      studentList.load();
       loadStats();
     } catch (err) {
       setBulkMessage({ tone: "error", text: getErrorMessage(err, "The file could not be processed.") });
@@ -1575,18 +1629,18 @@ export default function AdminDashboard() {
 
   const maintenanceOn = Boolean(savedSettings?.maintenance_mode);
   const recentLogs = logs.items.slice(0, RECENT_ACTIVITY_COUNT);
-  const userListBody = (list, caption, emptyMessage) =>
-    users.error ? (
+  const userListBody = (source, list, caption, emptyMessage) =>
+    source.error ? (
       <div className="p-5 sm:p-6">
-        <AdminErrorState error={users.error} resource={caption.toLowerCase()} onRetry={users.load} />
+        <AdminErrorState error={source.error} resource={caption.toLowerCase()} onRetry={source.load} />
       </div>
-    ) : users.isLoading ? (
+    ) : source.isLoading ? (
       <LoadingState label="Loading accounts…" className="py-14" />
     ) : (
       <UserTable users={list} caption={caption} emptyMessage={emptyMessage} onAction={handleUserAction} busyUserId={applyingUserId} />
     );
-  const exportButton = (role, count) => (
-    <button type="button" className="btn-secondary" onClick={() => exportAccounts(role)} disabled={count === 0 || exportingRole !== null}>
+  const exportButton = (role, enabled) => (
+    <button type="button" className="btn-secondary" onClick={() => exportAccounts(role)} disabled={!enabled || exportingRole !== null}>
       <Icon name="download" className="h-4 w-4" />
       {exportingRole === role ? "Exporting…" : "Export CSV"}
     </button>
@@ -1600,11 +1654,14 @@ export default function AdminDashboard() {
       <input id={id} type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Search name, email or ID…" className="input-field pl-9" />
     </div>
   );
-  const loadMoreUsers = users.hasMore && !users.error && (
-    <button type="button" className="btn-secondary w-full" onClick={users.loadMore} disabled={users.isLoadingMore}>
-      {users.isLoadingMore ? "Loading…" : "Load more accounts"}
-    </button>
-  );
+  const loadMoreButton = (source) =>
+    source.hasMore && !source.error && !source.isLoading && (
+      <button type="button" className="btn-secondary w-full" onClick={source.loadMore} disabled={source.isLoadingMore}>
+        {source.isLoadingMore ? "Loading…" : "Load more accounts"}
+      </button>
+    );
+  // Export takes every account of the role, whatever the search shows.
+  const canExport = (source, searching) => searching || source.isLoading || source.items.length > 0;
 
   return (
     <div className="flex min-h-screen flex-col bg-bg-base text-text-main">
@@ -1787,12 +1844,12 @@ export default function AdminDashboard() {
                   eyebrow="Accounts"
                   title="Faculty"
                   description="Create instructor accounts and manage their access."
-                  actions={exportButton("instructor", faculty.length)}
+                  actions={exportButton("instructor", canExport(facultyList, Boolean(facultyQuery)))}
                 />
                 {/* Form above a full-width directory, so the table never has to
                     scroll sideways on a desktop display. */}
                 <div className="grid grid-cols-1 items-start gap-6">
-                  <ProvisionForm role="instructor" onCreated={() => { users.load(); loadStats(); }} />
+                  <ProvisionForm role="instructor" onCreated={() => { facultyList.load(); loadStats(); }} />
                   <div className="min-w-0 space-y-4">
                     <Panel
                       title="Faculty directory"
@@ -1801,16 +1858,16 @@ export default function AdminDashboard() {
                       flush
                       actions={
                         <>
-                          {!users.isLoading && !users.error && (
-                            <CountBadge count={faculty.length} word="account" hasMore={users.hasMore} shown={facultyQuery ? filteredFaculty.length : undefined} />
+                          {!facultyList.isLoading && !facultyList.error && (
+                            <CountBadge count={filteredFaculty.length} word={facultyQuery ? "match" : "account"} hasMore={facultyList.hasMore} />
                           )}
                           {searchBox("admin-faculty-search", "Search faculty", facultySearch, setFacultySearch)}
                         </>
                       }
                     >
-                      {userListBody(filteredFaculty, "Faculty accounts", facultyQuery ? "No faculty match your search." : "No faculty accounts have been created yet.")}
+                      {userListBody(facultyList, filteredFaculty, "Faculty accounts", facultyQuery ? "No faculty match your search." : "No faculty accounts have been created yet.")}
                     </Panel>
-                    {loadMoreUsers}
+                    {loadMoreButton(facultyList)}
                   </div>
                 </div>
               </>
@@ -1822,12 +1879,12 @@ export default function AdminDashboard() {
                   eyebrow="Accounts"
                   title="Students"
                   description="Create student accounts individually or from a masterlist file."
-                  actions={exportButton("student", students.length)}
+                  actions={exportButton("student", canExport(studentList, Boolean(query)))}
                 />
                 {/* Form and masterlist side by side, full-width directory below. */}
                 <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div>
-                    <ProvisionForm role="student" onCreated={() => { users.load(); loadStats(); }} />
+                    <ProvisionForm role="student" onCreated={() => { studentList.load(); loadStats(); }} />
                   </div>
                   <div>
                     <Panel title="Bulk register from masterlist" description="New students are emailed their account details automatically." icon="upload">
@@ -1874,8 +1931,8 @@ export default function AdminDashboard() {
                       flush
                       actions={
                         <>
-                          {!users.isLoading && !users.error && (
-                            <CountBadge count={students.length} word="account" hasMore={users.hasMore} shown={query ? filteredStudents.length : undefined} />
+                          {!studentList.isLoading && !studentList.error && (
+                            <CountBadge count={filteredStudents.length} word={query ? "match" : "account"} hasMore={studentList.hasMore} />
                           )}
                           <div className="flex items-center gap-2">
                             <span id="admin-show-guests-label" className="text-xs font-semibold text-text-muted">
@@ -1896,9 +1953,9 @@ export default function AdminDashboard() {
                         </>
                       }
                     >
-                      {userListBody(filteredStudents, "Student accounts", query ? "No students match your search." : "No student accounts yet.")}
+                      {userListBody(studentList, filteredStudents, "Student accounts", query ? "No students match your search." : "No student accounts yet.")}
                     </Panel>
-                    {loadMoreUsers}
+                    {loadMoreButton(studentList)}
                     <PendingEnrollmentsPanel onApply={applyPendingEnrollments} busyUserId={applyingUserId} refreshKey={pendingRefresh} />
                   </div>
                 </div>

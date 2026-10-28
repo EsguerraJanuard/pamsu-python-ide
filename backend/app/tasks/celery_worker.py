@@ -2,6 +2,7 @@ import logging
 import os
 
 from celery import Celery
+from celery.signals import worker_process_init
 
 from app.core.redis_tls import redis_tls_options
 
@@ -67,6 +68,37 @@ def judge0_connection() -> tuple[str, dict[str, str]]:
     return judge0_url.rstrip("/"), headers
 
 
+_judge0_ssl_context = None
+_judge0_ssl_context_pid: int | None = None
+
+
+def judge0_http_client():
+    """An HTTP client for one Judge0 call, sharing this process's SSL context.
+
+    A new httpx client builds its own SSL context and loads the whole CA
+    bundle into it: about 0.4 s of CPU per run measured on a laptop
+    (2026-10-28), and more on Render's shared free-tier CPU. The context is
+    made once per worker process (each Celery prefork child makes its own)
+    and is safe to share; each call still opens its own connection, as before.
+    """
+    import httpx
+
+    global _judge0_ssl_context, _judge0_ssl_context_pid
+    if _judge0_ssl_context is None or _judge0_ssl_context_pid != os.getpid():
+        _judge0_ssl_context = httpx.create_ssl_context()
+        _judge0_ssl_context_pid = os.getpid()
+    return httpx.Client(timeout=httpx.Timeout(10.0), verify=_judge0_ssl_context)
+
+
+@worker_process_init.connect
+def _prepare_judge0_ssl_context(**_kwargs) -> None:
+    # Made when the worker process starts, so the first run doesn't wait for it.
+    try:
+        judge0_http_client().close()
+    except Exception:  # never stop the worker; the first run retries it
+        logger.exception("Could not prepare the Judge0 SSL context.")
+
+
 def judge0_dispatch_outcome(error: Exception) -> str:
     """
     What to do after a failed Judge0 submission, without paying twice:
@@ -104,7 +136,6 @@ def dispatch_practice_attempt(self, attempt_id: int) -> None:
     closed as failed, so the page stops waiting.
     """
 
-    import httpx
     from app.core.database import SessionLocal
     from app.services import practice_evaluation_service as practice
 
@@ -117,7 +148,7 @@ def dispatch_practice_attempt(self, attempt_id: int) -> None:
             return
 
         judge0_url, headers = judge0_connection()
-        with httpx.Client(timeout=httpx.Timeout(10.0)) as client:
+        with judge0_http_client() as client:
             response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload, headers=headers)
             response.raise_for_status()
     except Exception as error:
@@ -146,7 +177,6 @@ def dispatch_practice_attempt(self, attempt_id: int) -> None:
 
 @celery.task(bind=True, max_retries=3)
 def dispatch_to_partner(self, execution_request_id: str) -> None:
-    import httpx
     from app.core.database import SessionLocal
     from app.models.domain_models import ExecutionRequest
 
@@ -192,7 +222,7 @@ def dispatch_to_partner(self, execution_request_id: str) -> None:
         }
         
         # Dispatch to partner with base64_encoded=true
-        with httpx.Client(timeout=httpx.Timeout(10.0, read=10.0)) as client:
+        with judge0_http_client() as client:
             response = client.post(f"{judge0_url}/submissions?base64_encoded=true", json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
