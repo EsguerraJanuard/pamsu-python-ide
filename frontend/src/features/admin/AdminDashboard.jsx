@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 
 import SignOutModal from "../../components/layout/SignOutModal";
@@ -53,6 +54,8 @@ const ICONS = {
   chevronLeft: "M15 18l-6-6 6-6",
   copy: "M11 9h9a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-9a2 2 0 012-2zM5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1",
   tick: "M20 6L9 17l-5-5",
+  // Three dots; draw with a heavy stroke so the round caps read as dots.
+  dotsVertical: "M12 5h.01M12 12h.01M12 19h.01",
 };
 
 const TABS = [
@@ -746,6 +749,190 @@ const isGuestAccount = isGuestUser;
 const ROW_ACTION =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors disabled:cursor-not-allowed disabled:opacity-60";
 
+const MENU_GAP = 6;
+const MENU_MARGIN = 8;
+const MENU_ITEM_TONES = {
+  default: "text-text-main hover:bg-bg-alt focus-visible:bg-bg-alt",
+  danger: "text-text-rose hover:bg-psu-red/[0.06] focus-visible:bg-psu-red/[0.06]",
+  success: "text-text-emerald hover:bg-emerald-600/[0.07] focus-visible:bg-emerald-600/[0.07]",
+};
+
+/**
+ * The "⋮" button for one table row and its menu. The menu is rendered in a
+ * portal with fixed positioning, so the table's scroll wrapper and the card's
+ * rounded clipping never cut it off. It opens below the button (above when
+ * there is no room) and closes on a choice, Escape, Tab, an outside click,
+ * scrolling or resizing. Arrow keys, Home and End move between items.
+ *
+ * items: [{ id, label, hint?, icon, onSelect, disabled?, tone?, separatorBefore? }]
+ */
+function RowActionsMenu({ label, items, busy = false }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const menuId = useId();
+
+  const close = useCallback((returnFocus) => {
+    setIsOpen(false);
+    setPosition(null);
+    if (returnFocus) triggerRef.current?.focus();
+  }, []);
+
+  // Measure and place the menu before it is painted.
+  useLayoutEffect(() => {
+    if (!isOpen || !triggerRef.current || !menuRef.current) return;
+    const anchor = triggerRef.current.getBoundingClientRect();
+    const { offsetWidth: width, offsetHeight: height } = menuRef.current;
+    const roomBelow = window.innerHeight - anchor.bottom - MENU_GAP - MENU_MARGIN;
+    const above = height > roomBelow && anchor.top - MENU_GAP - MENU_MARGIN >= height;
+    setPosition({
+      top: above ? anchor.top - MENU_GAP - height : anchor.bottom + MENU_GAP,
+      left: Math.max(MENU_MARGIN, Math.min(anchor.right - width, window.innerWidth - width - MENU_MARGIN)),
+      above,
+    });
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !position) return;
+    menuRef.current?.querySelector('[role="menuitem"]:not(:disabled)')?.focus({ preventScroll: true });
+  }, [isOpen, position]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (menuRef.current?.contains(event.target) || triggerRef.current?.contains(event.target)) return;
+      close(false);
+    };
+    // A fixed menu would drift away from its row, so moving the page closes it.
+    const onViewportChange = () => close(false);
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+    };
+  }, [isOpen, close]);
+
+  const onMenuKeyDown = (event) => {
+    const options = [...menuRef.current.querySelectorAll('[role="menuitem"]:not(:disabled)')];
+    const index = options.indexOf(document.activeElement);
+    const focusAt = (i) => options[(i + options.length) % options.length]?.focus();
+    if (event.key === "ArrowDown") focusAt(index + 1);
+    else if (event.key === "ArrowUp") focusAt(index - 1);
+    else if (event.key === "Home") focusAt(0);
+    else if (event.key === "End") focusAt(options.length - 1);
+    else if (event.key === "Escape" || event.key === "Tab") close(true);
+    else return;
+    event.preventDefault();
+  };
+
+  const choose = (item) => {
+    // Focus goes back to the ⋮ button first, so a dialog the action opens
+    // returns focus there when it closes.
+    close(true);
+    item.onSelect();
+  };
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
+        aria-busy={busy || undefined}
+        title="More actions"
+        onClick={() => (isOpen ? close(false) : setIsOpen(true))}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" && !isOpen) {
+            event.preventDefault();
+            setIsOpen(true);
+          }
+        }}
+        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors ${
+          isOpen
+            ? "border-psu-maroon/40 bg-psu-cream text-text-brand"
+            : "border-border-subtle bg-bg-panel text-text-muted hover:border-border-strong hover:bg-bg-alt hover:text-text-main"
+        }`}
+      >
+        {busy ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="dotsVertical" className="h-4 w-4" strokeWidth={3} />}
+      </button>
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            id={menuId}
+            role="menu"
+            aria-label={label}
+            onKeyDown={onMenuKeyDown}
+            style={{ top: position?.top ?? 0, left: position?.left ?? 0, visibility: position ? "visible" : "hidden" }}
+            className={`fixed z-50 w-64 rounded-xl border border-border-subtle bg-bg-panel p-1.5 shadow-[0_16px_40px_-12px_var(--shadow-popover)] animate-scale-in ${
+              position?.above ? "origin-bottom-right" : "origin-top-right"
+            }`}
+          >
+            {items.map((item) => (
+              <div key={item.id}>
+                {item.separatorBefore && <div role="separator" className="mx-1 my-1.5 h-px bg-border-subtle" />}
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={item.disabled}
+                  onClick={() => choose(item)}
+                  className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${
+                    MENU_ITEM_TONES[item.tone || "default"]
+                  }`}
+                >
+                  <Icon name={item.icon} className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">{item.label}</span>
+                    {item.hint && <span className="mt-0.5 block text-xs font-normal leading-snug text-text-muted">{item.hint}</span>}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+/** The menu items for one account row; guests expire on their own, so they can only be suspended or reactivated. */
+function accountMenuItems(user, onAction, busy) {
+  const guest = isGuestAccount(user);
+  return [
+    !guest && user.role === "student" && {
+      id: "apply",
+      label: busy ? "Applying…" : "Re-apply pending enrollments",
+      hint: user.is_active ? "Enroll them in classes that queued their email." : "Activate the account first.",
+      icon: "refresh",
+      disabled: busy || !user.is_active,
+      onSelect: () => onAction(user, "apply"),
+    },
+    !guest && {
+      id: "reset",
+      label: "Reset password",
+      hint: "Shows you a one-time temporary password.",
+      icon: "key",
+      onSelect: () => onAction(user, "reset"),
+    },
+    {
+      id: "status",
+      label: user.is_active ? "Suspend account" : "Activate account",
+      hint: user.is_active ? "Blocks sign-in until it is activated again." : "Lets them sign in again.",
+      icon: user.is_active ? "ban" : "check",
+      tone: user.is_active ? "danger" : "success",
+      separatorBefore: !guest,
+      onSelect: () => onAction(user, "status"),
+    },
+  ].filter(Boolean);
+}
+
 function UserTable({ users, caption, emptyMessage, onAction, busyUserId = null }) {
   if (users.length === 0) {
     return (
@@ -755,47 +942,56 @@ function UserTable({ users, caption, emptyMessage, onAction, busyUserId = null }
     );
   }
   return (
+    // Fixed column widths keep the table inside a desktop card; the scroll
+    // wrapper is only a fallback for phones (the row menu is portaled, so it
+    // is never clipped by it).
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[820px] text-sm">
+      <table className="w-full min-w-[320px] table-fixed text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="border-b border-border-subtle bg-bg-alt/70">
           <tr>
             <th scope="col" className={TH}>Name</th>
-            <th scope="col" className={TH}>School ID</th>
-            <th scope="col" className={TH}>Status</th>
-            <th scope="col" className={`${TH} text-right`}>Actions</th>
+            <th scope="col" className={`${TH} hidden w-36 md:table-cell`}>School ID</th>
+            <th scope="col" className={`${TH} hidden w-32 sm:table-cell`}>Status</th>
+            <th scope="col" className={`${TH} w-28 text-right sm:w-36`}>Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border-subtle">
           {users.map((user) => {
             const guest = isGuestAccount(user);
             const busy = busyUserId === user.user_id;
+            const schoolId = user.school_id ? (
+              <span className="rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 font-mono text-xs text-text-main">{user.school_id}</span>
+            ) : (
+              <span className="text-text-muted">—</span>
+            );
             return (
             <tr key={user.user_id} className="transition-colors hover:bg-psu-cream/70">
               <td className="px-5 py-3.5">
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <Avatar name={user.name} />
                   <div className="min-w-0">
                     <p className="flex min-w-0 items-center gap-2">
-                      <span className="truncate font-semibold text-text-main">{user.name}</span>
+                      <span className="truncate font-semibold text-text-main" title={user.name}>{user.name}</span>
                       {guest && <Pill tone="warning">Guest</Pill>}
                     </p>
-                    <p className="truncate text-xs text-text-muted">{user.email}</p>
+                    <p className="truncate text-xs text-text-muted" title={user.email}>{user.email}</p>
+                    {/* Narrow screens hide the School ID (below md) and Status (below sm) columns; show them here instead. */}
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 md:hidden">
+                      {user.school_id && schoolId}
+                      <span className="sm:hidden">
+                        <Pill tone={user.is_active ? "success" : "neutral"}>{user.is_active ? "Active" : "Suspended"}</Pill>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </td>
-              <td className="px-5 py-3.5">
-                {user.school_id ? (
-                  <span className="rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 font-mono text-xs text-text-main">{user.school_id}</span>
-                ) : (
-                  <span className="text-text-muted">—</span>
-                )}
-              </td>
-              <td className="px-5 py-3.5">
+              <td className="hidden px-5 py-3.5 md:table-cell">{schoolId}</td>
+              <td className="hidden px-5 py-3.5 sm:table-cell">
                 <Pill tone={user.is_active ? "success" : "neutral"}>{user.is_active ? "Active" : "Suspended"}</Pill>
               </td>
               <td className="px-5 py-3.5">
-                <div className="flex justify-end gap-2">
+                <div className="flex items-center justify-end gap-2">
                   {/* Guest accounts expire on their own; they can only be suspended or reactivated. */}
                   {!guest && (
                     <button
@@ -805,46 +1001,11 @@ function UserTable({ users, caption, emptyMessage, onAction, busyUserId = null }
                       onClick={() => onAction(user, "edit")}
                     >
                       <Icon name="pencil" className="h-3.5 w-3.5" />
-                      Edit
+                      {/* Icon only on phones; the aria-label names it either way. */}
+                      <span className="hidden sm:inline">Edit</span>
                     </button>
                   )}
-                  {!guest && user.role === "student" && (
-                    <button
-                      type="button"
-                      className={`${ROW_ACTION} hover:border-psu-maroon/40 hover:bg-psu-cream hover:text-text-brand`}
-                      aria-label={`Re-apply pending class enrollments for ${user.name}`}
-                      title="Enroll this student in classes that queued their email"
-                      onClick={() => onAction(user, "apply")}
-                      disabled={busy || !user.is_active}
-                    >
-                      <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
-                      {busy ? "Applying…" : "Re-apply pending"}
-                    </button>
-                  )}
-                  {!guest && (
-                    <button
-                      type="button"
-                      className={`${ROW_ACTION} hover:border-border-strong hover:bg-bg-alt`}
-                      aria-label={`Reset password for ${user.name}`}
-                      onClick={() => onAction(user, "reset")}
-                    >
-                      <Icon name="key" className="h-3.5 w-3.5" />
-                      Reset password
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                      user.is_active
-                        ? "text-text-main hover:border-psu-red/40 hover:bg-psu-red/[0.05] hover:text-text-rose"
-                        : "text-text-main hover:border-emerald-600/40 hover:bg-emerald-600/[0.06] hover:text-text-emerald"
-                    }`}
-                    aria-label={`${user.is_active ? "Suspend" : "Activate"} ${user.name}`}
-                    onClick={() => onAction(user, "status")}
-                  >
-                    <Icon name={user.is_active ? "ban" : "check"} className="h-3.5 w-3.5" />
-                    {user.is_active ? "Suspend" : "Activate"}
-                  </button>
+                  <RowActionsMenu label={`More actions for ${user.name}`} items={accountMenuItems(user, onAction, busy)} busy={busy} />
                 </div>
               </td>
             </tr>
