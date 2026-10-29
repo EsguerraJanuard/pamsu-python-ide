@@ -5,6 +5,7 @@ import { DiffEditor } from "@monaco-editor/react";
 import PageShell from "../../../components/layout/PageShell";
 import ConfirmationModal from "../../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader } from "../../../components/ui/StateViews";
+import Switch from "../../../components/ui/Switch";
 import api, { API_BASE_URL, getErrorMessage } from "../../../services/api";
 import { ruleLabel } from "../../../utils/astRules";
 import { classLabel, formatDateTime, humanize } from "../../../utils/format";
@@ -306,12 +307,20 @@ function SubmissionReview({ submission, task, onGraded }) {
             />
           </div>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-main">
-            <input type="checkbox" checked={release} onChange={(e) => setRelease(e.target.checked)} className="h-4 w-4 accent-psu-maroon" disabled={isSaving} />
-            Release grade to the student
-          </label>
-          <button type="submit" disabled={isSaving} className="btn-primary">
+        <div className="flex flex-col gap-4 border-t border-border-subtle pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <Switch id="grade-release" checked={release} onChange={setRelease} disabled={isSaving} aria-describedby="grade-release-hint" />
+            <div className="min-w-0">
+              {/* leading-6 matches the switch's 24px height, so the label sits on its center line. */}
+              <label htmlFor="grade-release" className="block cursor-pointer text-sm font-medium leading-6 text-text-main">
+                Release grade to the student
+              </label>
+              <p id="grade-release-hint" className="text-xs text-text-muted">
+                {release ? "The student sees the score and feedback once you save." : "Hidden from the student until you release it."}
+              </p>
+            </div>
+          </div>
+          <button type="submit" disabled={isSaving} className="btn-primary w-full sm:w-auto">
             {isSaving ? "Saving…" : "Save grade"}
           </button>
         </div>

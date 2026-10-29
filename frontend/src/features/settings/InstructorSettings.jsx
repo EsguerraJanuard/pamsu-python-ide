@@ -1,21 +1,18 @@
 import { useState } from "react";
 
 import PageShell from "../../components/layout/PageShell";
-import CustomSelect from "../../components/ui/CustomSelect";
 import { InlineAlert, PageHeader } from "../../components/ui/StateViews";
 import api, { getErrorMessage } from "../../services/api";
+import { AST_STRICTNESS_LEVELS } from "../../utils/astRules";
 import { useAuth } from "../auth/AuthContext";
 import { ChangePasswordSection, ProfileSection, SettingsSection } from "./AccountSections";
-
-const STRICTNESS_OPTIONS = [
-  { value: "lax", label: "Lenient — focus on execution output" },
-  { value: "moderate", label: "Moderate — standard structural checks" },
-  { value: "strict", label: "Strict — enforce required structures rigidly" },
-];
+import StrictnessPicker from "./StrictnessPicker";
 
 function EvaluationPreferences() {
   const { user, updateUser } = useAuth();
-  const [strictness, setStrictness] = useState(user?.ast_strictness_level || "");
+  const savedStrictness = user?.ast_strictness_level || "";
+  const [strictness, setStrictness] = useState(savedStrictness);
+  const isDirty = strictness !== savedStrictness;
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -52,27 +49,27 @@ function EvaluationPreferences() {
           {message.text}
         </InlineAlert>
       )}
-      <form onSubmit={handleSave} noValidate className="space-y-4">
-        <div>
-          <label htmlFor="ast-strictness" className="field-label">
-            AST strictness
-          </label>
-          <CustomSelect
-            id="ast-strictness"
-            value={strictness}
-            onChange={setStrictness}
-            options={STRICTNESS_OPTIONS}
-            placeholder="Select a strictness level"
-            disabled={isSaving}
-          />
-          {!user?.ast_strictness_level && (
-            <p className="mt-1.5 text-xs text-text-muted">
-              Your current level isn&apos;t shown until you save one here. The server default is used until then.
-            </p>
-          )}
-        </div>
-        <div className="flex justify-end">
-          <button type="submit" disabled={isSaving || !strictness} className="btn-primary">
+      <form onSubmit={handleSave} noValidate className="space-y-5">
+        <StrictnessPicker
+          name="ast-strictness"
+          legend="AST strictness"
+          description="Choose how the structure check counts the required structures in your activities."
+          value={strictness}
+          onChange={(value) => {
+            setStrictness(value);
+            setMessage(null);
+          }}
+          disabled={isSaving}
+        />
+        <div className="flex flex-col gap-3 border-t border-border-subtle pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-text-muted">
+            {!savedStrictness
+              ? "No level saved yet: the MIS default is used until you save one here."
+              : isDirty
+                ? "Unsaved change."
+                : `Saved level: ${AST_STRICTNESS_LEVELS.find((level) => level.value === savedStrictness)?.label ?? savedStrictness}.`}
+          </p>
+          <button type="submit" disabled={isSaving || !strictness || !isDirty} className="btn-primary w-full sm:w-auto">
             {isSaving ? "Saving…" : "Save preference"}
           </button>
         </div>

@@ -13,6 +13,32 @@ export const DIFFICULTY_LEVELS = [
   { id: "expert", label: "Expert", definition: "Adds classes, exception handling, lambdas and other advanced constructs." },
 ];
 
+/**
+ * How strictly the checker counts each required structure. Values and
+ * behavior match evaluate_ast_details in backend/app/services/ast_evaluator.py.
+ */
+export const AST_STRICTNESS_LEVELS = [
+  {
+    value: "lax",
+    label: "Lenient",
+    rank: 1,
+    description: "A required structure passes once it appears at least once, whatever count you set.",
+  },
+  {
+    value: "moderate",
+    label: "Moderate",
+    rank: 2,
+    badge: "Recommended",
+    description: "Each required structure must appear at least as many times as you set.",
+  },
+  {
+    value: "strict",
+    label: "Strict",
+    rank: 3,
+    description: "Each required structure must appear exactly as many times as you set.",
+  },
+];
+
 export const AST_GROUPS = [
   {
     title: "Output & Input",

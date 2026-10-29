@@ -10,6 +10,7 @@ import { formatDate, formatDateTime, humanize } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
 import { isGuestUser } from "../auth/guest";
 import { ChangePasswordSection } from "../settings/AccountSections";
+import StrictnessPicker from "../settings/StrictnessPicker";
 import useUrlFilters from "../../hooks/useUrlFilters";
 
 const PAGE_SIZE = 50;
@@ -60,11 +61,8 @@ const TABS = [
   { id: "settings", label: "Settings" },
 ];
 
-const STRICTNESS = [
-  ["lax", "Lenient", "Focus on execution output; structural checks are relaxed."],
-  ["moderate", "Moderate", "Balanced structural checks (recommended)."],
-  ["strict", "Strict", "Required structures are enforced rigidly."],
-];
+// Account action results (a reset password, a suspension) close after this long.
+const NOTICE_DISMISS_MS = 60_000;
 
 const QUICK_ACTIONS = [
   { id: "add-faculty", icon: "userPlus", title: "Add a faculty account", text: "Invite an instructor; they set their own password.", tab: "faculty", focus: "provision-instructor-email" },
@@ -1342,6 +1340,17 @@ export default function AdminDashboard() {
   const [applyingUserId, setApplyingUserId] = useState(null);
   const [pendingRefresh, setPendingRefresh] = useState(0);
   const [actionMessage, setActionMessage] = useState(null);
+  const messageCount = useRef(0);
+  // A result message belongs to the section where its action started (the
+  // activeTab this handler saw), so a reply that lands after the admin moved
+  // on never shows up in another section.
+  const notify = (message) => {
+    messageCount.current += 1;
+    setActionMessage({ ...message, id: messageCount.current, tab: activeTab });
+  };
+  // Leaving a section by any route (tab button, Back/Forward, a link) takes
+  // its result message with it.
+  useEffect(() => () => setActionMessage(null), [activeTab]);
   const [bulkMessage, setBulkMessage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileRef = useRef(null);
@@ -1408,8 +1417,6 @@ export default function AdminDashboard() {
     settings && savedSettings && ["maintenance_mode", "default_ast_strictness"].some((k) => settings[k] !== savedSettings[k]);
 
   const showTab = (tab) => {
-    // A result message belongs to the section where the action happened.
-    if (tab !== activeTab) setActionMessage(null);
     if (tab === "audit") setAuditVisited(true);
     setPageFilters({ tab });
   };
@@ -1456,13 +1463,13 @@ export default function AdminDashboard() {
         already > 0 && `${plural(already, "queued class")} already had them`,
         waiting > 0 && `${plural(waiting, "class")} still waiting (archived or busy; try again later)`,
       ].filter(Boolean);
-      setActionMessage({
+      notify({
         tone: waiting > 0 ? "warning" : "success",
         text: parts.length ? `${user.name}: ${parts.join(", ")}.` : `${user.name} has no queued class enrollments.`,
       });
       setPendingRefresh((n) => n + 1);
     } catch (err) {
-      setActionMessage({
+      notify({
         tone: "error",
         text:
           err instanceof ApiError && err.status === 409
@@ -1484,7 +1491,7 @@ export default function AdminDashboard() {
       changed.includes("email") && `they now sign in as ${result.email}`,
       changed.includes("school_id") && `the school ID is now ${result.school_id}`,
     ].filter(Boolean);
-    setActionMessage({
+    notify({
       tone: "success",
       text:
         (parts.length ? `Saved ${previous?.name ?? "the account"}: ${parts.join(", and ")}.` : "No changes were needed.") +
@@ -1510,7 +1517,7 @@ export default function AdminDashboard() {
         ...accounts.map((u) => [u.user_id, u.name, u.email, u.school_id, u.is_active ? "Yes" : "No"]),
       ]);
     } catch (err) {
-      setActionMessage({ tone: "error", text: getErrorMessage(err, "The list could not be exported.") });
+      notify({ tone: "error", text: getErrorMessage(err, "The list could not be exported.") });
     } finally {
       setExportingRole(null);
     }
@@ -1524,13 +1531,13 @@ export default function AdminDashboard() {
       if (type === "status") {
         const res = await api.patch(`/admin/users/${user.user_id}/status`);
         updateListedUser(user.user_id, (u) => ({ ...u, is_active: res?.is_active ?? !u.is_active }));
-        setActionMessage({ tone: "success", text: `${user.name} is now ${(res?.is_active ?? !user.is_active) ? "active" : "suspended"}.` });
+        notify({ tone: "success", text: `${user.name} is now ${(res?.is_active ?? !user.is_active) ? "active" : "suspended"}.` });
       } else {
         await api.patch(`/admin/users/${user.user_id}/password`, { new_password: password });
-        setActionMessage({ tone: "success", text: `Password for ${user.email} was reset to ${password} — share it securely.` });
+        notify({ tone: "success", text: `Password for ${user.email} was reset to ${password} — share it securely.` });
       }
     } catch (err) {
-      setActionMessage({ tone: "error", text: getErrorMessage(err, "The action could not be completed.") });
+      notify({ tone: "error", text: getErrorMessage(err, "The action could not be completed.") });
     } finally {
       setIsActing(false);
       setUserAction(null);
@@ -1709,8 +1716,15 @@ export default function AdminDashboard() {
 
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 lg:py-8">
           <div key={activeTab} className="animate-page-fade mx-auto w-full max-w-6xl">
-            {actionMessage && (
-              <InlineAlert tone={actionMessage.tone} onDismiss={() => setActionMessage(null)} className="mb-5">
+            {actionMessage?.tab === activeTab && (
+              <InlineAlert
+                key={actionMessage.id}
+                tone={actionMessage.tone}
+                onDismiss={() => setActionMessage(null)}
+                // Results fade after a minute; errors stay until dismissed.
+                autoDismissMs={actionMessage.tone === "error" ? 0 : NOTICE_DISMISS_MS}
+                className="mb-5"
+              >
                 {actionMessage.text}
               </InlineAlert>
             )}
@@ -2119,42 +2133,21 @@ export default function AdminDashboard() {
                             </button>
                           </div>
                         </SettingRow>
-                        <fieldset className="px-5 py-5 sm:px-6">
-                          <legend className="sr-only">Default AST strictness</legend>
-                          <p className="text-sm font-semibold text-text-main" aria-hidden="true">
-                            Default AST strictness
-                          </p>
-                          <p className="mb-4 mt-0.5 text-sm text-text-muted">
-                            Starting level for new instructor accounts and the level used for practice modules. Instructors can change their own level in Settings.
-                          </p>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            {STRICTNESS.map(([value, label, help]) => (
-                              <label
-                                key={value}
-                                className="relative flex cursor-pointer flex-col rounded-xl border border-border-strong bg-bg-panel p-4 transition-colors hover:border-psu-maroon/40 has-[:checked]:border-psu-maroon has-[:checked]:bg-psu-cream has-[:checked]:ring-1 has-[:checked]:ring-psu-maroon"
-                              >
-                                <span className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    name="default-strictness"
-                                    value={value}
-                                    checked={settings.default_ast_strictness === value}
-                                    onChange={() => setSettings((prev) => ({ ...prev, default_ast_strictness: value }))}
-                                    className="accent-psu-maroon"
-                                  />
-                                  <span className="text-sm font-semibold text-text-main">{label}</span>
-                                </span>
-                                <span className="mt-1.5 block text-xs text-text-muted">{help}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </fieldset>
+                        <div className="px-5 py-5 sm:px-6">
+                          <StrictnessPicker
+                            name="default-strictness"
+                            legend="Default AST strictness"
+                            description="Starting level for new instructor accounts and the level used for practice modules. Instructors can change their own level in Settings."
+                            value={settings.default_ast_strictness}
+                            onChange={(value) => setSettings((prev) => ({ ...prev, default_ast_strictness: value }))}
+                          />
+                        </div>
                       </div>
                     </Panel>
                   )}
                   {/* Outside the settings form so it stays available when the
                       system settings fail to load. */}
-                  <ChangePasswordSection divided />
+                  <ChangePasswordSection />
                 </div>
               </div>
             )}

@@ -59,7 +59,9 @@ export default function PasswordInput({ id, disabled = false, className = "", ..
         aria-label={label}
         aria-controls={id}
         title={label}
-        className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-alt hover:text-text-main disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+        // inset-y-0 + my-auto centers the button on the input's own height
+        // (the input is display:block, so the wrapper is exactly that tall).
+        className="absolute inset-y-0 right-1.5 my-auto flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-alt hover:text-text-main disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
       >
         {visible ? <EyeOffIcon /> : <EyeIcon />}
       </button>

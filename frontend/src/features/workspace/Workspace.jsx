@@ -20,6 +20,11 @@ import { draftKeyFor, readDraft, saveDraft } from "./draftStorage";
 import { defineEditorThemes, editorThemeFor } from "./editorThemes";
 
 const BLANK_TEMPLATE = "# Write your solution below.\n";
+
+const WORKSPACE_VIEWS = [
+  { id: "problem", label: "Problem", icon: "M2 3h4a2 2 0 012 2v9a2 2 0 00-2-2H2V3zM14 3h-4a2 2 0 00-2 2v9a2 2 0 012-2h4V3z" },
+  { id: "session", label: "Session", icon: "M5 5L2 8l3 3M11 5l3 3-3 3M9 3l-2 10" },
+];
 // Checks for the run result follow utils/polling.js and stop after 30 s.
 const POLL_MAX_WAIT_MS = 30000;
 const SUBMIT_TIMEOUT_MS = 45000;
@@ -132,8 +137,11 @@ function ActivityWorkspace({ activityId, userId }) {
   const [lastBlockedPasteIso, setLastBlockedPasteIso] = useState(null);
   const runAttemptCount = tracking.session ? tracking.session.run_attempt_count : localRunCount;
 
-  const [showProblemPanel, setShowProblemPanel] = useState(() => window.matchMedia("(min-width: 1280px)").matches);
-  const [showReviewPanel, setShowReviewPanel] = useState(false);
+  // "problem" is for reading only; code is written and run on "session".
+  const [view, setView] = useState("problem");
+  const isCoding = view === "session";
+  // Below xl the session indicators open as an overlay; at xl they are docked.
+  const [showIndicators, setShowIndicators] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -191,11 +199,11 @@ function ActivityWorkspace({ activityId, userId }) {
     return () => window.clearTimeout(timer);
   }, [code, draftStorageKey, activity]);
 
+  // Shrinking below xl must not leave the indicators overlay covering the editor.
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1280px)");
     const handleScreenChange = (event) => {
-      setShowProblemPanel(event.matches);
-      if (!event.matches) setShowReviewPanel(false);
+      if (!event.matches) setShowIndicators(false);
     };
     desktopQuery.addEventListener("change", handleScreenChange);
     return () => desktopQuery.removeEventListener("change", handleScreenChange);
@@ -263,6 +271,7 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const handleRun = async () => {
+    if (!isCoding) return;
     setActivePanel("output");
     setExecutionStatus("running");
     setOutput("Sending your code to the sandbox…");
@@ -310,6 +319,7 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const handleCheck = async () => {
+    if (!isCoding) return;
     setActivePanel("analysis");
     setExecutionStatus("running");
     setAstError("");
@@ -327,7 +337,7 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const submitSolution = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || !isCoding) return;
     setIsSubmitting(true);
     try {
       // Send the last counts first so the linked session is complete; never
@@ -431,10 +441,27 @@ function ActivityWorkspace({ activityId, userId }) {
     code.split("\n").some((line) => line.trim() && !line.trim().startsWith("#")) &&
     code.trim() !== (activity.starter_code || "").trim();
 
-  const panelToggle = (pressed) =>
-    `flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-      pressed ? "bg-psu-maroon text-white" : "text-text-muted hover:bg-bg-alt hover:text-text-main"
-    }`;
+  const switchView = (next) => {
+    setView(next);
+    if (next !== "session") setShowIndicators(false);
+  };
+  // Tabs pattern: arrow keys (and Home/End) move between the two views.
+  const handleViewKeyDown = (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? "problem" : event.key === "End" ? "session" : isCoding ? "problem" : "session";
+    switchView(next);
+    document.getElementById(`workspace-tab-${next}`)?.focus();
+  };
+  const notCodingHint = "Open the Session tab to run and submit your code.";
+  const startCodingButton = (
+    <button type="button" onClick={() => switchView("session")} className="btn-primary shrink-0">
+      Start coding
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 8h10M9 4l4 4-4 4" />
+      </svg>
+    </button>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
@@ -455,29 +482,35 @@ function ActivityWorkspace({ activityId, userId }) {
                 <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
-            <div className="flex items-center gap-1 rounded-lg border border-border-subtle bg-bg-alt p-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowProblemPanel((v) => !v);
-                  if (window.innerWidth < 1536) setShowReviewPanel(false);
-                }}
-                aria-pressed={showProblemPanel}
-                className={panelToggle(showProblemPanel)}
-              >
-                Problem
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowReviewPanel((v) => !v);
-                  if (window.innerWidth < 1536) setShowProblemPanel(false);
-                }}
-                aria-pressed={showReviewPanel}
-                className={panelToggle(showReviewPanel)}
-              >
-                Session
-              </button>
+            <div
+              role="tablist"
+              aria-label="Workspace view"
+              onKeyDown={handleViewKeyDown}
+              className="flex items-center gap-1 rounded-lg border border-border-subtle bg-bg-alt p-0.5"
+            >
+              {WORKSPACE_VIEWS.map((tab) => {
+                const selected = view === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    id={`workspace-tab-${tab.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    aria-controls={`workspace-view-${tab.id}`}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => switchView(tab.id)}
+                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                      selected ? "bg-psu-maroon text-white shadow-sm" : "text-text-muted hover:bg-bg-panel hover:text-text-main"
+                    }`}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d={tab.icon} />
+                    </svg>
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
             <div className="hidden min-w-0 sm:block">
               <p className="truncate text-sm font-semibold text-text-main">{activity.title}</p>
@@ -494,10 +527,23 @@ function ActivityWorkspace({ activityId, userId }) {
             <div className="w-9 shrink-0 lg:hidden">
               <ThemeToggle collapsed tooltipSide="bottom" />
             </div>
-            <button type="button" onClick={handleCheck} disabled={isBusy} className="btn-secondary btn-sm">
+            {/* Disabled rather than hidden on the Problem tab, so the header never shifts. */}
+            <button
+              type="button"
+              onClick={handleCheck}
+              disabled={!isCoding || isBusy}
+              title={!isCoding ? notCodingHint : undefined}
+              className="btn-secondary btn-sm"
+            >
               Check structure
             </button>
-            <button type="button" onClick={handleRun} disabled={isBusy} className="btn-secondary btn-sm">
+            <button
+              type="button"
+              onClick={handleRun}
+              disabled={!isCoding || isBusy}
+              title={!isCoding ? notCodingHint : undefined}
+              className="btn-secondary btn-sm"
+            >
               <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M4 2.5v11l9-5.5-9-5.5z" />
               </svg>
@@ -506,8 +552,8 @@ function ActivityWorkspace({ activityId, userId }) {
             <button
               type="button"
               onClick={() => setConfirmAction("submit")}
-              disabled={isBusy || isSubmitting || !hasOwnCode}
-              title={!hasOwnCode ? "Write your solution before submitting." : undefined}
+              disabled={!isCoding || isBusy || isSubmitting || !hasOwnCode}
+              title={!isCoding ? notCodingHint : !hasOwnCode ? "Write your solution before submitting." : undefined}
               className="btn-primary btn-sm"
             >
               Submit
@@ -529,125 +575,154 @@ function ActivityWorkspace({ activityId, userId }) {
           </div>
         )}
 
-        {(showProblemPanel || showReviewPanel) && (
+        {showIndicators && (
           <button
             type="button"
-            onClick={() => {
-              setShowProblemPanel(false);
-              setShowReviewPanel(false);
-            }}
+            onClick={() => setShowIndicators(false)}
             className="fixed inset-0 z-40 bg-overlay xl:hidden"
-            aria-label="Close side panel"
+            aria-label="Close session indicators"
           />
         )}
 
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          {showProblemPanel && (
-            <aside
-              className="fixed inset-y-0 left-0 z-50 flex w-[88vw] max-w-[360px] flex-col overflow-hidden border-r border-border-subtle bg-bg-panel xl:static xl:z-auto xl:w-[340px]"
-              aria-label="Problem statement"
+          {view === "problem" && (
+            <section
+              id="workspace-view-problem"
+              role="tabpanel"
+              aria-labelledby="workspace-tab-problem"
+              className="min-h-0 flex-1 overflow-y-auto"
             >
-              <div className="flex items-start justify-between gap-3 border-b border-border-subtle p-4">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-text-brand">Problem</p>
-                  <h2 className="mt-1 text-sm font-bold text-text-main">{activity.title}</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowProblemPanel(false)}
-                  className="btn-ghost btn-sm xl:hidden"
-                  aria-label="Close problem panel"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="flex-1 space-y-4 overflow-y-auto p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`badge ${pastDue ? "badge-danger" : "badge-gold"}`}>{pastDue ? `Past due · ${dueLabel.replace("Due ", "")}` : dueLabel}</span>
-                  <span className="badge badge-neutral">{activity.activity_type === "homework" ? "Homework" : "Laboratory"}</span>
+              <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+                <div className="flex flex-col gap-4 border-b border-border-subtle pb-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-text-brand">Problem</p>
+                    <h1 className="mt-1 text-xl font-bold tracking-tight text-text-main sm:text-2xl">{activity.title}</h1>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className={`badge ${pastDue ? "badge-danger" : "badge-gold"}`}>{pastDue ? `Past due · ${dueLabel.replace("Due ", "")}` : dueLabel}</span>
+                      <span className="badge badge-neutral">{activity.activity_type === "homework" ? "Homework" : "Laboratory"}</span>
+                    </div>
+                  </div>
+                  {startCodingButton}
                 </div>
 
-                {activity.description && (
-                  <section>
-                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Problem description</h3>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">{activity.description}</p>
-                  </section>
-                )}
+                <div className="mt-6 space-y-7">
+                  {activity.description && (
+                    <section>
+                      <h2 className="mb-2 text-sm font-semibold text-text-main">Problem description</h2>
+                      <p className="whitespace-pre-wrap text-[15px] leading-7 text-text-main">{activity.description}</p>
+                    </section>
+                  )}
 
-                {activity.scenario && (
-                  <section>
-                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Real-world scenario</h3>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">{activity.scenario}</p>
-                  </section>
-                )}
+                  {activity.scenario && (
+                    <section>
+                      <h2 className="mb-2 text-sm font-semibold text-text-main">Real-world scenario</h2>
+                      <p className="whitespace-pre-wrap text-[15px] leading-7 text-text-main">{activity.scenario}</p>
+                    </section>
+                  )}
 
-                {(activity.instructions || !activity.description) && (
+                  {(activity.instructions || !activity.description) && (
+                    <section>
+                      <h2 className="mb-2 text-sm font-semibold text-text-main">Instructions</h2>
+                      <p className="whitespace-pre-wrap text-[15px] leading-7 text-text-main">
+                        {activity.instructions || "No instructions were provided for this activity."}
+                      </p>
+                    </section>
+                  )}
+
+                  {activity.requirements.length > 0 && (
+                    <section>
+                      <h2 className="mb-2 text-sm font-semibold text-text-main">Required structures</h2>
+                      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {activity.requirements.map((rule) => {
+                          const count = ruleMinCount(activity.required_ast_rules[rule]);
+                          return (
+                            <li key={rule} className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-panel px-3 py-2 text-sm text-text-main">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-psu-gold" aria-hidden="true" />
+                              {ruleLabel(rule)}
+                              {count > 1 && <span className="text-xs text-text-muted">at least {count}</span>}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  )}
+
                   <section>
-                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Instructions</h3>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
-                      {activity.instructions || "No instructions were provided for this activity."}
+                    <h2 className="mb-2 text-sm font-semibold text-text-main">Sample cases</h2>
+                    {sampleCases.length === 0 ? (
+                      <p className="text-sm text-text-muted">No sample input/output was published for this activity.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {sampleCases.map((sample) => (
+                          <div key={sample.test_case_id} className="overflow-hidden rounded-lg border border-border-subtle bg-bg-panel">
+                            <p className="border-b border-border-subtle bg-bg-alt px-3 py-2 text-xs font-semibold text-text-main">{sample.name}</p>
+                            <div className={`grid grid-cols-1 ${sample.standard_input ? "sm:grid-cols-2 sm:divide-x" : ""} divide-border-subtle`}>
+                              {sample.standard_input && (
+                                <div className="p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Input</p>
+                                  <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-xs text-text-main">{sample.standard_input}</pre>
+                                </div>
+                              )}
+                              <div className="border-t border-border-subtle p-3 sm:border-t-0">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Expected output</p>
+                                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-xs text-text-main">{sample.expected_output}</pre>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="rounded-lg border border-psu-maroon/15 bg-selected p-4">
+                    <h2 className="text-xs font-bold text-text-brand">Clipboard policy</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-text-muted">
+                      {activity.pasteDisabled
+                        ? "Pasting is turned off for this activity. Type your solution in the editor."
+                        : "Pasting from outside the workspace is blocked. Use the Copy, Cut and Paste buttons above the editor to move code within it."}
                     </p>
                   </section>
-                )}
+                </div>
 
-                {activity.requirements.length > 0 && (
-                  <section>
-                    <h3 className="mb-1.5 text-sm font-bold text-text-main">Required structures</h3>
-                    <ul className="space-y-1.5">
-                      {activity.requirements.map((rule) => {
-                        const count = ruleMinCount(activity.required_ast_rules[rule]);
-                        return (
-                          <li key={rule} className="flex items-center gap-2 text-sm text-text-muted">
-                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-psu-gold" aria-hidden="true" />
-                            {ruleLabel(rule)}
-                            {count > 1 ? ` (at least ${count})` : ""}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </section>
-                )}
-
-                <section>
-                  <h3 className="mb-1.5 text-xs font-bold text-text-main">Sample cases</h3>
-                  {sampleCases.length === 0 ? (
-                    <p className="text-xs text-text-muted">No sample input/output was published for this activity.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {sampleCases.map((sample) => (
-                        <div key={sample.test_case_id} className="rounded-lg border border-border-subtle bg-bg-alt p-3">
-                          <p className="mb-1.5 text-[11px] font-semibold text-text-main">{sample.name}</p>
-                          {sample.standard_input && (
-                            <>
-                              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Input</p>
-                              <pre className="mb-2 overflow-x-auto whitespace-pre-wrap font-mono text-[11px] text-text-main">{sample.standard_input}</pre>
-                            </>
-                          )}
-                          <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Expected output</p>
-                          <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[11px] text-text-main">{sample.expected_output}</pre>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-
-                <section className="rounded-lg border border-psu-maroon/15 bg-selected p-3">
-                  <h3 className="text-xs font-bold text-text-brand">Clipboard policy</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                    {activity.pasteDisabled
-                      ? "Pasting is turned off for this activity. Type your solution in the editor."
-                      : "Pasting from outside the workspace is blocked. Use the Copy, Cut and Paste buttons above the editor to move code within it."}
-                  </p>
-                </section>
+                <div className="mt-8 flex flex-col gap-4 rounded-xl border border-border-subtle bg-bg-panel p-4 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                  <div>
+                    <p className="text-sm font-semibold text-text-main">Ready to write your solution?</p>
+                    <p className="mt-0.5 text-sm text-text-muted">
+                      Switch to the Session tab to start coding. Your draft is kept when you come back to re-read the problem.
+                    </p>
+                  </div>
+                  {startCodingButton}
+                </div>
               </div>
-            </aside>
+            </section>
           )}
 
-          <main className="flex min-w-0 flex-1 flex-col">
+          {/* Hidden (not unmounted) on the Problem tab: the editor keeps the
+              draft, undo history and last output for when the student returns. */}
+          <main
+            id="workspace-view-session"
+            role="tabpanel"
+            aria-labelledby="workspace-tab-session"
+            className={`${isCoding ? "flex" : "hidden"} min-w-0 flex-1 flex-col`}
+          >
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-subtle bg-bg-panel px-3 py-1.5">
               <span className="font-mono text-xs font-semibold text-text-main">main.py</span>
               <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowIndicators((open) => !open)}
+                  aria-pressed={showIndicators}
+                  aria-controls="workspace-indicators"
+                  className="btn-ghost btn-sm px-2 sm:px-3 xl:hidden"
+                  title="Show the session indicators your instructor sees"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M1.5 8h3l2-4.5 3 9 2-4.5h3" />
+                  </svg>
+                  {/* Icon only on phones, so the toolbar still fits next to Reset. */}
+                  <span className="sr-only sm:not-sr-only">Indicators</span>
+                </button>
+                <span className="mx-1 h-4 w-px bg-border-subtle xl:hidden" aria-hidden="true" />
                 <button type="button" onClick={copySelection} className="btn-ghost btn-sm" title="Copy selection to workspace clipboard">
                   Copy
                 </button>
@@ -699,6 +774,8 @@ function ActivityWorkspace({ activityId, userId }) {
                   }}
                   loading={<LoadingState label="Starting editor…" />}
                   options={{
+                    // Guard in case focus lingers after switching to the Problem tab.
+                    readOnly: !isCoding,
                     minimap: { enabled: Boolean(settings.minimap) },
                     fontSize: settings.fontSize,
                     tabSize: settings.tabSize,
@@ -813,14 +890,16 @@ function ActivityWorkspace({ activityId, userId }) {
             </section>
           </main>
 
-          {showReviewPanel && (
+          {/* Part of the Session tab: docked at xl, an overlay below it. */}
+          {isCoding && (
             <aside
-              className="fixed inset-y-0 right-0 z-50 flex w-[88vw] max-w-[320px] flex-col overflow-hidden border-l border-border-subtle bg-bg-panel xl:static xl:z-auto xl:w-[270px]"
+              id="workspace-indicators"
+              className={`${showIndicators ? "flex" : "hidden"} fixed inset-y-0 right-0 z-50 w-[88vw] max-w-[320px] flex-col overflow-hidden border-l border-border-subtle bg-bg-panel xl:static xl:z-auto xl:flex xl:w-[270px]`}
               aria-label="Session indicators"
             >
               <div className="flex items-center justify-between border-b border-border-subtle p-4">
-                <h2 className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Session</h2>
-                <button type="button" onClick={() => setShowReviewPanel(false)} className="btn-ghost btn-sm" aria-label="Close session panel">
+                <h2 className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Session indicators</h2>
+                <button type="button" onClick={() => setShowIndicators(false)} className="btn-ghost btn-sm xl:hidden" aria-label="Close session indicators">
                   ✕
                 </button>
               </div>

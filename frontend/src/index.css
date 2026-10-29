@@ -221,7 +221,12 @@ body {
   }
   /* Password field with its show/hide button inside the right edge (components/ui/PasswordInput.jsx). */
   .input-password {
-    @apply h-11 w-full rounded-xl border border-border-strong bg-bg-panel pl-3.5 pr-12 text-sm text-text-main shadow-sm transition-[border-color,box-shadow] placeholder:text-[var(--text-placeholder)] hover:border-text-muted/60 focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-border-focus/15 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted disabled:shadow-none aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/15;
+    @apply block h-11 w-full rounded-lg border border-border-strong bg-bg-panel pl-3.5 pr-11 text-sm text-text-main shadow-sm transition-[border-color,box-shadow] placeholder:text-[var(--text-placeholder)] hover:border-text-muted/60 focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-border-focus/15 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted disabled:shadow-none aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/15;
+  }
+  /* Edge draws its own reveal eye in password fields; ours replaces it. */
+  .input-password::-ms-reveal,
+  .input-password::-ms-clear {
+    display: none;
   }
   .badge {
     @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold;

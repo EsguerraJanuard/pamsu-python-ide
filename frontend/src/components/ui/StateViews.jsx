@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+
 import { describeApiError } from "../../services/api";
 
 /*
@@ -141,13 +143,55 @@ const ALERT_TONES = {
   warning: "border-psu-gold/60 bg-psu-gold/[0.14] text-text-amber",
 };
 
-/** Non-blocking inline message (form result, page notice). */
-export function InlineAlert({ tone = "info", children, onDismiss, className = "" }) {
+/**
+ * Calls `onDone` once `ms` have passed, not counting time spent paused, so a
+ * message being read (pointer over it) or copied (focus inside it) stays put.
+ */
+function useDismissTimer(ms, paused, onDone) {
+  const remaining = useRef(ms);
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+  useEffect(() => {
+    if (!ms || paused) return undefined;
+    const startedAt = Date.now();
+    const timer = window.setTimeout(() => onDoneRef.current?.(), remaining.current);
+    return () => {
+      window.clearTimeout(timer);
+      remaining.current = Math.max(0, remaining.current - (Date.now() - startedAt));
+    };
+  }, [ms, paused]);
+}
+
+/**
+ * Non-blocking inline message (form result, page notice).
+ * With `autoDismissMs` (and `onDismiss`) it closes itself after that long,
+ * pausing while hovered or focused. Give each new message its own `key` so it
+ * starts with a full timer.
+ */
+export function InlineAlert({ tone = "info", children, onDismiss, autoDismissMs = 0, className = "" }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [hasFocus, setHasFocus] = useState(false);
+  const timed = Boolean(onDismiss && autoDismissMs > 0);
+  useDismissTimer(timed ? autoDismissMs : 0, isHovered || hasFocus, onDismiss);
+  const pauseHandlers = timed
+    ? {
+        onMouseEnter: () => setIsHovered(true),
+        onMouseLeave: () => setIsHovered(false),
+        onFocus: () => setHasFocus(true),
+        onBlur: (event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setHasFocus(false);
+        },
+      }
+    : {};
+
   return (
     <div
       role={tone === "error" ? "alert" : "status"}
       aria-live="polite"
       className={`flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${ALERT_TONES[tone] || ALERT_TONES.info} ${className}`}
+      {...pauseHandlers}
     >
       <div className="min-w-0 flex-1">{children}</div>
       {onDismiss && (
