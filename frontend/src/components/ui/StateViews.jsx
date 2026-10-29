@@ -147,7 +147,7 @@ const ALERT_TONES = {
  * Calls `onDone` once `ms` have passed, not counting time spent paused, so a
  * message being read (pointer over it) or copied (focus inside it) stays put.
  */
-function useDismissTimer(ms, paused, onDone) {
+export function useDismissTimer(ms, paused, onDone) {
   const remaining = useRef(ms);
   const onDoneRef = useRef(onDone);
   useEffect(() => {
