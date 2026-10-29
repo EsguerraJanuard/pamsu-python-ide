@@ -413,6 +413,15 @@ class PendingEnrollmentList(BaseModel):
     total: int
     ready: int
     items: List[PendingEnrollmentRow]
+    # Tells the dashboard this server has DELETE /admin/pending-enrollments/{id};
+    # an older server leaves it out, so the Remove button stays hidden there.
+    can_remove: bool = True
+
+
+class PendingEnrollmentRemoved(BaseModel):
+    pending_id: int
+    class_id: int
+    email: str
 
 
 def _pending_enrollment_query(db: Session):
@@ -499,6 +508,46 @@ def list_pending_enrollments(
             ready=is_ready,
         ))
     return PendingEnrollmentList(total=total, ready=ready_count, items=items)
+
+
+@router.delete("/pending-enrollments/{pending_id}", response_model=PendingEnrollmentRemoved)
+def remove_pending_enrollment(
+    pending_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    """Remove one queued class enrollment, such as a mistyped address.
+
+    Only the queued row goes: no account or enrollment is touched, and the
+    instructor can queue the address again. The removal is recorded as a
+    classroom_updated audit event for the class (the same event type the guest
+    sandbox uses for its own change), without the address itself.
+    """
+    pending = db.get(PendingEnrollment, pending_id)
+    if pending is None:
+        raise HTTPException(
+            status_code=404,
+            detail="This queued enrollment no longer exists. It may have been applied or removed already.",
+        )
+    removed = PendingEnrollmentRemoved(pending_id=pending.pending_id, class_id=pending.class_id, email=pending.email)
+    try:
+        db.delete(pending)
+        record_admin_action(
+            db,
+            actor_user_id=current_admin.user_id,
+            action_type="classroom_updated",
+            resource_type="classroom",
+            resource_id=removed.class_id,
+            audit_data={
+                "changed_fields": ["pending_enrollments"],
+                "reason": "queued_enrollment_removed_by_mis",
+                "pending_id": removed.pending_id,
+            },
+        )
+        db.commit()
+    except AdminAuditError as exc:
+        raise _audit_unavailable(db, exc) from exc
+    return removed
 
 
 class GuestCreate(_AccountCreateBase):

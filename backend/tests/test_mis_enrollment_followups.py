@@ -251,6 +251,64 @@ def test_instructors_cannot_list_queued_addresses(client, people, queued):
     assert client.get("/admin/pending-enrollments", headers=auth(people["instructor"])).status_code == 403
 
 
+# ------------------------------------------------------------ removing a queued address
+
+
+TYPO = f"2026000099{DOMAIN}"
+
+
+def test_mis_can_remove_a_queued_address(client, db_session, people, queued):
+    admin = auth(people["admin"])
+    listed = client.get("/admin/pending-enrollments?state=waiting", headers=admin).json()
+    assert listed["can_remove"] is True
+    row = next(item for item in listed["items"] if item["email"] == TYPO)
+
+    response = client.delete(f"/admin/pending-enrollments/{row['pending_id']}", headers=admin)
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"pending_id": row["pending_id"], "class_id": queued["active"].class_id, "email": TYPO}
+    after = client.get("/admin/pending-enrollments", headers=admin).json()
+    assert after["total"] == 3
+    assert TYPO not in {item["email"] for item in after["items"]}
+    # Only the queued row goes: nobody is enrolled or unenrolled.
+    assert db_session.query(Enrollment).count() == 0
+    records = [r for r in audits(db_session, "classroom_updated")
+               if r.audit_data.get("reason") == "queued_enrollment_removed_by_mis"]
+    assert len(records) == 1
+    record = records[0]
+    assert (record.resource_type, record.resource_id, record.actor_user_id) == (
+        "classroom", str(queued["active"].class_id), people["admin"].user_id)
+    # The address itself stays out of the audit trail.
+    assert "2026000099" not in str(record.audit_data)
+
+
+def test_removing_a_row_that_is_already_gone_is_a_404(client, people, queued):
+    assert client.delete("/admin/pending-enrollments/999999", headers=auth(people["admin"])).status_code == 404
+
+
+def test_only_mis_can_remove_queued_addresses(client, db_session, people, queued):
+    pending_id = db_session.query(PendingEnrollment.pending_id).first()[0]
+
+    for who in ("instructor", "student"):
+        response = client.delete(f"/admin/pending-enrollments/{pending_id}", headers=auth(people[who]))
+        assert response.status_code == 403, who
+    db_session.expire_all()
+    assert db_session.query(PendingEnrollment).count() == 4
+
+
+def test_a_removed_address_is_not_enrolled_when_its_account_is_created(client, db_session, people, queued):
+    admin = auth(people["admin"])
+    row = db_session.query(PendingEnrollment).filter(PendingEnrollment.email == TYPO).one()
+    assert client.delete(f"/admin/pending-enrollments/{row.pending_id}", headers=admin).status_code == 200
+
+    created = client.post("/admin/students", headers=admin, json={
+        "email": TYPO, "first_name": "Late", "last_name": "Student", "school_id": "2026000099",
+    })
+
+    assert created.status_code == 200, created.text
+    assert created.json()["pending_enrollments"]["enrolled_class_ids"] == []
+
+
 # ------------------------------------------------------------ item 9
 
 

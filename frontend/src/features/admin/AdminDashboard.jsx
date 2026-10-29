@@ -56,6 +56,7 @@ const ICONS = {
   tick: "M20 6L9 17l-5-5",
   // Three dots; draw with a heavy stroke so the round caps read as dots.
   dotsVertical: "M12 5h.01M12 12h.01M12 19h.01",
+  trash: "M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6",
 };
 
 const TABS = [
@@ -1290,6 +1291,11 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
   const [error, setError] = useState(null);
   const [unsupported, setUnsupported] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // The row waiting for "Remove" to be confirmed, and the result shown after.
+  const [removing, setRemoving] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removeResult, setRemoveResult] = useState(null);
+  const resultCount = useRef(0);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -1308,107 +1314,180 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
     load();
   }, [load, refreshKey]);
 
+  const classLabelOf = (item) => [item.class_name, item.subject_code, item.section].filter(Boolean).join(" · ");
+
+  const showRemoveResult = (tone, text) => {
+    resultCount.current += 1;
+    setRemoveResult({ id: resultCount.current, tone, text });
+  };
+
+  const confirmRemove = async () => {
+    if (!removing || isRemoving) return;
+    const item = removing;
+    setIsRemoving(true);
+    try {
+      await api.delete(`/admin/pending-enrollments/${item.pending_id}`);
+      showRemoveResult("success", `Removed ${item.email} from the queue for ${classLabelOf(item)}.`);
+    } catch (err) {
+      if (err?.status === 404) showRemoveResult("info", `${item.email} was already applied or removed.`);
+      else showRemoveResult("error", getErrorMessage(err, "The queued enrollment could not be removed."));
+    } finally {
+      setIsRemoving(false);
+      setRemoving(null);
+      load();
+    }
+  };
+
   return (
-    <Panel
-      title="Queued class enrollments"
-      description="Addresses instructors added to a class before the student had an account. Only MIS sees them."
-      icon="classroom"
-      flush
-      actions={
-        !unsupported && (
+    <>
+      <Panel
+        title="Queued class enrollments"
+        description="Addresses instructors added to a class before the student had an account. Only MIS sees them."
+        icon="classroom"
+        flush
+        actions={
+          !unsupported && (
+            <>
+              {data && !error && (
+                <span className="badge badge-neutral tabular-nums" aria-live="polite">
+                  {plural(data.ready ?? 0, "ready enrollment")}
+                </span>
+              )}
+              <div className="flex gap-1 rounded-lg border border-border-subtle bg-bg-panel p-1" role="group" aria-label="Show queued enrollments">
+                {PENDING_VIEWS.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={view === value}
+                    onClick={() => setView(value)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      view === value ? "bg-psu-maroon text-white" : "text-text-muted hover:bg-bg-alt hover:text-text-main"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )
+        }
+      >
+        {unsupported ? (
+          <div className="p-5 sm:p-6">
+            <InlineAlert tone="info">
+              This list appears after the next server update. Until then, use &ldquo;Re-apply pending enrollments&rdquo; in a
+              student&apos;s &#8942; menu in the directory.
+            </InlineAlert>
+          </div>
+        ) : error ? (
+          <div className="p-5 sm:p-6">
+            <AdminErrorState error={error} resource="queued enrollments" onRetry={load} />
+          </div>
+        ) : !data ? (
+          <ListSkeleton rows={3} />
+        ) : (
           <>
-            {data && !error && (
-              <span className="badge badge-neutral tabular-nums" aria-live="polite">
-                {plural(data.ready ?? 0, "ready enrollment")}
-              </span>
-            )}
-            <div className="flex gap-1 rounded-lg border border-border-subtle bg-bg-panel p-1" role="group" aria-label="Show queued enrollments">
-              {PENDING_VIEWS.map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={view === value}
-                  onClick={() => setView(value)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    view === value ? "bg-psu-maroon text-white" : "text-text-muted hover:bg-bg-alt hover:text-text-main"
-                  }`}
+            {removeResult && (
+              <div className="px-5 pt-4 sm:px-6">
+                <InlineAlert
+                  key={removeResult.id}
+                  tone={removeResult.tone}
+                  onDismiss={() => setRemoveResult(null)}
+                  autoDismissMs={removeResult.tone === "error" ? 0 : NOTICE_DISMISS_MS}
                 >
-                  {label}
-                </button>
-              ))}
-            </div>
+                  {removeResult.text}
+                </InlineAlert>
+              </div>
+            )}
+            {data.items.length === 0 ? (
+              <div className="p-5 sm:p-6">
+                <EmptyState
+                  className="py-8"
+                  title={view === "ready" ? "Nothing to apply" : "Nothing waiting"}
+                  message={
+                    view === "ready"
+                      ? "Every queued address with an active student account has been enrolled."
+                      : "No queued address is waiting for an account or a reactivated class."
+                  }
+                />
+              </div>
+            ) : (
+              <div aria-busy={isLoading} className={`transition-opacity ${isLoading ? "opacity-60" : ""}`}>
+                <ul className="divide-y divide-border-subtle">
+                  {data.items.map((item) => {
+                    const status = pendingStatus(item);
+                    // Rows with no account have user_id null, as busyUserId is when idle.
+                    const busy = item.user_id != null && busyUserId === item.user_id;
+                    return (
+                      <li key={item.pending_id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center sm:px-6">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-text-main">{item.student_name || item.email}</p>
+                          <p className="truncate text-xs text-text-muted">
+                            {item.student_name ? `${item.email} · ` : ""}
+                            {classLabelOf(item)}
+                            {" · queued "}
+                            {formatDate(item.queued_at)}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Pill tone={status.tone}>{status.text}</Pill>
+                          {item.ready && (
+                            <button
+                              type="button"
+                              className="btn-secondary btn-sm"
+                              disabled={busyUserId !== null}
+                              onClick={() => onApply({ user_id: item.user_id, name: item.student_name || item.email, is_active: true })}
+                              aria-label={`Apply queued enrollments for ${item.student_name || item.email}`}
+                            >
+                              <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+                              {busy ? "Applying…" : "Apply"}
+                            </button>
+                          )}
+                          {/* Shown only when the server says it supports removal (can_remove). */}
+                          {data.can_remove && (
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm text-text-rose hover:bg-psu-red/[0.06] hover:text-text-rose"
+                              disabled={isRemoving || busy}
+                              onClick={() => setRemoving(item)}
+                              aria-label={`Remove queued enrollment for ${item.email} in ${classLabelOf(item)}`}
+                              title="Remove this address from the queue (for example a typo)"
+                            >
+                              <Icon name="trash" className="h-3.5 w-3.5" />
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {data.total > data.items.length && (
+                  <p className="border-t border-border-subtle px-5 py-3 text-xs text-text-muted sm:px-6">
+                    Showing the newest {data.items.length} of {data.total}.
+                  </p>
+                )}
+              </div>
+            )}
           </>
-        )
-      }
-    >
-      {unsupported ? (
-        <div className="p-5 sm:p-6">
-          <InlineAlert tone="info">
-            This list appears after the next server update. Until then, use &ldquo;Re-apply pending&rdquo; on a student&apos;s row in the directory.
-          </InlineAlert>
-        </div>
-      ) : error ? (
-        <div className="p-5 sm:p-6">
-          <AdminErrorState error={error} resource="queued enrollments" onRetry={load} />
-        </div>
-      ) : !data ? (
-        <ListSkeleton rows={3} />
-      ) : data.items.length === 0 ? (
-        <div className="p-5 sm:p-6">
-          <EmptyState
-            className="py-8"
-            title={view === "ready" ? "Nothing to apply" : "Nothing waiting"}
-            message={
-              view === "ready"
-                ? "Every queued address with an active student account has been enrolled."
-                : "No queued address is waiting for an account or a reactivated class."
-            }
-          />
-        </div>
-      ) : (
-        <div aria-busy={isLoading} className={`transition-opacity ${isLoading ? "opacity-60" : ""}`}>
-          <ul className="divide-y divide-border-subtle">
-            {data.items.map((item) => {
-              const status = pendingStatus(item);
-              const busy = busyUserId === item.user_id;
-              return (
-                <li key={item.pending_id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center sm:px-6">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-text-main">{item.student_name || item.email}</p>
-                    <p className="truncate text-xs text-text-muted">
-                      {item.student_name ? `${item.email} · ` : ""}
-                      {[item.class_name, item.subject_code, item.section].filter(Boolean).join(" · ")}
-                      {" · queued "}
-                      {formatDate(item.queued_at)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Pill tone={status.tone}>{status.text}</Pill>
-                    {item.ready && (
-                      <button
-                        type="button"
-                        className="btn-secondary btn-sm"
-                        disabled={busyUserId !== null}
-                        onClick={() => onApply({ user_id: item.user_id, name: item.student_name || item.email, is_active: true })}
-                        aria-label={`Apply queued enrollments for ${item.student_name || item.email}`}
-                      >
-                        <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
-                        {busy ? "Applying…" : "Apply"}
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          {data.total > data.items.length && (
-            <p className="border-t border-border-subtle px-5 py-3 text-xs text-text-muted sm:px-6">
-              Showing the newest {data.items.length} of {data.total}.
-            </p>
-          )}
-        </div>
-      )}
-    </Panel>
+        )}
+      </Panel>
+      <ConfirmationModal
+        isOpen={Boolean(removing)}
+        title="Remove queued enrollment?"
+        message={
+          removing
+            ? `${removing.email} will no longer be added to ${classLabelOf(removing)} when its student account is created. No account or enrollment changes, and the instructor can add the address again.`
+            : ""
+        }
+        confirmText="Remove"
+        loadingText="Removing…"
+        isDanger
+        isLoading={isRemoving}
+        onConfirm={confirmRemove}
+        onCancel={() => setRemoving(null)}
+      />
+    </>
   );
 }
 
