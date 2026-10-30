@@ -3,6 +3,24 @@ import ast
 from app.services.ast_safety import parse_python_source
 
 
+# Names, constants and load/store contexts carry no structure. Operator nodes
+# are recorded by their parent through `op` / `ops` below, so recording them
+# again when they are visited as children would count each operator twice.
+SKIPPED_NODE_TYPES = (
+    ast.Name,
+    ast.Constant,
+    ast.arg,
+    ast.alias,
+    ast.Load,
+    ast.Store,
+    ast.Del,
+    ast.operator,
+    ast.boolop,
+    ast.unaryop,
+    ast.cmpop,
+)
+
+
 class ASTFingerprinter(ast.NodeVisitor):
     def __init__(self):
         self.fingerprint = []
@@ -10,7 +28,7 @@ class ASTFingerprinter(ast.NodeVisitor):
     def generic_visit(self, node):
         # We explicitly ignore nodes that represent names, constants, and basic
         # syntax sugar that doesn't change logic, to focus purely on structural flow.
-        if isinstance(node, (ast.Name, ast.Constant, ast.arg, ast.alias, ast.Load, ast.Store, ast.Del)):
+        if isinstance(node, SKIPPED_NODE_TYPES):
             super().generic_visit(node)
             return
 
