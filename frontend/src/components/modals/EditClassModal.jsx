@@ -1,202 +1,139 @@
-import { useState, useEffect } from "react";
-import api from "../../services/api";
+import { useEffect, useState } from "react";
+import api, { getErrorMessage } from "../../services/api";
+import Modal from "../ui/Modal";
+import { FieldError, InlineAlert } from "../ui/StateViews";
 
-export default function EditClassModal({
-  isOpen,
-  onClose,
-  classroom,
-  onSuccess,
-}) {
-  const [className, setClassName] = useState("");
-  const [schedule, setSchedule] = useState("");
+const FIELDS = [
+  { name: "name", label: "Class name", required: true },
+  { name: "subject_code", label: "Subject code", required: false },
+  { name: "section", label: "Section", required: false },
+];
+
+export default function EditClassModal({ isOpen, onClose, classroom, onSuccess }) {
+  const [form, setForm] = useState({ name: "", subject_code: "", section: "" });
   const [classCode, setClassCode] = useState("");
-
-  const [saving, setSaving] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
-  const [copied, setCopied] = useState(false);
-
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [message, setMessage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
 
   useEffect(() => {
-    if (classroom) {
-      setClassName(classroom.name || classroom.class_name || "");
-      setSchedule(classroom.schedule || "");
-      setClassCode(classroom.class_code || classroom.code || classroom.invite_code || "");
-    }
-    setError("");
-    setSuccessMsg("");
+    if (!isOpen || !classroom) return;
+    setForm({
+      name: classroom.name || "",
+      subject_code: classroom.subject_code || "",
+      section: classroom.section || "",
+    });
+    setClassCode(classroom.class_code || "");
+    setFieldErrors({});
+    setMessage(null);
+    setConfirmRegenerate(false);
   }, [classroom, isOpen]);
 
-  if (!isOpen || !classroom) return null;
+  if (!classroom) return null;
+  const busy = isSaving || isRegenerating;
 
-  const handleSaveChanges = async (e) => {
-    e.preventDefault();
-    if (!className.trim()) {
-      setError("Classroom name is required.");
-      return;
-    }
+  const handleSave = async (event) => {
+    event.preventDefault();
+    const errors = {};
+    FIELDS.forEach((f) => {
+      if (f.required && !form[f.name].trim()) errors[f.name] = `${f.label} is required.`;
+    });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
 
-    setSaving(true);
-    setError("");
-    setSuccessMsg("");
-
+    setIsSaving(true);
+    setMessage(null);
     try {
-      const response = await api.patch(`/classrooms/${classroom.class_id}`, {
-        name: className.trim(),
-      });
-
-      setSuccessMsg("Classroom updated successfully!");
-      if (onSuccess) onSuccess(response || { ...classroom, name: className, schedule });
-      setTimeout(() => {
-        onClose();
-      }, 1000);
+      const payload = { name: form.name.trim() };
+      if (form.subject_code.trim()) payload.subject_code = form.subject_code.trim();
+      if (form.section.trim()) payload.section = form.section.trim();
+      const updated = await api.patch(`/classrooms/${classroom.class_id}`, payload);
+      onSuccess?.(updated);
+      setMessage({ tone: "success", text: "Class details saved." });
     } catch (err) {
-      setError(err.message || "Failed to update classroom settings.");
+      setMessage({ tone: "error", text: getErrorMessage(err, "The class could not be updated.") });
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
-  const handleRegenerateCode = async () => {
-    setRegenerating(true);
-    setError("");
-    setSuccessMsg("");
-
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    setMessage(null);
     try {
-      const response = await api.post(`/classrooms/${classroom.class_id}/regenerate-code`);
-      const newCode = response?.class_code || response?.code || response?.invite_code;
-      if (newCode) {
-        setClassCode(newCode);
-        setSuccessMsg(`Invite code regenerated: ${newCode}`);
-        if (onSuccess) onSuccess({ ...classroom, code: newCode });
-      } else {
-        setSuccessMsg("Invite code regenerated successfully!");
+      const updated = await api.post(`/classrooms/${classroom.class_id}/regenerate-code`);
+      if (updated?.class_code) {
+        setClassCode(updated.class_code);
+        onSuccess?.(updated);
       }
+      setMessage({ tone: "success", text: "A new enrollment code was generated. The previous code no longer works." });
     } catch (err) {
-      setError(err.message || "Failed to regenerate invite code.");
+      setMessage({ tone: "error", text: getErrorMessage(err, "A new code could not be generated.") });
     } finally {
-      setRegenerating(false);
+      setIsRegenerating(false);
+      setConfirmRegenerate(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl space-y-6">
-        <div className="flex items-center justify-between border-b border-border-subtle pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-text-main">Classroom Settings</h2>
-            <p className="text-xs text-text-muted">Update classroom details or reset student invite code.</p>
+    <Modal isOpen={isOpen} onClose={onClose} title="Class settings" dismissible={!busy}>
+      {message && (
+        <InlineAlert tone={message.tone} onDismiss={() => setMessage(null)} className="mb-4">
+          {message.text}
+        </InlineAlert>
+      )}
+
+      <form onSubmit={handleSave} noValidate className="space-y-4">
+        {FIELDS.map((field) => (
+          <div key={field.name}>
+            <label htmlFor={`edit-class-${field.name}`} className="field-label">
+              {field.label}
+            </label>
+            <input
+              id={`edit-class-${field.name}`}
+              type="text"
+              value={form[field.name]}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, [field.name]: e.target.value }));
+                setFieldErrors((prev) => ({ ...prev, [field.name]: "" }));
+              }}
+              aria-invalid={Boolean(fieldErrors[field.name])}
+              aria-describedby={fieldErrors[field.name] ? `edit-class-${field.name}-error` : undefined}
+              disabled={busy}
+              className="input-field"
+            />
+            <FieldError id={`edit-class-${field.name}-error`}>{fieldErrors[field.name]}</FieldError>
           </div>
-          <button
-            onClick={onClose}
-            className="text-text-muted hover:text-text-main text-lg font-bold p-1 rounded-lg hover:bg-border-subtle transition"
-          >
-            ✕
+        ))}
+        <div className="flex justify-end">
+          <button type="submit" disabled={busy} className="btn-primary">
+            {isSaving ? "Saving…" : "Save details"}
           </button>
         </div>
+      </form>
 
-        {error && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-text-rose">
-            {error}
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-text-emerald">
-            {successMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSaveChanges} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">
-              Classroom Name
-            </label>
-            <input
-              type="text"
-              value={className}
-              onChange={(e) => setClassName(e.target.value)}
-              placeholder="e.g. CS101 — Intro to Programming"
-              className="w-full rounded-lg border border-border-subtle bg-bg-base px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">
-              Schedule / Hours
-            </label>
-            <input
-              type="text"
-              value={schedule}
-              onChange={(e) => setSchedule(e.target.value)}
-              placeholder="e.g. Mon / Wed 10:00 AM - 12:00 PM"
-              className="w-full rounded-lg border border-border-subtle bg-bg-base px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-blue-500 focus:outline-none transition"
-            />
-          </div>
-
-          {/* Invite Code Regeneration Section */}
-          <div className="rounded-xl border border-border-subtle/80 bg-bg-base p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold text-text-muted">Student Invite Code</div>
-                <div className="text-[11px] text-text-muted">Share with students to enroll.</div>
-              </div>
-              <div className="flex items-center gap-0">
-                  <div className="font-mono text-base font-extrabold text-blue-700 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-l-md">
-                {classCode || "------"}
-              </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (classCode) {
-                        navigator.clipboard.writeText(classCode);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      }
-                    }}
-                    title="Copy code"
-                    className="flex items-center justify-center bg-blue-500/10 border border-blue-500/20 border-l-0 px-2.5 py-1 rounded-r-md text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 transition-colors h-[34px]"
-                  >
-                    {copied ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                    )}
-                  </button>
-                </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleRegenerateCode}
-              disabled={regenerating}
-              className="w-full mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-text-amber hover:bg-amber-500/20 transition disabled:opacity-50"
-            >
-              {regenerating ? "Regenerating..." : "↻ Regenerate Invite Code"}
+      <div className="mt-6 rounded-xl border border-border-subtle bg-bg-alt p-4">
+        <p className="text-sm font-semibold text-text-main">Enrollment code</p>
+        <p className="mt-0.5 text-xs text-text-muted">Students use this code to join. Generating a new one disables the old code.</p>
+        <p className="mt-3 font-mono text-2xl font-bold tracking-[0.25em] text-text-brand">{classCode || "—"}</p>
+        {confirmRegenerate ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-text-main">Replace the current code?</span>
+            <button type="button" onClick={handleRegenerate} disabled={busy} className="btn-danger btn-sm">
+              {isRegenerating ? "Generating…" : "Yes, generate new code"}
             </button>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-border-subtle bg-bg-panel px-4 py-2 text-xs font-medium text-text-muted hover:bg-border-subtle transition"
-            >
+            <button type="button" onClick={() => setConfirmRegenerate(false)} disabled={busy} className="btn-ghost btn-sm">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-lg hover:bg-blue-500 transition disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
           </div>
-        </form>
+        ) : (
+          <button type="button" onClick={() => setConfirmRegenerate(true)} disabled={busy} className="btn-secondary btn-sm mt-3">
+            Generate new code
+          </button>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }

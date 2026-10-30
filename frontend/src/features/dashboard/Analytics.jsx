@@ -1,185 +1,169 @@
-import { useState, useEffect } from "react";
-import api from "../../services/api";
-import Sidebar from "../../components/layout/Sidebar";
-import Statusbar from "../../components/layout/Statusbar";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
-function LineChartIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-  );
+import PageShell from "../../components/layout/PageShell";
+import { EmptyState, ErrorState, InlineAlert, PageHeader } from "../../components/ui/StateViews";
+import api from "../../services/api";
+
+function percent(part, whole) {
+  return whole > 0 ? Math.round((part / whole) * 100) : 0;
 }
 
-function getProgressColor(value) {
-  if (value >= 80) return "#22c55e"; // green
-  if (value >= 60) return "#f59e0b"; // yellow
-  return "#ef4444"; // red
+function ProgressBar({ value, label }) {
+  return (
+    <div
+      className="h-1.5 w-full overflow-hidden rounded-full bg-bg-alt"
+      role="progressbar"
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={label}
+    >
+      <div className="h-full rounded-full bg-psu-maroon transition-all duration-700" style={{ width: `${value}%` }} />
+    </div>
+  );
 }
 
 export default function Analytics() {
   const [metrics, setMetrics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await api.get("/practice/analytics/growth");
-        setMetrics(response);
-      } catch (err) {
-        console.error("Failed to load analytics data", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAnalytics();
+  const fetchAnalytics = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setMetrics(await api.get("/practice/analytics/growth"));
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  // SVG Ring calculation
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  const score = Math.max(0, Math.min(100, metrics?.overall_growth_score ?? 0));
   const radius = 60;
   const circumference = 2 * Math.PI * radius;
-  const score = metrics?.overall_growth_score || 0;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
-  const ringColor = getProgressColor(score);
+  const hasActivity = (metrics?.total_attempts ?? 0) > 0;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
-      <Sidebar />
+    <PageShell>
+      <PageHeader
+        eyebrow="Progress"
+        title="My Analytics"
+        description="Your Solo Practice progress: tasks completed, attempts and accuracy."
+      />
 
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
-        <div className="max-w-6xl mx-auto w-full">
-          <header className="mb-8 border-b border-border-subtle pb-6">
-            <h1 className="text-2xl font-bold flex items-center gap-3">
-              <LineChartIcon className="h-6 w-6 text-blue-500" />
-              My Analytics & Growth
-            </h1>
-            <p className="mt-1 text-sm text-text-muted">
-              Track your structural logic understanding, problem-solving accuracy, and overall growth curve.
-            </p>
-          </header>
-
-          {isLoading ? (
-            <div className="animate-pulse space-y-6">
-              <div className="h-64 w-full bg-bg-glass rounded-xl border border-border-subtle" />
-              <div className="h-48 w-full bg-bg-glass rounded-xl border border-border-subtle" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Top Row: Growth Ring & Attempt Ratios */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Gamified Growth Ring */}
-                <article className="lg:col-span-1 rounded-xl border border-border-subtle bg-bg-glass p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-sm">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
-                  <h2 className="text-sm font-semibold text-text-muted mb-4 uppercase tracking-wider">Overall Growth Score</h2>
-                  
-                  <div className="relative w-40 h-40 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 140 140">
-                      {/* Background Track */}
-                      <circle 
-                        cx="70" cy="70" r={radius} 
-                        fill="transparent" 
-                        stroke="currentColor" 
-                        strokeWidth="12" 
-                        className="text-border-subtle/50" 
-                      />
-                      {/* Animated Progress Ring */}
-                      <circle 
-                        cx="70" cy="70" r={radius} 
-                        fill="transparent" 
-                        stroke={ringColor} 
-                        strokeWidth="12" 
-                        strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={strokeDashoffset}
-                        className="transition-all duration-1000 ease-out drop-shadow-md" 
-                      />
-                    </svg>
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-4xl font-bold font-mono tracking-tighter" style={{ color: ringColor }}>
-                        {score}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-xs text-center text-text-muted max-w-[200px]">
-                    Your synthetic rating based on task completion and solution accuracy.
-                  </p>
-                </article>
-
-                {/* Metrics Cards */}
-                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  
-                  {/* Task Completion */}
-                  <article className="rounded-xl border border-border-subtle bg-bg-glass p-6 flex flex-col justify-center">
-                    <div className="mb-2 flex items-center gap-2">
-                      <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      </div>
-                      <h2 className="text-sm font-medium text-text-muted">Tasks Mastered</h2>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-text-main">{metrics?.completed_tasks || 0}</span>
-                      <span className="text-lg text-text-muted">/ {metrics?.total_tasks || 0}</span>
-                    </div>
-                    <div className="mt-4 h-1.5 w-full bg-border-subtle rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(metrics?.completed_tasks / Math.max(metrics?.total_tasks || 1, 1)) * 100}%` }} />
-                    </div>
-                  </article>
-
-                  {/* Accuracy */}
-                  <article className="rounded-xl border border-border-subtle bg-bg-glass p-6 flex flex-col justify-center">
-                    <div className="mb-2 flex items-center gap-2">
-                      <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                      </div>
-                      <h2 className="text-sm font-medium text-text-muted">Solution Accuracy</h2>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-text-main">
-                        {metrics?.total_attempts ? Math.round((metrics.successful_attempts / metrics.total_attempts) * 100) : 0}%
-                      </span>
-                    </div>
-                    <p className="mt-3 text-xs text-text-muted">
-                      Passed <strong>{metrics?.successful_attempts || 0}</strong> out of <strong>{metrics?.total_attempts || 0}</strong> execution attempts.
-                    </p>
-                  </article>
-
-                </div>
-              </div>
-
-              {/* Module Breakdown Table */}
-              <section className="rounded-xl border border-border-subtle bg-bg-glass overflow-hidden">
-                <div className="border-b border-border-subtle bg-bg-base/50 px-6 py-4">
-                  <h3 className="font-semibold text-text-main">Module Progression</h3>
-                </div>
-                <div className="p-6">
-                  {metrics?.module_breakdown && metrics.module_breakdown.length > 0 ? (
-                    <div className="grid gap-4">
-                      {metrics.module_breakdown.map((mod, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-4 rounded-lg border border-border-subtle/50 bg-bg-base/30">
-                          <div>
-                            <h4 className="font-medium text-text-main">{mod.module_title}</h4>
-                            <p className="text-xs text-text-muted mt-1">
-                              {mod.attempts_count} total code executions
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-sm font-bold text-text-main">{mod.completed_tasks} <span className="text-text-muted font-normal">/ {mod.total_tasks}</span></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-text-muted text-center py-4">No practice data available yet.</p>
-                  )}
-                </div>
-              </section>
-
-            </div>
-          )}
+      {error ? (
+        <ErrorState error={error} resource="your analytics" onRetry={fetchAnalytics} />
+      ) : isLoading ? (
+        <div className="space-y-5" role="status" aria-label="Loading analytics">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="card h-48 animate-pulse" />
+            ))}
+          </div>
+          <div className="card h-56 animate-pulse" />
         </div>
-      </main>
-        <Statusbar />
-      </div>
-    </div>
+      ) : (
+        <div className="space-y-5">
+          {!hasActivity && (
+            <InlineAlert tone="info">
+              You haven&apos;t attempted any practice tasks yet. Your figures will update as you work through{" "}
+              <Link to="/student/practice" className="font-semibold underline">
+                Solo Practice
+              </Link>
+              .
+            </InlineAlert>
+          )}
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            <article className="card flex flex-col items-center justify-center p-6 text-center">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">Growth score</h2>
+              <div className="relative my-4 h-36 w-36">
+                <svg className="h-full w-full -rotate-90" viewBox="0 0 140 140" aria-hidden="true">
+                  <circle cx="70" cy="70" r={radius} fill="none" stroke="var(--color-bg-alt)" strokeWidth="12" />
+                  <circle
+                    cx="70"
+                    cy="70"
+                    r={radius}
+                    fill="none"
+                    stroke="var(--color-psu-maroon)"
+                    strokeWidth="12"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={circumference - (score / 100) * circumference}
+                    className="transition-all duration-700"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-4xl font-bold tracking-tight">
+                  {score}
+                </span>
+              </div>
+              <p className="max-w-[220px] text-xs text-text-muted">
+                Calculated by the server from practice task completion and solution accuracy.
+              </p>
+            </article>
+
+            <article className="card flex flex-col justify-center p-6">
+              <h2 className="text-sm font-medium text-text-muted">Tasks completed</h2>
+              <p className="mt-1 text-3xl font-bold tracking-tight">
+                {metrics?.completed_tasks ?? 0}
+                <span className="text-lg font-medium text-text-muted"> / {metrics?.total_tasks ?? 0}</span>
+              </p>
+              <div className="mt-4">
+                <ProgressBar value={percent(metrics?.completed_tasks ?? 0, metrics?.total_tasks ?? 0)} label="Tasks completed" />
+              </div>
+            </article>
+
+            <article className="card flex flex-col justify-center p-6">
+              <h2 className="text-sm font-medium text-text-muted">Solution accuracy</h2>
+              <p className="mt-1 text-3xl font-bold tracking-tight">
+                {hasActivity ? `${percent(metrics.successful_attempts, metrics.total_attempts)}%` : "—"}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                {metrics?.successful_attempts ?? 0} of {metrics?.total_attempts ?? 0} attempts passed.
+              </p>
+            </article>
+          </div>
+
+          <section className="card overflow-hidden" aria-labelledby="module-progress-heading">
+            <div className="border-b border-border-subtle px-5 py-4">
+              <h2 id="module-progress-heading" className="text-sm font-semibold">
+                Module progress
+              </h2>
+            </div>
+            <div className="p-5">
+              {metrics?.module_breakdown?.length ? (
+                <ul className="space-y-4">
+                  {metrics.module_breakdown.map((mod) => (
+                    <li key={mod.module_title}>
+                      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                        <span className="text-sm font-medium text-text-main">{mod.module_title}</span>
+                        <span className="shrink-0 text-xs text-text-muted">
+                          {mod.completed_tasks}/{mod.total_tasks} tasks · {mod.attempts_count}{" "}
+                          {mod.attempts_count === 1 ? "attempt" : "attempts"}
+                        </span>
+                      </div>
+                      <ProgressBar value={percent(mod.completed_tasks, mod.total_tasks)} label={`${mod.module_title} progress`} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  className="border-0 py-8"
+                  title="No practice modules yet"
+                  message="Practice modules will appear here once your instructors publish them."
+                />
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+    </PageShell>
   );
 }

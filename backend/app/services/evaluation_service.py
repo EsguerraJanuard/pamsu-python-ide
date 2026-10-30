@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from app.core.system_settings import get_default_ast_strictness
 from app.models.domain_models import (ASTAnalysis, InstructorGrade,
                                       SimilarityResult, Submission, Task, User)
 from app.schemas.evaluation_schema import (EvaluationStatusUpdate,
@@ -521,7 +522,7 @@ def evaluate_submission_by_id(
     # Fetch instructor to get strictness level
     from app.models.domain_models import User
     instructor = db.query(User).filter(User.user_id == task.instructor_id).first()
-    strictness = instructor.ast_strictness_level if instructor else "moderate"
+    strictness = instructor.ast_strictness_level if instructor else get_default_ast_strictness(db)
 
     ast_details = evaluate_ast_details(
         raw_code=submission.raw_code,
@@ -611,26 +612,6 @@ def evaluate_submission_by_id(
 
         db.add(similarity_result)
 
-    # Panel Requirement: AST-Based Auto-Grading
-    # If the code satisfies all required AST rules, automatically award full score for the structural portion.
-    if ast_pass_fail:
-        existing_grade = (
-            db.query(InstructorGrade)
-            .filter(InstructorGrade.submission_id == submission.sub_id)
-            .first()
-        )
-        if not existing_grade:
-            auto_grade = InstructorGrade(
-                submission_id=submission.sub_id,
-                instructor_id=task.instructor_id,
-                score=100.0,
-                max_score=100.0,
-                feedback="Auto-graded: Passed all structural (AST) requirements.",
-                is_released=True
-            )
-            db.add(auto_grade)
-            submission.status = "graded"
-
     _commit_evaluation_transaction(db)
 
     db.refresh(submission)
@@ -680,6 +661,7 @@ def get_student_evaluation_details(
         )
 
     released_grade: dict[str, Any] | None = None
+    solution_explanation: str | None = None
 
     grade = submission.instructor_grade
 
@@ -691,6 +673,13 @@ def get_student_evaluation_details(
             "is_released": True,
             "released_at": grade.updated_at,
         }
+        # The worked explanation is a learning aid shown only after
+        # the student's own grade is released.
+        solution_explanation = (
+            db.query(Task.solution_explanation)
+            .filter(Task.task_id == submission.task_id)
+            .scalar()
+        )
 
     return {
         "sub_id": submission.sub_id,
@@ -700,6 +689,7 @@ def get_student_evaluation_details(
         "submitted_at": submission.submitted_at,
         "accepted_at": submission.accepted_at,
         "instructor_grade": released_grade,
+        "solution_explanation": solution_explanation,
     }
 
 

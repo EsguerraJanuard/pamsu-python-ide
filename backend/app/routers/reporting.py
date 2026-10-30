@@ -18,6 +18,7 @@ from app.services.reporting_service import (MAX_REPORT_PAGE_SIZE,
                                             ReportingServiceError,
                                             ReportingTaskNotFoundError,
                                             ReportingTaskUnavailableError,
+                                            build_gradebook_csv_export,
                                             build_gradebook_excel_export,
                                             get_activity_completion_summary,
                                             get_classroom_completion_summary,
@@ -356,7 +357,7 @@ def read_authenticated_student_progress(
 @router.get(
     "/classrooms/{class_id}/gradebook.csv",
     response_class=Response,
-    summary="Export privacy-safe gradebook Excel",
+    summary="Export privacy-safe gradebook CSV",
     description=(
         "Export official submission and manual-grade summary rows for an "
         "instructor-owned classroom or activity. The CSV excludes source "
@@ -368,14 +369,14 @@ def read_authenticated_student_progress(
     responses={
         status.HTTP_200_OK: {
             "content": {
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "text/csv": {
                     "schema": {
                         "type": "string",
                         "format": "binary",
                     },
                 },
             },
-            "description": "Privacy-safe gradebook Excel.",
+            "description": "Privacy-safe gradebook CSV.",
         },
         status.HTTP_400_BAD_REQUEST: {
             "description": ("The selected classroom and activity filters conflict."),
@@ -389,12 +390,59 @@ def read_authenticated_student_progress(
             "description": "The classroom or activity does not exist.",
         },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "The Excel export could not be generated.",
+            "description": "The CSV export could not be generated.",
         },
         status.HTTP_503_SERVICE_UNAVAILABLE: {
             "description": "The reporting operation is temporarily unavailable.",
         },
     },
+)
+def export_gradebook_csv(
+    class_id: int = Path(
+        ...,
+        gt=0,
+        description="Instructor-owned classroom identifier.",
+    ),
+    task_id: int | None = Query(
+        default=None,
+        gt=0,
+        description=(
+            "Optional instructor-owned activity identifier within the classroom."
+        ),
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> Response:
+    try:
+        export = build_gradebook_csv_export(
+            db,
+            instructor_id=current_instructor.user_id,
+            class_id=class_id,
+            task_id=task_id,
+        )
+    except ReportingServiceError as error:
+        raise_reporting_service_http_exception(error)
+
+    return Response(
+        content=export["content"],
+        media_type=export["media_type"],
+        headers={
+            "Content-Disposition": (f'attachment; filename="{export["filename"]}"'),
+            "X-Report-Row-Count": str(export["row_count"]),
+            "X-Report-Generated-At": export["generated_at"].isoformat(),
+            "X-Report-Includes-Raw-Source": "false",
+        },
+    )
+
+
+@router.get(
+    "/classrooms/{class_id}/gradebook.xlsx",
+    response_class=Response,
+    summary="Export privacy-safe gradebook Excel",
+    description=(
+        "Export official submission and manual-grade summary rows for an "
+        "instructor-owned classroom or activity as an Excel spreadsheet."
+    ),
 )
 def export_gradebook_excel(
     class_id: int = Path(

@@ -3,6 +3,7 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import get_current_student
+from app.core.system_settings import get_default_ast_strictness
 from app.models.domain_models import Task, TaskTestCase, User
 from app.schemas.coding_session_schema import (CodingSessionActivityUpdate,
                                                CodingSessionStartRequest,
@@ -518,17 +519,20 @@ def get_student_activity_endpoint(
 
 
 
-from pydantic import BaseModel
+from app.core.rate_limit import limit_per_user
+from app.schemas.execution_schema import MAX_SOURCE_CODE_LENGTH
+from pydantic import BaseModel, Field
 
 
 class AstCheckRequest(BaseModel):
-    source_code: str
+    source_code: str = Field(..., max_length=MAX_SOURCE_CODE_LENGTH)
 
 @router.post(
     "/{task_id}/analyze-ast",
     status_code=status.HTTP_200_OK,
     operation_id="analyze_student_ast",
     summary="Analyze student AST",
+    dependencies=[Depends(limit_per_user("analyze_ast", limit=30, window_seconds=60))],
 )
 def analyze_student_ast_endpoint(
     request: AstCheckRequest,
@@ -548,7 +552,7 @@ def analyze_student_ast_endpoint(
     from app.models.domain_models import User
     from app.services.ast_evaluator import evaluate_ast_details
     instructor = db.query(User).filter(User.user_id == task.instructor_id).first()
-    strictness = instructor.ast_strictness_level if instructor else "moderate"
+    strictness = instructor.ast_strictness_level if instructor else get_default_ast_strictness(db)
     details = evaluate_ast_details(request.source_code, task.required_ast_rules, strictness_level=strictness)
     
     # Strip line_numbers to respect the student-safe boundary

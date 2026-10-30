@@ -1,593 +1,240 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
-import Sidebar from "../../components/layout/Sidebar";
-import Statusbar from "../../components/layout/Statusbar";
+import PageShell from "../../components/layout/PageShell";
 import JoinClassModal from "../../components/modals/JoinClassModal";
-import { useAuth } from "../../features/auth/AuthContext";
-
-const STATUS_CONFIG = {
-  due_today: {
-    label: "Due today",
-    badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-    accentClass: "border-l-amber-500",
-    progressClass: "bg-amber-500",
-    buttonClass: "bg-amber-500 text-[#0f1117] hover:bg-amber-400",
-  },
-  in_progress: {
-    label: "In progress",
-    badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-400",
-    accentClass: "border-l-blue-500",
-    progressClass: "bg-blue-500",
-    buttonClass: "bg-blue-600 text-text-main hover:bg-blue-500",
-  },
-  submitted: {
-    label: "Submitted",
-    badgeClass: "border-green-500/30 bg-green-500/10 text-green-400",
-    accentClass: "border-l-green-500",
-    progressClass: "bg-green-500",
-    buttonClass: "border border-blue-500/40 bg-transparent text-blue-400 hover:bg-blue-500/10",
-  },
-};
+import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
+import { useAuth } from "../auth/AuthContext";
+import ActivityCard from "../student/ActivityCard";
+import { classLabel, isActiveActivity, loadStudentActivities } from "../student/studentData";
 
 function getGreeting() {
   const hour = new Date().getHours();
-
-  if (hour < 12) {
-    return "Good morning";
-  }
-
-  if (hour < 18) {
-    return "Good afternoon";
-  }
-
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
 
 function getFirstName(name) {
-  const firstPart = name.includes(",")
-    ? name.split(",")[1]?.trim()
-    : name.trim();
-
-  return firstPart?.split(/\s+/)[0] || "Student";
+  if (!name) return "";
+  const firstPart = name.includes(",") ? name.split(",")[1]?.trim() : name.trim();
+  return firstPart?.split(/\s+/)[0] || "";
 }
 
-function getActivityColor(type) {
-  const colors = {
-    run: "#22c55e",
-    analysis: "#f59e0b",
-    submission: "#3b82f6",
-    grade: "#a78bfa",
-  };
-
-  return colors[type] ?? "#64748b";
-}
-
-function ClockIcon() {
+function StatCard({ value, label, description, progress }) {
   return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle
-        cx="8"
-        cy="8"
-        r="6.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
-      <path
-        d="M8 5v3.5l2 1.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function LayoutDashboardIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-  );
-}
-
-function BookOpenIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    <article className="card p-5">
+      <p className="text-3xl font-bold tracking-tight text-text-main">{value}</p>
+      <h2 className="mt-1 text-sm font-semibold text-text-main">{label}</h2>
+      <p className="text-xs text-text-muted">{description}</p>
+      {progress !== undefined && (
+        <div
+          className="mt-4 h-1.5 overflow-hidden rounded-full bg-bg-alt"
+          role="progressbar"
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={label}
+        >
+          <div className="h-full rounded-full bg-psu-maroon transition-all duration-700" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+    </article>
   );
 }
 
 export default function StudentDashboard() {
-  const navigate = useNavigate();
-  const { user: authUser } = useAuth();
-  
-  const userName = authUser?.name || "Student";
-  const userInitials = userName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "ST";
-    
-  const user = {
-    name: userName,
-    initials: userInitials,
-    courseCode: "No active class",
-    courseName: "",
-  };
-  
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const [classrooms, setClassrooms] = useState([]);
-  const [activities, setActivities] = useState([]);
+  const { user } = useAuth();
+  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [totalActivitiesCount, setTotalActivitiesCount] = useState(0);
+  const [error, setError] = useState(null);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [joinedMessage, setJoinedMessage] = useState("");
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const [classRes, activityRes, subRes] = await Promise.all([
-        api.get("/classrooms/mine"),
-        api.get("/activities/"),
-        api.get("/submissions/")
-      ]);
-      setClassrooms(classRes);
-      
-      const completedSubmissions = subRes.filter(s => s.status === 'submitted' || s.status === 'graded' || s.status === 'awaiting_review');
-      const uniqueCompletedTaskIds = new Set(completedSubmissions.map(s => s.task_id));
-      setCompletedCount(uniqueCompletedTaskIds.size);
-      
-      const activeTaskIds = new Set(activityRes.map(a => a.task_id || a.id));
-      const allTaskIds = new Set([...activeTaskIds, ...uniqueCompletedTaskIds]);
-      setTotalActivitiesCount(allTaskIds.size);
-      
-      const classMap = {};
-      classRes.forEach(c => {
-        classMap[c.classroom.class_id] = c.classroom.subject_code;
-      });
-
-      const mappedActivities = activityRes.map(task => {
-        // Map backend task to the dashboard format
-        const due = task.due_at ? new Date(task.due_at) : null;
-        let status = "in_progress";
-        let dueLabel = "No due date";
-        
-        if (due) {
-          dueLabel = `Due: ${due.toLocaleDateString()}`;
-        }
-        
-        // Find if this task has a submission
-        const submission = subRes.find(s => s.task_id === task.task_id);
-        
-        if (submission) {
-          status = submission.status === 'awaiting_review' ? 'submitted' : submission.status;
-        } else if (due && due < new Date()) {
-          status = "past_due";
-          dueLabel = "Submission closed";
-        }
-        
-        return {
-          id: task.task_id,
-          title: task.title,
-          courseCode: classMap[task.class_id] || "Unknown",
-          dueLabel: dueLabel,
-          status: status,
-          progress: 0,
-          note: task.activity_type === "laboratory" ? "Laboratory activity" : "Homework",
-          actionLabel: status === "submitted" ? "View" : "Open",
-        };
-      });
-      setActivities(mappedActivities);
+      setData(await loadStudentActivities());
     } catch (err) {
-      console.error("Failed to load dashboard data", err);
+      setError(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
-  const activeActivities = activities.filter(
-    (activity) => activity.status !== "submitted",
-  );
-
-  const dueTodayCount = activities.filter(
-    (activity) => activity.status === "due_today",
-  ).length;
-
-  const handleOpenActivity = (activity) => {
-    if (activity.status === "graded" || activity.status === "submitted") {
-      navigate(`/student/submissions/${activity.id}`);
-      return;
-    }
-
-    navigate(`/student/workspace?activity=${activity.id}`);
-  };
+  const activities = data?.activities || [];
+  const activeClassrooms = (data?.classrooms || []).filter((c) => c.enrollment_status === "active");
+  const openActivities = activities.filter(isActiveActivity);
+  const dueSoonCount = activities.filter((a) => a.status === "due_soon").length;
+  const submittedCount = activities.filter((a) => a.isSubmitted).length;
+  const completion = activities.length > 0 ? (submittedCount / activities.length) * 100 : 0;
+  const firstName = getFirstName(user?.name);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
-      <Sidebar
-        user={{
-          name: user.name,
-          initials: user.initials,
-          role: "Student",
-          course: user.courseCode,
-        }}
-        assignmentCount={activeActivities.length}
+    <PageShell assignmentCount={openActivities.length}>
+      <PageHeader
+        eyebrow="Dashboard"
+        title={`${getGreeting()}${firstName ? `, ${firstName}` : ""}`}
+        description={
+          data
+            ? `You have ${openActivities.length} open ${openActivities.length === 1 ? "activity" : "activities"}${
+                dueSoonCount ? `, ${dueSoonCount} due within 24 hours` : ""
+              }.`
+            : "Your activities and classes at a glance."
+        }
+        actions={
+          <button type="button" onClick={() => setIsJoinModalOpen(true)} className="btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            Join a class
+          </button>
+        }
       />
 
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-            
+      {joinedMessage && (
+        <InlineAlert tone="success" onDismiss={() => setJoinedMessage("")} className="mb-5">
+          {joinedMessage}
+        </InlineAlert>
+      )}
 
-            <div className="mx-auto max-w-6xl">
-              <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
-                <div>
-                  <p className="mb-1 font-mono text-xs text-text-brand">MAIN</p>
-                  <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <LayoutDashboardIcon className="h-6 w-6 text-text-brand" />
-                    {getGreeting()}, {getFirstName(user.name)}
-                  </h1>
-                  <p className="mt-1 text-sm text-text-muted">
-                    You have {activeActivities.length} active{" "}
-                    {activeActivities.length === 1
-                      ? "activity"
-                      : "activities"}{" "}
-                    and {dueTodayCount} due today.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setIsJoinModalOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-psu-maroon px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-psu-maroon/90"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Join a Class
-                  </button>
-
-                  <button
-                    onClick={() => navigate("/student/settings")}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-glass border border-border-subtle text-xs font-bold shadow-sm cursor-pointer hover:border-text-muted hover:bg-bg-glass-hover transition-colors"
-                    aria-label={`Signed in as ${user.name} - Go to settings`}
-                    title="Account Settings"
-                  >
-                    {user.initials}
-                  </button>
-                </div>
-              </header>
-
-              <section className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-4 py-3">
-                <p className="text-xs leading-relaxed text-text-blue">
-                  Dashboard indicators support learning reflection.
-                  AST checks, test results, and activity progress are
-                  not automatic grades. Official grades are assigned
-                  by the instructor.
-                </p>
-              </section>
-
-              <section
-                className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2"
-                aria-label="Student progress summary"
-              >
-                {isLoading ? (
-                  <>
-                    <article className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 animate-pulse">
-                      <div className="mb-2 h-8 w-16 bg-white/[0.06] rounded-md"></div>
-                      <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
-                      <div className="mb-4 h-3 w-40 bg-white/[0.06] rounded-md"></div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]"></div>
-                    </article>
-                    <article className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 animate-pulse">
-                      <div className="mb-2 h-8 w-24 bg-white/[0.06] rounded-md"></div>
-                      <div className="mb-1 h-4 w-32 bg-white/[0.06] rounded-md"></div>
-                      <div className="mb-4 h-3 w-40 bg-white/[0.06] rounded-md"></div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]"></div>
-                    </article>
-                  </>
-                ) : (
-                  <>
-                  <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
-                  >
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-all group-hover:bg-blue-500/20"></div>
-                    <p
-                      className="mb-1 text-4xl font-bold text-text-main tracking-tight"
-                    >
-                      {activeActivities.length}
-                    </p>
-
-                    <h2 className="text-sm font-semibold text-text-main">
-                      Active activities
-                    </h2>
-
-                    <p className="mb-4 text-[11px] text-text-muted font-medium">
-                      Laboratory and homework tasks
-                    </p>
-
-                    <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
-                      <div
-                        className="h-full rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out"
-                        style={{
-                          width: `${activities.length > 0 ? (activeActivities.length / activities.length) * 100 : 0}%`,
-                        }}
-                      />
-                    </div>
-                  </article>
-                  
-                  <article
-                    className="dashboard-card relative overflow-hidden rounded-xl border border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong group"
-                  >
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20"></div>
-                    <p
-                      className="mb-1 text-4xl font-bold text-text-main tracking-tight flex items-baseline gap-1"
-                    >
-                      {completedCount} <span className="text-lg text-text-muted font-medium">/ {totalActivitiesCount}</span>
-                    </p>
-
-                    <h2 className="text-sm font-semibold text-text-main">
-                      Activities completed
-                    </h2>
-
-                    <p className="mb-4 text-[11px] text-text-muted font-medium">
-                      Based on submitted activities
-                    </p>
-
-                    <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
-                        style={{
-                          width: `${totalActivitiesCount > 0 ? (completedCount / totalActivitiesCount) * 100 : 0}%`,
-                        }}
-                      />
-                    </div>
-                  </article>
-                  </>
-                )}
-              </section>
-
-              <section>
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-semibold">
-                      Recent Activities
-                    </h2>
-
-                    <p className="mt-1 text-[11px] text-text-muted">
-                      Continue active work or review your latest
-                      submission.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => navigate("/student/assignments")}
-                    className="text-xs text-text-brand transition-colors hover:text-text-brand/80"
-                  >
-                    View all
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {isLoading && (
-                    [1, 2, 3].map(i => (
-                      <article key={i} className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-4 animate-pulse flex items-center justify-between">
-                        <div className="space-y-2">
-                          <div className="h-5 w-48 bg-white/[0.06] rounded-md"></div>
-                          <div className="h-4 w-32 bg-white/[0.06] rounded-md"></div>
-                        </div>
-                        <div className="h-8 w-20 bg-white/[0.06] rounded-md"></div>
-                      </article>
-                    ))
-                  )}
-                  {activities.length === 0 && !isLoading && (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3 ring-4 ring-blue-500/5 text-text-blue">
-                        <LayoutDashboardIcon className="h-6 w-6" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-text-main">No Activities Found</h3>
-                      <p className="mt-1 text-sm text-text-muted">
-                        Join a class to see your assignments and practice modules.
-                      </p>
-                    </div>
-                  )}
-                  {activities.map(
-                    (activity, index) => {
-                      const status =
-                        STATUS_CONFIG[activity.status] ??
-                        STATUS_CONFIG.in_progress;
-
-                      return (
-                        <article
-                          key={activity.id}
-                          className={`dashboard-card rounded-xl border border-l-[3px] border-border-subtle bg-bg-glass p-5 shadow-inner transition-all hover:bg-bg-glass-hover hover:border-border-strong hover:shadow-lg hover:shadow-border-strong ${status.accentClass} group`}
-                          style={{
-                            animation: `dashboardFadeUp 400ms ease ${
-                              200 + index * 70
-                            }ms both`,
-                          }}
-                        >
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <h3 className="text-sm font-semibold text-text-main transition-colors group-hover:text-text-main">
-                                  {activity.title}
-                                </h3>
-
-                                <span
-                                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide ${status.badgeClass}`}
-                                >
-                                  {status.label}
-                                </span>
-                              </div>
-
-                              <div className="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-muted">
-                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                                  <BookOpenIcon className="h-3 w-3 text-text-blue" />
-                                  {activity.courseCode}
-                                </span>
-
-                                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-glass border border-border-subtle">
-                                  <ClockIcon />
-                                  {activity.dueLabel}
-                                </span>
-                              </div>
-
-                              <p className="rounded-lg border-l-2 border-border-subtle bg-bg-glass px-3 py-2 font-mono text-[11px] text-text-muted shadow-inner">
-                                {activity.note}
-                              </p>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleOpenActivity(activity)
-                              }
-                              className={`shrink-0 rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${status.buttonClass}`}
-                            >
-                              {activity.actionLabel}
-                            </button>
-                          </div>
-
-                          <div className="mt-4 flex items-center gap-3">
-                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-text-muted">
-                              Progress
-                            </span>
-
-                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06] shadow-inner">
-                              <div
-                                className={`h-full rounded-full transition-all duration-1000 ease-out ${status.progressClass}`}
-                                style={{
-                                  width: `${activity.progress}%`,
-                                }}
-                              />
-                            </div>
-
-                            <span className="shrink-0 text-[10px] text-text-muted">
-                              {activity.progress}%
-                            </span>
-                          </div>
-                        </article>
-                      );
-                    },
-                  )}
-                </div>
-              </section>
-            </div>
-          </main>
-
-          <aside className="hidden w-[300px] shrink-0 overflow-y-auto border-l border-border-subtle px-5 py-6 xl:block">
-            <section className="mb-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xs font-semibold">
-                    Personal Progress
-                  </h2>
-
-                  <p className="mt-1 text-[10px] text-text-muted">
-                    Compared with your earlier work
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/student/analytics")}
-                  className="text-[10px] text-text-brand transition-colors hover:text-text-brand/80"
-                >
-                  Details
-                </button>
-              </div>
-
-              <div className="flex flex-col items-center rounded-xl border border-border-subtle bg-bg-glass px-4 py-6">
-                <div className="relative h-32 w-32">
-                  <svg
-                    viewBox="0 0 120 120"
-                    className="h-full w-full -rotate-90"
-                    aria-label={`Learning progress ${totalActivitiesCount > 0 ? Math.round((completedCount / totalActivitiesCount) * 100) : 0} percent`}
-                  >
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      fill="none"
-                      stroke="rgba(255,255,255,0.06)"
-                      strokeWidth="10"
-                    />
-
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      fill="none"
-                      stroke="var(--color-text-brand)"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      strokeDasharray={`${totalActivitiesCount > 0 ? ((completedCount / totalActivitiesCount) * 301.59).toFixed(2) : 0} 301.59`}
-                    />
-                  </svg>
-
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold">
-                      {totalActivitiesCount > 0 ? Math.round((completedCount / totalActivitiesCount) * 100) : 0}%
-                    </span>
-
-                    <span className="text-[10px] text-text-muted">
-                      progress
-                    </span>
-                  </div>
-                </div>
-
-                <p className="mt-3 text-sm font-semibold">
-                  Improving
-                </p>
-
-                <p className="mt-1 text-center text-[10px] leading-relaxed text-text-muted">
-                  Based on your activity completion, AST indicators,
-                  and test results.
-                </p>
-              </div>
+      {error ? (
+        <ErrorState error={error} resource="your dashboard" onRetry={fetchDashboardData} />
+      ) : (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="min-w-0 space-y-6">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3" aria-label="Progress summary">
+              {isLoading ? (
+                [0, 1, 2].map((i) => <div key={i} className="card h-[120px] animate-pulse" />)
+              ) : (
+                <>
+                  <StatCard value={openActivities.length} label="Open activities" description="Not yet submitted" />
+                  <StatCard
+                    value={`${submittedCount}/${activities.length}`}
+                    label="Submitted"
+                    description="Activities with at least one attempt"
+                    progress={completion}
+                  />
+                  <StatCard value={activeClassrooms.length} label="Classes" description="Active enrollments" />
+                </>
+              )}
             </section>
 
-            <div className="mb-5 h-px bg-white/[0.06]" />
+            <InlineAlert tone="info">
+              AST checks, test results and activity indicators support your learning. They are not automatic
+              grades — official grades are assigned and released by your instructor.
+            </InlineAlert>
 
-            <section>
-              <h2 className="mb-4 text-xs font-semibold">
-                Recent Learning Activity
-              </h2>
+            <section aria-labelledby="recent-activities-heading">
+              <div className="mb-3 flex items-end justify-between gap-3">
+                <div>
+                  <h2 id="recent-activities-heading" className="text-base font-semibold">
+                    Upcoming &amp; recent activities
+                  </h2>
+                  <p className="text-xs text-text-muted">Open work first, then your latest submissions.</p>
+                </div>
+                {activities.length > 0 && (
+                  <Link to="/student/assignments" className="text-xs font-semibold text-text-brand hover:underline">
+                    View all
+                  </Link>
+                )}
+              </div>
 
-              <div className="flex items-center justify-center py-6 text-center">
-                <p className="text-xs text-text-muted">
-                  No recent activity logged yet.
-                </p>
+              {isLoading ? (
+                <SkeletonList rows={3} />
+              ) : (data?.classrooms || []).length === 0 ? (
+                <EmptyState
+                  icon="inbox"
+                  title="You're not enrolled in any class yet"
+                  message="Ask your instructor for a class code, then join to see your activities here."
+                  action={
+                    <button type="button" className="btn-primary" onClick={() => setIsJoinModalOpen(true)}>
+                      Enter class code
+                    </button>
+                  }
+                />
+              ) : activities.length === 0 ? (
+                <EmptyState
+                  title="No activities yet"
+                  message="Your instructors haven't published any activities for your classes. New work will appear here."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {activities.slice(0, 5).map((activity) => (
+                    <ActivityCard key={activity.id} activity={activity} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <aside className="space-y-4" aria-label="My classes">
+            <section className="card p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold">My classes</h2>
+                <Link to="/student/classes" className="text-xs font-semibold text-text-brand hover:underline">
+                  Manage
+                </Link>
+              </div>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[0, 1].map((i) => (
+                    <div key={i} className="h-10 animate-pulse rounded-lg bg-bg-alt" />
+                  ))}
+                </div>
+              ) : activeClassrooms.length === 0 ? (
+                <p className="text-xs text-text-muted">No active enrollments.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {activeClassrooms.map((enrollment) => (
+                    <li key={enrollment.enrollment_id}>
+                      <Link
+                        to={`/student/classes/${enrollment.classroom.class_id}`}
+                        className="block rounded-lg px-2.5 py-2 transition-colors hover:bg-bg-alt"
+                      >
+                        <p className="truncate text-sm font-medium text-text-main">{enrollment.classroom.name}</p>
+                        <p className="truncate text-xs text-text-muted">
+                          {classLabel(enrollment.classroom)}
+                          {enrollment.classroom.instructor_name ? ` · ${enrollment.classroom.instructor_name}` : ""}
+                        </p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="card p-5">
+              <h2 className="text-sm font-semibold">Practice &amp; growth</h2>
+              <p className="mt-1 text-xs text-text-muted">
+                Build skills with self-paced practice modules and track your growth over time.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Link to="/student/practice" className="btn-secondary btn-sm">
+                  Open solo practice
+                </Link>
+                <Link to="/student/analytics" className="btn-ghost btn-sm">
+                  View my analytics
+                </Link>
               </div>
             </section>
           </aside>
         </div>
+      )}
 
-        <Statusbar
-          courseCode={user.courseCode}
-          courseName={user.courseName}
-          studentName={user.name}
-        />
-      </div>
-
-      <JoinClassModal 
-        isOpen={isJoinModalOpen} 
+      <JoinClassModal
+        isOpen={isJoinModalOpen}
         onClose={() => setIsJoinModalOpen(false)}
-        onSuccess={(classId) => {
-
+        onSuccess={() => {
+          setJoinedMessage("You joined the class. Its activities now appear on your dashboard.");
           fetchDashboardData();
         }}
       />
-    </div>
+    </PageShell>
   );
 }

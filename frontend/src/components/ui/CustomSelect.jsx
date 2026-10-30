@@ -1,65 +1,148 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../features/auth/AuthContext';
+import { useEffect, useId, useRef, useState } from "react";
 
-export default function CustomSelect({ options, value, onChange, placeholder = "Select an option", className = "" }) {
+/**
+ * Styled single-select with listbox semantics and full keyboard support
+ * (Enter/Space/ArrowDown open; arrows move; Enter selects; Escape closes).
+ */
+export default function CustomSelect({
+  options,
+  value,
+  onChange,
+  placeholder = "Select an option",
+  className = "",
+  ariaLabel,
+  id,
+  disabled = false,
+}) {
+  const generatedId = useId();
+  const buttonId = id || `${generatedId}-button`;
+  const listboxId = `${generatedId}-listbox`;
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-  const { user } = useAuth();
-  const isInstructor = user?.role === 'instructor';
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const containerRef = useRef(null);
+  const buttonRef = useRef(null);
 
-  const themeColor = isInstructor ? 'emerald-500' : 'blue-500';
-  const themeTextColor = isInstructor ? 'text-text-emerald' : 'text-blue-500';
+  const selectedIndex = options.findIndex((opt) => String(opt.value) === String(value));
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : null;
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
+    if (!isOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) setIsOpen(false);
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
-  const selectedOption = options.find(opt => String(opt.value) === String(value));
+  const open = () => {
+    if (disabled) return;
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setIsOpen(true);
+  };
+
+  const choose = (index) => {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.value);
+    setIsOpen(false);
+    buttonRef.current?.focus();
+  };
+
+  const handleKeyDown = (event) => {
+    if (!isOpen) {
+      if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(event.key)) {
+        event.preventDefault();
+        open();
+      }
+      return;
+    }
+    if (event.key === "Escape" || event.key === "Tab") {
+      if (event.key === "Escape") event.preventDefault();
+      setIsOpen(false);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((i) => Math.min(options.length - 1, i + 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((i) => Math.max(0, i - 1));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setActiveIndex(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(options.length - 1);
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      choose(activeIndex);
+    }
+  };
 
   return (
-    <div className="relative group" ref={dropdownRef}>
-      <div 
-        className={`w-full bg-bg-glass border border-border-subtle rounded-xl text-text-main focus:outline-none focus:border-${themeColor}/50 focus:ring-1 focus:ring-${themeColor}/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer flex justify-between items-center ${className || 'px-4 py-3 text-sm'}`}
-        onClick={() => setIsOpen(!isOpen)}
+    <div className="relative" ref={containerRef}>
+      <button
+        ref={buttonRef}
+        id={buttonId}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? listboxId : undefined}
+        aria-label={ariaLabel}
+        aria-activedescendant={isOpen && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
+        onClick={() => (isOpen ? setIsOpen(false) : open())}
+        onKeyDown={handleKeyDown}
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-border-strong bg-bg-panel text-left text-text-main transition-colors hover:border-psu-maroon/40 focus:border-psu-maroon focus:outline-none focus:ring-2 focus:ring-psu-maroon/15 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted ${
+          className || "px-3 py-2 text-sm"
+        }`}
       >
-        <span className={selectedOption ? "text-text-main" : "text-text-muted"}>
+        <span className={`truncate ${selectedOption ? "text-text-main" : "text-text-muted"}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <div className={`text-text-muted transition-transform ${isOpen ? `rotate-180 ${themeTextColor}` : `group-hover:${themeTextColor}`}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-      
+        <svg
+          className={`h-4 w-4 shrink-0 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-bg-panel border border-border-subtle rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-          <ul className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
-            {options.map((opt) => (
-              <li 
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-labelledby={buttonId}
+          className="absolute z-50 mt-1.5 max-h-60 w-full overflow-y-auto rounded-lg border border-border-subtle bg-bg-panel py-1 shadow-lg"
+        >
+          {options.length === 0 && <li className="px-3 py-2.5 text-center text-sm italic text-text-muted">No options available</li>}
+          {options.map((opt, index) => {
+            const isSelected = index === selectedIndex;
+            const isActive = index === activeIndex;
+            return (
+              <li
                 key={opt.value}
-                className={`px-4 py-3 text-sm cursor-pointer transition-colors flex items-center gap-3 ${String(value) === String(opt.value) ? `bg-${themeColor}/10 ${themeTextColor}` : 'text-text-main hover:bg-white/5 hover:text-white'}`}
-                onClick={() => {
-                  onChange(opt.value);
-                  setIsOpen(false);
-                }}
+                id={`${listboxId}-${index}`}
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setActiveIndex(index)}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => choose(index)}
+                className={`flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-sm ${
+                  isActive ? "bg-bg-alt" : ""
+                } ${isSelected ? "font-semibold text-text-brand" : "text-text-main"}`}
               >
-                <span className={String(value) === String(opt.value) ? "font-semibold" : ""}>{opt.label}</span>
+                <span>{opt.label}</span>
+                {isSelected && (
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
               </li>
-            ))}
-            {options.length === 0 && (
-              <li className="px-4 py-3 text-sm text-text-muted italic text-center">
-                No options available
-              </li>
-            )}
-          </ul>
-        </div>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

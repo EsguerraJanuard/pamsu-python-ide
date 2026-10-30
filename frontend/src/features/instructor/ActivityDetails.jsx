@@ -1,311 +1,447 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../services/api';
-import InstructorSidebar from "../../components/layout/InstructorSidebar";
-import ConfirmationModal from '../../components/modals/ConfirmationModal';
+import { useCallback, useEffect, useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
 
-const ActivityDetails = () => {
+import PageShell from "../../components/layout/PageShell";
+import ConfirmationModal from "../../components/modals/ConfirmationModal";
+import { EmptyState, ErrorState, FieldError, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
+import api, { getErrorMessage } from "../../services/api";
+import { requiredRuleIds, ruleLabel, ruleMinCount } from "../../utils/astRules";
+import { classLabel, formatDateTime } from "../../utils/format";
+
+const EMPTY_CASE = { name: "", standard_input: "", expected_output: "", is_hidden: false };
+
+export default function ActivityDetails() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [activity, setActivity] = useState(null);
+  const [classroom, setClassroom] = useState(null);
   const [testCases, setTestCases] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(() =>
+    location.state?.saved ? { tone: "success", text: "Activity changes saved." } : null,
+  );
 
-  const [newTestCase, setNewTestCase] = useState({
-    input_data: '',
-    expected_output: '',
-    is_hidden: false
-  });
+  const [confirm, setConfirm] = useState(null); // { type: "publish" | "unpublish" | "delete-case", testCase? }
+  const [isWorking, setIsWorking] = useState(false);
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
 
-  const [confirmModal, setConfirmModal] = useState({ isOpen: false, testCaseId: null });
+  const [newCase, setNewCase] = useState(EMPTY_CASE);
+  const [caseErrors, setCaseErrors] = useState({});
+  const [isAddingCase, setIsAddingCase] = useState(false);
 
-  useEffect(() => {
-    fetchActivityDetails();
-    fetchTestCases();
+  const fetchAll = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [task, cases] = await Promise.all([
+        api.get(`/instructors/tasks/${id}`),
+        api.get(`/instructors/tasks/${id}/test-cases`),
+      ]);
+      setActivity(task);
+      setTestCases(Array.isArray(cases) ? cases : []);
+      try {
+        setClassroom(await api.get(`/classrooms/${task.class_id}`));
+      } catch {
+        setClassroom(null);
+      }
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [id]);
 
-  const fetchActivityDetails = async () => {
-    try {
-      const response = await api.get(`/instructors/tasks/${id}`);
-      setActivity(response);
-    } catch (err) {
-      setError('Failed to fetch activity details.');
-      console.error(err);
-    }
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const reloadCases = async () => {
+    const cases = await api.get(`/instructors/tasks/${id}/test-cases`);
+    setTestCases(Array.isArray(cases) ? cases : []);
   };
 
-  const fetchTestCases = async () => {
+  const handleConfirm = async () => {
+    if (!confirm || isWorking) return;
+    setIsWorking(true);
     try {
-      const response = await api.get(`/instructors/tasks/${id}/test-cases`);
-      setTestCases(response);
+      if (confirm.type === "delete-case") {
+        await api.delete(`/instructors/test-cases/${confirm.testCase.test_case_id}`);
+        await reloadCases();
+        setMessage({ tone: "success", text: `Test case "${confirm.testCase.name}" was deleted.` });
+      } else {
+        const publish = confirm.type === "publish";
+        const updated = await api.patch(`/instructors/tasks/${id}/publication`, { is_published: publish });
+        setActivity((prev) => ({ ...prev, ...(updated || { is_published: publish }) }));
+        setMessage({ tone: "success", text: publish ? "Activity published to students." : "Activity moved back to draft." });
+      }
     } catch (err) {
-      console.error('Failed to fetch test cases', err);
+      setMessage({ tone: "error", text: getErrorMessage(err, "The change could not be saved.") });
     } finally {
-      setLoading(false);
+      setIsWorking(false);
+      setConfirm(null);
     }
   };
 
-  const togglePublication = async () => {
+  const handlePastePolicy = async (policy) => {
+    if (policy === activity.paste_policy) return;
+    setIsSavingPolicy(true);
     try {
-      const newStatus = !activity.is_published;
-      await api.patch(`/instructors/tasks/${id}/publication`, { is_published: newStatus });
-      setActivity(prev => ({ ...prev, is_published: newStatus }));
+      const updated = await api.patch(`/instructors/tasks/${id}`, { paste_policy: policy });
+      setActivity((prev) => ({ ...prev, ...(updated || { paste_policy: policy }) }));
+      setMessage({ tone: "success", text: "Paste policy updated." });
     } catch (err) {
-      console.error('Failed to toggle publication status', err);
+      setMessage({ tone: "error", text: getErrorMessage(err, "The paste policy could not be updated.") });
+    } finally {
+      setIsSavingPolicy(false);
     }
   };
 
-  const toggleAllowPaste = async () => {
+  const handleAddTestCase = async (event) => {
+    event.preventDefault();
+    const errors = {};
+    if (!newCase.name.trim()) errors.name = "Give the test case a short name.";
+    if (!newCase.expected_output.trim()) errors.expected_output = "Expected output is required.";
+    setCaseErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    setIsAddingCase(true);
     try {
-      const newStatus = !activity.allow_paste;
-      await api.patch(`/instructors/tasks/${id}`, { allow_paste: newStatus });
-      setActivity(prev => ({ ...prev, allow_paste: newStatus }));
+      await api.post(`/instructors/tasks/${id}/test-cases`, {
+        name: newCase.name.trim(),
+        standard_input: newCase.standard_input,
+        expected_output: newCase.expected_output,
+        is_hidden: newCase.is_hidden,
+        display_order: testCases.length,
+      });
+      setNewCase(EMPTY_CASE);
+      await reloadCases();
+      setMessage({ tone: "success", text: "Test case added." });
     } catch (err) {
-      console.error('Failed to toggle allow paste', err);
+      setMessage({ tone: "error", text: getErrorMessage(err, "The test case could not be added.") });
+    } finally {
+      setIsAddingCase(false);
     }
   };
 
-  const handleAddTestCase = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post(`/instructors/tasks/${id}/test-cases`, newTestCase);
-      setNewTestCase({ input_data: '', expected_output: '', is_hidden: false });
-      fetchTestCases();
-    } catch (err) {
-      console.error('Failed to add test case', err);
-    }
-  };
+  const backLink = (
+    <Link
+      to={activity?.class_id ? `/instructor/classes/${activity.class_id}` : "/instructor/classes"}
+      className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-text-main"
+    >
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {classroom ? `Back to ${classroom.name}` : "Back to classes"}
+    </Link>
+  );
 
-  const promptDeleteTestCase = (testCaseId) => {
-    setConfirmModal({ isOpen: true, testCaseId });
-  };
-
-  const handleConfirmDelete = async () => {
-    const testCaseId = confirmModal.testCaseId;
-    if (!testCaseId) return;
-
-    try {
-      await api.delete(`/instructors/test-cases/${testCaseId}`);
-      fetchTestCases();
-      setConfirmModal({ isOpen: false, testCaseId: null });
-    } catch (err) {
-      console.error('Failed to delete test case', err);
-    }
-  };
-
-  if (loading) {
+  if (error) {
     return (
-      <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
-        <InstructorSidebar />
-        <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-            <div className="mx-auto max-w-6xl animate-pulse">
-              <div className="mb-4 h-6 w-24 rounded-md bg-white/[0.06]"></div>
-              <div className="mb-8 h-8 w-64 rounded-md bg-white/[0.06]"></div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="h-40 rounded-xl bg-white/[0.06]"></div>
-                  <div className="h-64 rounded-xl bg-white/[0.06]"></div>
-                </div>
-                <div className="h-80 rounded-xl bg-white/[0.06]"></div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
+      <PageShell role="instructor">
+        {backLink}
+        <ErrorState error={error} resource="this activity" onRetry={fetchAll} />
+      </PageShell>
     );
   }
 
-  if (error || !activity) {
-    return <div className="text-text-rose p-6">{error || 'Activity not found'}</div>;
+  if (isLoading) {
+    return (
+      <PageShell role="instructor">
+        <SkeletonList rows={3} className="h-32" />
+      </PageShell>
+    );
   }
 
+  const rules = requiredRuleIds(activity.required_ast_rules);
+  const isPublished = activity.is_published;
+
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
-      <InstructorSidebar />
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-                        
-            <div className="mx-auto max-w-6xl ">
-
-      <div className="w-full space-y-8">
-        
-        {/* Header section */}
-        <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-bold mb-2">{activity.title}</h1>
-              <p className="text-text-muted">{activity.description}</p>
-            </div>
-            <button onClick={() => navigate(-1)} className="text-text-emerald hover:text-text-emerald">
-              Back
-            </button>
-          </div>
-          <div className="mt-6 flex items-center space-x-8">
-            <label className="relative inline-flex items-center gap-3 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={!!activity.is_published}
-                  onChange={togglePublication}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
-              </div>
-              <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">
-                {activity.is_published ? "Published" : "Draft"}
-              </span>
-            </label>
-
-            <label className={`relative inline-flex items-center gap-3 group ${activity.is_published ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={!!activity.allow_paste}
-                  onChange={toggleAllowPaste}
-                  disabled={activity.is_published}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400 peer-disabled:group-hover:bg-white/10 peer-checked:peer-disabled:group-hover:bg-emerald-500"></div>
-              </div>
-              <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Allow Paste</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Content Details */}
-        <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle space-y-4">
-          <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Details</h2>
-          
-          <div>
-            <h3 className="text-sm font-medium text-text-emerald">Instructions</h3>
-            <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
-              {activity.instructions || 'No instructions provided.'}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-medium text-text-emerald">Requirements</h3>
-            <div className="mt-1 bg-bg-glass/50 p-3 rounded border border-border-subtle whitespace-pre-wrap">
-              {activity.required_ast_rules && Object.keys(activity.required_ast_rules).length > 0 ? Object.keys(activity.required_ast_rules).join(", ") : 'No requirements provided.'}
-            </div>
-          </div>
-
-
-        </div>
-
-        {/* Test Cases Section */}
-        <div className="bg-bg-glass p-6 rounded-xl border border-border-subtle space-y-6">
-          <h2 className="text-xl font-semibold text-text-main border-b border-border-subtle pb-2">Test Cases</h2>
-          
-          <div className="space-y-4">
-            {testCases.length === 0 ? (
-              <p className="text-text-muted">No test cases found.</p>
-            ) : (
-              testCases.map((tc, idx) => (
-                <div key={tc.id || idx} className="bg-bg-glass p-4 rounded border border-border-subtle flex flex-col md:flex-row gap-4 justify-between items-start">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-semibold text-text-main">Test Case #{idx + 1}</span>
-                      {tc.is_hidden && <span className="bg-bg-glass border border-border-subtle text-xs px-2 py-1 rounded text-text-muted">Hidden</span>}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-xs text-text-muted mb-1">Input Data</div>
-                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.input_data || '-'}</pre>
-                      </div>
-                      <div>
-                        <div className="text-xs text-text-muted mb-1">Expected Output</div>
-                        <pre className="text-sm bg-bg-base p-2 rounded border border-border-subtle overflow-x-auto">{tc.expected_output || '-'}</pre>
-                      </div>
-                    </div>
-                  </div>
-                    {!activity.is_published && (
-                      <button 
-                        onClick={() => promptDeleteTestCase(tc.id)}
-                        className="text-text-rose hover:text-text-rose px-3 py-1 bg-red-400/10 rounded border border-red-400/20"
-                      >
-                        Delete
-                      </button>
-                    )}
-                </div>
-              ))
+    <PageShell role="instructor" statusContext={classroom?.name}>
+      {backLink}
+      <PageHeader
+        eyebrow={[classroom ? classLabel(classroom) : null, activity.activity_type === "homework" ? "Homework" : "Laboratory"].filter(Boolean).join(" · ")}
+        title={activity.title}
+        description={activity.description || undefined}
+        actions={
+          <>
+            <Link to={`/instructor/activities/${activity.task_id}/edit`} className="btn-secondary">
+              Edit activity
+            </Link>
+            {isPublished && (
+              <Link to={`/instructor/bench/${activity.class_id}/${activity.task_id}`} className="btn-secondary">
+                Open grading bench
+              </Link>
             )}
-          </div>
-
-          {/* Add Test Case Form */}
-          {!activity.is_published ? (
-            <form onSubmit={handleAddTestCase} className="mt-8 border-t border-border-subtle pt-6 space-y-4">
-              <h3 className="text-lg font-medium text-text-main">Add New Test Case</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Input Data</label>
-                <textarea 
-                  value={newTestCase.input_data}
-                  onChange={e => setNewTestCase({...newTestCase, input_data: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
-                  placeholder="Enter input data..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Expected Output</label>
-                <textarea 
-                  value={newTestCase.expected_output}
-                  onChange={e => setNewTestCase({...newTestCase, expected_output: e.target.value})}
-                  className="w-full bg-bg-glass border border-border-subtle rounded p-2 text-text-main focus:border-emerald-500 focus:outline-none h-24"
-                  required
-                  placeholder="Enter expected output..."
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <label className="relative inline-flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={newTestCase.is_hidden}
-                    onChange={e => setNewTestCase({...newTestCase, is_hidden: e.target.checked})}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 group-hover:bg-white/20 peer-checked:group-hover:bg-emerald-400"></div>
-                </div>
-                <span className="text-sm font-semibold text-text-main select-none group-hover:text-text-main transition-colors">Hidden Test Case</span>
-              </label>
-              <button 
-                type="submit"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
-              >
-                Add Test Case
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="mt-8 border-t border-border-subtle pt-6">
-              <p className="text-sm text-text-amber/80 bg-amber-500/10 border border-amber-500/20 rounded p-4">
-                This activity is currently published. You must unpublish it before you can add or delete test cases.
-              </p>
-            </div>
-          )}
-        </div>
-
-      </div>
-                </div>
-          </main>
-        </div>
-      </div>
-      <ConfirmationModal
-        isOpen={confirmModal.isOpen}
-        title="Delete Test Case"
-        message="Are you sure you want to delete this test case? This action cannot be undone."
-        confirmText="Delete"
-        isDanger={true}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmModal({ isOpen: false, testCaseId: null })}
+            <button
+              type="button"
+              onClick={() => setConfirm({ type: isPublished ? "unpublish" : "publish" })}
+              className={isPublished ? "btn-secondary" : "btn-primary"}
+            >
+              {isPublished ? "Unpublish" : "Publish"}
+            </button>
+          </>
+        }
       />
-    </div>
-  );
-};
 
-export default ActivityDetails;
+      {message && (
+        <InlineAlert tone={message.tone} onDismiss={() => setMessage(null)} className="mb-5">
+          {message.text}
+        </InlineAlert>
+      )}
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
+          {activity.scenario && (
+            <section className="card p-5" aria-labelledby="scenario-heading">
+              <h2 id="scenario-heading" className="mb-2 text-sm font-semibold">
+                Real-world scenario
+              </h2>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-main">{activity.scenario}</p>
+            </section>
+          )}
+
+          <section className="card p-5" aria-labelledby="instructions-heading">
+            <h2 id="instructions-heading" className="mb-2 text-sm font-semibold">
+              Instructions
+            </h2>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-main">
+              {activity.instructions || <span className="text-text-muted">No instructions provided.</span>}
+            </p>
+            {activity.starter_code && (
+              <>
+                <h3 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-text-muted">Starter code</h3>
+                <pre className="overflow-x-auto rounded-lg border border-border-subtle bg-bg-alt p-3 font-mono text-xs text-text-main">
+                  {activity.starter_code}
+                </pre>
+              </>
+            )}
+          </section>
+
+          <section className="card p-5" aria-labelledby="explanation-heading">
+            <h2 id="explanation-heading" className="mb-1 text-sm font-semibold">
+              Explanation of the solution
+            </h2>
+            <p className="mb-2 text-xs text-text-muted">Each student sees this after their grade is released.</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-main">
+              {activity.solution_explanation || (
+                <span className="text-text-muted">No explanation yet. Add one with “Edit activity”.</span>
+              )}
+            </p>
+          </section>
+
+          <section className="card p-5" aria-labelledby="test-cases-heading">
+            <h2 id="test-cases-heading" className="mb-1 text-sm font-semibold">
+              Test cases
+            </h2>
+            <p className="mb-4 text-xs text-text-muted">
+              Visible cases are shown to students as samples. Hidden cases are used only for evaluation.
+            </p>
+
+            {testCases.length === 0 ? (
+              <EmptyState className="py-8" title="No test cases yet" message="Add at least one case so runs can be compared with expected output." />
+            ) : (
+              <ul className="space-y-3">
+                {testCases.map((tc) => (
+                  <li key={tc.test_case_id} className="rounded-lg border border-border-subtle p-4">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-text-main">{tc.name}</span>
+                        <span className={`badge ${tc.is_hidden ? "badge-neutral" : "badge-brand"}`}>
+                          {tc.is_hidden ? "Hidden" : "Sample"}
+                        </span>
+                      </div>
+                      {!isPublished && (
+                        <button
+                          type="button"
+                          onClick={() => setConfirm({ type: "delete-case", testCase: tc })}
+                          className="btn-ghost btn-sm hover:text-text-rose"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Input</p>
+                        <pre className="max-h-40 overflow-auto rounded-md bg-bg-alt p-2.5 font-mono text-xs text-text-main">{tc.standard_input || "(none)"}</pre>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Expected output</p>
+                        <pre className="max-h-40 overflow-auto rounded-md bg-bg-alt p-2.5 font-mono text-xs text-text-main">{tc.expected_output}</pre>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {isPublished ? (
+              <InlineAlert tone="info" className="mt-4">
+                Unpublish the activity to add or delete test cases.
+              </InlineAlert>
+            ) : (
+              <form onSubmit={handleAddTestCase} noValidate className="mt-5 space-y-4 border-t border-border-subtle pt-5">
+                <h3 className="text-sm font-semibold">Add a test case</h3>
+                <div>
+                  <label htmlFor="tc-name" className="field-label">
+                    Name
+                  </label>
+                  <input
+                    id="tc-name"
+                    type="text"
+                    value={newCase.name}
+                    onChange={(e) => {
+                      setNewCase((p) => ({ ...p, name: e.target.value }));
+                      setCaseErrors((p) => ({ ...p, name: "" }));
+                    }}
+                    placeholder="e.g. Small input"
+                    maxLength={150}
+                    aria-invalid={Boolean(caseErrors.name)}
+                    aria-describedby={caseErrors.name ? "tc-name-error" : undefined}
+                    className="input-field"
+                    disabled={isAddingCase}
+                  />
+                  <FieldError id="tc-name-error">{caseErrors.name}</FieldError>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="tc-input" className="field-label">
+                      Standard input (optional)
+                    </label>
+                    <textarea
+                      id="tc-input"
+                      value={newCase.standard_input}
+                      onChange={(e) => setNewCase((p) => ({ ...p, standard_input: e.target.value }))}
+                      className="input-field h-28 resize-y font-mono text-xs"
+                      disabled={isAddingCase}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="tc-output" className="field-label">
+                      Expected output
+                    </label>
+                    <textarea
+                      id="tc-output"
+                      value={newCase.expected_output}
+                      onChange={(e) => {
+                        setNewCase((p) => ({ ...p, expected_output: e.target.value }));
+                        setCaseErrors((p) => ({ ...p, expected_output: "" }));
+                      }}
+                      aria-invalid={Boolean(caseErrors.expected_output)}
+                      aria-describedby={caseErrors.expected_output ? "tc-output-error" : undefined}
+                      className="input-field h-28 resize-y font-mono text-xs"
+                      disabled={isAddingCase}
+                    />
+                    <FieldError id="tc-output-error">{caseErrors.expected_output}</FieldError>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-main">
+                    <input
+                      type="checkbox"
+                      checked={newCase.is_hidden}
+                      onChange={(e) => setNewCase((p) => ({ ...p, is_hidden: e.target.checked }))}
+                      className="h-4 w-4 accent-psu-maroon"
+                      disabled={isAddingCase}
+                    />
+                    Hidden from students
+                  </label>
+                  <button type="submit" disabled={isAddingCase} className="btn-primary">
+                    {isAddingCase ? "Adding…" : "Add test case"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
+        </div>
+
+        <aside className="space-y-5">
+          <section className="card p-5" aria-label="Activity settings">
+            <h2 className="mb-3 text-sm font-semibold">Settings</h2>
+            <dl className="space-y-2.5 text-sm">
+              {[
+                ["Status", isPublished ? "Published" : activity.scheduled_publish_at ? "Scheduled" : "Draft"],
+                ["Published", activity.published_at ? formatDateTime(activity.published_at) : "—"],
+                ["Scheduled", activity.scheduled_publish_at ? formatDateTime(activity.scheduled_publish_at) : "—"],
+                ["Due", activity.due_at ? formatDateTime(activity.due_at) : "No due date"],
+                ["Difficulty", activity.difficulty ? activity.difficulty.charAt(0).toUpperCase() + activity.difficulty.slice(1) : "—"],
+                ["Graded", activity.is_graded ? "Yes" : "No"],
+              ].map(([term, value]) => (
+                <div key={term} className="flex justify-between gap-3">
+                  <dt className="text-text-muted">{term}</dt>
+                  <dd className="text-right font-medium text-text-main">{value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <fieldset className="mt-5 border-t border-border-subtle pt-4" disabled={isSavingPolicy}>
+              <legend className="mb-2 text-xs font-semibold text-text-muted">Paste policy</legend>
+              {[
+                ["internal_only", "Workspace clipboard only", "Students can copy/paste within the editor; outside pastes are blocked."],
+                ["disabled", "No pasting", "All paste actions are blocked."],
+              ].map(([value, label, help]) => (
+                <label key={value} className="mb-2 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border-subtle p-2.5 has-[:checked]:border-psu-maroon/40 has-[:checked]:bg-selected">
+                  <input
+                    type="radio"
+                    name="paste-policy"
+                    value={value}
+                    checked={activity.paste_policy === value}
+                    onChange={() => handlePastePolicy(value)}
+                    className="mt-0.5 accent-psu-maroon"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-text-main">{label}</span>
+                    <span className="block text-xs text-text-muted">{help}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          </section>
+
+          <section className="card p-5" aria-label="Required structures">
+            <h2 className="mb-3 text-sm font-semibold">Required structures</h2>
+            {rules.length === 0 ? (
+              <p className="text-xs text-text-muted">No AST requirements for this activity.</p>
+            ) : (
+              <ul className="flex flex-wrap gap-1.5">
+                {rules.map((rule) => {
+                  const count = ruleMinCount(activity.required_ast_rules[rule]);
+                  return (
+                    <li key={rule} className="badge badge-neutral">
+                      {ruleLabel(rule)}
+                      {count > 1 ? ` ×${count}` : ""}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </aside>
+      </div>
+
+      <ConfirmationModal
+        isOpen={Boolean(confirm)}
+        title={
+          confirm?.type === "publish"
+            ? "Publish this activity?"
+            : confirm?.type === "unpublish"
+              ? "Unpublish this activity?"
+              : "Delete this test case?"
+        }
+        message={
+          confirm?.type === "publish"
+            ? "Students in the class will be able to see and submit this activity."
+            : confirm?.type === "unpublish"
+              ? "Students will no longer see this activity. Existing submissions are kept."
+              : `"${confirm?.testCase?.name}" will be permanently removed.`
+        }
+        confirmText={confirm?.type === "publish" ? "Publish" : confirm?.type === "unpublish" ? "Unpublish" : "Delete"}
+        isDanger={confirm?.type !== "publish"}
+        isLoading={isWorking}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirm(null)}
+      />
+    </PageShell>
+  );
+}

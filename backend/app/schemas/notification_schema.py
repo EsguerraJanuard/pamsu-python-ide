@@ -14,6 +14,7 @@ AcademicEventType = Literal[
     "submission_status_changed",
     "grade_released",
     "classroom_archived",
+    "deadline_reminder",
 ]
 
 AcademicResourceType = Literal[
@@ -159,7 +160,9 @@ def validate_event_data(
         if len(normalized_key) > MAX_EVENT_DATA_KEY_LENGTH:
             raise ValueError("Academic event data keys are too long.")
 
-        if normalized_key.lower() in PROHIBITED_EVENT_DATA_KEYS:
+        import re
+        norm_snake_key = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", normalized_key).lower().replace("-", "_").replace(" ", "_")
+        if norm_snake_key in PROHIBITED_EVENT_DATA_KEYS:
             raise ValueError("Academic event data contains a prohibited field.")
 
         if isinstance(

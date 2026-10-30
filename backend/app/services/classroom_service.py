@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from app.core.redis_client import redis_client
 from app.models.domain_models import Classroom, Enrollment, User
 from app.schemas.classroom_schema import ClassroomCreate, ClassroomUpdate
 from app.schemas.enrollment_schema import (EnrollmentJoinRequest,
@@ -65,6 +66,10 @@ class EnrollmentConflictError(ClassroomServiceError):
 
 class EnrollmentAccessDeniedError(ClassroomServiceError):
     pass
+
+
+class StudentNotEligibleForEnrollmentError(ClassroomServiceError):
+    """Raised when pending enrollments target a non-student or inactive account."""
 
 
 def get_utc_now() -> datetime:
@@ -449,7 +454,9 @@ def regenerate_class_code(
 
 
 from app.models.domain_models import PendingEnrollment
-from app.schemas.enrollment_schema import BulkEnrollmentResponse
+from app.schemas.enrollment_schema import (BulkEnrollmentResponse,
+                                           PendingEnrollmentResult,
+                                           PendingEnrollmentSkip)
 
 logger = logging.getLogger(__name__)
 
@@ -464,37 +471,223 @@ def bulk_enroll_students(
 ) -> BulkEnrollmentResponse:
     classroom = get_owned_classroom(db=db, class_id=class_id, instructor_id=instructor_id)
 
+    # Same rule as join_classroom: archived classrooms take no new students.
+    if not classroom.is_active:
+        raise ClassroomInactiveError(
+            "This classroom is inactive and cannot accept new enrollments."
+        )
+
     # Normalize emails
     emails = [e.strip().lower() for e in emails if e.strip()]
     emails = list(set(emails))
-    
+
     valid_emails = [e for e in emails if e.endswith("@pampangastateu.edu.ph")]
     invalid_count = len(emails) - len(valid_emails)
 
     if not valid_emails:
         return BulkEnrollmentResponse(enrolled=0, queued=0, invalid=invalid_count)
 
-    # Find existing users
-    existing_users = db.query(User).filter(User.email.in_(valid_emails), User.role == "student").all()
-    existing_user_map = {u.email: u for u in existing_users}
+    # Emails are matched case-insensitively, as at login. Accounts of any
+    # role are loaded so staff addresses are reported instead of queued.
+    existing_users = db.query(User).filter(func.lower(User.email).in_(valid_emails)).all()
+    existing_user_map = {u.email.lower(): u for u in existing_users}
+
+    from app.services.guest_service import is_self_service_guest
 
     enrolled_count = 0
     queued_count = 0
+    already_enrolled_count = 0
+    ineligible_count = 0
+    suspended_count = 0
     occurred_at = get_utc_now()
 
-    # Process enrollments
-    for email in valid_emails:
-        if email in existing_user_map:
-            user = existing_user_map[email]
-            existing_enrollment = (
-                db.query(Enrollment)
-                .filter(Enrollment.class_id == classroom.class_id, Enrollment.student_id == user.user_id)
+    try:
+        for email in valid_emails:
+            user = existing_user_map.get(email)
+
+            # Self-service guests stay in the guest sandbox (owner decision,
+            # 2026-10-19), so instructors can't add them either.
+            if user is not None and (user.role != "student" or is_self_service_guest(user)):
+                ineligible_count += 1
+                continue
+
+            # Enrollment decision 1 (2026-10-22): a suspended student is
+            # reported, not enrolled, the same rule as the pending-enrollment
+            # retry. Nothing is queued: the account exists, and the
+            # instructor can add the student again after MIS reactivates it.
+            if user is not None and not user.is_active:
+                suspended_count += 1
+                continue
+
+            if user is not None:
+                existing_enrollment = (
+                    db.query(Enrollment)
+                    .filter(Enrollment.class_id == classroom.class_id, Enrollment.student_id == user.user_id)
+                    .first()
+                )
+                if existing_enrollment is not None:
+                    # Removed or disabled records are left as the instructor set them.
+                    already_enrolled_count += 1
+                else:
+                    enrollment = Enrollment(
+                        class_id=classroom.class_id,
+                        student_id=user.user_id,
+                        status="active",
+                        deactivated_at=None,
+                    )
+                    db.add(enrollment)
+                    db.flush()
+
+                    _record_audit(
+                        db=db,
+                        audit_key=_build_audit_key(
+                            action_type="student_enrolled",
+                            resource_type="enrollment",
+                            resource_id=enrollment.enrollment_id,
+                            repeatable=False,
+                        ),
+                        actor_user_id=instructor_id,
+                        action_type="student_enrolled",
+                        resource_type="enrollment",
+                        resource_id=enrollment.enrollment_id,
+                        audit_data={
+                            "class_id": classroom.class_id,
+                            "student_id": user.user_id,
+                        },
+                        occurred_at=occurred_at,
+                    )
+                    enrolled_count += 1
+
+                # A row queued before the account existed is now satisfied.
+                _delete_pending_enrollment(db=db, class_id=classroom.class_id, email=email)
+                continue
+
+            existing_pending = (
+                db.query(PendingEnrollment)
+                .filter(PendingEnrollment.class_id == classroom.class_id, PendingEnrollment.email == email)
                 .first()
             )
-            if not existing_enrollment:
+            if not existing_pending:
+                pending = PendingEnrollment(class_id=classroom.class_id, email=email)
+                db.add(pending)
+            # Re-submitted addresses still count as pending for this class.
+            queued_count += 1
+
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+
+        raise EnrollmentConflictError(
+            "Another request changed this classroom's enrollments at the same time. "
+            "No students were enrolled; please try again."
+        ) from exc
+    except AuditServiceError as error:
+        db.rollback()
+
+        raise ClassroomAuditWorkflowError(
+            "The enrollments could not be completed because their required "
+            "accountability record could not be saved. Please try again."
+        ) from error
+    except Exception:
+        db.rollback()
+        raise
+
+    return BulkEnrollmentResponse(
+        enrolled=enrolled_count,
+        queued=queued_count,
+        invalid=invalid_count,
+        already_enrolled=already_enrolled_count,
+        ineligible=ineligible_count,
+        suspended=suspended_count,
+    )
+
+
+def _delete_pending_enrollment(*, db: Session, class_id: int, email: str) -> None:
+    # A bulk delete matches zero rows quietly when a concurrent request
+    # already consumed the row, so retries never fail on it.
+    db.query(PendingEnrollment).filter(
+        PendingEnrollment.class_id == class_id,
+        PendingEnrollment.email == email,
+    ).delete(synchronize_session=False)
+
+
+def apply_pending_enrollments(
+    *,
+    db: Session,
+    student: User,
+    actor_user_id: int,
+) -> PendingEnrollmentResult:
+    """
+    Enroll a student in every classroom that queued their university email.
+
+    Pending rows are matched on the exact university email, compared
+    case-insensitively as at login; it is the only identifier a pending
+    enrollment records. Names are never used.
+
+    Each row is applied in its own savepoint. A row that cannot be applied
+    is rolled back on its own and left pending, so the caller can still
+    commit the account and every other enrollment. Rows are consumed in the
+    same savepoint that creates the enrollment, and the unique
+    (class_id, student_id) constraint backs this up, so running this again
+    never creates duplicates.
+
+    The caller owns the outer transaction and must commit it.
+    """
+
+    from app.services.guest_service import is_self_service_guest
+
+    if student.role != "student" or not student.is_active:
+        raise StudentNotEligibleForEnrollmentError(
+            "Pending enrollments can only be applied to an active student account."
+        )
+
+    # Enrollment decision 4: guests never complete queued class enrollments.
+    if is_self_service_guest(student):
+        raise StudentNotEligibleForEnrollmentError(
+            "Guest accounts can't be enrolled in classes."
+        )
+
+    result = PendingEnrollmentResult()
+    email = student.email.strip().lower()
+
+    pending_rows = (
+        db.query(PendingEnrollment)
+        .filter(PendingEnrollment.email == email)
+        .order_by(PendingEnrollment.pending_id)
+        .with_for_update()
+        .all()
+    )
+    pending_class_ids = [row.class_id for row in pending_rows]
+
+    occurred_at = get_utc_now()
+
+    for class_id in pending_class_ids:
+        classroom = db.get(Classroom, class_id)
+
+        if classroom is None or not classroom.is_active:
+            result.skipped.append(
+                PendingEnrollmentSkip(class_id=class_id, reason="classroom_inactive")
+            )
+            continue
+
+        savepoint = db.begin_nested()
+
+        try:
+            existing_enrollment = (
+                db.query(Enrollment)
+                .filter(
+                    Enrollment.class_id == class_id,
+                    Enrollment.student_id == student.user_id,
+                )
+                .first()
+            )
+
+            created = existing_enrollment is None
+
+            if created:
                 enrollment = Enrollment(
-                    class_id=classroom.class_id,
-                    student_id=user.user_id,
+                    class_id=class_id,
+                    student_id=student.user_id,
                     status="active",
                     deactivated_at=None,
                 )
@@ -509,36 +702,48 @@ def bulk_enroll_students(
                         resource_id=enrollment.enrollment_id,
                         repeatable=False,
                     ),
-                    actor_user_id=instructor_id,
+                    actor_user_id=actor_user_id,
                     action_type="student_enrolled",
                     resource_type="enrollment",
                     resource_id=enrollment.enrollment_id,
                     audit_data={
-                        "class_id": classroom.class_id,
-                        "student_id": user.user_id,
+                        "class_id": class_id,
+                        "student_id": student.user_id,
+                        "source": "pending_enrollment",
                     },
                     occurred_at=occurred_at,
                 )
-                enrolled_count += 1
-        else:
-            # Add to pending enrollments if not already there
-            existing_pending = (
-                db.query(PendingEnrollment)
-                .filter(PendingEnrollment.class_id == classroom.class_id, PendingEnrollment.email == email)
-                .first()
+
+            _delete_pending_enrollment(db=db, class_id=class_id, email=email)
+            savepoint.commit()
+        except IntegrityError:
+            savepoint.rollback()
+            logger.warning(
+                "Pending enrollment for class %s conflicted with a concurrent change; left pending.",
+                class_id,
             )
-            if not existing_pending:
-                pending = PendingEnrollment(class_id=classroom.class_id, email=email)
-                db.add(pending)
-                queued_count += 1
+            result.skipped.append(
+                PendingEnrollmentSkip(class_id=class_id, reason="enrollment_conflict")
+            )
+        except AuditServiceError:
+            savepoint.rollback()
+            logger.warning(
+                "Pending enrollment for class %s could not be audited; left pending.",
+                class_id,
+            )
+            result.skipped.append(
+                PendingEnrollmentSkip(class_id=class_id, reason="audit_failed")
+            )
+        except Exception:
+            savepoint.rollback()
+            raise
+        else:
+            if created:
+                result.enrolled_class_ids.append(class_id)
+            else:
+                result.already_enrolled_class_ids.append(class_id)
 
-    db.commit()
-
-    return BulkEnrollmentResponse(
-        enrolled=enrolled_count,
-        queued=queued_count,
-        invalid=invalid_count,
-    )
+    return result
 
 def join_classroom(
     *,
@@ -676,7 +881,7 @@ def list_class_members(
             User.user_id == Enrollment.student_id,
         )
         .filter(Enrollment.class_id == class_id)
-        .order_by(User.last_name.asc(), User.first_name.asc())
+        .order_by(User.name.asc())
         .all()
     )
 
@@ -693,7 +898,7 @@ def list_class_members(
             "enrollment_id": enrollment.enrollment_id,
             "student_id": user.user_id,
             "school_id": user.school_id,
-            "name": f"{user.last_name}, {user.first_name}",
+            "name": user.name,
             "email": user.email,
             "status": enrollment.status,
             "is_online": user.user_id in online_users,

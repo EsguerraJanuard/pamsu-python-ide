@@ -1,8 +1,32 @@
+import pytest
+
+from app.services.ast_fingerprinter import generate_ast_fingerprint
 from app.services.jaccard import (
     calculate_jaccard_details,
     calculate_jaccard_score,
     find_highest_similarity,
 )
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        ("total = a + b", ["Module", "Assign", "BinOp", "Add"]),
+        ("total += a", ["Module", "AugAssign", "Add"]),
+        ("flag = a and b", ["Module", "Assign", "BoolOp", "And"]),
+        ("value = -a", ["Module", "Assign", "UnaryOp", "USub"]),
+        ("ok = 0 < a <= 10", ["Module", "Assign", "Compare", "Lt", "LtE"]),
+    ],
+)
+def test_fingerprint_records_each_operator_once(code, expected):
+    assert generate_ast_fingerprint(code) == expected
+
+
+def test_changed_operator_lowers_similarity():
+    code_a = "total = a + b\nprint(total)"
+    code_b = "total = a - b\nprint(total)"
+
+    assert calculate_jaccard_score(code_a, code_b) < 100.0
 
 
 def test_identical_code_returns_full_similarity():

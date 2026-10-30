@@ -1,306 +1,270 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import InstructorSidebar from '../../components/layout/InstructorSidebar';
-import ConfirmationModal from '../../components/modals/ConfirmationModal';
-import api from '../../services/api';
-import AlertModal from '../../components/modals/AlertModal';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+
+import PageShell from "../../components/layout/PageShell";
+import ConfirmationModal from "../../components/modals/ConfirmationModal";
+import CreateClassModal from "../../components/modals/CreateClassModal";
+import { EmptyState, ErrorState, InlineAlert, PageHeader } from "../../components/ui/StateViews";
+import useApiQuery from "../../hooks/useApiQuery";
+import useUrlFilters from "../../hooks/useUrlFilters";
+import api, { getErrorMessage } from "../../services/api";
+import { updateCachedApi } from "../../services/queryClient";
+
+const CLASSES_ENDPOINT = "/classrooms/";
+
+// ?view=archived&q=cc102 — kept in the URL so a reload or a shared link
+// opens the same list.
+const FILTER_DEFAULTS = { view: "active", q: "" };
+const FILTER_ALLOWED = { view: ["active", "archived"] };
+
+const VIEWS = [
+  ["active", "Active"],
+  ["archived", "Archived"],
+];
+
+function matchesClass(cls, query) {
+  if (!query) return true;
+  return [cls.name, cls.subject_code, cls.section, cls.class_code]
+    .filter(Boolean)
+    .some((value) => String(value).toLowerCase().includes(query));
+}
 
 export default function ClassManagement() {
-  const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [alertConfig, setAlertConfig] = useState(null);
-  const [error, setError] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const classesQuery = useApiQuery(CLASSES_ENDPOINT);
+  const [filters, setFilters] = useUrlFilters(FILTER_DEFAULTS, FILTER_ALLOWED);
+  const [actionMessage, setActionMessage] = useState(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [classToToggle, setClassToToggle] = useState(null);
+  const [isToggling, setIsToggling] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
-  
-  // Confirmation Modal State
-  const [confirmModal, setConfirmModal] = useState({ isOpen: false, classToToggle: null });
-  
-  const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    subject_code: '',
-    section: ''
-  });
+  const classes = Array.isArray(classesQuery.data) ? classesQuery.data : [];
+  const activeClasses = classes.filter((c) => c.is_active);
+  const archivedClasses = classes.filter((c) => !c.is_active);
+  const showingArchived = filters.view === "archived";
+  const query = filters.q.trim().toLowerCase();
+  const inView = showingArchived ? archivedClasses : activeClasses;
+  const visibleClasses = inView.filter((c) => matchesClass(c, query));
 
-  const fetchClasses = async () => {
-    try {
-      setLoading(true);
-      const data = await api.get('/classrooms/');
-      setClasses(Array.isArray(data) ? data : []);
-      setError('');
-    } catch (err) {
-      console.error('Failed to fetch classrooms:', err);
-      setError('Failed to load classrooms.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClasses();
-  }, []);
-
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await api.post('/classrooms/', formData);
-      setIsModalOpen(false);
-      setFormData({ name: '', subject_code: '', section: '' });
-      await fetchClasses();
-    } catch (err) {
-      console.error('Failed to create classroom:', err);
-      setAlertConfig({ title: 'Error', message: typeof err === 'string' ? err : err.message || 'Failed to create classroom', isError: true });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const toggleClassActiveStatus = (cls, e) => {
-    e.stopPropagation(); // prevent card click
-    setConfirmModal({ isOpen: true, classToToggle: cls });
+  const setActive = async (cls, isActive) => {
+    const updated = await api.patch(`/classrooms/${cls.class_id}`, { is_active: isActive });
+    // Show the change at once; the API client's change notice also reloads the list.
+    updateCachedApi(CLASSES_ENDPOINT, (prev) =>
+      Array.isArray(prev) ? prev.map((c) => (c.class_id === cls.class_id ? { ...c, ...(updated || { is_active: isActive }) } : c)) : prev,
+    );
   };
 
   const handleConfirmToggle = async () => {
-    const cls = confirmModal.classToToggle;
-    if (!cls) return;
-    
+    if (!classToToggle || isToggling) return;
+    const cls = classToToggle;
+    const archiving = cls.is_active;
+    setIsToggling(true);
     try {
-      await api.patch(`/classrooms/${cls.class_id}`, { is_active: !cls.is_active });
-      // Update local state to reflect change quickly
-      setClasses(prev => prev.map(c => 
-        c.class_id === cls.class_id ? { ...c, is_active: !c.is_active } : c
-      ));
-      setConfirmModal({ isOpen: false, classToToggle: null });
+      await setActive(cls, !archiving);
+      setActionMessage(
+        archiving
+          ? { tone: "success", text: `${cls.name} was archived. Find it under Archived.`, undo: cls }
+          : { tone: "success", text: `${cls.name} was unarchived and is active again.` },
+      );
     } catch (err) {
-      console.error('Failed to update classroom status:', err);
-      setAlertConfig({ title: 'Error', message: 'Failed to update classroom status.', isError: true });
+      setActionMessage({ tone: "error", text: getErrorMessage(err, "The class status could not be updated.") });
+    } finally {
+      setClassToToggle(null);
+      setIsToggling(false);
     }
   };
 
-  const copyToClipboard = (e, text, id) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  // "Undo" right after an archive: restores without a second confirmation.
+  const undoArchive = async (cls) => {
+    setIsToggling(true);
+    try {
+      await setActive(cls, true);
+      setActionMessage({ tone: "success", text: `Archive undone. ${cls.name} is active again.` });
+    } catch (err) {
+      setActionMessage({ tone: "error", text: getErrorMessage(err, "The class could not be unarchived.") });
+    } finally {
+      setIsToggling(false);
+    }
   };
 
+  const copyCode = async (cls) => {
+    try {
+      await navigator.clipboard.writeText(cls.class_code);
+      setCopiedId(cls.class_id);
+      window.setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      setActionMessage({ tone: "error", text: "Your browser blocked clipboard access. Select the code and copy it manually." });
+    }
+  };
+
+  const countFor = (view) => (view === "archived" ? archivedClasses.length : activeClasses.length);
+
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main select-none">
-      <InstructorSidebar />
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-            
-            
-            <div className="mx-auto max-w-6xl ">
-              <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="mb-1 font-mono text-xs text-text-emerald">MANAGEMENT</p>
-                  <h1 className="text-2xl font-bold">My Classrooms</h1>
-                  <p className="mt-1 text-sm text-text-muted">
-                    Create and manage your classes, generate enrollment codes, and monitor students.
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
-                  >
-                    + Create New Class
-                  </button>
-                </div>
-              </header>
-
-              {error && (
-                <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-text-rose">
-                  {error}
-                </div>
-              )}
-
-              {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col animate-pulse">
-                      <div className="mb-2 h-6 w-3/4 rounded-md bg-white/[0.06]"></div>
-                      <div className="mb-4 h-4 w-1/2 rounded-md bg-white/[0.06]"></div>
-                      <div className="mb-6 h-10 w-full rounded-md bg-white/[0.06]"></div>
-                      <div className="mt-auto flex justify-between">
-                        <div className="h-4 w-1/3 rounded-md bg-white/[0.06]"></div>
-                        <div className="h-4 w-1/4 rounded-md bg-white/[0.06]"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : classes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-white/[0.01] py-16 px-6 text-center transition-all hover:bg-bg-glass">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3 ring-4 ring-emerald-500/5 text-text-emerald">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-text-main mb-1">No Classrooms Yet</h3>
-                  <p className="text-sm text-text-muted mb-6 max-w-md">
-                    You haven't created any classes. Create your first class to generate an enrollment code for your students.
-                  </p>
-                  <button 
-                    onClick={() => setIsModalOpen(true)}
-                    className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-500/20"
-                  >
-                    + Create New Class
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {classes.map((cls, idx) => (
-                    <div 
-                      key={cls.class_id} 
-                      onClick={() => navigate(`/instructor/classes/${cls.class_id}`)}
-                      className="dashboard-card rounded-xl border border-border-subtle bg-bg-glass p-5 flex flex-col transition hover:border-emerald-500/30 cursor-pointer relative group"
-                      style={{ animation: `dashboardFadeUp 400ms ease ${idx * 70}ms both` }}
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <span className="inline-block px-2 py-1 bg-emerald-500/10 text-text-emerald border border-emerald-500/20 rounded-md text-[10px] font-mono mb-2">
-                            {cls.subject_code} - {cls.section}
-                          </span>
-                          <h3 className={`font-semibold text-lg leading-tight group-hover:text-text-emerald transition-colors ${!cls.is_active ? 'text-text-muted' : ''}`}>
-                            {cls.name}
-                          </h3>
-                        </div>
-                        <div title={cls.is_active ? 'Active' : 'Inactive'} className={`w-2 h-2 rounded-full ${cls.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-red-500/50'} mt-1 flex-shrink-0`}></div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-border-subtle">
-                        <div>
-                          <p className="text-[10px] text-text-muted mb-0.5">Enrollment Code</p>
-                          <div className="flex items-center gap-2 group/copy">
-                            <p className="font-mono text-sm text-text-main">{cls.class_code}</p>
-                            <button
-                              onClick={(e) => copyToClipboard(e, cls.class_code, cls.class_id)}
-                              className="text-text-muted hover:text-text-emerald transition-colors"
-                              title="Copy to clipboard"
-                            >
-                              {copiedId === cls.class_id ? (
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-text-emerald">
-                                  <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              ) : (
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                  <path d="M5.5 3.5h7v7M3.5 5.5v7h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="text-right flex items-center justify-end">
-                          <button
-                            onClick={(e) => toggleClassActiveStatus(cls, e)}
-                            className={`px-3 py-1.5 text-xs rounded transition-colors ${
-                              cls.is_active 
-                                ? 'bg-white/5 text-text-muted hover:bg-red-500/10 hover:text-text-rose' 
-                                : 'bg-emerald-500/10 text-text-emerald hover:bg-emerald-500/20'
-                            }`}
-                          >
-                            {cls.is_active ? 'Archive' : 'Activate'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                  <div className="w-full max-w-md bg-bg-glass rounded-xl border border-white/[0.1] shadow-2xl p-6 relative" style={{ animation: 'dashboardFadeUp 300ms ease both' }}>
-                    <button 
-                      onClick={() => setIsModalOpen(false)}
-                      className="absolute top-4 right-4 text-text-muted hover:text-text-main"
-                      disabled={isSubmitting}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
-                    </button>
-                    
-                    <h2 className="text-lg font-bold mb-6">Create New Class</h2>
-                    
-                    <form onSubmit={handleCreateSubmit} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-medium text-text-muted mb-1">Subject Code</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={formData.subject_code}
-                          onChange={(e) => setFormData({...formData, subject_code: e.target.value})}
-                          placeholder="e.g. CS301" 
-                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none transition" 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-text-muted mb-1">Section</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={formData.section}
-                          onChange={(e) => setFormData({...formData, section: e.target.value})}
-                          placeholder="e.g. BSIT 3A" 
-                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none transition" 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-text-muted mb-1">Classroom Name</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={formData.name}
-                          onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          placeholder="e.g. Operating Systems" 
-                          className="w-full rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main focus:border-emerald-500 focus:outline-none transition" 
-                        />
-                      </div>
-                      <div className="pt-2">
-                        <button 
-                          type="submit" 
-                          disabled={isSubmitting}
-                          className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isSubmitting ? 'Creating...' : 'Generate Class & Code'}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-
-              {/* Confirmation Modal */}
-              <ConfirmationModal
-                isOpen={confirmModal.isOpen}
-                title={confirmModal.classToToggle?.is_active ? "Archive Classroom" : "Restore Classroom"}
-                message={confirmModal.classToToggle?.is_active 
-                  ? `Are you sure you want to archive "${confirmModal.classToToggle?.name}"? Students will no longer be able to submit tasks.`
-                  : `Are you sure you want to restore "${confirmModal.classToToggle?.name}"? Students will be able to submit tasks again.`
-                }
-                confirmText={confirmModal.classToToggle?.is_active ? "Archive" : "Restore"}
-                isDanger={confirmModal.classToToggle?.is_active}
-                onConfirm={handleConfirmToggle}
-                onCancel={() => setConfirmModal({ isOpen: false, classToToggle: null })}
-              />
-
-            </div>
-          </main>
-        </div>
-      </div>
-    
-      <AlertModal 
-        isOpen={!!alertConfig} 
-        title={alertConfig?.title} 
-        message={alertConfig?.message} 
-        isError={alertConfig?.isError} 
-        onClose={() => setAlertConfig(null)} 
+    <PageShell role="instructor">
+      <PageHeader
+        eyebrow="Management"
+        title="Classes"
+        description="Create classes, share enrollment codes and manage rosters. Archived classes can be unarchived at any time."
+        actions={
+          <button type="button" onClick={() => setIsCreateOpen(true)} className="btn-primary">
+            Create class
+          </button>
+        }
       />
-</div>
+
+      {actionMessage && (
+        <InlineAlert tone={actionMessage.tone} onDismiss={() => setActionMessage(null)} className="mb-5">
+          <span>{actionMessage.text}</span>
+          {actionMessage.undo && (
+            <button
+              type="button"
+              className="ml-2 font-semibold underline underline-offset-2 disabled:opacity-60"
+              onClick={() => undoArchive(actionMessage.undo)}
+              disabled={isToggling}
+            >
+              {isToggling ? "Undoing…" : "Undo"}
+            </button>
+          )}
+        </InlineAlert>
+      )}
+
+      {classesQuery.error && !classesQuery.data ? (
+        <ErrorState error={classesQuery.error} resource="your classes" onRetry={() => classesQuery.refetch()} />
+      ) : classesQuery.isPending ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Loading classes">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card h-48 animate-pulse" />
+          ))}
+        </div>
+      ) : classes.length === 0 ? (
+        <EmptyState
+          title="No classes yet"
+          message="Create a class to generate an enrollment code for your students."
+          action={
+            <button type="button" className="btn-primary" onClick={() => setIsCreateOpen(true)}>
+              Create class
+            </button>
+          }
+        />
+      ) : (
+        <>
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-fit gap-1 rounded-lg border border-border-subtle bg-bg-panel p-1" role="tablist" aria-label="Class status">
+              {VIEWS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={filters.view === value}
+                  onClick={() => setFilters({ view: value })}
+                  className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                    filters.view === value ? "bg-psu-maroon text-white shadow-sm" : "text-text-muted hover:bg-bg-alt hover:text-text-main"
+                  }`}
+                >
+                  {label}
+                  <span className={`ml-1.5 text-xs ${filters.view === value ? "text-white/80" : "text-text-muted"}`}>{countFor(value)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="w-full sm:w-72">
+              <label htmlFor="class-search" className="sr-only">
+                Search classes
+              </label>
+              <input
+                id="class-search"
+                type="search"
+                value={filters.q}
+                onChange={(e) => setFilters({ q: e.target.value })}
+                placeholder="Search name, subject, section or code…"
+                className="input-field"
+              />
+            </div>
+          </div>
+
+          {visibleClasses.length === 0 ? (
+            query ? (
+              <EmptyState
+                icon="search"
+                title="No matching classes"
+                message={`No ${showingArchived ? "archived" : "active"} class matches “${filters.q.trim()}”.`}
+                action={
+                  <button type="button" className="btn-secondary" onClick={() => setFilters({ q: "" })}>
+                    Clear search
+                  </button>
+                }
+              />
+            ) : showingArchived ? (
+              <EmptyState title="No archived classes" message="Classes you archive appear here, where you can unarchive them." />
+            ) : (
+              <EmptyState
+                title="No active classes"
+                message="Every class is archived. Unarchive one from the Archived tab, or create a new class."
+                action={
+                  <button type="button" className="btn-secondary" onClick={() => setFilters({ view: "archived" })}>
+                    Show archived classes
+                  </button>
+                }
+              />
+            )
+          ) : (
+            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {visibleClasses.map((cls) => (
+                <li key={cls.class_id} className={`card flex flex-col p-5 ${cls.is_active ? "" : "bg-bg-alt/60"}`}>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    {cls.subject_code && <span className="badge badge-brand">{cls.subject_code}</span>}
+                    {cls.section && <span className="badge badge-neutral">Section {cls.section}</span>}
+                    <span className={`badge ${cls.is_active ? "badge-success" : "badge-neutral"}`}>
+                      {cls.is_active ? "Active" : "Archived"}
+                    </span>
+                  </div>
+                  <h2 className="line-clamp-2 text-base font-semibold text-text-main">{cls.name}</h2>
+
+                  <div className="mt-4 rounded-lg border border-border-subtle bg-bg-alt px-3 py-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Enrollment code</p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="font-mono text-lg font-bold tracking-widest text-text-brand">{cls.class_code}</span>
+                      <button type="button" onClick={() => copyCode(cls)} className="btn-ghost btn-sm" aria-label={`Copy enrollment code for ${cls.name}`}>
+                        {copiedId === cls.class_id ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
+                    <Link to={`/instructor/classes/${cls.class_id}`} className="btn-secondary btn-sm">
+                      Open roster
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setClassToToggle(cls)}
+                      className={`btn-sm ${cls.is_active ? "btn-ghost hover:text-text-rose" : "btn-primary"}`}
+                    >
+                      {cls.is_active ? "Archive" : "Unarchive"}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      <CreateClassModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+
+      <ConfirmationModal
+        isOpen={Boolean(classToToggle)}
+        title={classToToggle?.is_active ? "Archive this class?" : "Unarchive this class?"}
+        message={
+          classToToggle?.is_active
+            ? `Students in "${classToToggle?.name}" will no longer be able to join or submit work. You can unarchive it later from the Archived tab.`
+            : `"${classToToggle?.name}" will become active again and students can submit work.`
+        }
+        confirmText={classToToggle?.is_active ? "Archive class" : "Unarchive class"}
+        loadingText={classToToggle?.is_active ? "Archiving…" : "Unarchiving…"}
+        isDanger={Boolean(classToToggle?.is_active)}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
+        onCancel={() => setClassToToggle(null)}
+      />
+    </PageShell>
   );
 }

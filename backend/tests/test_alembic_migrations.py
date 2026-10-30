@@ -27,7 +27,8 @@ ENV_FILE = BACKEND_DIRECTORY / ".env"
 BASELINE_REVISION = "18d3ef8f020d"
 
 EXPECTED_APPLICATION_TABLES = {
-    "practice_tasks", "pending_enrollments", "practice_modules", "practice_progress", "practice_attempts", "practice_test_cases",
+    "practice_tasks", "pending_enrollments", "practice_modules", "practice_progress", "practice_attempts",
+    "system_settings",
     "academic_events",
     "ast_analyses",
     "ast_findings",
@@ -145,7 +146,7 @@ def drop_temporary_database(
             )
 
             cursor.execute(
-                sql.SQL("DROP DATABASE IF EXISTS {}").format(
+                sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
                     sql.Identifier(database_name)
                 )
             )

@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
+from app.schemas.execution_schema import MAX_SOURCE_CODE_LENGTH
 from pydantic import BaseModel, Field
 
 
@@ -34,9 +35,15 @@ class PracticeModuleList(PracticeModuleBase):
         from_attributes = True
 
 class PracticeSubmissionRequest(BaseModel):
-    code: str
+    code: str = Field(..., min_length=1, max_length=MAX_SOURCE_CODE_LENGTH)
 
 class PracticeSubmissionResponse(BaseModel):
+    # The AI Tutor endpoint (/practice/attempts/{attempt_id}/ai-hint) needs it.
+    attempt_id: int
+    # "pending" until Judge0's result arrives (poll GET
+    # /practice/attempts/{attempt_id}), then "completed" (judged) or "failed"
+    # (the code could not be run; it does not count as a try).
+    status: Literal["pending", "completed", "failed"] = "completed"
     is_successful: bool
     execution_feedback: Optional[str] = None
     ast_feedback: Optional[List[str]] = None
@@ -95,3 +102,12 @@ class PracticeTaskUpdate(BaseModel):
     class Config:
         extra = "forbid"
 
+
+
+class PracticeAiHintResponse(BaseModel):
+    ai_hint: Optional[str] = None
+    # "processing" until the hint is ready (poll again), then "completed".
+    status: str
+    # True when Gemini could not produce a hint; ai_hint then holds a short
+    # notice. The client may ask again with retry=true.
+    unavailable: bool = False

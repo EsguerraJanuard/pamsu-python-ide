@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ThemeToggle } from "../theme/ThemeToggle";
 import { api, ApiError } from "../../services/api";
 
 function getPasswordStrength(password) {
@@ -10,10 +9,10 @@ function getPasswordStrength(password) {
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#ef4444", width: "25%" };
-  if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
-  return { label: "Strong password", color: "#22c55e", width: "100%" };
+  if (score <= 1) return { label: "Weak - use at least 8 characters", color: "#b42318", width: "25%" };
+  if (score === 2) return { label: "Fair - add uppercase letters, numbers, or symbols", color: "#8a6200", width: "50%" };
+  if (score === 3) return { label: "Good - one more requirement can strengthen it", color: "#77250b", width: "75%" };
+  return { label: "Strong password", color: "#15803d", width: "100%" };
 }
 
 export default function ForgotPassword() {
@@ -34,6 +33,14 @@ export default function ForgotPassword() {
   // Resend timer
   const [resendTimer, setResendTimer] = useState(0);
 
+  // Lock page to Light Mode
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("pamsu_theme", "light");
+  }, []);
+
+
+
   useEffect(() => {
     if (resendTimer > 0) {
       const interval = setInterval(() => setResendTimer((prev) => prev - 1), 1000);
@@ -43,19 +50,27 @@ export default function ForgotPassword() {
 
   const handleStartReset = async (e) => {
     e.preventDefault();
-    if (!email) return;
-    
-    setLoading(true);
     setErrorMsg("");
     
+    if (!email || !email.trim()) {
+      setErrorMsg("Please enter your university email address.");
+      return;
+    }
+    if (!/^[^\s@]+@pampangastateu\.edu\.ph$/i.test(email.trim())) {
+      setErrorMsg("Use your university email ending in @pampangastateu.edu.ph.");
+      return;
+    }
+    
+    setLoading(true);
+    
     try {
-      const response = await api.post("/users/password-reset/start", { email });
+      const response = await api.post("/users/password-reset/start", { email: email.trim().toLowerCase() });
       setChallengeId(response.challenge_id);
       setResendTimer(response.resend_after_seconds || 60);
       setStep(2);
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorMsg(error.details || error.message);
+        setErrorMsg(error.status >= 500 ? "The server ran into a problem. Please try again shortly." : error.message);
       } else {
         setErrorMsg("An unexpected error occurred. Please try again.");
       }
@@ -78,7 +93,7 @@ export default function ForgotPassword() {
       setResendTimer(response.resend_after_seconds || 60);
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorMsg(error.details || error.message);
+        setErrorMsg(error.status >= 500 ? "The server ran into a problem. Please try again shortly." : error.message);
       } else {
         setErrorMsg("Failed to resend code.");
       }
@@ -89,8 +104,20 @@ export default function ForgotPassword() {
 
   const handleCompleteReset = async (e) => {
     e.preventDefault();
-    if (!otpCode || !newPassword || !confirmPassword) return;
+    setErrorMsg("");
 
+    if (!otpCode || otpCode.length !== 6) {
+      setErrorMsg("Please enter the 6-digit verification code.");
+      return;
+    }
+    if (!newPassword) {
+      setErrorMsg("Please enter your new password.");
+      return;
+    }
+    if (!confirmPassword) {
+      setErrorMsg("Please confirm your new password.");
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setErrorMsg("Passwords do not match.");
       return;
@@ -113,7 +140,7 @@ export default function ForgotPassword() {
       setStep(3); // Success
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorMsg(error.details || error.message);
+        setErrorMsg(error.status >= 500 ? "The server ran into a problem. Please try again shortly." : error.message);
       } else {
         setErrorMsg("Failed to reset password.");
       }
@@ -122,228 +149,210 @@ export default function ForgotPassword() {
     }
   };
 
-  const inputClass = "flex-1 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted";
-  const inputWrap = "flex items-center gap-2.5 rounded-lg border border-border-subtle bg-bg-base px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/60";
+  const inputClass = "flex-1 bg-transparent text-[15px] font-medium text-text-main outline-none placeholder:text-text-muted/50 placeholder:font-normal disabled:opacity-50";
+  const inputWrap = "flex items-center gap-3 rounded-xl border border-border-strong bg-white px-5 py-4 shadow-sm transition-all duration-300 focus-within:border-psu-maroon/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-psu-maroon/20 hover:border-psu-maroon/40 cursor-text";
+  const buttonClass = "group relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl bg-psu-maroon px-5 py-4 text-[15px] font-bold tracking-wide text-white shadow-md shadow-psu-maroon/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-psu-maroon/30 active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg-base text-text-main overflow-hidden p-6 relative">
-      {/* Premium Background Grid (Matches Login!) */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+      {/* Subtle Ambient Glows */}
+      <div className="absolute top-0 right-0 -z-10 h-[800px] w-[800px] translate-x-1/4 -translate-y-1/4 rounded-full bg-psu-gold/10 blur-[150px]" />
+      <div className="absolute bottom-0 left-0 -z-10 h-[800px] w-[800px] -translate-x-1/4 translate-y-1/4 rounded-full bg-psu-maroon/10 blur-[150px]" />
 
-      {/* Glow effects (Matches Login!) */}
-      <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
-      <div className="absolute bottom-0 left-0 -z-10 h-[600px] w-[600px] -translate-x-1/4 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
-
-      <div className="absolute top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
-
-      <div className="relative z-10 w-full max-w-[440px] rounded-2xl border border-border-subtle bg-bg-glass/70 backdrop-blur-2xl p-8 shadow-xl animate-page-fade">
+      <div className="relative z-10 w-full max-w-[500px] rounded-[28px] border border-border-subtle bg-bg-panel p-10 sm:p-14 shadow-sm animate-page-fade">
         
+        {/* Brand Header */}
+        <div className="mb-10 text-center flex flex-col items-center">
+          <div className="mb-6 flex items-center justify-center h-16 w-16 rounded-2xl bg-white shadow-md border border-border-subtle">
+            <img src="/school_logo.png" alt="PSU Logo" className="h-10 w-10 object-contain drop-shadow-sm" />
+          </div>
+          <h2 className="text-3xl sm:text-[34px] font-black tracking-tight text-text-main leading-tight">
+            {step === 1 && "Account Recovery"}
+            {step === 2 && "Secure Reset"}
+            {step === 3 && "Reset Complete"}
+          </h2>
+          <p className="mt-4 text-[15px] text-text-muted leading-relaxed max-w-[320px] mx-auto">
+            {step === 1 && "Enter your registered university email to receive a secure recovery code."}
+            {step === 2 && <>We've sent a 6-digit code to <span className="font-semibold text-psu-maroon">{email}</span></>}
+            {step === 3 && "Your password has been successfully updated. You may now sign in."}
+          </p>
+        </div>
+
+        {errorMsg && (
+          <div role="alert" className="mb-8 rounded-xl border border-psu-red/25 bg-psu-red/[0.06] px-5 py-4 text-[14px] font-medium text-psu-red">
+            {errorMsg}
+          </div>
+        )}
+
         {step === 1 && (
-          <form onSubmit={handleStartReset} className="animate-[registerFadeUp_400ms_ease-out_both]">
-            <div className="mb-6 text-center">
-              <h2 className="text-xl font-bold text-text-main">
-                Forgot your password?
-              </h2>
-              <p className="mt-3 text-sm text-text-muted leading-relaxed">
-                Enter your registered university email address to receive a secure recovery code.
-              </p>
-            </div>
-
-            {errorMsg && (
-              <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] font-medium text-red-400">
-                {errorMsg}
-              </div>
-            )}
-
-            <div className="mb-6">
-              <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-text-muted">
+          <form onSubmit={handleStartReset} className="animate-fade-in-up space-y-6" noValidate>
+            <div>
+              <label htmlFor="email" className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
                 University Email Address
               </label>
-              <div className={inputWrap}>
-                <svg className="h-4 w-4 text-text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <div className={inputWrap} onClick={(e) => e.currentTarget.querySelector('input').focus()}>
+                <svg width="18" height="18" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                  <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                 </svg>
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="student@pampangastateu.edu.ph"
+                  placeholder="name@pampangastateu.edu.ph"
                   required
+                  disabled={loading}
                   className={inputClass}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
-            >
-              {loading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-              ) : (
-                "Send Recovery Code"
-              )}
-            </button>
+            <div className="pt-2">
+              <button type="submit" disabled={loading} className={buttonClass}>
+                {loading ? (
+                  <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                ) : (
+                  "Send Recovery Code"
+                )}
+              </button>
+            </div>
 
-            <div className="mt-6 text-center text-[13px]">
-              <span className="text-text-muted">Remember your password?</span>{" "}
-              <Link to="/login" className="font-semibold text-emerald-500 hover:underline">
-                Log in instead
+            <div className="mt-8 text-center">
+              <Link to="/login" className="text-[14px] font-semibold text-text-muted hover:text-psu-maroon transition-colors">
+                Remember your password? <span className="text-psu-maroon">Log in instead</span>
               </Link>
             </div>
           </form>
         )}
 
         {step === 2 && (
-          <form onSubmit={handleCompleteReset} className="animate-[registerFadeUp_400ms_ease-out_both]">
-            <div className="mb-6">
+          <form onSubmit={handleCompleteReset} className="animate-fade-in-up space-y-6" noValidate>
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="text-[13px] font-bold text-text-muted uppercase tracking-wider">
+                  Verification Code
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={resendTimer > 0 || loading}
+                  className="text-[12px] font-bold text-psu-maroon hover:text-psu-gold transition-colors disabled:text-text-muted/50"
+                >
+                  {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
+                </button>
+              </div>
+              <div className={inputWrap} onClick={(e) => e.currentTarget.querySelector('input').focus()}>
+                <input
+                  type="text"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                  placeholder="------"
+                  required
+                  className={`${inputClass} tracking-[0.5em] text-center font-mono text-lg font-bold`}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
+                New Password
+              </label>
+              <div className={inputWrap} onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}>
+                <svg width="18" height="18" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                  <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <input
+                  type={showPasswords ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  required
+                  className={`${inputClass} tracking-widest`}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
+                />
+                <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="shrink-0 text-text-muted hover:text-text-main" aria-label="Toggle password visibility">
+                  {showPasswords ? (
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.5" /><circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" /><path d="M3 3l10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.5" /><circle cx="8" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" /></svg>
+                  )}
+                </button>
+              </div>
+              {newPassword && getPasswordStrength(newPassword) && (() => {
+                const strength = getPasswordStrength(newPassword);
+                return (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Strength</span>
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: strength.color }}>{strength.label.split(' - ')[0] || strength.label}</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-alt">
+                      <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-bold text-text-muted uppercase tracking-wider">
+                Confirm New Password
+              </label>
+              <div className={inputWrap} onClick={(e) => { if (e.target.closest('button')) return; e.currentTarget.querySelector('input').focus(); }}>
+                <svg width="18" height="18" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none transition-colors group-focus-within:text-psu-maroon" aria-hidden="true">
+                  <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <input
+                  type={showPasswords ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Enter the new password again"
+                  required
+                  className={`${inputClass} tracking-widest`}
+                  style={{ caretColor: "var(--color-psu-maroon)" }}
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 space-y-4">
+              <button type="submit" disabled={loading || otpCode.length !== 6} className={buttonClass}>
+                {loading ? (
+                  <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                ) : (
+                  "Reset Password"
+                )}
+              </button>
+              
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text-main"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-white px-5 py-4 text-[15px] font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-bg-alt hover:shadow active:translate-y-0 active:scale-[0.98]"
               >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
                 Back to email
               </button>
-              <h2 className="text-xl font-bold text-text-main">
-                Secure Password Reset
-              </h2>
-              <p className="mt-2 text-[13px] text-text-muted">
-                We've sent a 6-digit verification code to <span className="font-semibold text-text-main">{email}</span>.
-              </p>
             </div>
-
-            {errorMsg && (
-              <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] font-medium text-red-400">
-                {errorMsg}
-              </div>
-            )}
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="mb-1.5 flex justify-between text-xs font-medium text-text-muted">
-                  <span>Verification Code</span>
-                  <button
-                    type="button"
-                    onClick={handleResendOTP}
-                    disabled={resendTimer > 0 || loading}
-                    className="text-emerald-500 hover:underline disabled:text-text-muted disabled:no-underline"
-                  >
-                    {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend code"}
-                  </button>
-                </label>
-                <div className={inputWrap}>
-                  <input
-                    type="text"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
-                    placeholder="Enter 6-digit code"
-                    required
-                    className={`${inputClass} tracking-[0.2em] font-mono text-center`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-text-muted">
-                  New Password
-                </label>
-                <div className={inputWrap}>
-                  <input
-                    type={showPasswords ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="At least 8 characters"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                {newPassword && getPasswordStrength(newPassword) && (() => {
-                  const strength = getPasswordStrength(newPassword);
-                  return (
-                    <div className="mt-2.5">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: strength.color }}>
-                          {strength.label.split(' - ')[0] || strength.label}
-                        </span>
-                      </div>
-                      <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
-                        <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-text-muted">
-                  Confirm New Password
-                </label>
-                <div className={inputWrap}>
-                  <input
-                    type={showPasswords ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Enter the new password again"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 mt-4 mb-2">
-                <label className="text-xs text-text-muted cursor-pointer flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    checked={showPasswords} 
-                    onChange={() => setShowPasswords(!showPasswords)} 
-                    className="rounded border-border-subtle text-emerald-500 focus:ring-emerald-500"
-                  />
-                  Show passwords
-                </label>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || otpCode.length !== 6}
-              className="group relative overflow-hidden flex w-full items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
-            >
-              {loading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-              ) : (
-                "Reset Password"
-              )}
-            </button>
           </form>
         )}
 
         {step === 3 && (
-          <div className="text-center animate-[registerFadeUp_400ms_ease-out_both]">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
-              <svg className="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <div className="animate-fade-in-up flex flex-col items-center pt-2">
+            <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-600/10 text-text-emerald ring-8 ring-emerald-600/5">
+              <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="mb-2 text-xl font-bold text-text-main">
-              Password Reset Complete
-            </h2>
-            <p className="mb-8 text-[13px] leading-relaxed text-text-muted">
-              Your password has been successfully updated. You can now use your new password to sign in.
-            </p>
-            <button
-              onClick={() => navigate("/login")}
-              className="flex w-full items-center justify-center rounded-xl bg-bg-glass py-3 text-sm font-semibold text-text-main transition-colors hover:bg-bg-glass-hover"
-            >
-              Continue to Login
-            </button>
+            <div className="w-full">
+              <button
+                onClick={() => navigate("/login", { state: { passwordReset: true, email: email.trim().toLowerCase() } })}
+                className={buttonClass}
+              >
+                Continue to Login
+              </button>
+            </div>
           </div>
         )}
       </div>

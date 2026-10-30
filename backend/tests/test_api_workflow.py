@@ -271,7 +271,7 @@ def test_complete_evaluation_workflow(
     assert get_task_response.json()["task_id"] == task_id
 
     submission_response = client.post(
-        "/execution/submissions/",
+        "/submissions/",
         headers=student_headers,
         json={
             "task_id": task_id,
@@ -291,12 +291,12 @@ def test_complete_evaluation_workflow(
     submission_data = submission_response.json()
     sub_id = submission_data["sub_id"]
 
-    assert submission_data["student_id"] == student.user_id
     assert submission_data["attempt_number"] == 1
     assert submission_data["is_official"] is True
-    assert submission_data["status"] == "awaiting_review"
-    assert submission_data["ast_pass_fail"] is None
-    assert submission_data["jaccard_score"] is None
+    assert submission_data["status"] == "submitted"
+    # The student's own response carries no review indicators.
+    assert "ast_pass_fail" not in submission_data
+    assert "jaccard_score" not in submission_data
 
     log_response = client.post(
         "/logs/behavioral/",
@@ -347,13 +347,23 @@ def test_complete_evaluation_workflow(
     assert "review indicators only" in (evaluation_data["review_notice"])
 
     get_submission_response = client.get(
-        f"/execution/submissions/{sub_id}",
+        f"/submissions/{sub_id}",
         headers=student_headers,
     )
 
+    # The review indicators are for the instructor only.
     assert get_submission_response.status_code == 200
-    assert get_submission_response.json()["ast_pass_fail"] is True
-    assert get_submission_response.json()["jaccard_score"] == 0.0
+    assert "ast_pass_fail" not in get_submission_response.json()
+    assert "jaccard_score" not in get_submission_response.json()
+
+    instructor_submission_response = client.get(
+        f"/instructors/submissions/{sub_id}",
+        headers=instructor_headers,
+    )
+
+    assert instructor_submission_response.status_code == 200
+    assert instructor_submission_response.json()["ast_pass_fail"] is True
+    assert instructor_submission_response.json()["jaccard_score"] == 0.0
 
     db_session.expire_all()
 

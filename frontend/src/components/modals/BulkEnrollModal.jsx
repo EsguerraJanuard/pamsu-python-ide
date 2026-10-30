@@ -1,191 +1,199 @@
-import { useState, useRef } from 'react';
-import api from '../../services/api';
+import { useRef, useState } from "react";
+import api, { getErrorMessage } from "../../services/api";
+import Modal from "../ui/Modal";
+import { FieldError, InlineAlert } from "../ui/StateViews";
+
+const EMAIL_PATTERN = /[a-zA-Z0-9_.+-]+@pampangastateu\.edu\.ph/gi;
 
 export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess }) {
-  const [activeTab, setActiveTab] = useState('upload'); // 'upload' or 'paste'
-  const [emailsText, setEmailsText] = useState('');
+  const [mode, setMode] = useState("upload");
+  const [emailsText, setEmailsText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState("");
   const fileInputRef = useRef(null);
 
-  if (!isOpen) return null;
-
-  const handlePasteSubmit = async () => {
-    setIsSubmitting(true);
-    setError(null);
+  const reset = () => {
+    setEmailsText("");
     setResult(null);
-    
-    // Extract emails using a basic regex
-    const emails = emailsText.match(/[a-zA-Z0-9_.+-]+@pampangastateu\.edu\.ph/gi) || [];
-    
+    setError("");
+    setFieldError("");
+    setMode("upload");
+  };
+
+  const handleClose = () => {
+    if (isSubmitting) return;
+    reset();
+    onClose();
+  };
+
+  const handlePasteSubmit = async (event) => {
+    event.preventDefault();
+    const emails = [...new Set((emailsText.match(EMAIL_PATTERN) || []).map((e) => e.toLowerCase()))];
     if (emails.length === 0) {
-      setError("No valid @pampangastateu.edu.ph email addresses found in the text.");
-      setIsSubmitting(false);
+      setFieldError("No @pampangastateu.edu.ph email addresses were found in the text.");
       return;
     }
-
-    try {
-      const response = await api.post(`/classrooms/${classId}/bulk-enroll`, {
-        emails: [...new Set(emails)] // Unique
-      });
-      setResult(response);
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      setError(err.message || "An error occurred while enrolling students.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
     setIsSubmitting(true);
-    setError(null);
-    setResult(null);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
+    setError("");
     try {
-      const response = await api.post(`/classrooms/${classId}/bulk-enroll/file`, formData);
-      setResult(response);
-      if (onSuccess) onSuccess();
+      setResult(await api.post(`/classrooms/${classId}/bulk-enroll`, { emails }));
+      onSuccess?.();
     } catch (err) {
-      setError(err.message || "Failed to parse the file or enroll students.");
+      setError(getErrorMessage(err, "Students could not be enrolled."));
     } finally {
       setIsSubmitting(false);
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
   };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    setIsSubmitting(true);
+    setError("");
+    try {
+      setResult(await api.post(`/classrooms/${classId}/bulk-enroll/file`, formData));
+      onSuccess?.();
+    } catch (err) {
+      setError(getErrorMessage(err, "The file could not be processed."));
+    } finally {
+      setIsSubmitting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const tabClass = (tab) =>
+    `flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+      mode === tab ? "bg-psu-maroon text-white shadow-sm" : "text-text-muted hover:bg-bg-alt hover:text-text-main"
+    }`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-border-subtle bg-bg-panel p-6 shadow-2xl relative">
-        <button 
-          onClick={onClose}
-          className="absolute right-4 top-4 text-text-muted hover:text-white"
-        >
-          ✕
-        </button>
-
-        <h2 className="mb-2 text-xl font-bold text-text-main">Bulk Enroll Students</h2>
-        <p className="mb-6 text-sm text-text-muted">
-          Add multiple students to your class instantly. Only <code className="bg-bg-base px-1 rounded">@pampangastateu.edu.ph</code> emails are accepted.
-        </p>
-
-        {!result ? (
-          <>
-            <div className="flex border-b border-border-subtle mb-6">
-              <button
-                className={`pb-2 px-4 text-sm font-medium ${activeTab === 'upload' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-text-muted hover:text-text-main'}`}
-                onClick={() => setActiveTab('upload')}
-              >
-                Upload File (CSV/Excel)
-              </button>
-              <button
-                className={`pb-2 px-4 text-sm font-medium ${activeTab === 'paste' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-text-muted hover:text-text-main'}`}
-                onClick={() => setActiveTab('paste')}
-              >
-                Paste Emails
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 rounded-lg bg-red-900/20 p-3 text-sm text-red-400 border border-red-900/50">
-                {error}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Bulk enroll students"
+      description="Only @pampangastateu.edu.ph addresses are accepted. Students who already have an account are enrolled now. Addresses without one are saved as pending and enrolled when MIS creates a student account with that exact email."
+      dismissible={!isSubmitting}
+    >
+      {result ? (
+        <div>
+          <InlineAlert tone="success">Enrollment processed.</InlineAlert>
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-3">
+            {[
+              ["Enrolled", result.enrolled ?? 0, "text-text-emerald"],
+              ["Pending (no account)", result.queued ?? 0, "text-text-amber"],
+              ["Invalid", result.invalid ?? 0, "text-text-rose"],
+              ...(result.already_enrolled > 0 ? [["Already in class", result.already_enrolled, "text-text-main"]] : []),
+              ...(result.ineligible > 0 ? [["Not a student account", result.ineligible, "text-text-amber"]] : []),
+              ...(result.suspended > 0 ? [["Suspended account", result.suspended, "text-text-amber"]] : []),
+            ].map(([label, value, tone]) => (
+              <div key={label} className="rounded-lg border border-border-subtle p-3">
+                <dd className={`text-2xl font-bold ${tone}`}>{value}</dd>
+                <dt className="text-xs text-text-muted">{label}</dt>
               </div>
-            )}
-
-            {activeTab === 'upload' ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-subtle bg-bg-base p-10 text-center transition-colors hover:border-brand-primary/50">
-                <svg className="mb-3 h-10 w-10 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <p className="mb-1 text-sm font-medium text-text-main">
-                  Click to upload or drag and drop
-                </p>
-                <p className="mb-4 text-xs text-text-muted">
-                  CSV, XLSX, or TXT files
-                </p>
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls,.txt"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  disabled={isSubmitting}
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isSubmitting}
-                  className="rounded-lg bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main hover:bg-bg-glass-hover disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Processing...' : 'Select File'}
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <textarea
-                  className="h-32 w-full rounded-xl border border-border-subtle bg-bg-base p-3 text-sm text-text-main placeholder-text-muted focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                  placeholder="student1@pampangastateu.edu.ph, student2@pampangastateu.edu.ph&#10;Or paste a column from Excel here..."
-                  value={emailsText}
-                  onChange={(e) => setEmailsText(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <button
-                  onClick={handlePasteSubmit}
-                  disabled={isSubmitting || !emailsText.trim()}
-                  className="w-full rounded-xl bg-brand-primary py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-primary-hover disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Enrolling...' : 'Enroll Students'}
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col items-center text-center p-6 bg-bg-base rounded-xl border border-border-subtle">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4 text-emerald-400">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Enrollment Processed</h3>
-            
-            <div className="w-full grid grid-cols-3 gap-2 mt-4 text-sm">
-              <div className="bg-bg-panel p-3 rounded-lg border border-border-subtle">
-                <div className="text-2xl font-bold text-emerald-400">{result.enrolled || 0}</div>
-                <div className="text-text-muted text-xs uppercase tracking-wider mt-1">Enrolled</div>
-              </div>
-              <div className="bg-bg-panel p-3 rounded-lg border border-border-subtle">
-                <div className="text-2xl font-bold text-amber-400">{result.queued || 0}</div>
-                <div className="text-text-muted text-xs uppercase tracking-wider mt-1">Queued</div>
-              </div>
-              <div className="bg-bg-panel p-3 rounded-lg border border-border-subtle">
-                <div className="text-2xl font-bold text-red-400">{result.invalid || 0}</div>
-                <div className="text-text-muted text-xs uppercase tracking-wider mt-1">Invalid</div>
-              </div>
-            </div>
-            
-            <p className="mt-6 text-xs text-text-muted text-left w-full">
-              <strong>Queued students</strong> will be automatically enrolled the moment they create their account.<br/>
-              <strong>Invalid emails</strong> were ignored (not ending in @pampangastateu.edu.ph).
-            </p>
-            
-            <button
-              onClick={onClose}
-              className="mt-6 w-full rounded-xl bg-bg-glass py-2 text-sm font-semibold text-text-main hover:bg-bg-glass-hover"
-            >
+            ))}
+          </dl>
+          {result.queued > 0 && (
+            <InlineAlert tone="warning" className="mt-4">
+              {result.queued === 1 ? "1 address has" : `${result.queued} addresses have`} no student account yet. They
+              will be added to this class when MIS creates a student account with the same university email, as long as
+              this class is still active. A misspelled address will not match, so check it with the student.
+            </InlineAlert>
+          )}
+          {result.ineligible > 0 && (
+            <InlineAlert tone="warning" className="mt-4">
+              {result.ineligible === 1 ? "1 address belongs" : `${result.ineligible} addresses belong`} to a faculty,
+              admin or guest account and {result.ineligible === 1 ? "was" : "were"} not enrolled.
+            </InlineAlert>
+          )}
+          {result.suspended > 0 && (
+            <InlineAlert tone="warning" className="mt-4">
+              {result.suspended === 1 ? "1 student's account is" : `${result.suspended} students' accounts are`} suspended
+              by MIS, so {result.suspended === 1 ? "it was" : "they were"} not enrolled. Add{" "}
+              {result.suspended === 1 ? "the student" : "them"} again after MIS reactivates the account.
+            </InlineAlert>
+          )}
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" className="btn-secondary" onClick={reset}>
+              Enroll more
+            </button>
+            <button type="button" className="btn-primary" onClick={handleClose}>
               Done
             </button>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 flex gap-1 rounded-lg border border-border-subtle bg-bg-panel p-1" role="tablist" aria-label="Enrollment method">
+            <button type="button" role="tab" aria-selected={mode === "upload"} className={tabClass("upload")} onClick={() => setMode("upload")}>
+              Upload file
+            </button>
+            <button type="button" role="tab" aria-selected={mode === "paste"} className={tabClass("paste")} onClick={() => setMode("paste")}>
+              Paste emails
+            </button>
+          </div>
+
+          {error && (
+            <InlineAlert tone="error" className="mb-4">
+              {error}
+            </InlineAlert>
+          )}
+
+          {mode === "upload" ? (
+            <div>
+              <label
+                htmlFor="bulk-enroll-file"
+                className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-strong px-6 py-10 text-center transition-colors hover:border-psu-maroon/40 hover:bg-selected"
+              >
+                <span className="text-sm font-semibold text-text-main">
+                  {isSubmitting ? "Uploading…" : "Choose a CSV or Excel file"}
+                </span>
+                <span className="mt-1 text-xs text-text-muted">.csv, .xlsx, .xls or .txt with one email per row</span>
+              </label>
+              <input
+                ref={fileInputRef}
+                id="bulk-enroll-file"
+                type="file"
+                accept=".csv,.xlsx,.xls,.txt"
+                onChange={handleFileUpload}
+                disabled={isSubmitting}
+                className="sr-only"
+              />
+            </div>
+          ) : (
+            <form onSubmit={handlePasteSubmit} noValidate>
+              <label htmlFor="bulk-enroll-emails" className="field-label">
+                Student emails
+              </label>
+              <textarea
+                id="bulk-enroll-emails"
+                value={emailsText}
+                onChange={(e) => {
+                  setEmailsText(e.target.value);
+                  setFieldError("");
+                }}
+                placeholder={"juan.delacruz@pampangastateu.edu.ph\nmaria.santos@pampangastateu.edu.ph"}
+                aria-invalid={Boolean(fieldError)}
+                aria-describedby={fieldError ? "bulk-enroll-emails-error" : undefined}
+                className="input-field h-40 resize-none font-mono text-xs"
+                disabled={isSubmitting}
+              />
+              <FieldError id="bulk-enroll-emails-error">{fieldError}</FieldError>
+              <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button type="button" className="btn-secondary" onClick={handleClose} disabled={isSubmitting}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={isSubmitting || !emailsText.trim()}>
+                  {isSubmitting ? "Enrolling…" : "Enroll students"}
+                </button>
+              </div>
+            </form>
+          )}
+        </>
+      )}
+    </Modal>
   );
 }

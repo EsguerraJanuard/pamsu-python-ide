@@ -1,17 +1,21 @@
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import Any
 from uuid import uuid4
 
 import bcrypt
-import redis
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.redis_client import redis_client
+from app.core.token_revocation import is_token_revoked
+from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
+from app.services.guest_service import GUEST_EXPIRED_DETAIL, guest_has_expired
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -27,6 +31,12 @@ SUPPORTED_JWT_ALGORITHMS = {
 
 
 # Passlib removed in favor of raw bcrypt
+
+# The Render free tier is heavily CPU-throttled: at the bcrypt default of 12
+# rounds a login hash blocks long enough for the proxy to drop the request.
+# The project caps the work factor at 8 (see AGENTS.md). Existing hashes made
+# with more rounds still verify, because bcrypt stores the cost in the hash.
+BCRYPT_ROUNDS = 8
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/login",
@@ -58,7 +68,7 @@ def get_password_hash(
     if not isinstance(password, str) or not password:
         raise ValueError("Password cannot be empty.")
 
-    salt = bcrypt.gensalt()
+    salt = bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
     hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed_bytes.decode("utf-8")
 
@@ -96,6 +106,32 @@ def create_access_token(
         token_data,
         SECRET_KEY,
         algorithm=ALGORITHM,
+    )
+
+
+# The role travels in a namespaced claim so it cannot be mistaken for a
+# standard JWT claim. The browser reads it for routing only; the backend
+# never authorizes from it (see SECURITY BOUNDARY below).
+ROLE_CLAIM = "pamsu_user_role"
+
+
+def create_user_access_token(
+    user: User,
+    expires_delta: timedelta | None = None,
+) -> str:
+    """
+    A sign-in token with the minimal claim set: the account id (`sub`), its
+    role (`pamsu_user_role`) and its password version (`pwd_ver`, which ends
+    the session when the password changes). Name, email and other profile
+    details are returned in the sign-in response body instead.
+    """
+    return create_access_token(
+        data={
+            "sub": str(user.user_id),
+            ROLE_CLAIM: user.role,
+            "pwd_ver": user.password_version,
+        },
+        expires_delta=expires_delta,
     )
 
 
@@ -138,14 +174,10 @@ def get_current_user(
             raise authentication_error
 
         jti = payload.get("jti")
-        if jti:
-            try:
-                if redis_client.get(f"blacklist:{jti}"):
-                    raise authentication_error
-            except redis.exceptions.ConnectionError:
-                # If Redis is completely offline, bypass the blacklist check
-                pass
-        
+        # Falls back to this server's memory while Redis is unreachable.
+        if jti and is_token_revoked(jti):
+            raise authentication_error
+
         pwd_ver = payload.get("pwd_ver", 1)
 
     except (
@@ -175,15 +207,27 @@ def get_current_user(
             detail="This account is inactive.",
         )
 
+    # Self-service guests stop working 24 hours after creation, even before
+    # the next guest sign-in deletes them from the database.
+    if guest_has_expired(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=GUEST_EXPIRED_DETAIL,
+        )
+
     if not user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=("University email verification is required."),
         )
 
+    # "admin" must be accepted here: get_current_admin and
+    # get_current_instructor build on this dependency, and the login
+    # endpoint already issues tokens to admin accounts.
     if user.role not in {
         "student",
         "instructor",
+        "admin",
     }:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -193,25 +237,30 @@ def get_current_user(
     return user
 
 
-def get_current_instructor(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    if current_user.role != "instructor":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Instructor access required.",
-        )
 
-    return current_user
+
+MAINTENANCE_MODE_MESSAGE = (
+    "The system is currently undergoing maintenance. Only instructors "
+    "and MIS personnel can log in at this time."
+)
 
 
 def get_current_student(
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> User:
     if current_user.role != "student":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Student access required.",
+        )
+
+    # /login already refuses students during maintenance; tokens issued
+    # before maintenance started are refused here as well.
+    if get_system_setting(db, "maintenance_mode", default=False):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=MAINTENANCE_MODE_MESSAGE,
         )
 
     return current_user
@@ -234,9 +283,11 @@ def get_current_student(
 # stale JWT claims.
 
 # TOKEN BOUNDARY:
-# Access tokens contain a string subject, access-token type, issued-at time,
-# expiration time, and unique token identifier. Client-supplied expiration
-# settings do not alter the configured default token lifetime.
+# Access tokens contain a string subject, the pamsu_user_role claim, the
+# password version, access-token type, issued-at time, expiration time, and
+# unique token identifier. Names, emails and other profile data are not put
+# in tokens. Client-supplied expiration settings do not alter the configured
+# default token lifetime.
 
 # PARTNER INTEGRATION:
 # Celery workers and sandbox services must not reuse browser access tokens as

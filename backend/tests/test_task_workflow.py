@@ -257,6 +257,9 @@ def test_instructor_can_create_update_filter_and_publish_tasks(
         json={
             "title": "Updated Function Homework",
             "paste_policy": "disabled",
+            # A function rule needs Intermediate; the task was created
+            # without rules, so its difficulty was set to Beginner.
+            "difficulty": "intermediate",
             "required_ast_rules": {
                 "require_function_def": True,
             },
@@ -269,6 +272,7 @@ def test_instructor_can_create_update_filter_and_publish_tasks(
 
     assert updated_task["title"] == "Updated Function Homework"
     assert updated_task["paste_policy"] == "disabled"
+    assert updated_task["difficulty"] == "intermediate"
     assert updated_task["required_ast_rules"] == {
         "require_function_def": True,
     }

@@ -19,7 +19,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../../services/api";
-import { ThemeToggle } from "../theme/ThemeToggle";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 const SCHOOL_ID_PATTERN = /^\d{10}$/;
@@ -34,10 +33,10 @@ function getPasswordStrength(password) {
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  if (score <= 1) return { label: "Weak — use at least 8 characters", color: "#ef4444", width: "25%" };
-  if (score === 2) return { label: "Fair — add uppercase letters, numbers, or symbols", color: "#f59e0b", width: "50%" };
-  if (score === 3) return { label: "Good — one more requirement can strengthen it", color: "#3b82f6", width: "75%" };
-  return { label: "Strong password", color: "#22c55e", width: "100%" };
+  if (score <= 1) return { label: "Weak — use at least 8 characters", color: "#b42318", width: "25%" };
+  if (score === 2) return { label: "Fair — add uppercase letters, numbers, or symbols", color: "#8a6200", width: "50%" };
+  if (score === 3) return { label: "Good — one more requirement can strengthen it", color: "#77250b", width: "75%" };
+  return { label: "Strong password", color: "#15803d", width: "100%" };
 }
 
 // ─── OTP Input component — 6 individual digit boxes ──────────────────────────
@@ -80,8 +79,8 @@ function OtpInput({ value, onChange, disabled }) {
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           disabled={disabled}
-          className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-[#3b82f6]/60 disabled:opacity-50"
-          style={{ caretColor: "#10b981" }}
+          className="h-12 w-10 rounded-lg border border-border-subtle bg-bg-glass text-center text-lg font-bold text-text-main outline-none transition-colors focus:border-psu-maroon disabled:opacity-50"
+          style={{ caretColor: "var(--color-psu-maroon)" }}
           aria-label={`OTP digit ${i + 1}`}
         />
       ))}
@@ -298,7 +297,7 @@ export default function Register() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-bg-base px-4 py-2 text-text-main selection:bg-emerald-500/30 overflow-hidden">
+    <main className="relative flex min-h-screen items-center justify-center bg-bg-base px-4 py-2 text-text-main overflow-hidden">
       <style>{`
         @keyframes registerFadeUp {
           from { opacity: 0; transform: translateY(18px); }
@@ -309,19 +308,11 @@ export default function Register() {
         }
       `}</style>
 
-      {/* Premium Background Grid (Matches Login!) */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
-      {/* Glow effects (Matches Login!) */}
-      <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-500/10 blur-[120px]" />
-      <div className="absolute bottom-0 left-0 -z-10 h-[600px] w-[600px] -translate-x-1/4 translate-y-1/4 rounded-full bg-cyan-500/10 blur-[120px]" />
 
-      <div className="absolute top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
 
       <div
-        className="register-animated m-auto relative z-10 w-full max-w-[1024px] rounded-3xl border border-border-subtle bg-bg-glass/70 p-5 md:p-8 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-2xl transition-all duration-500 hover:border-emerald-500/30 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]"
+        className="register-animated m-auto relative z-10 w-full max-w-[1024px] rounded-3xl border border-border-subtle bg-bg-panel p-5 md:p-8 shadow-sm transition-all duration-500"
         style={{ animation: "registerFadeUp 650ms cubic-bezier(0.25,0.46,0.45,0.94) both" }}
       >
         {/* Step 1: Form Details */}
@@ -332,21 +323,22 @@ export default function Register() {
             <div className="flex flex-col justify-center">
               <div className="mb-12 select-none cursor-default">
                 <div className="flex items-center gap-3 mb-10">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 font-mono text-lg font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-                    &gt;_
+                  <img src="/school_logo.png" alt="Pampanga State University logo" className="h-10 w-10 object-contain" />
+                  <div className="leading-tight">
+                    <p className="text-xs font-bold uppercase tracking-widest text-text-brand">Pampanga State University</p>
+                    <p className="text-lg font-bold tracking-tight text-text-main">Python IDE</p>
                   </div>
-                  <span className="text-xl font-bold tracking-wide text-text-main">PAMSU Python IDE</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <h1 className="text-3xl font-bold text-text-main">Create account</h1>
-                  <span className="shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-500 select-none">
+                  <span className="shrink-0 items-center justify-center rounded-full border border-psu-gold/50 bg-psu-gold/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-psu-gold-dark select-none">
                     Step 1 of 2
                   </span>
                 </div>
               </div>
 
               {error && (
-                <div role="alert" className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-text-rose animate-in fade-in">
+                <div role="alert" className="mb-5 rounded-lg border border-psu-red/25 bg-psu-red/[0.06] px-4 py-3 text-sm font-medium text-psu-red">
                   {error}
                 </div>
               )}
@@ -358,7 +350,7 @@ export default function Register() {
                     <label htmlFor="full-name" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Complete name
                     </label>
-                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon focus-within:ring-2 focus-within:ring-psu-maroon/15 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <circle cx="7" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -373,7 +365,7 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-maroon)" }}
                       />
                     </div>
                   </div>
@@ -383,7 +375,7 @@ export default function Register() {
                     <label htmlFor="school-id" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Student Number
                     </label>
-                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon focus-within:ring-2 focus-within:ring-psu-maroon/15 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M4 6h2M4 8.5h6M8 6h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
@@ -402,7 +394,7 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-maroon)" }}
                       />
                     </div>
                   </div>
@@ -413,7 +405,7 @@ export default function Register() {
                   <label htmlFor="school-email" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                     University email
                   </label>
-                  <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                  <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon focus-within:ring-2 focus-within:ring-psu-maroon/15 focus-within:bg-bg-glass">
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                       <path d="M1 4l6.5 4.5L14 4M1 3h13a.5.5 0 01.5.5v8a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5v-8A.5.5 0 011 3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                     </svg>
@@ -427,7 +419,7 @@ export default function Register() {
                       required
                       disabled={isLoading}
                       className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                      style={{ caretColor: "#10b981" }}
+                      style={{ caretColor: "var(--color-psu-maroon)" }}
                     />
                   </div>
                 </div>
@@ -440,12 +432,12 @@ export default function Register() {
                         Password
                       </label>
                       {capsLock && (
-                        <span className="flex items-center gap-1 text-[9px] font-semibold text-text-amber select-none">
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-text-amber select-none">
                           <svg width="8" height="8" viewBox="0 0 10 12" fill="none"><path d="M5 1L9.5 6H7V9H3V6H0.5L5 1Z" fill="currentColor"/><rect x="3" y="10.5" width="4" height="1.5" rx="0.5" fill="currentColor"/></svg>
                         </span>
                       )}
                     </div>
-                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon focus-within:ring-2 focus-within:ring-psu-maroon/15 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -460,12 +452,12 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-maroon)" }}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
-                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-text-emerald"
+                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-psu-maroon"
                         disabled={isLoading}
                       >
                         {showPassword ? (
@@ -478,16 +470,16 @@ export default function Register() {
                     {passwordStrength && (
                       <div className="mt-2.5">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Strength</span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: passwordStrength.color }}>
+                          <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Strength</span>
+                          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: passwordStrength.color }}>
                             {passwordStrength.label.split(' — ')[0] || passwordStrength.label}
                           </span>
                         </div>
-                        <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-bg-alt">
                           <div className="h-full rounded-full transition-all duration-300" style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }} />
                         </div>
                         {passwordStrength.label.includes(' — ') && (
-                           <p className="mt-1.5 text-[10px] text-text-muted">{passwordStrength.label.split(' — ')[1]}</p>
+                           <p className="mt-1.5 text-xs text-text-muted">{passwordStrength.label.split(' — ')[1]}</p>
                         )}
                       </div>
                     )}
@@ -498,7 +490,7 @@ export default function Register() {
                     <label htmlFor="confirm-password" className="mb-1 block text-[11px] font-medium text-text-muted uppercase tracking-wider select-none">
                       Confirm password
                     </label>
-                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-emerald-500/50 focus-within:bg-bg-glass">
+                    <div className="auth-input-wrap flex items-center gap-2.5 rounded-xl border border-border-subtle bg-bg-glass px-3 py-2.5 transition-colors duration-200 focus-within:border-psu-maroon focus-within:ring-2 focus-within:ring-psu-maroon/15 focus-within:bg-bg-glass">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-text-muted pointer-events-none" aria-hidden="true">
                         <rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                         <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -512,12 +504,12 @@ export default function Register() {
                         required
                         disabled={isLoading}
                         className="flex-1 min-w-0 bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted disabled:opacity-50"
-                        style={{ caretColor: "#10b981" }}
+                        style={{ caretColor: "var(--color-psu-maroon)" }}
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword((v) => !v)}
-                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-text-emerald"
+                        className="shrink-0 cursor-pointer text-text-muted transition-colors hover:text-psu-maroon"
                         disabled={isLoading}
                       >
                         {showConfirmPassword ? (
@@ -534,7 +526,7 @@ export default function Register() {
                   <button
                     type="submit"
                     disabled={!acknowledged || isLoading || !form.password || form.password !== form.confirmPassword}
-                    className="group relative overflow-hidden w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-[10px] text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+                    className="group relative overflow-hidden w-full rounded-xl bg-psu-maroon hover:bg-psu-maroon-dark py-[10px] text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-sm select-none"
                   >
                     <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                     <span className="relative z-10 flex items-center justify-center gap-2">
@@ -553,7 +545,7 @@ export default function Register() {
                   </button>
                   <p className="mt-5 text-center text-[13px] text-text-muted">
                     Already have an account?{" "}
-                    <button type="button" onClick={() => navigate("/login")} className="font-semibold text-text-emerald transition-colors hover:text-emerald-400 hover:underline">
+                    <button type="button" onClick={() => navigate("/login")} className="font-semibold text-psu-maroon transition-colors hover:underline">
                       Sign in here
                     </button>
                   </p>
@@ -562,12 +554,11 @@ export default function Register() {
             </div>
 
             {/* RIGHT COLUMN: Context & Data Collection Notice */}
-            <div className="flex flex-col justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-6 lg:p-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 -z-10 h-64 w-64 translate-x-1/3 -translate-y-1/3 rounded-full bg-emerald-500/10 blur-[80px]" />
+            <div className="flex flex-col justify-between rounded-2xl border border-psu-maroon/15 bg-psu-cream p-6 lg:p-8 relative overflow-hidden">
               
               <div>
                 <div className="flex items-center gap-3 mb-4 select-none">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-psu-maroon/10 text-psu-maroon">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </div>
                   <h3 className="font-bold text-text-main tracking-wide">Data Collection Notice</h3>
@@ -585,7 +576,7 @@ export default function Register() {
                     "Relevant records are available only to authorized instructors and system personnel."
                   ].map((text, i) => (
                     <li key={i} className="flex items-start gap-3 text-[12px] xl:text-[13px] text-text-muted">
-                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-psu-maroon" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                       </svg>
                       <span className="leading-snug">{text}</span>
@@ -595,14 +586,14 @@ export default function Register() {
               </div>
 
               {/* Acknowledgment Checkbox tightly integrated */}
-              <div className="pt-6 mt-6 border-t border-emerald-500/20">
+              <div className="pt-6 mt-6 border-t border-psu-maroon/15">
                 <label className="flex cursor-pointer items-start gap-3 group">
                   <div className="relative flex items-center justify-center mt-0.5">
                     <input
                       type="checkbox"
                       checked={acknowledged}
                       onChange={(e) => setAcknowledged(e.target.checked)}
-                      className="peer h-4 w-4 shrink-0 appearance-none rounded border border-emerald-500/40 bg-bg-surface checked:border-emerald-500 checked:bg-emerald-500 transition-all cursor-pointer group-hover:border-emerald-500"
+                      className="peer h-4 w-4 shrink-0 appearance-none rounded border border-border-strong bg-bg-panel checked:border-psu-maroon checked:bg-psu-maroon transition-all cursor-pointer group-hover:border-psu-maroon"
                       disabled={isLoading}
                     />
                     <svg className="pointer-events-none absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 14" fill="none">
@@ -626,7 +617,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => { setStep(1); setError(""); setOtpCode(""); setSuccessMessage(""); }}
-                className="mb-3 group inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-text-emerald transition-all hover:bg-emerald-500/20"
+                className="mb-3 group inline-flex items-center gap-2 rounded-lg border border-border-strong bg-bg-panel px-3.5 py-1.5 text-xs font-semibold text-text-main transition-all hover:bg-bg-alt"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 transition-transform group-hover:-translate-x-0.5" aria-hidden="true">
                   <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -636,7 +627,7 @@ export default function Register() {
               
               <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight text-text-main select-none">Verify email</h1>
-                <span className="shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-500 select-none">
+                <span className="shrink-0 items-center justify-center rounded-full border border-psu-gold/50 bg-psu-gold/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-psu-gold-dark select-none">
                   Step 2 of 2
                 </span>
               </div>
@@ -647,13 +638,13 @@ export default function Register() {
             </div>
 
             {successMessage && !error && (
-              <div role="status" className="mb-6 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm font-medium text-text-emerald animate-in fade-in">
+              <div role="status" className="mb-6 rounded-lg border border-emerald-600/25 bg-emerald-600/[0.07] px-4 py-3 text-sm font-medium text-text-emerald">
                 {successMessage}
               </div>
             )}
 
             {error && (
-              <div role="alert" className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-text-rose animate-in fade-in">
+              <div role="alert" className="mb-6 rounded-lg border border-psu-red/25 bg-psu-red/[0.06] px-4 py-3 text-sm font-medium text-psu-red">
                 {error}
               </div>
             )}
@@ -673,7 +664,7 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={otpCode.length !== 6 || isLoading}
-                className="group relative overflow-hidden w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-[10px] text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-[0_0_20px_rgba(16,185,129,0.3)] select-none"
+                className="group relative overflow-hidden w-full rounded-xl bg-psu-maroon hover:bg-psu-maroon-dark py-[10px] text-sm font-bold tracking-wide text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-sm select-none"
               >
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite] transition-transform"></div>
                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -699,7 +690,7 @@ export default function Register() {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0 || isLoading}
-                  className="text-[13px] font-semibold text-text-emerald transition-colors hover:text-emerald-400 hover:underline disabled:cursor-not-allowed disabled:text-text-muted disabled:no-underline"
+                  className="text-[13px] font-semibold text-psu-maroon transition-colors hover:underline disabled:cursor-not-allowed disabled:text-text-muted disabled:no-underline"
                 >
                   {resendCooldown > 0
                     ? `Resend available in ${resendCooldown}s`

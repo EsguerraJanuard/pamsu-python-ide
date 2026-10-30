@@ -13,7 +13,7 @@ class PasswordResetStartRequest(BaseModel):
 class PasswordResetCompleteRequest(BaseModel):
     challenge_id: str = Field(..., min_length=36, max_length=36)
     otp_code: str = Field(..., pattern=r"^\d{6}$")
-    new_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
 
     model_config = ConfigDict(extra="forbid")
 

@@ -1,11 +1,14 @@
 import secrets
 from typing import Annotated, Literal
 
+from app.core import config
 from app.core.config import MIN_PARTNER_EXECUTION_TOKEN_LENGTH, get_settings
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 
 PARTNER_EXECUTION_TOKEN_HEADER = "X-Partner-Token"
+# The variable the settings layer actually reads (PAMSU_PARTNER_EXECUTION_TOKEN).
+PARTNER_EXECUTION_TOKEN_ENV = config.PARTNER_EXECUTION_TOKEN_ENV
 
 PartnerExecutionIdentity = Literal["isolated_execution_worker",]
 

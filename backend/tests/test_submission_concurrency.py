@@ -164,7 +164,7 @@ def _drop_temporary_database(
             )
 
             cursor.execute(
-                sql.SQL("DROP DATABASE IF EXISTS {}").format(
+                sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
                     sql.Identifier(database_name)
                 )
             )
@@ -244,8 +244,7 @@ def _seed_submission_context(
 ) -> dict[str, int]:
     with session_factory() as db:
         instructor = User(
-            first_name=("Pillar 15 Concurrency Instructor").split()[0] if isinstance("Pillar 15 Concurrency Instructor", str) else "Test",
-        last_name=" ".join(("Pillar 15 Concurrency Instructor").split()[1:]) if isinstance("Pillar 15 Concurrency Instructor", str) and " " in "Pillar 15 Concurrency Instructor" else "User",
+            name="Pillar 15 Concurrency Instructor",
             school_id="9500000001",
             email=("p15.concurrent.instructor@pampangastateu.edu.ph"),
             role="instructor",
@@ -255,8 +254,7 @@ def _seed_submission_context(
         )
 
         student = User(
-            first_name=("Pillar 15 Concurrency Student").split()[0] if isinstance("Pillar 15 Concurrency Student", str) else "Test",
-        last_name=" ".join(("Pillar 15 Concurrency Student").split()[1:]) if isinstance("Pillar 15 Concurrency Student", str) and " " in "Pillar 15 Concurrency Student" else "User",
+            name="Pillar 15 Concurrency Student",
             school_id="9500000002",
             email=("p15.concurrent.student@pampangastateu.edu.ph"),
             role="student",

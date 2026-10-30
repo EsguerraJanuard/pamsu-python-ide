@@ -1,369 +1,307 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+
+import PageShell from "../../components/layout/PageShell";
 import BulkEnrollModal from "../../components/modals/BulkEnrollModal";
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import EditClassModal from "../../components/modals/EditClassModal";
 import StudentGradebookModal from "../../components/modals/StudentGradebookModal";
+import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
+import useUrlFilters from "../../hooks/useUrlFilters";
+import api, { getErrorMessage } from "../../services/api";
+import { formatDateTime } from "../../utils/format";
+
+const MEMBER_STATUS = {
+  active: { label: "Active", badge: "badge-success" },
+  disabled: { label: "Paused", badge: "badge-gold" },
+};
+
+// ?tab=activities or ?q=dela — the open tab and the roster search, kept in
+// the URL for reloads and shared links.
+const URL_DEFAULTS = { tab: "roster", q: "" };
+const URL_ALLOWED = { tab: ["roster", "activities"] };
+
 export default function ClassRosterView() {
   const { id: classId } = useParams();
-  const navigate = useNavigate();
+  const [classroom, setClassroom] = useState(null);
   const [students, setStudents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("roster");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState(null);
+  const [actionMessage, setActionMessage] = useState(null);
+  const [urlFilters, setUrlFilters] = useUrlFilters(URL_DEFAULTS, URL_ALLOWED);
+  const activeTab = urlFilters.tab;
+  const setActiveTab = (tab) => setUrlFilters({ tab });
+  const searchQuery = urlFilters.q;
+  const setSearchQuery = (value) => setUrlFilters({ q: value });
   const [studentToRemove, setStudentToRemove] = useState(null);
-  const [studentToInspect, setStudentToInspect] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isBulkEnrollModalOpen, setIsBulkEnrollModalOpen] = useState(false);
+  const [studentToInspect, setStudentToInspect] = useState(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
 
-  const [classroom, setClassroom] = useState(null);
-
-  const fetchRoster = async () => {
+  const fetchRoster = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const [classData, membersData, tasksData] = await Promise.all([
+      const [classData, members, classTasks] = await Promise.all([
         api.get(`/classrooms/${classId}`),
         api.get(`/classrooms/${classId}/members`),
-        api.get(`/instructors/tasks/?class_id=${classId}`).catch(() => []),
+        api.get(`/instructors/tasks/?class_id=${classId}`),
       ]);
       setClassroom(classData);
-      setStudents(Array.isArray(membersData) ? membersData.filter(m => m.status !== "removed") : []);
-      setTasks(Array.isArray(tasksData) ? tasksData : []);
+      setStudents((Array.isArray(members) ? members : []).filter((m) => m.status !== "removed"));
+      setTasks(Array.isArray(classTasks) ? classTasks.filter((t) => String(t.class_id) === String(classId)) : []);
     } catch (err) {
-      setError(err.message || "Failed to load roster data.");
+      setError(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [classId]);
 
   useEffect(() => {
     fetchRoster();
-  }, [classId]);
+  }, [fetchRoster]);
 
+  const filteredStudents = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return students;
+    return students.filter((s) =>
+      [s.name, s.school_id, s.email].some((value) => value && value.toLowerCase().includes(query)),
+    );
+  }, [students, searchQuery]);
 
   const handleRemoveConfirm = async () => {
-    if (!studentToRemove) return;
+    if (!studentToRemove || isRemoving) return;
     setIsRemoving(true);
     try {
-      await api.patch(`/classrooms/enrollments/${studentToRemove.enrollment_id}/status`, {
-        status: "removed",
-      });
-      
+      await api.patch(`/classrooms/enrollments/${studentToRemove.enrollment_id}/status`, { status: "removed" });
       setStudents((prev) => prev.filter((s) => s.enrollment_id !== studentToRemove.enrollment_id));
-      setStudentToRemove(null);
+      setActionMessage({ tone: "success", text: `${studentToRemove.name} was removed from the class.` });
     } catch (err) {
-      setStudents((prev) => prev.filter((s) => s.enrollment_id !== studentToRemove.enrollment_id));
-      setStudentToRemove(null);
+      setActionMessage({ tone: "error", text: getErrorMessage(err, `${studentToRemove.name} could not be removed.`) });
     } finally {
       setIsRemoving(false);
+      setStudentToRemove(null);
     }
   };
 
+  const tabClass = (tab) =>
+    `-mb-px border-b-2 px-1 pb-3 text-sm font-semibold transition-colors ${
+      activeTab === tab ? "border-psu-maroon text-text-brand" : "border-transparent text-text-muted hover:text-text-main"
+    }`;
+
   return (
-    <div className="flex h-screen flex-col bg-bg-base select-none">
-      <div className="flex-1 overflow-y-auto p-6 sm:p-8">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-subtle pb-6">
-            <div>
-              <button 
-                onClick={() => navigate('/instructor/classes')}
-                className="mb-4 flex w-fit items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass px-3 py-1.5 text-xs font-medium text-text-muted shadow-sm transition hover:bg-bg-glass-hover hover:text-text-main"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back to Classrooms
-              </button>
-              <h1 className="text-2xl font-bold text-text-main">
-                {classroom ? `${classroom.subject_code || classroom.name} ${classroom.section ? `- ${classroom.section}` : ''}` : "Class Roster"}
-              </h1>
-              <p className="mt-1 text-sm text-text-muted">
-                {classroom ? (classroom.name || classroom.schedule || "Manage enrolled students.") : "Manage enrolled students."}
-              </p>
-            </div>
+    <PageShell role="instructor" statusContext={classroom?.name}>
+      <Link
+        to="/instructor/classes"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-text-main"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Back to classes
+      </Link>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsBulkEnrollModalOpen(true)}
-                className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main shadow hover:bg-bg-glass-hover transition"
-              >
-                + Bulk Enroll
-              </button>
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main shadow hover:bg-bg-glass-hover transition"
-              >
-                ⚙ Classroom Settings
-              </button>
+      {error ? (
+        <ErrorState error={error} resource="this class" onRetry={fetchRoster} />
+      ) : isLoading ? (
+        <>
+          <div className="card mb-6 h-24 animate-pulse" />
+          <SkeletonList rows={4} className="h-14" />
+        </>
+      ) : (
+        <>
+          <PageHeader
+            eyebrow={[classroom.subject_code, classroom.section && `Section ${classroom.section}`].filter(Boolean).join(" · ") || "Class"}
+            title={classroom.name}
+            description={`Enrollment code ${classroom.class_code}${classroom.is_active ? "" : " · Archived"}`}
+            actions={
+              <>
+                <button type="button" onClick={() => setIsBulkOpen(true)} className="btn-secondary">
+                  Bulk enroll
+                </button>
+                <button type="button" onClick={() => setIsEditOpen(true)} className="btn-secondary">
+                  Class settings
+                </button>
+              </>
+            }
+          />
 
-              <div className="text-sm font-semibold text-text-emerald bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
-                Students: {students.length}
-              </div>
-            </div>
-          </header>
+          {actionMessage && (
+            <InlineAlert tone={actionMessage.tone} onDismiss={() => setActionMessage(null)} className="mb-5">
+              {actionMessage.text}
+            </InlineAlert>
+          )}
 
-          {/* Navigation Tabs */}
-          <div className="flex gap-4 border-b border-border-subtle text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab("roster")}
-              className={`pb-3 px-1 transition border-b-2 ${
-                activeTab === "roster"
-                  ? "border-emerald-400 text-text-emerald"
-                  : "border-transparent text-text-muted hover:text-text-main"
-              }`}
-            >
-              Enrolled Roster ({students.length})
+          <div className="mb-5 flex gap-6 border-b border-border-subtle" role="tablist" aria-label="Class sections">
+            <button type="button" role="tab" aria-selected={activeTab === "roster"} onClick={() => setActiveTab("roster")} className={tabClass("roster")}>
+              Students ({students.length})
             </button>
-            <button
-              onClick={() => setActiveTab("activities")}
-              className={`pb-3 px-1 transition border-b-2 ${
-                activeTab === "activities"
-                  ? "border-emerald-400 text-text-emerald"
-                  : "border-transparent text-text-muted hover:text-text-main"
-              }`}
-            >
-              Activities
+            <button type="button" role="tab" aria-selected={activeTab === "activities"} onClick={() => setActiveTab("activities")} className={tabClass("activities")}>
+              Activities ({tasks.length})
             </button>
           </div>
 
-          {isLoading ? (
-            <div className="flex h-40 items-center justify-center text-sm text-text-muted">Loading roster...</div>
-          ) : activeTab === "roster" ? (
-            <>
-              {/* Search Bar */}
-              <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-glass px-3 py-2 w-full max-w-sm focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/50 transition">
-                <svg className="h-4 w-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search students by name, ID, or email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted"
-                />
-              </div>
-
-              <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-border-subtle bg-bg-glass">
-                <table className="w-full text-left text-sm text-text-muted">
-                  <thead className="border-b border-border-subtle bg-bg-glass text-xs font-semibold uppercase tracking-wider text-text-muted">
-                    <tr>
-                      <th className="px-6 py-4">Student</th>
-                      <th className="px-6 py-4">ID / Email</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-center">Submissions</th>
-                        <th className="px-6 py-4 text-center">Academic Integrity</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.06]">
-                    {(() => {
-                      const filteredStudents = students.filter(s => 
-                        s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        (s.school_id && s.school_id.toLowerCase().includes(searchQuery.toLowerCase())) || 
-                        (s.email && s.email.toLowerCase().includes(searchQuery.toLowerCase()))
-                      );
-                      
-                      if (filteredStudents.length === 0) {
-                        return (
+          {activeTab === "roster" ? (
+            students.length === 0 ? (
+              <EmptyState
+                title="No students enrolled"
+                message={`Share the enrollment code ${classroom.class_code} with your students, or enroll them in bulk.`}
+                action={
+                  <button type="button" className="btn-primary" onClick={() => setIsBulkOpen(true)}>
+                    Bulk enroll
+                  </button>
+                }
+              />
+            ) : (
+              <>
+                <div className="mb-4 w-full sm:w-80">
+                  <label htmlFor="roster-search" className="sr-only">
+                    Search students
+                  </label>
+                  <input
+                    id="roster-search"
+                    type="search"
+                    placeholder="Search by name, ID or email…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+                <div className="card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] text-left text-sm">
+                      <thead className="border-b border-border-subtle bg-bg-alt text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                        <tr>
+                          <th scope="col" className="px-4 py-3">Student</th>
+                          <th scope="col" className="px-4 py-3">School ID</th>
+                          <th scope="col" className="px-4 py-3">Enrollment</th>
+                          <th scope="col" className="px-4 py-3">Session</th>
+                          <th scope="col" className="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-subtle">
+                        {filteredStudents.length === 0 ? (
                           <tr>
-                            <td colSpan="6" className="px-6 py-8 text-center text-text-muted">
-                              {searchQuery ? "No students found matching your search." : "No students enrolled yet."}
+                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-text-muted">
+                              No students match your search.
                             </td>
                           </tr>
-                        );
-                      }
-                      
-                      return filteredStudents.map((student) => (
-                        <tr 
-                          key={student.enrollment_id || student.id} 
-                          onClick={() => setStudentToInspect(student)}
-                          className="transition-colors hover:bg-bg-glass cursor-pointer"
-                        >
-                          <td className="px-6 py-4 font-medium text-text-main">{student?.name}</td>
-                          <td className="px-6 py-4">
-                            <div className="text-text-main">{student.school_id || "2026-N/A"}</div>
-                            <div className="text-xs text-text-muted">{student.email}</div>
-                          </td>
-                          <td className="px-6 py-4 text-text-muted">
-                            {student.is_online ? (
-                               <span className="text-text-emerald flex items-center gap-2">
-                                 <span className="relative flex h-2 w-2">
-                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                 </span>
-                                 Online
-                               </span>
-                            ) : (
-                               <span className="text-text-muted flex items-center gap-2">
-                                 <span className="inline-block w-2 h-2 rounded-full bg-slate-600"></span>
-                                 Offline
-                               </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-center font-mono text-text-muted">0</td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setStudentToRemove(student); }}
-                              className="rounded p-1.5 text-text-muted transition hover:bg-red-500/10 hover:text-text-rose"
-                              title="Remove Student"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </button>
-                          </td>
-                        </tr>
-                      ));
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                        ) : (
+                          filteredStudents.map((student) => {
+                            const status = MEMBER_STATUS[student.status] || MEMBER_STATUS.active;
+                            return (
+                              <tr key={student.enrollment_id} className="hover:bg-bg-alt/60">
+                                <td className="px-4 py-3">
+                                  <p className="font-medium text-text-main">{student.name}</p>
+                                  <p className="text-xs text-text-muted">{student.email}</p>
+                                </td>
+                                <td className="px-4 py-3 font-mono text-xs text-text-muted">{student.school_id || "—"}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`badge ${status.badge}`}>{status.label}</span>
+                                </td>
+                                <td className="px-4 py-3 text-xs">
+                                  {student.is_online ? (
+                                    <span className="inline-flex items-center gap-1.5 font-medium text-text-emerald">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden="true" />
+                                      Online
+                                    </span>
+                                  ) : (
+                                    <span className="text-text-muted">Offline</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex justify-end gap-1">
+                                    <button type="button" onClick={() => setStudentToInspect(student)} className="btn-ghost btn-sm">
+                                      Grades
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setStudentToRemove(student)}
+                                      className="btn-ghost btn-sm hover:text-text-rose"
+                                      aria-label={`Remove ${student.name} from class`}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <>
+              <div className="mb-4 flex justify-end">
+                <Link to={`/instructor/activities/create?class=${classId}`} className="btn-primary">
+                  New activity for this class
+                </Link>
+              </div>
               {tasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-border-subtle bg-bg-glass py-16 text-center">
-                  <div className="mb-3 rounded-full bg-bg-glass p-4 text-text-muted">
-                    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-text-main">No Activities Yet</h3>
-                  <p className="mt-1 max-w-sm text-sm text-text-muted">
-                    You haven't assigned any activities or tasks to this classroom.
-                  </p>
-                  <div className="mt-6">
-                      <button 
-                        onClick={() => navigate(`/instructor/activities/create?class=${classId}`)}
-                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Create Activity
-                      </button>
-                    </div>
-                  </div>
+                <EmptyState title="No activities yet" message="Activities you assign to this class will appear here." />
               ) : (
-                <div className="flex flex-col gap-4">
-                  <div className="flex justify-end">
-                    <button 
-                      onClick={() => navigate(`/instructor/activities/create?class=${classId}`)}
-                      className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                      Assign New Activity
-                    </button>
-                  </div>
-                  {tasks.map(task => (
-                  <div key={task.task_id} className="flex items-center justify-between rounded-xl border border-border-subtle bg-bg-glass p-5 transition hover:border-emerald-500/30 hover:bg-bg-glass/80">
-                    <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${task.is_published ? 'bg-emerald-500/10 text-text-emerald' : 'bg-bg-glass border border-border-subtle text-text-muted'}`}>
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-base font-semibold text-text-main">{task.title}</h3>
-                        <div className="mt-1 flex items-center gap-3 text-xs text-text-muted">
-                          <span className="capitalize">{task.activity_type.replace('_', ' ')}</span>
-                          <span>•</span>
-                          <span className={task.is_published ? 'text-emerald-400/80 font-medium' : 'text-text-muted font-medium'}>
-                            {task.is_published ? 'Published' : 'Draft'}
+                <ul className="space-y-3">
+                  {tasks.map((task) => (
+                    <li key={task.task_id} className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-semibold text-text-main">{task.title}</h3>
+                          <span className={`badge ${task.is_published ? "badge-success" : "badge-neutral"}`}>
+                            {task.is_published ? "Published" : "Draft"}
                           </span>
+                          <span className="badge badge-neutral">{task.activity_type === "homework" ? "Homework" : "Laboratory"}</span>
                         </div>
+                        <p className="text-xs text-text-muted">{task.due_at ? `Due ${formatDateTime(task.due_at)}` : "No due date"}</p>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-6">
-                      {task.is_published ? (
-                        <div className="flex items-center gap-6 mr-4 border-r border-border-subtle pr-8">
-                          <div className="flex flex-col items-center">
-                            <span className="text-xl font-semibold text-text-main">{task.turned_in_count || 0}</span>
-                            <span className="text-[10px] uppercase tracking-wider text-text-muted mt-1">Turned In</span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-xl font-semibold text-text-main">{task.assigned_count || 0}</span>
-                            <span className="text-[10px] uppercase tracking-wider text-text-muted mt-1">Assigned</span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-xl font-semibold text-text-emerald">{task.graded_count || 0}</span>
-                            <span className="text-[10px] uppercase tracking-wider text-text-emerald/60 mt-1">Graded</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mr-6 text-xs italic text-text-muted border-r border-border-subtle pr-8">
-                          Students cannot see drafts
-                        </div>
-                      )}
-                      
-                      <button 
-                        onClick={() => navigate(`/instructor/activities/${task.task_id}`)}
-                        className="rounded-lg border border-border-subtle bg-bg-glass px-4 py-2 text-xs font-semibold text-text-main transition hover:bg-bg-glass-hover hover:text-text-emerald"
-                      >
-                        {task.is_published ? "View Activity" : "Edit Activity"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                  </div>
-                )}
-            </div>
+                      <div className="flex shrink-0 gap-2">
+                        <Link to={`/instructor/activities/${task.task_id}`} className="btn-secondary btn-sm">
+                          Manage
+                        </Link>
+                        {task.is_published && (
+                          <Link to={`/instructor/bench/${classId}/${task.task_id}`} className="btn-ghost btn-sm">
+                            Grade
+                          </Link>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
-        </div>
-      </div>
-
-      {/* Edit Classroom Settings Modal */}
-                <BulkEnrollModal
-          isOpen={isBulkEnrollModalOpen}
-          onClose={() => setIsBulkEnrollModalOpen(false)}
-          classId={classId}
-          onSuccess={fetchRoster}
-        />
-
-        <EditClassModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          classroom={classroom}
-          onSuccess={(updated) => setClassroom((prev) => ({ ...prev, ...updated }))}
-        />
-
-        <StudentGradebookModal
-          isOpen={!!studentToInspect}
-          onClose={() => setStudentToInspect(null)}
-          student={studentToInspect}
-          classId={classId}
-        />
-
-        {/* Confirm Remove Student Modal */}
-      {studentToRemove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-bg-glass p-6 shadow-2xl">
-            <h3 className="mb-2 text-lg font-bold text-text-main">Remove Student?</h3>
-            <p className="mb-6 text-sm text-text-muted">
-              Are you sure you want to remove <span className="font-semibold text-text-main">{studentToRemove.name}</span> from this class? Their submission records will be archived.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setStudentToRemove(null)}
-                disabled={isRemoving}
-                className="rounded-lg px-4 py-2 text-xs font-semibold text-text-muted transition hover:bg-bg-glass"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRemoveConfirm}
-                disabled={isRemoving}
-                className="rounded-lg bg-red-500/20 px-4 py-2 text-xs font-semibold text-text-rose transition disabled:opacity-50 hover:bg-red-500/30"
-              >
-                {isRemoving ? "Removing..." : "Yes, Remove"}
-              </button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
-    </div>
+
+      <BulkEnrollModal isOpen={isBulkOpen} onClose={() => setIsBulkOpen(false)} classId={classId} onSuccess={fetchRoster} />
+      <EditClassModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        classroom={classroom}
+        onSuccess={(updated) => setClassroom((prev) => ({ ...prev, ...updated }))}
+      />
+      <StudentGradebookModal
+        isOpen={Boolean(studentToInspect)}
+        onClose={() => setStudentToInspect(null)}
+        student={studentToInspect}
+        classId={classId}
+      />
+      <ConfirmationModal
+        isOpen={Boolean(studentToRemove)}
+        title="Remove student?"
+        message={`${studentToRemove?.name} will lose access to this class. Their existing submissions stay on record.`}
+        confirmText="Remove student"
+        loadingText="Removing…"
+        isDanger
+        isLoading={isRemoving}
+        onConfirm={handleRemoveConfirm}
+        onCancel={() => setStudentToRemove(null)}
+      />
+    </PageShell>
   );
 }

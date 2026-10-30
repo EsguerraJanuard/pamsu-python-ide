@@ -166,6 +166,23 @@ class ClassroomUpdate(BaseModel):
 
 
 class ClassroomResponse(ClassroomBase):
+    # classrooms.section is nullable. The API always sets it, but a class
+    # created any other way (seed, SQL) must not make GET /classrooms/mine
+    # answer 500 ("Still open" item 9, 2026-10-22).
+    section: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Class section or block (missing on classes created outside the API).",
+    )
+
+    @field_validator("section")
+    @classmethod
+    def validate_section(
+        cls,
+        value: str | None,
+    ) -> str | None:
+        return value
+
     class_id: int = Field(
         ...,
         gt=0,

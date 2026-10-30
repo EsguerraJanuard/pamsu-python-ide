@@ -1,12 +1,41 @@
 @import "tailwindcss";
 
+/*
+ * PSU design tokens.
+ *
+ * Light is the default theme everywhere. The student area additionally
+ * supports dark mode: StudentThemeProvider (features/theme/ThemeContext.jsx)
+ * adds the `dark` class to <html> only while an authenticated student is on a
+ * /student route, so login, instructor and admin pages never see it.
+ *
+ * Components consume semantic tokens (bg-bg-panel, text-text-muted,
+ * text-text-brand, bg-selected …) instead of picking colors per theme. Brand
+ * fills (psu-maroon / psu-red) are re-pointed for dark below; brand *text*
+ * uses text-text-brand / text-text-rose / text-text-amber so it stays legible.
+ * Legacy semantic tokens (text-blue / text-violet …) remain as aliases.
+ */
+/* Class-based dark variant: follows the student theme, never the OS directly. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
+  --color-psu-maroon: #77250b;
+  --color-psu-maroon-dark: #5c1c08;
+  --color-psu-gold: #eaae19;
+  --color-psu-gold-dark: #8a6200;
+  --color-psu-cream: #fbf6ea;
+  --color-psu-red: #b42318;
+
+  --color-text-brand: var(--text-brand);
   --color-bg-base: var(--bg-base);
   --color-bg-panel: var(--bg-panel);
+  --color-bg-alt: var(--bg-alt);
+  --color-selected: var(--bg-selected);
+  --color-overlay: var(--bg-overlay);
   --color-bg-glass: var(--bg-glass);
   --color-bg-glass-hover: var(--bg-glass-hover);
   --color-border-subtle: var(--border-subtle);
   --color-border-strong: var(--border-strong);
+  --color-border-focus: var(--border-focus);
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
   --color-text-blue: var(--text-blue);
@@ -14,153 +43,294 @@
   --color-text-amber: var(--text-amber);
   --color-text-rose: var(--text-rose);
   --color-text-violet: var(--text-violet);
+
+  --animate-fade-in: fadeIn 250ms ease-out both;
+  --animate-fade-in-up: pageFadeUp 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-scale-in: modalIn 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-modal-in: modalIn 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-:root, .light {
-  /* Light Mode Variables */
-  --bg-base: #f8fafc; /* slate-50 */
+:root,
+.light {
+  color-scheme: light;
+
+  --bg-base: #f7f6f3;
   --bg-panel: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.6);
-  --bg-glass-hover: rgba(255, 255, 255, 0.8);
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.15);
-  --text-main: #0f1117;
-  --text-muted: rgba(15, 17, 23, 0.6);
-  --text-blue: #2563eb;
-  --text-emerald: #059669;
-  --text-amber: #d97706;
-  --text-rose: #e11d48;
-  --text-violet: #7c3aed;
+  --bg-alt: #f1efe9;
+  --bg-selected: #fbf6ea;
+  --bg-overlay: rgba(15, 23, 42, 0.45);
+  --bg-glass: #ffffff;
+  --bg-glass-hover: #faf8f3;
+  --border-subtle: rgba(28, 25, 23, 0.1);
+  --border-strong: rgba(28, 25, 23, 0.2);
+  --border-focus: #77250b;
+  --text-main: #1c1917;
+  --text-muted: #5f5a54;
+  --text-brand: #77250b;
+  --text-placeholder: #6b665f;
+  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-popover: rgba(28, 25, 23, 0.18);
+  --scrollbar-thumb: rgba(28, 25, 23, 0.18);
+  --scrollbar-thumb-hover: rgba(28, 25, 23, 0.3);
+  --selection: rgba(119, 37, 11, 0.16);
 
-  --color-bg-base: var(--bg-base);
-  --color-bg-panel: var(--bg-panel);
-  --color-bg-glass: var(--bg-glass);
-  --color-bg-glass-hover: var(--bg-glass-hover);
-  --color-border-subtle: var(--border-subtle);
-  --color-border-strong: var(--border-strong);
-  --color-text-main: var(--text-main);
-  --color-text-muted: var(--text-muted);
-  --color-text-blue: var(--text-blue);
-  --color-text-emerald: var(--text-emerald);
-  --color-text-amber: var(--text-amber);
-  --color-text-rose: var(--text-rose);
-  --color-text-violet: var(--text-violet);
+  /* Legacy accent aliases → brand / accessible semantic values */
+  --text-blue: #77250b;
+  --text-violet: #77250b;
+  --text-amber: #8a6200;
+  --text-emerald: #15803d;
+  --text-rose: #b42318;
 }
 
-.dark {
-  /* Dark Mode Variables */
-  --bg-base: #0f1117;
-  --bg-panel: #161b26;
-  --bg-glass: rgba(0, 0, 0, 0.2);
-  --bg-glass-hover: rgba(255, 255, 255, 0.04);
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.15);
-  --text-main: #ffffff;
-  --text-muted: rgba(255, 255, 255, 0.5);
-  --text-blue: #60a5fa;
-  --text-emerald: #34d399;
-  --text-amber: #fbbf24;
-  --text-rose: #fb7185;
-  --text-violet: #a78bfa;
+/*
+ * Dark theme (student area only). Warm near-black surfaces keep the PSU
+ * identity; maroon fills are lifted so they remain visible against dark
+ * panels, and brand text switches to gold. Contrast (WCAG 2.2 AA) was
+ * computed from these resolved values — see audit-status.md.
+ */
+:root.dark {
+  color-scheme: dark;
 
-  --color-bg-base: var(--bg-base);
-  --color-bg-panel: var(--bg-panel);
-  --color-bg-glass: var(--bg-glass);
-  --color-bg-glass-hover: var(--bg-glass-hover);
-  --color-border-subtle: var(--border-subtle);
-  --color-border-strong: var(--border-strong);
-  --color-text-main: var(--text-main);
-  --color-text-muted: var(--text-muted);
-  --color-text-blue: var(--text-blue);
-  --color-text-emerald: var(--text-emerald);
-  --color-text-amber: var(--text-amber);
-  --color-text-rose: var(--text-rose);
-  --color-text-violet: var(--text-violet);
+  --color-psu-maroon: #b34d27;
+  --color-psu-maroon-dark: #9a3f1d;
+  --color-psu-gold-dark: #f2c14b;
+  --color-psu-red: #c8372d;
+
+  --bg-base: #14110f;
+  --bg-panel: #1c1815;
+  --bg-alt: #26211d;
+  --bg-selected: #2e2417;
+  --bg-overlay: rgba(0, 0, 0, 0.62);
+  --bg-glass: #1c1815;
+  --bg-glass-hover: #26211d;
+  --border-subtle: rgba(255, 240, 225, 0.13);
+  --border-strong: rgba(255, 240, 225, 0.4);
+  --border-focus: #eaae19;
+  --text-main: #f3ede6;
+  --text-muted: #b8ada2;
+  --text-brand: #f0b92e;
+  --text-placeholder: #a39990;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-popover: rgba(0, 0, 0, 0.6);
+  --scrollbar-thumb: rgba(255, 240, 225, 0.22);
+  --scrollbar-thumb-hover: rgba(255, 240, 225, 0.36);
+  --selection: rgba(234, 174, 25, 0.3);
+
+  --text-blue: #f0b92e;
+  --text-violet: #f0b92e;
+  --text-amber: #f2c14b;
+  --text-emerald: #4ade80;
+  --text-rose: #ff8a80;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-html, body, #root {
-  background-color: var(--bg-base) !important;
-  color: var(--text-main) !important;
+html,
+body,
+#root {
+  background-color: var(--bg-base);
+  color: var(--text-main);
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
- 
 
-/* Custom Webkit Scrollbars for IDE Theme */
-::-webkit-scrollbar { width: 8px; height: 8px; }
+body {
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--selection);
+}
+
+/* Visible keyboard focus everywhere, without changing mouse interaction */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: padding-box; }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 @keyframes pageFadeUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes dashboardFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .animate-page-fade {
-  animation: pageFadeUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pageFadeUp 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-page-fade { animation: none !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-/* ── Autofill: keep dark background, highlight wrapper ── */
+/* ── Shared component classes ───────────────────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-psu-maroon-dark disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border-strong bg-bg-panel px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:bg-bg-alt disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-psu-red px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#912018] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-bg-alt hover:text-text-main disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .card {
+    @apply rounded-xl border border-border-subtle bg-bg-panel shadow-[var(--shadow-card)];
+  }
+  .field-label {
+    @apply mb-1.5 block text-sm font-semibold text-text-main;
+  }
+  .input-field {
+    @apply w-full rounded-lg border border-border-strong bg-bg-panel px-3 py-2 text-sm text-text-main placeholder:text-[var(--text-placeholder)] transition-colors focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-border-focus/20 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/15;
+  }
+  /* Password field with its show/hide button inside the right edge (components/ui/PasswordInput.jsx). */
+  .input-password {
+    @apply block h-11 w-full rounded-lg border border-border-strong bg-bg-panel pl-3.5 pr-11 text-sm text-text-main shadow-sm transition-[border-color,box-shadow] placeholder:text-[var(--text-placeholder)] hover:border-text-muted/60 focus:border-border-focus focus:outline-none focus:ring-4 focus:ring-border-focus/15 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted disabled:shadow-none aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/15;
+  }
+  /* Edge draws its own reveal eye in password fields; ours replaces it. */
+  .input-password::-ms-reveal,
+  .input-password::-ms-clear {
+    display: none;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold;
+  }
+  .badge-brand {
+    @apply border-psu-maroon/25 bg-psu-maroon/[0.07] text-text-brand;
+  }
+  .badge-gold {
+    @apply border-psu-gold/50 bg-psu-gold/15 text-text-amber;
+  }
+  .badge-neutral {
+    @apply border-border-strong bg-bg-alt text-text-muted;
+  }
+  .badge-success {
+    @apply border-emerald-600/25 bg-emerald-600/[0.08] text-text-emerald;
+  }
+  .badge-danger {
+    @apply border-psu-red/25 bg-psu-red/[0.07] text-text-rose;
+  }
+}
+
+/* ── Markdown (practice lessons) ────────────────────────────────────────── */
+.markdown-body { color: var(--text-main); font-size: 0.9375rem; line-height: 1.7; }
+.markdown-body > * + * { margin-top: 0.85em; }
+.markdown-body h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; margin-top: 1.4em; }
+.markdown-body h2 { font-size: 1.3rem; font-weight: 700; margin-top: 1.3em; }
+.markdown-body h3 { font-size: 1.1rem; font-weight: 700; margin-top: 1.2em; }
+.markdown-body h1:first-child, .markdown-body h2:first-child, .markdown-body h3:first-child { margin-top: 0; }
+.markdown-body p { color: var(--text-main); }
+.markdown-body a { color: var(--text-brand); text-decoration: underline; }
+.markdown-body strong { font-weight: 700; }
+.markdown-body ul { list-style: disc; padding-left: 1.4em; }
+.markdown-body ol { list-style: decimal; padding-left: 1.4em; }
+.markdown-body li + li { margin-top: 0.3em; }
+.markdown-body code { font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; font-size: 0.85em; background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 0.1em 0.35em; }
+.markdown-body pre { background: #1e1e1e; color: #e5e5e5; border-radius: 10px; padding: 1em; overflow-x: auto; }
+.markdown-body pre code { background: transparent; border: 0; padding: 0; color: inherit; }
+.markdown-body blockquote { border-left: 3px solid var(--color-psu-gold); padding-left: 1em; color: var(--text-muted); }
+.markdown-body table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+.markdown-body th, .markdown-body td { border: 1px solid var(--border-subtle); padding: 0.4em 0.6em; text-align: left; }
+.markdown-body.markdown-compact { font-size: 0.875rem; }
+
+/* ── Autofill: keep the light field background ──────────────────────────── */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-    transition: background-color 5000s ease-in-out 0s;
   -webkit-text-fill-color: var(--text-main) !important;
-  caret-color: var(--text-blue) !important;
+  caret-color: var(--text-brand) !important;
   transition: background-color 9999s ease-in-out 0s;
 }
 
-.auth-input-wrap:has(input:-webkit-autofill) {
-  background-color: var(--bg-panel) !important;
-  border-color: rgba(59, 130, 246, 0.55) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
-}
-
-/* Flatpickr Custom Overrides */
+/* ── Flatpickr (activity scheduling) — PSU styling, themed via tokens ───── */
 .flatpickr-calendar {
-  background: #1a1d27 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: 0 12px 28px -8px var(--shadow-popover) !important;
   border-radius: 12px !important;
 }
-.flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months {
-  background: #1a1d27 !important;
-  color: #fff !important;
+.flatpickr-calendar.arrowTop::before,
+.flatpickr-calendar.arrowTop::after { border-bottom-color: var(--bg-panel) !important; }
+.flatpickr-calendar.arrowBottom::before,
+.flatpickr-calendar.arrowBottom::after { border-top-color: var(--bg-panel) !important; }
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  background: var(--bg-panel) !important;
+  color: var(--text-main) !important;
+  fill: var(--text-main) !important;
 }
+.flatpickr-current-month .flatpickr-monthDropdown-months option { background: var(--bg-panel); color: var(--text-main); }
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month { color: var(--text-main) !important; fill: var(--text-main) !important; }
+.flatpickr-months .flatpickr-prev-month svg,
+.flatpickr-months .flatpickr-next-month svg { fill: var(--text-main) !important; }
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg { fill: var(--text-brand) !important; }
+.flatpickr-weekdays,
+span.flatpickr-weekday { background: transparent !important; }
+.flatpickr-weekday { color: var(--text-muted) !important; }
 .flatpickr-day {
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: var(--text-main) !important;
   border-radius: 8px !important;
 }
-.flatpickr-day:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: transparent !important;
-}
-.flatpickr-day.selected, .flatpickr-day.selected:hover {
-  background: #10b981 !important;
-  border-color: #10b981 !important;
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay,
+.flatpickr-day.flatpickr-disabled { color: var(--text-placeholder) !important; }
+.flatpickr-day:hover { background: var(--bg-alt) !important; border-color: transparent !important; }
+.flatpickr-day.today { border-color: var(--color-psu-gold) !important; }
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+  background: var(--color-psu-maroon) !important;
+  border-color: var(--color-psu-maroon) !important;
   color: #fff !important;
 }
-.flatpickr-time {
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-.flatpickr-time input {
-  color: #fff !important;
-}
-.flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-.flatpickr-time .flatpickr-am-pm {
-  color: rgba(255, 255, 255, 0.8) !important;
-}
+.flatpickr-time { border-top: 1px solid var(--border-subtle) !important; }
+.flatpickr-time input,
+.flatpickr-time .flatpickr-am-pm,
+.flatpickr-time .flatpickr-time-separator { color: var(--text-main) !important; background: transparent !important; }
+.flatpickr-time input:hover,
+.flatpickr-time .flatpickr-am-pm:hover,
+.flatpickr-time input:focus,
+.flatpickr-time .flatpickr-am-pm:focus { background: var(--bg-alt) !important; }
+.numInputWrapper span.arrowUp::after { border-bottom-color: var(--text-muted) !important; }
+.numInputWrapper span.arrowDown::after { border-top-color: var(--text-muted) !important; }
+.numInputWrapper:hover { background: var(--bg-alt) !important; }

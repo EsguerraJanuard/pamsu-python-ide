@@ -2,8 +2,9 @@ import logging
 from typing import NoReturn
 
 from app.core.database import get_db
+from app.core.database_errors import database_error_summary
 from app.core.security import get_current_student
-from app.models.domain_models import User
+from app.models.domain_models import Submission, User
 from app.schemas.submission_schema import (StudentSubmissionResponse,
                                            SubmissionCreate, SubmissionStatus)
 from app.services.submission_service import (
@@ -14,7 +15,7 @@ from app.services.submission_service import (
     SubmissionTaskUnavailableError, create_student_submission,
     get_student_official_submission, get_student_submission,
     list_student_submissions)
-from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException, Query,
+from fastapi import (APIRouter, Depends, HTTPException, Query,
                      status)
 from sqlalchemy.orm import Session
 
@@ -27,7 +28,7 @@ router = APIRouter(
 )
 
 
-def _raise_submission_service_error(
+def raise_submission_service_http_exception(
     error: SubmissionServiceError,
 ) -> NoReturn:
     if isinstance(
@@ -131,10 +132,45 @@ def create_submission_endpoint(
             payload=payload,
         )
     except SubmissionServiceError as error:
-        _raise_submission_service_error(error)
+        raise_submission_service_http_exception(error)
 
-    from app.tasks.celery_worker import evaluate_submission_background_task
-    evaluate_submission_background_task.delay(submission.sub_id)
+    queue_submission_processing(
+        db,
+        student_id=current_student.user_id,
+        submission=submission,
+    )
+
+    return StudentSubmissionResponse.model_validate(submission)
+
+
+def queue_submission_processing(
+    db: Session,
+    *,
+    student_id: int,
+    submission: Submission,
+) -> None:
+    """
+    Queue the background evaluation and the "submit" run of a saved attempt.
+
+    POST /submissions/ is the only way to create an attempt (the legacy
+    POST /execution/submissions/ was removed on 2026-10-22), and this is the
+    only place that creates "submit" execution requests: POST
+    /execution/requests/ refuses them, so each attempt gets exactly one
+    paid Judge0 submit run.
+    """
+
+    # The attempt is already committed. An unavailable queue must not turn a
+    # saved submission into a 500; the instructor can still run the
+    # evaluation through POST /evaluation/submissions/{sub_id}.
+    try:
+        from app.tasks.celery_worker import \
+            evaluate_submission_background_task
+        evaluate_submission_background_task.delay(submission.sub_id)
+    except Exception:
+        logger.exception(
+            "Failed to enqueue background evaluation for submission %s.",
+            submission.sub_id,
+        )
 
     try:
         from app.schemas.execution_schema import ExecutionRequestCreate
@@ -142,20 +178,23 @@ def create_submission_endpoint(
             create_student_execution_request
         create_student_execution_request(
             db,
-            student_id=current_student.user_id,
+            student_id=student_id,
             payload=ExecutionRequestCreate(
                 request_kind="submit",
-                task_id=payload.task_id,
+                task_id=submission.task_id,
                 submission_id=submission.sub_id,
                 source_code=None,
                 standard_input="",
-                coding_session_id=payload.coding_session_id,
+                coding_session_id=submission.coding_session_id,
             ),
         )
-    except Exception as e:
-        logger.error(f"Failed to dispatch execution for submission: {e}")
-
-    return StudentSubmissionResponse.model_validate(submission)
+    except Exception as error:
+        # Summary only: database error text can contain the submitted row.
+        logger.error(
+            "Failed to dispatch execution for submission %s (%s).",
+            submission.sub_id,
+            database_error_summary(error),
+        )
 
 
 @router.get(
@@ -236,7 +275,7 @@ def get_my_official_submission_endpoint(
             task_id=task_id,
         )
     except SubmissionServiceError as error:
-        _raise_submission_service_error(error)
+        raise_submission_service_http_exception(error)
 
     return StudentSubmissionResponse.model_validate(submission)
 
@@ -273,7 +312,7 @@ def get_my_submission_endpoint(
             submission_id=submission_id,
         )
     except SubmissionServiceError as error:
-        _raise_submission_service_error(error)
+        raise_submission_service_http_exception(error)
 
     return StudentSubmissionResponse.model_validate(submission)
 

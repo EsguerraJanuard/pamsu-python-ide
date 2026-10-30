@@ -1,3 +1,5 @@
+import csv
+import io
 from typing import NoReturn
 from uuid import UUID
 
@@ -25,7 +27,9 @@ from app.schemas.task_schema import (ActivityType, TaskCreate,
 from app.schemas.task_test_case_schema import (InstructorTaskTestCaseResponse,
                                                TaskTestCaseCreate,
                                                TaskTestCaseUpdate)
-from app.services.ast_analyzer import analyze_reference_solution
+from app.core.pagination import MAX_PAGE_SIZE
+from app.services.ast_analyzer import SolutionParseError, analyze_activity
+from app.services.ast_safety import MAX_ANALYZED_SOURCE_LENGTH
 from app.services.coding_session_service import (
     CodingSessionAccessDeniedError, CodingSessionNotFoundError,
     CodingSessionPersistenceError, CodingSessionServiceError,
@@ -50,6 +54,7 @@ from app.services.gradebook_service import (GradebookAccessDeniedError,
                                             GradebookServiceError,
                                             GradebookTaskNotFoundError,
                                             list_instructor_gradebook)
+from app.services.reporting_service import _sanitize_csv_cell
 from app.services.review_queue_service import (ReviewQueueAccessDeniedError,
                                                ReviewQueueClassNotFoundError,
                                                ReviewQueueFilterConflictError,
@@ -58,17 +63,20 @@ from app.services.review_queue_service import (ReviewQueueAccessDeniedError,
                                                ReviewQueueTaskNotFoundError,
                                                list_instructor_review_queue)
 from app.services.submission_service import (SubmissionAccessDeniedError,
+                                             SubmissionAuditWorkflowError,
                                              SubmissionNotFoundError,
                                              SubmissionPersistenceError,
                                              SubmissionServiceError)
 from app.services.submission_service import \
     get_instructor_submission as get_instructor_submission_service
-from app.services.submission_service import list_instructor_task_submissions
+from app.services.submission_service import (grant_submission_retake,
+                                             list_instructor_task_submissions)
 from app.services.task_service import (TaskAccessDeniedError,
                                        TaskAuditWorkflowError,
                                        TaskClassAccessDeniedError,
                                        TaskClassInactiveError,
                                        TaskClassNotFoundError,
+                                       TaskDifficultyError,
                                        TaskNotFoundError,
                                        TaskNotificationWorkflowError,
                                        TaskPublicationError,
@@ -86,8 +94,12 @@ from app.services.task_service import update_task as update_task_service
 from app.services.task_service import update_task_test_case
 from fastapi import (APIRouter, Depends, HTTPException, Path, Query, Response,
                      status)
-from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
+
+REVIEW_QUEUE_EXPORT_PAGE_SIZE = MAX_PAGE_SIZE
+REVIEW_QUEUE_EXPORT_MAX_ROWS = 10_000
 
 router = APIRouter(
     prefix="/instructors",
@@ -129,6 +141,15 @@ def raise_task_service_http_exception(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if isinstance(
+        exc,
+        TaskDifficultyError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -182,7 +203,7 @@ def raise_submission_service_http_exception(
 
     if isinstance(
         exc,
-        SubmissionPersistenceError,
+        (SubmissionPersistenceError, SubmissionAuditWorkflowError),
     ):
         raise HTTPException(
             status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
@@ -635,6 +656,7 @@ def create_task_endpoint(
         TaskClassNotFoundError,
         TaskClassAccessDeniedError,
         TaskClassInactiveError,
+        TaskDifficultyError,
         TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)
@@ -794,6 +816,7 @@ def update_task_endpoint(
         TaskClassInactiveError,
         TaskUpdateEmptyError,
         TaskPublicationError,
+        TaskDifficultyError,
         TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)
@@ -1187,6 +1210,48 @@ def get_submission_endpoint(
     return InstructorSubmissionResponse.model_validate(submission)
 
 
+@router.post(
+    "/submissions/{submission_id}/retake",
+    response_model=InstructorSubmissionResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="grant_submission_retake",
+    summary="Allow the student another attempt",
+    description=(
+        "Allows the student who made this attempt to submit the activity "
+        "once more, even after the deadline. The next attempt becomes "
+        "official and uses up the allowance. Only the activity owner can "
+        "grant it, and the student is notified."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "The submission belongs to another instructor's "
+                "activity or is unavailable."
+            ),
+        },
+    },
+)
+def grant_submission_retake_endpoint(
+    submission_id: int = Path(
+        ...,
+        gt=0,
+        description="Submission-attempt identifier.",
+    ),
+    db: Session = Depends(get_db),
+    current_instructor: User = Depends(get_current_instructor),
+) -> InstructorSubmissionResponse:
+    try:
+        submission = grant_submission_retake(
+            db,
+            instructor_id=current_instructor.user_id,
+            submission_id=submission_id,
+        )
+    except SubmissionServiceError as exc:
+        raise_submission_service_http_exception(exc)
+
+    return InstructorSubmissionResponse.model_validate(submission)
+
+
 @router.get(
     "/coding-sessions/live",
     response_model=list[GlobalCodingSessionResponse],
@@ -1195,7 +1260,10 @@ def get_submission_endpoint(
     summary="List all active coding sessions for instructor's classrooms",
     description=(
         "Returns active coding sessions globally across all tasks "
-        "and classrooms owned by the authenticated instructor."
+        "and classrooms owned by the authenticated instructor. A "
+        "session is listed only while it has not ended and its "
+        "workspace sent activity or a heartbeat in the last three "
+        "minutes."
     ),
 )
 def list_global_active_coding_sessions_endpoint(
@@ -1243,6 +1311,14 @@ def list_task_coding_sessions_endpoint(
         default=False,
         description=("Return only coding sessions that have not ended."),
     ),
+    live_only: bool = Query(
+        default=False,
+        description=(
+            "Return only live sessions: not ended, with activity or a "
+            "heartbeat in the last three minutes (as on "
+            "/coding-sessions/live)."
+        ),
+    ),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> list[InstructorCodingSessionResponse]:
@@ -1253,6 +1329,7 @@ def list_task_coding_sessions_endpoint(
             task_id=task_id,
             student_id=student_id,
             active_only=active_only,
+            live_only=live_only,
         )
     except CodingSessionServiceError as exc:
         raise_coding_session_service_http_exception(exc)
@@ -1476,75 +1553,109 @@ def get_student_growth_for_instructor(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
         
-    # Technically we might want to check if the student belongs to the instructor's classroom
-    # But for a gamified metric, read access is generally safe if authorized as instructor
+    # Ensure the student is enrolled in at least one of the instructor's classrooms
+    from app.models.domain_models import Classroom, Enrollment
+    is_enrolled = (
+        db.query(Enrollment.enrollment_id)
+        .join(Classroom, Enrollment.class_id == Classroom.class_id)
+        .filter(
+            Classroom.instructor_id == current_instructor.user_id,
+            Enrollment.student_id == student_id,
+            Enrollment.status == "active",
+        )
+        .first()
+    )
+    if not is_enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student is not enrolled in any of your classrooms.",
+        )
     
     return calculate_growth_for_student(db, student_id)
 
 @router.get("/review-queue/export")
 def export_instructor_review_queue_csv(
-    class_id: int | None = Query(default=None),
-    task_id: int | None = Query(default=None),
+    class_id: int | None = Query(default=None, gt=0),
+    task_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor)
 ):
+    """Download the instructor's own review queue as CSV (summary fields only)."""
+
+    items: list[dict] = []
+    page = 1
+
     try:
-        # Fetch up to 10000 records for the export
-        result = list_instructor_review_queue(
-            db,
-            instructor_id=current_instructor.user_id,
-            page=1,
-            page_size=10000,
-            class_id=class_id,
-            task_id=task_id,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-        
-    items = result.get("items", [])
-    
+        while True:
+            result = list_instructor_review_queue(
+                db,
+                instructor_id=current_instructor.user_id,
+                page=page,
+                page_size=REVIEW_QUEUE_EXPORT_PAGE_SIZE,
+                class_id=class_id,
+                task_id=task_id,
+            )
+            items.extend(result["items"])
+
+            if page >= result["total_pages"] or len(items) >= REVIEW_QUEUE_EXPORT_MAX_ROWS:
+                break
+
+            page += 1
+    except ReviewQueueServiceError as exc:
+        raise_review_queue_service_http_exception(exc)
+
     def iter_csv():
         output = io.StringIO()
         writer = csv.writer(output)
-        
-        # Headers
+
         writer.writerow([
-            "Submission ID", "Student Name", "Task Title", "Classroom", 
-            "Status", "Similarity Score", "Instructor Grade", "Submitted At"
+            "Submission ID", "Student Name", "School ID", "Activity", "Classroom",
+            "Attempt", "Status", "Official", "Submitted At", "Graded", "Grade Released",
         ])
         yield output.getvalue()
         output.seek(0)
         output.truncate(0)
-        
-        for item in items:
+
+        for item in items[:REVIEW_QUEUE_EXPORT_MAX_ROWS]:
             writer.writerow([
-                item.sub_id,
-                item.student_name,
-                item.task_title,
-                item.classroom_name,
-                item.status,
-                item.similarity_score if item.similarity_score is not None else "",
-                item.instructor_grade if item.instructor_grade is not None else "",
-                item.submitted_at.isoformat() if item.submitted_at else ""
+                _sanitize_csv_cell(value)
+                for value in (
+                    item["sub_id"],
+                    item["student"]["name"],
+                    item["student"]["school_id"],
+                    item["activity"]["title"],
+                    item["activity"]["class_name"],
+                    item["attempt_number"],
+                    item["status"],
+                    item["is_official"],
+                    item["submitted_at"],
+                    item["has_manual_grade"],
+                    item["grade_is_released"],
+                )
             ])
             yield output.getvalue()
             output.seek(0)
             output.truncate(0)
 
-    # Generate filename
-    filename = "gradebook_export.csv"
-    if class_id:
-        filename = f"gradebook_class_{class_id}.csv"
-        
+    filename = f"review_queue_class_{class_id}.csv" if class_id else "review_queue.csv"
+
     return StreamingResponse(
-        iter_csv(), 
-        media_type="text/csv", 
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        iter_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
 
 class SolutionAnalysisRequest(BaseModel):
-    reference_code: str
+    reference_code: str | None = Field(default=None, max_length=MAX_ANALYZED_SOURCE_LENGTH)
+    description: str | None = Field(default=None, max_length=20000)
+
+    @model_validator(mode="after")
+    def require_something_to_analyze(self) -> "SolutionAnalysisRequest":
+        if not (self.reference_code or "").strip() and not (self.description or "").strip():
+            raise ValueError("Provide a reference solution, a problem description, or both.")
+        return self
+
 
 @router.post("/tasks/analyze-solution", status_code=status.HTTP_200_OK)
 def analyze_solution(
@@ -1552,16 +1663,17 @@ def analyze_solution(
     current_user: User = Depends(get_current_instructor)
 ):
     """
-    Analyzes the instructor's reference solution using AST 
-    to auto-detect the difficulty and required Python constructs.
+    Suggests a difficulty level and AST requirements for a new activity from
+    the instructor's reference solution (parsed, never executed) and the
+    problem description. The instructor reviews the suggestions before saving.
     """
-        
-    analysis_result = analyze_reference_solution(request.reference_code)
-    
-    if not analysis_result.get("success"):
+    try:
+        return analyze_activity(
+            reference_code=request.reference_code,
+            description=request.description,
+        )
+    except SolutionParseError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=analysis_result.get("error", "Failed to parse code.")
-        )
-        
-    return analysis_result
+            detail=str(error) or "Failed to parse code.",
+        ) from error
