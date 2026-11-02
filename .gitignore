@@ -28,3 +28,6 @@ backend/pamsu.db
 backend_qa_todo.md
 backend_exhaustive_qa_report.md
 Thesis.*
+
+# Validation output (AI hint responses, rater copies, load-test sign-ins, Locust CSVs)
+backend/validation/output/
