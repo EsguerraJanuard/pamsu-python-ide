@@ -14,8 +14,8 @@ import {
   ruleLevel,
   ruleMinCount,
 } from '../../utils/astRules';
-import { ErrorState, InlineAlert, LoadingState } from '../../components/ui/StateViews';
-import InstructorSidebar from "../../components/layout/InstructorSidebar";
+import { ErrorState, InlineAlert, LoadingState, PageHeader } from '../../components/ui/StateViews';
+import PageShell from "../../components/layout/PageShell";
 
 // Suggested starting rules when a difficulty is picked by hand.
 const DIFFICULTY_SUGGESTIONS = {
@@ -31,8 +31,19 @@ const KNOWN_RULE_IDS = new Set(AST_GROUPS.flatMap((group) => group.rules.map((ru
 
 const levelName = (levelId) => DIFFICULTY_LEVELS.find((level) => level.id === levelId)?.label ?? levelId;
 
-const LABEL_CLASS = "block text-sm font-semibold text-text-main mb-1.5";
-const INPUT_CLASS = "w-full bg-bg-base border border-border-subtle rounded-xl p-3 text-sm text-text-main focus:outline-none focus:border-psu-maroon transition-colors";
+// Shared form styles (index.css), so the editor matches every other form.
+const LABEL_CLASS = "field-label";
+const INPUT_CLASS = "input-field leading-relaxed";
+const CODE_INPUT_CLASS = "input-field font-mono text-xs leading-relaxed";
+const PANEL_HEADING_CLASS = "border-b border-border-subtle pb-3 text-sm font-semibold text-text-main";
+
+/**
+ * Track of the pill toggles built from a visually hidden checkbox (the
+ * `peer`). peer-focus-visible draws the keyboard focus ring the hidden
+ * checkbox cannot show itself.
+ */
+const TOGGLE_TRACK =
+  "w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark peer-focus-visible:ring-2 peer-focus-visible:ring-border-focus peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg-panel";
 
 /** Whether a rule may be required at this difficulty (see astRules.js). */
 const levelAllows = (difficulty, ruleId) =>
@@ -66,10 +77,10 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
   const allSelected = checkedCount === category.rules.length;
 
   return (
-    <div className="bg-bg-base border border-border-subtle rounded-xl overflow-hidden mb-3 shadow-sm">
+    <div className="bg-bg-panel border border-border-subtle rounded-xl overflow-hidden mb-3 shadow-sm">
       <button
         type="button"
-        className="flex w-full items-center p-4 cursor-pointer hover:bg-bg-glass transition-colors group gap-4 text-left"
+        className="flex w-full items-center p-4 cursor-pointer hover:bg-bg-alt/60 transition-colors group gap-4 text-left focus-visible:-outline-offset-2"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
       >
@@ -103,7 +114,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
 
       {isOpen && (
         <div className="p-2 border-t border-border-subtle bg-bg-panel flex flex-col gap-1">
-          <label className="flex justify-between items-center px-3 py-2.5 mb-1 border-b border-border-subtle/50 bg-bg-base/30 rounded-t-lg cursor-pointer group">
+          <label className="flex justify-between items-center px-3 py-2.5 mb-1 border-b border-border-subtle/50 bg-bg-alt/40 rounded-t-lg cursor-pointer group">
             <span className="text-xs font-bold uppercase tracking-wider text-text-muted group-hover:text-text-main transition-colors">
               Select all rules
             </span>
@@ -114,7 +125,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 onChange={(e) => onToggleCategory(category, e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
+              <div className={`${TOGGLE_TRACK} shadow-inner`}></div>
             </div>
           </label>
           {category.rules.map(rule => {
@@ -127,7 +138,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                 className={`rounded-lg border p-3 transition-all ${
                   isChecked
                     ? 'bg-psu-maroon/5 border-psu-maroon/20'
-                    : 'bg-transparent border-transparent hover:bg-bg-glass hover:border-border-subtle'
+                    : 'bg-transparent border-transparent hover:bg-bg-alt/60 hover:border-border-subtle'
                 }`}
               >
                 <label className="flex cursor-pointer items-center justify-between">
@@ -142,7 +153,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                       onChange={(e) => onToggleRule(rule.id, e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
+                    <div className={`${TOGGLE_TRACK} shadow-inner`}></div>
                   </div>
                 </label>
                 {isChecked && (
@@ -157,7 +168,7 @@ const ASTCategoryAccordion = ({ category, requirements, onToggleRule, onToggleCa
                       max={MAX_MIN_COUNT}
                       value={requirements[rule.id].min_count ?? 1}
                       onChange={(e) => onCountChange(rule.id, e.target.value)}
-                      className="w-16 rounded-lg border border-border-subtle bg-bg-base px-2 py-1 text-sm text-text-main focus:border-psu-maroon focus:outline-none"
+                      className="input-field w-16 px-2 py-1"
                     />
                     <span className="text-xs text-text-muted">time(s)</span>
                   </div>
@@ -706,16 +717,9 @@ const ActivityEditor = () => {
   const editedClass = isEdit ? classrooms.find((cls) => cls.class_id === original?.class_id) : null;
 
   const shell = (content) => (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
-      <div className="flex h-full">
-        <InstructorSidebar />
-      </div>
-      <div className="animate-page-fade flex min-w-0 flex-1 flex-col">
-        <main className="min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
-          <div className="w-full">{content}</div>
-        </main>
-      </div>
-    </div>
+    <PageShell role="instructor" maxWidth="max-w-7xl" statusContext={editedClass?.name}>
+      {content}
+    </PageShell>
   );
 
   if (isEdit && isLoadingTask) return shell(<LoadingState label="Loading activity…" />);
@@ -725,17 +729,15 @@ const ActivityEditor = () => {
 
   return shell(
     <>
-            <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border-subtle pb-6">
-              <div>
-                <p className="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-text-brand">MANAGEMENT</p>
-                <h1 className="text-2xl font-bold tracking-tight text-text-main">{isEdit ? "Edit Activity" : "Create New Activity"}</h1>
-                <p className="mt-1 text-sm text-text-muted">
-                  {isEdit
-                    ? "Change the problem, requirements or deadline. Students are notified when a published activity's deadline changes."
-                    : "Author new laboratory activities, code templates, and automated AST testing guidelines."}
-                </p>
-              </div>
-            </header>
+            <PageHeader
+              eyebrow={isEdit && editedClass ? classLabel(editedClass) : "Management"}
+              title={isEdit ? "Edit Activity" : "Create New Activity"}
+              description={
+                isEdit
+                  ? "Change the problem, requirements or deadline. Students are notified when a published activity's deadline changes."
+                  : "Author new laboratory activities, code templates, and automated AST testing guidelines."
+              }
+            />
 
             {error && (
               <InlineAlert tone="error" className="mb-6">
@@ -750,8 +752,8 @@ const ActivityEditor = () => {
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6" noValidate>
               {/* Left Column: Details & Instructions (7 cols) */}
-              <div className="lg:col-span-7 space-y-5 bg-bg-glass p-6 rounded-2xl border border-border-subtle">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-text-brand pb-2 border-b border-border-subtle">
+              <div className="card lg:col-span-7 space-y-5 p-5 sm:p-6">
+                <h2 className={PANEL_HEADING_CLASS}>
                   Activity Details
                 </h2>
 
@@ -775,7 +777,7 @@ const ActivityEditor = () => {
                 {isEdit ? (
                   <div>
                     <p className={LABEL_CLASS}>Classroom</p>
-                    <p className="rounded-xl border border-border-subtle bg-bg-base px-3 py-2.5 text-sm text-text-main">
+                    <p className="rounded-lg border border-border-subtle bg-bg-alt px-3 py-2 text-sm text-text-main">
                       {editedClass ? classLabel(editedClass) : `Class ${original?.class_id ?? ''}`}
                     </p>
                   </div>
@@ -784,7 +786,7 @@ const ActivityEditor = () => {
                   <p className={LABEL_CLASS}>
                     Target Classroom(s) <span className="text-text-brand">*</span>
                   </p>
-                  <div className="bg-bg-glass border border-border-subtle rounded-xl p-3 max-h-56 overflow-y-auto custom-scrollbar flex flex-col gap-2">
+                  <div className="flex max-h-56 flex-col gap-2 overflow-y-auto rounded-lg border border-border-subtle bg-bg-alt/40 p-2">
                     {classrooms.length === 0 ? (
                       <div className="text-sm text-text-muted italic py-2 text-center">No classrooms available</div>
                     ) : (
@@ -793,10 +795,10 @@ const ActivityEditor = () => {
                         return (
                           <label
                             key={cls.class_id}
-                            className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-border-focus ${
                               isSelected
                                 ? 'bg-psu-maroon/10 border-psu-maroon/30 shadow-sm'
-                                : 'bg-bg-base border-border-subtle hover:border-border-strong'
+                                : 'bg-bg-panel border-border-subtle hover:border-border-strong'
                             }`}
                           >
                             <div className="flex items-center gap-3">
@@ -894,8 +896,8 @@ const ActivityEditor = () => {
                   <p className="mt-1 text-xs text-text-muted">Shown to each student only after their grade for this activity is released.</p>
                 </div>
 
-                <section className="rounded-xl border border-border-subtle bg-bg-base p-4" aria-labelledby="analyzer-heading">
-                  <h3 id="analyzer-heading" className="text-sm font-bold text-text-main">Analyze the activity</h3>
+                <section className="rounded-xl border border-border-subtle bg-bg-alt/50 p-4" aria-labelledby="analyzer-heading">
+                  <h3 id="analyzer-heading" className="text-sm font-semibold text-text-main">Analyze the activity</h3>
                   <p className="mt-0.5 text-xs text-text-muted">
                     Reads the problem text above and an optional reference solution, then suggests the difficulty and the required constructs (loops, functions, file handling, …). The solution is parsed, never run, and is not saved.
                   </p>
@@ -910,7 +912,7 @@ const ActivityEditor = () => {
                     maxLength={100000}
                     spellCheck={false}
                     placeholder="# Paste a working solution here..."
-                    className="mt-1 w-full resize-y rounded-xl border border-border-subtle bg-bg-panel p-3 font-mono text-xs text-text-main focus:border-psu-maroon focus:outline-none"
+                    className={`${CODE_INPUT_CLASS} mt-1 resize-y`}
                   />
                   {analyzeError && <p className="mt-2 text-xs text-text-rose">{analyzeError}</p>}
                   <div className="mt-3 flex justify-end">
@@ -936,7 +938,7 @@ const ActivityEditor = () => {
                       onChange={handleChange}
                       rows={3}
                       placeholder="Target output string..."
-                      className="w-full bg-bg-base border border-border-subtle rounded-xl p-3 font-mono text-xs text-text-brand focus:outline-none focus:border-psu-maroon transition-colors h-full"
+                      className={`${CODE_INPUT_CLASS} h-full`}
                     />
                   </div>
                   )}
@@ -946,17 +948,17 @@ const ActivityEditor = () => {
                       <p className={LABEL_CLASS}>
                         Difficulty Level <span className="text-text-brand">*</span>
                       </p>
-                      <div className="flex bg-bg-base border border-border-subtle rounded-xl p-1" role="group" aria-label="Difficulty level">
+                      <div className="flex rounded-lg border border-border-subtle bg-bg-alt p-1" role="group" aria-label="Difficulty level">
                         {DIFFICULTY_LEVELS.map(level => (
                           <button
                             key={level.id}
                             type="button"
                             onClick={() => handleDifficultyChange(level.id)}
                             aria-pressed={formData.difficulty === level.id}
-                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                            className={`flex-1 rounded-md border py-2 text-sm font-semibold transition-colors ${
                               formData.difficulty === level.id
-                                ? 'bg-bg-glass text-text-brand shadow-sm border border-border-subtle'
-                                : 'text-text-muted hover:text-text-main hover:bg-bg-glass/50'
+                                ? 'border-border-subtle bg-bg-panel text-text-brand shadow-sm'
+                                : 'border-transparent text-text-muted hover:bg-bg-panel/60 hover:text-text-main'
                             }`}
                           >
                             {level.label}
@@ -993,7 +995,7 @@ const ActivityEditor = () => {
                                   onChange={(e) => handleSelectAllVisible(e.target.checked)}
                                   className="sr-only peer"
                                 />
-                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner"></div>
+                                <div className="w-8 h-4 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark shadow-inner peer-focus-visible:ring-2 peer-focus-visible:ring-border-focus peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg-panel"></div>
                               </div>
                             </label>
                           )}
@@ -1031,8 +1033,8 @@ const ActivityEditor = () => {
 
               {/* Right Column: Code Template & Settings (5 cols) */}
               <div className="lg:col-span-5 flex flex-col gap-5">
-                <div className="flex-1 bg-bg-glass p-6 rounded-2xl border border-border-subtle flex flex-col">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-text-brand pb-2 border-b border-border-subtle mb-4">
+                <div className="card flex flex-1 flex-col p-5 sm:p-6">
+                  <h2 className={`${PANEL_HEADING_CLASS} mb-4`}>
                     Starter Code Template
                   </h2>
 
@@ -1045,13 +1047,13 @@ const ActivityEditor = () => {
                       onChange={handleChange}
                       rows={12}
                       placeholder="# Write initial starter code template for students..."
-                      className="w-full h-full bg-bg-base border border-border-subtle rounded-xl p-4 text-text-main font-mono text-xs focus:outline-none focus:border-psu-maroon transition-colors resize-none"
+                      className={`${CODE_INPUT_CLASS} h-full resize-none p-4`}
                     />
                   </div>
                 </div>
 
-                <div className="bg-bg-glass p-6 rounded-2xl border border-border-subtle space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted">Options & Controls</h3>
+                <div className="card space-y-4 p-5 sm:p-6">
+                  <h2 className={PANEL_HEADING_CLASS}>Options & Controls</h2>
 
                   <div className="flex flex-col gap-6">
                     <div className="flex flex-wrap items-center gap-8">
@@ -1065,7 +1067,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark"></div>
+                          <div className={TOGGLE_TRACK}></div>
                         </div>
                         <span className="text-sm font-semibold text-text-main select-none">Publish immediately</span>
                       </label>
@@ -1080,7 +1082,7 @@ const ActivityEditor = () => {
                             onChange={handleChange}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-border-strong rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-bg-panel after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-psu-maroon group-hover:bg-text-muted/30 peer-checked:group-hover:bg-psu-maroon-dark"></div>
+                          <div className={TOGGLE_TRACK}></div>
                         </div>
                         <span className="text-sm font-semibold text-text-main select-none">Allow workspace clipboard paste</span>
                       </label>
@@ -1099,7 +1101,7 @@ const ActivityEditor = () => {
                               value={formData.scheduled_publish_at}
                               onChange={([date]) => setFormData(prev => ({ ...prev, scheduled_publish_at: date || null }))}
                               disabled={formData.is_published || formData.class_ids.length > 1}
-                              className={`w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-psu-maroon/50 focus:ring-1 focus:ring-psu-maroon/20 transition-all group-hover:border-border-strong shadow-inner ${formData.class_ids.length > 1 ? 'text-text-muted cursor-not-allowed' : 'text-text-main cursor-pointer'}`}
+                              className={`input-field pr-10 ${formData.class_ids.length > 1 ? 'cursor-not-allowed text-text-muted' : 'cursor-pointer'}`}
                               placeholder="Select date and time"
                               options={{
                                 dateFormat: "Y-m-d H:i",
@@ -1140,7 +1142,7 @@ const ActivityEditor = () => {
                             data-enable-time
                             value={formData.due_at}
                             onChange={([date]) => setFormData(prev => ({ ...prev, due_at: date || null }))}
-                            className="w-full bg-bg-glass border border-border-subtle rounded-xl pl-4 pr-10 py-2.5 text-sm text-text-main focus:outline-none focus:border-psu-maroon/50 focus:ring-1 focus:ring-psu-maroon/20 transition-all group-hover:border-border-strong shadow-inner cursor-pointer"
+                            className="input-field cursor-pointer pr-10"
                             placeholder="Select deadline"
                             options={{
                               dateFormat: "Y-m-d H:i",
@@ -1164,30 +1166,36 @@ const ActivityEditor = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-2 pt-3 border-t border-border-subtle">
-                    {missingFields.length > 0 && (
-                      <p className="text-xs text-text-muted" id="submit-hint">
-                        Add {missingFields.length > 1 ? `${missingFields.slice(0, -1).join(", ")} and ${missingFields.at(-1)}` : missingFields[0]} to continue.
-                      </p>
-                    )}
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                        className="px-4 py-2 text-sm font-semibold text-text-muted hover:text-text-main transition-colors cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                </div>
+              </div>
 
-                      <button
-                        type="submit"
-                        disabled={loading || missingFields.length > 0}
-                        aria-describedby={missingFields.length > 0 ? "submit-hint" : undefined}
-                        className="px-5 py-2.5 bg-psu-maroon hover:bg-psu-maroon-dark text-white rounded-xl text-sm font-bold shadow-md shadow-psu-maroon/20 transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isEdit ? (loading ? "Saving..." : "Save Changes") : (loading ? "Creating..." : "Create Activity")}
-                      </button>
-                    </div>
+              {/* Save bar: stays in view at the bottom while the long form scrolls. */}
+              <div className="sticky bottom-4 z-20 lg:col-span-12">
+                <div className="flex flex-col gap-3 rounded-xl border border-border-subtle bg-bg-panel/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <p id="submit-hint" className="flex items-start gap-2 text-xs text-text-muted" aria-live="polite">
+                    <span
+                      className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${missingFields.length > 0 ? "bg-psu-gold" : "bg-emerald-600"}`}
+                      aria-hidden="true"
+                    />
+                    {missingFields.length > 0
+                      ? `Add ${missingFields.length > 1 ? `${missingFields.slice(0, -1).join(", ")} and ${missingFields.at(-1)}` : missingFields[0]} to continue.`
+                      : isEdit
+                        ? "Ready to save."
+                        : "Ready to create."}
+                  </p>
+                  <div className="flex items-center justify-end gap-2">
+                    <button type="button" onClick={() => navigate(-1)} className="btn-ghost">
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading || missingFields.length > 0}
+                      aria-describedby={missingFields.length > 0 ? "submit-hint" : undefined}
+                      className="btn-primary min-w-[9rem]"
+                    >
+                      {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />}
+                      {isEdit ? (loading ? "Saving..." : "Save Changes") : (loading ? "Creating..." : "Create Activity")}
+                    </button>
                   </div>
                 </div>
               </div>

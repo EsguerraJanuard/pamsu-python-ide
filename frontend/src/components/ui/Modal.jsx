@@ -132,7 +132,10 @@ export default function Modal({
             )}
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {/* Vertical padding on the inner wrapper keeps sticky table headers flush with the scroll edge. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6">
+          <div className="py-5">{children}</div>
+        </div>
         {footer && (
           <div className="flex flex-col-reverse gap-2 border-t border-border-subtle bg-bg-base/60 px-6 py-4 sm:flex-row sm:justify-end">
             {footer}

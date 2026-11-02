@@ -1,3 +1,4 @@
+import CustomSelect from "../../components/ui/CustomSelect";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
 import { SettingsSection } from "./AccountSections";
 
@@ -67,15 +68,17 @@ export default function EditorSettings() {
           <label htmlFor="editor-tab-size" className="field-label">
             Tab size
           </label>
-          <select
-            id="editor-tab-size"
-            value={settings.tabSize}
-            onChange={(e) => updateSetting("tabSize", parseInt(e.target.value, 10))}
-            className="input-field sm:w-48"
-          >
-            <option value={2}>2 spaces</option>
-            <option value={4}>4 spaces</option>
-          </select>
+          <div className="sm:w-48">
+            <CustomSelect
+              id="editor-tab-size"
+              value={settings.tabSize}
+              onChange={(value) => updateSetting("tabSize", Number(value))}
+              options={[
+                { value: 2, label: "2 spaces" },
+                { value: 4, label: "4 spaces" },
+              ]}
+            />
+          </div>
         </div>
 
         <Toggle

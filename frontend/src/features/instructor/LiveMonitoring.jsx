@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import PageShell from "../../components/layout/PageShell";
 import CustomSelect from "../../components/ui/CustomSelect";
+import StatTile from "../../components/ui/StatTile";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
 import useApiQuery from "../../hooks/useApiQuery";
 import useUrlFilters from "../../hooks/useUrlFilters";
@@ -205,16 +206,20 @@ export default function LiveMonitoring() {
                     Live
                   </span>
                 </div>
-                <dl className="grid grid-cols-3 gap-2 text-center">
+                <dl className="grid grid-cols-3 gap-2">
                   {[
-                    ["Tab switches", session.tab_switch_count],
-                    ["Blocked pastes", session.blocked_paste_count],
-                    ["Runs", session.run_attempt_count],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-lg bg-bg-alt px-2 py-2">
-                      <dd className="text-base font-semibold text-text-main">{value ?? 0}</dd>
-                      <dt className="text-xs text-text-muted">{label}</dt>
-                    </div>
+                    ["Tab switches", "window", session.tab_switch_count, true],
+                    ["Blocked pastes", "clipboardX", session.blocked_paste_count, true],
+                    ["Runs", "play", session.run_attempt_count, false],
+                  ].map(([label, icon, value, flagWhenAboveZero]) => (
+                    <StatTile
+                      key={label}
+                      size="sm"
+                      label={label}
+                      icon={icon}
+                      value={value ?? 0}
+                      tone={flagWhenAboveZero && value > 0 ? "attention" : "neutral"}
+                    />
                   ))}
                 </dl>
                 <p className="mt-3 text-xs text-text-muted">Last activity {timeAgo(session.last_activity_at)}</p>

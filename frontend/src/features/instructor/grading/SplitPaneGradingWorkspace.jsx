@@ -5,6 +5,9 @@ import { DiffEditor } from "@monaco-editor/react";
 import PageShell from "../../../components/layout/PageShell";
 import ConfirmationModal from "../../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader, Spinner } from "../../../components/ui/StateViews";
+import Avatar from "../../../components/ui/Avatar";
+import Icon from "../../../components/ui/Icon";
+import StatTile from "../../../components/ui/StatTile";
 import Switch from "../../../components/ui/Switch";
 import api, { API_BASE_URL, getErrorMessage } from "../../../services/api";
 import { ruleLabel } from "../../../utils/astRules";
@@ -21,80 +24,31 @@ const STATUS_BADGE = {
   awaiting_review: { label: "Awaiting review", badge: "badge-brand" },
 };
 
-/**
- * Score input and feedback textarea: soft border, rounded, clear focus ring.
- * `outline-none!` drops the global :focus-visible outline (index.css), which
- * would otherwise draw a second ring outside this one.
- */
+/** Score input and feedback textarea: soft border, rounded, clear focus ring. */
 const GRADE_FIELD =
-  "block w-full rounded-xl border border-border-strong bg-bg-panel text-text-main shadow-sm transition-[border-color,box-shadow] duration-150 placeholder:text-[var(--text-placeholder)] hover:border-text-muted/60 focus:border-border-focus focus:outline-none! focus:ring-2 focus:ring-border-focus/35 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted disabled:shadow-none aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/25";
+  "block w-full rounded-xl border border-border-strong bg-bg-panel text-text-main shadow-sm transition-[border-color,box-shadow] duration-150 placeholder:text-[var(--text-placeholder)] hover:border-text-muted/60 focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-border-focus/35 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted disabled:shadow-none aria-[invalid=true]:border-psu-red aria-[invalid=true]:focus:ring-psu-red/25";
 
 const FEEDBACK_MAX_LENGTH = 5000;
 
-/** 16px line icons for the review indicator tiles (decorative). */
-const INDICATOR_ICONS = {
-  similarity: (
-    <>
-      <rect x="2.5" y="2.5" width="7.5" height="7.5" rx="1.5" />
-      <rect x="6" y="6" width="7.5" height="7.5" rx="1.5" />
-    </>
-  ),
-  tabs: (
-    <>
-      <rect x="2" y="3" width="12" height="10" rx="1.5" />
-      <path d="M2 6.25h12M6.5 3v3.25" />
-    </>
-  ),
-  paste: (
-    <>
-      <path d="M5.5 3h-.75c-.69 0-1.25.56-1.25 1.25v8.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25v-8.5C12.5 3.56 11.94 3 11.25 3h-.75" />
-      <rect x="5.5" y="2" width="5" height="2" rx=".75" />
-      <path d="M6.5 8.25l3 3M9.5 8.25l-3 3" />
-    </>
-  ),
-  pointer: <path d="M3.5 2.5l3.75 10.5 1.6-4.4 4.4-1.6L3.5 2.5z" />,
-};
-
-/**
- * One review-indicator tile. Counts above zero get a soft gold tint so they
- * stand out. Similarity stays neutral: the score has no cut-off, and honest
- * work on a short task can match 100% (backend/algorithm_qa_results.md).
+/*
+ * Review indicators use the shared StatTile. Counts above zero get the gold
+ * "attention" tint so they stand out. Similarity stays neutral: the score has
+ * no cut-off, and honest work on a short task can match 100%
+ * (backend/algorithm_qa_results.md).
  */
-function IndicatorStat({ label, icon, value, unit, caption, meter, highlight = false }) {
-  const isEmpty = value === null || value === undefined;
-  return (
-    <div
-      className={`@container flex flex-col rounded-xl border p-4 transition-colors ${
-        highlight ? "border-psu-gold/40 bg-psu-gold/[0.07]" : "border-border-subtle bg-bg-alt/60"
-      }`}
-    >
-      {/* Narrow tiles (phones): the label wraps to two lines and the icon is hidden.
-          From 8.25rem of content the longest label fits on one line beside the icon. */}
-      <dt className="flex min-h-[2.75em] items-start justify-between gap-2 text-[11px] font-semibold uppercase leading-snug tracking-wider text-text-muted @min-[8.25rem]:min-h-7 @min-[8.25rem]:items-center">
-        <span className="min-w-0 @min-[8.25rem]:truncate">{label}</span>
-        <span
-          className={`hidden h-7 w-7 shrink-0 place-items-center rounded-lg @min-[8.25rem]:grid ${
-            highlight ? "bg-psu-gold/20 text-text-amber" : "bg-bg-panel text-text-muted ring-1 ring-inset ring-border-subtle"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {INDICATOR_ICONS[icon]}
-          </svg>
-        </span>
-      </dt>
-      <dd className={`mt-3 text-3xl font-semibold leading-none tracking-tight tabular-nums ${isEmpty ? "text-text-muted" : "text-text-main"}`}>
-        {isEmpty ? "—" : value}
-        {!isEmpty && unit && <span className="ml-0.5 text-base font-medium text-text-muted">{unit}</span>}
-      </dd>
-      {typeof meter === "number" && (
-        <dd className="mt-3 h-1.5 overflow-hidden rounded-full bg-border-subtle" aria-hidden="true">
-          <span className="block h-full rounded-full bg-psu-maroon" style={{ width: `${Math.min(100, Math.max(0, meter))}%` }} />
-        </dd>
-      )}
-      <dd className="mt-2 text-xs leading-snug text-text-muted">{caption}</dd>
-    </div>
-  );
-}
+/** Student-list filters on the bench: [value, label]. */
+const STUDENT_FILTERS = [
+  ["all", "All"],
+  ["review", "To review"],
+  ["graded", "Graded"],
+  ["none", "Not submitted"],
+];
+
+const SESSION_INDICATORS = [
+  ["Tab switches", "window", "tab_switch_count", "Times the student left the tab"],
+  ["Blocked pastes", "clipboardX", "blocked_paste_count", "Paste attempts that were blocked"],
+  ["Pointer exits", "pointer", "mouseleave_count", "Times the pointer left the page"],
+];
 
 const STRUCTURE_PILLS = {
   found: {
@@ -332,28 +286,27 @@ function SubmissionReview({ submission, task, onGraded }) {
           </p>
         </div>
         <dl className="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
-          <IndicatorStat
+          <StatTile
             label="Similarity"
-            icon="similarity"
+            icon="copy"
             value={hasSimilarity ? evaluation.jaccard_score.toFixed(1) : null}
             unit="%"
             meter={hasSimilarity ? evaluation.jaccard_score : undefined}
             caption={hasSimilarity ? "Highest match with a classmate" : "Not computed yet"}
           />
-          {[
-            ["Tab switches", "tabs", session?.tab_switch_count, "Times the student left the tab"],
-            ["Blocked pastes", "paste", session?.blocked_paste_count, "Paste attempts that were blocked"],
-            ["Pointer exits", "pointer", session?.mouseleave_count, "Times the pointer left the page"],
-          ].map(([label, icon, count, caption]) => (
-            <IndicatorStat
-              key={label}
-              label={label}
-              icon={icon}
-              value={session ? (count ?? 0) : null}
-              caption={session ? caption : "No session record"}
-              highlight={Boolean(session) && count > 0}
-            />
-          ))}
+          {SESSION_INDICATORS.map(([label, icon, field, caption]) => {
+            const count = session?.[field];
+            return (
+              <StatTile
+                key={label}
+                label={label}
+                icon={icon}
+                value={session ? (count ?? 0) : null}
+                caption={session ? caption : "No session record"}
+                tone={session && count > 0 ? "attention" : "neutral"}
+              />
+            );
+          })}
         </dl>
         {!session && <p className="mt-3 text-xs text-text-muted">No coding-session record is linked to this submission.</p>}
 
@@ -582,6 +535,8 @@ export default function SplitPaneGradingWorkspace() {
   const [error, setError] = useState(null);
   const [exportError, setExportError] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [studentQuery, setStudentQuery] = useState("");
+  const [studentFilter, setStudentFilter] = useState("all");
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -611,6 +566,29 @@ export default function SplitPaneGradingWorkspace() {
   const selectedStudent = students.find((s) => s.student_id === selectedStudentId) || null;
   const selectedSubmission = selectedStudent ? submissions[selectedStudent.student_id] : null;
   const submittedCount = useMemo(() => students.filter((s) => submissions[s.student_id]).length, [students, submissions]);
+
+  const reviewStateOf = useCallback(
+    (student) => {
+      const sub = submissions[student.student_id];
+      return !sub ? "none" : sub.has_manual_grade ? "graded" : "review";
+    },
+    [submissions],
+  );
+  const filterCounts = useMemo(() => {
+    const counts = { all: students.length, review: 0, graded: 0, none: 0 };
+    students.forEach((student) => {
+      counts[reviewStateOf(student)] += 1;
+    });
+    return counts;
+  }, [students, reviewStateOf]);
+  const visibleStudents = useMemo(() => {
+    const query = studentQuery.trim().toLowerCase();
+    return students.filter(
+      (student) =>
+        (studentFilter === "all" || reviewStateOf(student) === studentFilter) &&
+        (!query || [student.name, student.school_id, student.email].some((value) => value && value.toLowerCase().includes(query))),
+    );
+  }, [students, studentFilter, studentQuery, reviewStateOf]);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -667,7 +645,7 @@ export default function SplitPaneGradingWorkspace() {
                 onClick={handleExport}
                 disabled={isExporting}
                 aria-busy={isExporting}
-                className="btn-secondary group px-4 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out hover:border-text-muted/50 hover:shadow active:scale-[0.98] active:shadow-none disabled:active:scale-100"
+                className="btn-secondary group"
               >
                 {isExporting ? (
                   <Spinner className="h-4 w-4" />
@@ -707,11 +685,52 @@ export default function SplitPaneGradingWorkspace() {
                 <h2 className="text-sm font-semibold">Students</h2>
                 <span className="badge badge-neutral">{students.length}</span>
               </div>
+              {students.length > 0 && (
+                <div className="space-y-2.5 border-b border-border-subtle px-3 py-3">
+                  <div className="relative">
+                    <label htmlFor="bench-student-search" className="sr-only">
+                      Search students
+                    </label>
+                    <Icon name="search" className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                    <input
+                      id="bench-student-search"
+                      type="search"
+                      value={studentQuery}
+                      onChange={(e) => setStudentQuery(e.target.value)}
+                      placeholder="Search name or ID…"
+                      className="input-field py-1.5 pl-8"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show students">
+                    {STUDENT_FILTERS.map(([value, label]) => {
+                      const active = studentFilter === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setStudentFilter(value)}
+                          aria-pressed={active}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                            active
+                              ? "border-psu-maroon bg-psu-maroon text-white shadow-sm"
+                              : "border-border-subtle bg-bg-panel text-text-muted hover:border-border-strong hover:text-text-main"
+                          }`}
+                        >
+                          {label}{" "}
+                          <span className={`tabular-nums ${active ? "text-white/80" : "text-text-muted"}`}>{filterCounts[value]}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {students.length === 0 ? (
                 <p className="p-4 text-sm text-text-muted">No students are enrolled in this class.</p>
+              ) : visibleStudents.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-text-muted">No students match.</p>
               ) : (
                 <ul className="max-h-[70vh] divide-y divide-border-subtle overflow-y-auto">
-                  {students.map((student) => {
+                  {visibleStudents.map((student) => {
                     const sub = submissions[student.student_id];
                     const badge = !sub
                       ? { label: "No submission", cls: "badge-neutral" }
@@ -725,13 +744,16 @@ export default function SplitPaneGradingWorkspace() {
                           type="button"
                           onClick={() => setSelectedStudentId(student.student_id)}
                           aria-current={isSelected ? "true" : undefined}
-                          className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+                          className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors focus-visible:-outline-offset-2 ${
                             isSelected ? "bg-selected" : "hover:bg-bg-alt"
                           }`}
                         >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-text-main">{student.name}</span>
-                            <span className="block truncate text-xs text-text-muted">{student.school_id || student.email}</span>
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            <Avatar name={student.name} size="sm" />
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-medium text-text-main">{student.name}</span>
+                              <span className="block truncate text-xs text-text-muted">{student.school_id || student.email}</span>
+                            </span>
                           </span>
                           <span className={`badge shrink-0 ${badge.cls}`}>{badge.label}</span>
                         </button>

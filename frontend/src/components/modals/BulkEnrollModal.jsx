@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import api, { getErrorMessage } from "../../services/api";
 import Modal from "../ui/Modal";
+import StatTile from "../ui/StatTile";
 import { FieldError, InlineAlert } from "../ui/StateViews";
 
 const EMAIL_PATTERN = /[a-zA-Z0-9_.+-]+@pampangastateu\.edu\.ph/gi;
@@ -81,19 +82,17 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
       {result ? (
         <div>
           <InlineAlert tone="success">Enrollment processed.</InlineAlert>
-          <dl className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-3">
+          <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {[
-              ["Enrolled", result.enrolled ?? 0, "text-text-emerald"],
-              ["Pending (no account)", result.queued ?? 0, "text-text-amber"],
-              ["Invalid", result.invalid ?? 0, "text-text-rose"],
-              ...(result.already_enrolled > 0 ? [["Already in class", result.already_enrolled, "text-text-main"]] : []),
-              ...(result.ineligible > 0 ? [["Not a student account", result.ineligible, "text-text-amber"]] : []),
-              ...(result.suspended > 0 ? [["Suspended account", result.suspended, "text-text-amber"]] : []),
-            ].map(([label, value, tone]) => (
-              <div key={label} className="rounded-lg border border-border-subtle p-3">
-                <dd className={`text-2xl font-bold ${tone}`}>{value}</dd>
-                <dt className="text-xs text-text-muted">{label}</dt>
-              </div>
+              ["Enrolled", "check", result.enrolled ?? 0, "success"],
+              ["Pending (no account)", "clock", result.queued ?? 0, "attention"],
+              ["Invalid", "x", result.invalid ?? 0, "danger"],
+              ...(result.already_enrolled > 0 ? [["Already in class", "students", result.already_enrolled, "neutral"]] : []),
+              ...(result.ineligible > 0 ? [["Not a student account", "ban", result.ineligible, "attention"]] : []),
+              ...(result.suspended > 0 ? [["Suspended account", "ban", result.suspended, "attention"]] : []),
+            ].map(([label, icon, value, tone]) => (
+              // A zero count stays neutral, so only the outcomes that happened are tinted.
+              <StatTile key={label} label={label} icon={icon} value={value} tone={value > 0 ? tone : "neutral"} />
             ))}
           </dl>
           {result.queued > 0 && (

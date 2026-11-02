@@ -18,8 +18,11 @@ export default function PageShell({
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main">
       {role === "instructor" ? <InstructorSidebar /> : <Sidebar assignmentCount={assignmentCount} />}
       <div className="flex min-w-0 flex-1 flex-col">
-        <main id="main-content" className="min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
-          <div className={`animate-page-fade mx-auto w-full ${maxWidth}`}>{children}</div>
+        {/* The vertical padding sits on the inner wrapper, not on <main> (the
+            scroll container), so sticky table headers and the editor's save
+            bar line up with the visible edge instead of 24px inside it. */}
+        <main id="main-content" className="min-w-0 flex-1 overflow-y-auto px-4 sm:px-8">
+          <div className={`animate-page-fade mx-auto w-full py-6 ${maxWidth}`}>{children}</div>
         </main>
         {showStatusbar && <Statusbar contextLabel={statusContext} />}
       </div>

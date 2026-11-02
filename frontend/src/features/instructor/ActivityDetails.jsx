@@ -3,6 +3,8 @@ import { Link, useLocation, useParams } from "react-router-dom";
 
 import PageShell from "../../components/layout/PageShell";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
+import CodePanel from "../../components/ui/CodePanel";
+import Icon from "../../components/ui/Icon";
 import { EmptyState, ErrorState, FieldError, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
 import api, { getErrorMessage } from "../../services/api";
 import { requiredRuleIds, ruleLabel, ruleMinCount } from "../../utils/astRules";
@@ -242,12 +244,19 @@ export default function ActivityDetails() {
               <EmptyState className="py-8" title="No test cases yet" message="Add at least one case so runs can be compared with expected output." />
             ) : (
               <ul className="space-y-3">
-                {testCases.map((tc) => (
-                  <li key={tc.test_case_id} className="rounded-lg border border-border-subtle p-4">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-text-main">{tc.name}</span>
+                {testCases.map((tc, index) => (
+                  <li key={tc.test_case_id} className="rounded-xl border border-border-subtle bg-bg-alt/40 p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span
+                          className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-bg-panel text-[11px] font-semibold tabular-nums text-text-muted ring-1 ring-inset ring-border-subtle"
+                          aria-hidden="true"
+                        >
+                          {index + 1}
+                        </span>
+                        <span className="truncate text-sm font-semibold text-text-main">{tc.name}</span>
                         <span className={`badge ${tc.is_hidden ? "badge-neutral" : "badge-brand"}`}>
+                          <Icon name={tc.is_hidden ? "eyeOff" : "eye"} className="h-3 w-3" />
                           {tc.is_hidden ? "Hidden" : "Sample"}
                         </span>
                       </div>
@@ -255,21 +264,17 @@ export default function ActivityDetails() {
                         <button
                           type="button"
                           onClick={() => setConfirm({ type: "delete-case", testCase: tc })}
-                          className="btn-ghost btn-sm hover:text-text-rose"
+                          className="btn-row hover:border-psu-red/40 hover:bg-psu-red/[0.06] hover:text-text-rose"
+                          aria-label={`Delete test case ${tc.name}`}
                         >
+                          <Icon name="trash" className="h-3.5 w-3.5" />
                           Delete
                         </button>
                       )}
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Input</p>
-                        <pre className="max-h-40 overflow-auto rounded-md bg-bg-alt p-2.5 font-mono text-xs text-text-main">{tc.standard_input || "(none)"}</pre>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Expected output</p>
-                        <pre className="max-h-40 overflow-auto rounded-md bg-bg-alt p-2.5 font-mono text-xs text-text-main">{tc.expected_output}</pre>
-                      </div>
+                      <CodePanel label="Input" code={tc.standard_input} emptyText="(no input)" />
+                      <CodePanel label="Expected output" code={tc.expected_output} emptyText="(no output)" />
                     </div>
                   </li>
                 ))}
@@ -408,9 +413,17 @@ export default function ActivityDetails() {
                 {rules.map((rule) => {
                   const count = ruleMinCount(activity.required_ast_rules[rule]);
                   return (
-                    <li key={rule} className="badge badge-neutral">
+                    <li
+                      key={rule}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-bg-alt py-1 pl-2 pr-2.5 text-xs font-semibold text-text-main ring-1 ring-inset ring-border-strong"
+                    >
+                      <Icon name="code" className="h-3 w-3 text-text-muted" />
                       {ruleLabel(rule)}
-                      {count > 1 ? ` ×${count}` : ""}
+                      {count > 1 && (
+                        <span className="rounded-full bg-psu-maroon/10 px-1.5 text-[11px] tabular-nums text-text-brand">
+                          <span className="sr-only">at least </span>×{count}
+                        </span>
+                      )}
                     </li>
                   );
                 })}

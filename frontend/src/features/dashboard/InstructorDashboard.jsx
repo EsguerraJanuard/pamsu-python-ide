@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import PageShell from "../../components/layout/PageShell";
 import CreateClassModal from "../../components/modals/CreateClassModal";
+import StatTile from "../../components/ui/StatTile";
 import { EmptyState, ErrorState, PageHeader, SkeletonList } from "../../components/ui/StateViews";
 import api from "../../services/api";
 import { cachedGet } from "../../services/queryClient";
@@ -17,16 +18,6 @@ function activityState(task) {
   }
   if (task.due_at && new Date(task.due_at) < new Date()) return { label: "Closed", badge: "badge-neutral" };
   return { label: "Published", badge: "badge-success" };
-}
-
-function StatLink({ to, value, label, description }) {
-  return (
-    <Link to={to} className="card block p-5 transition hover:border-psu-maroon/30 hover:shadow-md">
-      <p className="text-3xl font-bold tracking-tight text-text-main">{value}</p>
-      <p className="mt-1 text-sm font-semibold text-text-main">{label}</p>
-      <p className="text-xs text-text-muted">{description}</p>
-    </Link>
-  );
 }
 
 export default function InstructorDashboard() {
@@ -91,20 +82,32 @@ export default function InstructorDashboard() {
       ) : (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0 space-y-6">
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3" aria-label="Summary">
+            <section aria-label="Summary">
               {isLoading ? (
-                [0, 1, 2].map((i) => <div key={i} className="card h-[108px] animate-pulse" />)
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-[120px] animate-pulse rounded-xl border border-border-subtle bg-bg-alt/60" />
+                  ))}
+                </div>
               ) : (
-                <>
-                  <StatLink to="/instructor/classes" value={activeClasses} label="Active classes" description={`${classes.length} total`} />
-                  <StatLink to="/instructor/bench" value={pendingReviews} label="Awaiting review" description="Submitted, not yet graded" />
-                  <StatLink
+                <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <StatTile to="/instructor/classes" icon="classroom" value={activeClasses} label="Active classes" caption={`${classes.length} total`} />
+                  <StatTile
                     to="/instructor/bench"
+                    icon="inbox"
+                    value={pendingReviews}
+                    label="Awaiting review"
+                    caption="Submitted, not yet graded"
+                    tone={pendingReviews > 0 ? "attention" : "neutral"}
+                  />
+                  <StatTile
+                    to="/instructor/bench"
+                    icon="code"
                     value={publishedCount}
                     label="Published activities"
-                    description={`${tasks.length - publishedCount} draft or scheduled`}
+                    caption={`${tasks.length - publishedCount} draft or scheduled`}
                   />
-                </>
+                </dl>
               )}
             </section>
 

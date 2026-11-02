@@ -6,9 +6,13 @@ import BulkEnrollModal from "../../components/modals/BulkEnrollModal";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import EditClassModal from "../../components/modals/EditClassModal";
 import StudentGradebookModal from "../../components/modals/StudentGradebookModal";
+import Avatar from "../../components/ui/Avatar";
+import Icon from "../../components/ui/Icon";
+import RowActionsMenu from "../../components/ui/RowActionsMenu";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
 import useUrlFilters from "../../hooks/useUrlFilters";
 import api, { getErrorMessage } from "../../services/api";
+import { copyText } from "../../utils/clipboard";
 import { formatDateTime } from "../../utils/format";
 
 const MEMBER_STATUS = {
@@ -70,6 +74,17 @@ export default function ClassRosterView() {
       [s.name, s.school_id, s.email].some((value) => value && value.toLowerCase().includes(query)),
     );
   }, [students, searchQuery]);
+
+  const onlineCount = useMemo(() => students.filter((s) => s.is_online).length, [students]);
+
+  const handleCopyEmail = async (student) => {
+    const copied = await copyText(student.email);
+    setActionMessage(
+      copied
+        ? { tone: "success", text: `Copied ${student.email}.` }
+        : { tone: "error", text: `The email could not be copied. It is ${student.email}.` },
+    );
+  };
 
   const handleRemoveConfirm = async () => {
     if (!studentToRemove || isRemoving) return;
@@ -156,83 +171,135 @@ export default function ClassRosterView() {
               />
             ) : (
               <>
-                <div className="mb-4 w-full sm:w-80">
-                  <label htmlFor="roster-search" className="sr-only">
-                    Search students
-                  </label>
-                  <input
-                    id="roster-search"
-                    type="search"
-                    placeholder="Search by name, ID or email…"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="input-field"
-                  />
-                </div>
-                <div className="card overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[640px] text-left text-sm">
-                      <thead className="border-b border-border-subtle bg-bg-alt text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                        <tr>
-                          <th scope="col" className="px-4 py-3">Student</th>
-                          <th scope="col" className="px-4 py-3">School ID</th>
-                          <th scope="col" className="px-4 py-3">Enrollment</th>
-                          <th scope="col" className="px-4 py-3">Session</th>
-                          <th scope="col" className="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-subtle">
-                        {filteredStudents.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-text-muted">
-                              No students match your search.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredStudents.map((student) => {
-                            const status = MEMBER_STATUS[student.status] || MEMBER_STATUS.active;
-                            return (
-                              <tr key={student.enrollment_id} className="hover:bg-bg-alt/60">
-                                <td className="px-4 py-3">
-                                  <p className="font-medium text-text-main">{student.name}</p>
-                                  <p className="text-xs text-text-muted">{student.email}</p>
-                                </td>
-                                <td className="px-4 py-3 font-mono text-xs text-text-muted">{student.school_id || "—"}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`badge ${status.badge}`}>{status.label}</span>
-                                </td>
-                                <td className="px-4 py-3 text-xs">
-                                  {student.is_online ? (
-                                    <span className="inline-flex items-center gap-1.5 font-medium text-text-emerald">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden="true" />
-                                      Online
-                                    </span>
-                                  ) : (
-                                    <span className="text-text-muted">Offline</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="flex justify-end gap-1">
-                                    <button type="button" onClick={() => setStudentToInspect(student)} className="btn-ghost btn-sm">
-                                      Grades
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setStudentToRemove(student)}
-                                      className="btn-ghost btn-sm hover:text-text-rose"
-                                      aria-label={`Remove ${student.name} from class`}
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative w-full sm:w-80">
+                    <label htmlFor="roster-search" className="sr-only">
+                      Search students
+                    </label>
+                    <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                    <input
+                      id="roster-search"
+                      type="search"
+                      placeholder="Search by name, ID or email…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="input-field pl-9"
+                    />
                   </div>
+                  <p className="text-xs text-text-muted" aria-live="polite">
+                    {searchQuery.trim()
+                      ? `${filteredStudents.length} of ${students.length} students`
+                      : `${students.length} ${students.length === 1 ? "student" : "students"}`}
+                    {onlineCount > 0 && ` · ${onlineCount} online now`}
+                  </p>
+                </div>
+                <div className="card overflow-clip">
+                  <table className="data-table table-fixed">
+                    <caption className="sr-only">Students enrolled in {classroom.name}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Student</th>
+                        <th scope="col" className="hidden w-36 md:table-cell">School ID</th>
+                        <th scope="col" className="hidden w-28 sm:table-cell">Enrollment</th>
+                        <th scope="col" className="hidden w-28 sm:table-cell">Session</th>
+                        <th scope="col" className="w-28 text-right sm:w-40">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-10 text-center text-sm text-text-muted">
+                            No students match your search.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredStudents.map((student) => {
+                          const status = MEMBER_STATUS[student.status] || MEMBER_STATUS.active;
+                          const statusBadge = <span className={`badge ${status.badge}`}>{status.label}</span>;
+                          const session = student.is_online ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-text-emerald">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden="true" />
+                              Online
+                            </span>
+                          ) : (
+                            <span className="text-xs text-text-muted">Offline</span>
+                          );
+                          return (
+                            <tr key={student.enrollment_id}>
+                              <td>
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <Avatar name={student.name} />
+                                  <div className="min-w-0">
+                                    <p className="truncate font-semibold text-text-main" title={student.name}>
+                                      {student.name}
+                                    </p>
+                                    <p className="truncate text-xs text-text-muted" title={student.email}>
+                                      {student.email}
+                                    </p>
+                                    {/* Narrow screens hide School ID (below md), Enrollment and Session (below sm); show them here instead. */}
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:hidden">
+                                      {student.school_id && <span className="font-mono text-xs text-text-muted">{student.school_id}</span>}
+                                      <span className="flex items-center gap-2 sm:hidden">
+                                        {statusBadge}
+                                        {session}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="hidden md:table-cell">
+                                {student.school_id ? (
+                                  <span className="rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 font-mono text-xs text-text-main">
+                                    {student.school_id}
+                                  </span>
+                                ) : (
+                                  <span className="text-text-muted">—</span>
+                                )}
+                              </td>
+                              <td className="hidden sm:table-cell">{statusBadge}</td>
+                              <td className="hidden sm:table-cell">{session}</td>
+                              <td>
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setStudentToInspect(student)}
+                                    className="btn-row"
+                                    aria-label={`Grades for ${student.name}`}
+                                  >
+                                    <Icon name="chart" className="h-3.5 w-3.5" />
+                                    {/* Icon only on phones; the aria-label names it either way. */}
+                                    <span className="hidden sm:inline">Grades</span>
+                                  </button>
+                                  <RowActionsMenu
+                                    label={`More actions for ${student.name}`}
+                                    items={[
+                                      {
+                                        id: "copy-email",
+                                        label: "Copy email address",
+                                        hint: student.email,
+                                        icon: "copy",
+                                        disabled: !student.email,
+                                        onSelect: () => handleCopyEmail(student),
+                                      },
+                                      {
+                                        id: "remove",
+                                        label: "Remove from class",
+                                        hint: "Their submissions stay on record.",
+                                        icon: "trash",
+                                        tone: "danger",
+                                        separatorBefore: true,
+                                        onSelect: () => setStudentToRemove(student),
+                                      },
+                                    ]}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </>
             )

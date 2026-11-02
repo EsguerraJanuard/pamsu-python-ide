@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import PageShell from "../components/layout/PageShell";
+import Pagination from "../components/ui/Pagination";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../components/ui/StateViews";
 import api, { getErrorMessage } from "../services/api";
 import { formatDateTime } from "../utils/format";
@@ -30,6 +31,7 @@ export default function NotificationsPage({ role = "student" }) {
   const [notifications, setNotifications] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [readFilter, setReadFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +47,7 @@ export default function NotificationsPage({ role = "student" }) {
       const response = await api.get(`/notifications/?page=${page}&page_size=${PAGE_SIZE}&read_filter=${readFilter}`);
       setNotifications(response?.items || []);
       setTotalPages(Math.max(1, response?.total_pages || 1));
+      setTotalItems(response?.total_items ?? 0);
       setUnreadCount(response?.recipient_unread_count ?? 0);
     } catch (err) {
       setError(err);
@@ -192,21 +195,15 @@ export default function NotificationsPage({ role = "student" }) {
                 </ul>
               )}
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border-subtle px-4 py-3 text-xs text-text-muted">
-                  <span>
-                    Page {page} of {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <button type="button" className="btn-secondary btn-sm" disabled={page <= 1 || isLoading} onClick={() => setPage((p) => p - 1)}>
-                      Previous
-                    </button>
-                    <button type="button" className="btn-secondary btn-sm" disabled={page >= totalPages || isLoading} onClick={() => setPage((p) => p + 1)}>
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                disabled={isLoading}
+                noun={totalItems === 1 ? "notification" : "notifications"}
+              />
             </section>
 
             <section className={`card min-h-[240px] ${selected ? "" : "hidden lg:flex lg:items-center lg:justify-center"}`} aria-label="Notification details">

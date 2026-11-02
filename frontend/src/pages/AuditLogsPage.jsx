@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import PageShell from "../components/layout/PageShell";
 import CustomSelect from "../components/ui/CustomSelect";
+import Pagination from "../components/ui/Pagination";
 import { EmptyState, ErrorState, PageHeader, SkeletonList } from "../components/ui/StateViews";
 import api from "../services/api";
 import { formatDateTime, humanize } from "../utils/format";
@@ -97,49 +98,58 @@ export default function AuditLogsPage({ role = "student" }) {
           message={resourceFilter === "all" ? "No events have been recorded yet." : "No events match this filter."}
         />
       ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="border-b border-border-subtle bg-bg-alt text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                <tr>
-                  <th scope="col" className="px-4 py-3">When</th>
-                  <th scope="col" className="px-4 py-3">Event</th>
-                  <th scope="col" className="px-4 py-3">Resource</th>
-                  <th scope="col" className="px-4 py-3 text-right">Outcome</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-subtle">
-                {logs.map((log) => (
-                  <tr key={log.audit_id} className="hover:bg-bg-alt/60">
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-text-muted">{formatDateTime(log.occurred_at)}</td>
-                    <td className="px-4 py-3 font-medium text-text-main">{humanize(log.action_type)}</td>
-                    <td className="px-4 py-3 text-text-muted">
-                      {humanize(log.resource_type)}
-                      {log.resource_id ? <span className="ml-1 font-mono text-xs">#{log.resource_id.slice(0, 8)}</span> : null}
+        <div className="card overflow-clip">
+          <table className="data-table table-fixed">
+            <caption className="sr-only">Audit events, newest first</caption>
+            <thead>
+              <tr>
+                <th scope="col" className="hidden w-48 sm:table-cell">When</th>
+                <th scope="col">Event</th>
+                <th scope="col" className="hidden w-56 md:table-cell">Resource</th>
+                <th scope="col" className="w-28 text-right sm:w-32">Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => {
+                const resource = (
+                  <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border-subtle bg-bg-alt px-2 py-0.5 text-xs font-medium text-text-muted">
+                    <span className="truncate">{humanize(log.resource_type)}</span>
+                    {log.resource_id ? <span className="font-mono">#{String(log.resource_id).slice(0, 8)}</span> : null}
+                  </span>
+                );
+                return (
+                  <tr key={log.audit_id}>
+                    <td className="hidden whitespace-nowrap text-xs tabular-nums text-text-muted sm:table-cell">
+                      <time dateTime={log.occurred_at}>{formatDateTime(log.occurred_at)}</time>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td>
+                      <p className="font-medium text-text-main">{humanize(log.action_type)}</p>
+                      {/* Narrow screens hide When (below sm) and Resource (below md); show them here instead. */}
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:hidden">
+                        <time dateTime={log.occurred_at} className="text-xs tabular-nums text-text-muted sm:hidden">
+                          {formatDateTime(log.occurred_at)}
+                        </time>
+                        {resource}
+                      </div>
+                    </td>
+                    <td className="hidden md:table-cell">{resource}</td>
+                    <td className="text-right">
                       <span className={`badge ${OUTCOME_BADGE[log.outcome] || "badge-neutral"}`}>{humanize(log.outcome)}</span>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-border-subtle px-4 py-3 text-xs text-text-muted">
-              <span>
-                Page {page} of {totalPages}
-              </span>
-              <div className="flex gap-2">
-                <button type="button" className="btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  Previous
-                </button>
-                <button type="button" className="btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+                );
+              })}
+            </tbody>
+          </table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            disabled={isLoading}
+            noun={totalItems === 1 ? "event" : "events"}
+          />
         </div>
       )}
     </PageShell>

@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import SignOutModal from "../../components/layout/SignOutModal";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
+import Avatar from "../../components/ui/Avatar";
+import CustomSelect from "../../components/ui/CustomSelect";
+import Icon from "../../components/ui/Icon";
 import Modal from "../../components/ui/Modal";
+import RowActionsMenu from "../../components/ui/RowActionsMenu";
 import { EmptyState, ErrorState, FieldError, InlineAlert, LoadingState, PageHeader, useDismissTimer } from "../../components/ui/StateViews";
 import api, { ApiError, getErrorMessage, TIMEOUT_ERROR_STATUS } from "../../services/api";
 import { formatDate, formatDateTime, humanize } from "../../utils/format";
@@ -24,40 +27,6 @@ const RECENT_ACTIVITY_COUNT = 6;
 const SETTINGS_SAVE_TIMEOUT_MS = 90000;
 const SCHOOL_EMAIL = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
 const SCHOOL_ID = /^(\d{10}|\d{4}-\d{5})$/;
-
-/* Stroke icons (24×24, drawn with currentColor). */
-const ICONS = {
-  overview: "M3 12l2-2 7-7 7 7 2 2M5 10v10h4v-6h6v6h4V10",
-  faculty: "M12 14l9-5-9-5-9 5 9 5zm0 0v6m-6-9.5v5.5l6 3 6-3v-5.5",
-  students: "M17 20h5v-2a3 3 0 00-5.36-1.86M9 20H4v-2a4 4 0 017-2.65M15 7a3 3 0 11-6 0 3 3 0 016 0z",
-  audit: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
-  settings: "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.82 1.17V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 003 15.08V15a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6V4a2 2 0 114 0v.09a1.65 1.65 0 001.03 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.4.16.84.24 1.28.24H21a2 2 0 110 4h-.09c-.44 0-.88.08-1.28.24z",
-  classroom: "M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6",
-  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4",
-  wrench: "M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z",
-  activity: "M22 12h-4l-3 9L9 3l-3 9H2",
-  userPlus: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zM19 8v6M22 11h-6",
-  upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
-  download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
-  chevronRight: "M9 18l6-6-6-6",
-  arrowRight: "M5 12h14M13 6l6 6-6 6",
-  key: "M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.78 7.78 5.5 5.5 0 017.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
-  ban: "M12 22a10 10 0 100-20 10 10 0 000 20zM4.93 4.93l14.14 14.14",
-  check: "M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3",
-  search: "M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z",
-  signOut: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
-  calendar: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z",
-  bolt: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
-  pencil: "M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z",
-  refresh: "M21 12a9 9 0 11-2.64-6.36L21 8M21 3v5h-5",
-  x: "M18 6L6 18M6 6l12 12",
-  chevronLeft: "M15 18l-6-6 6-6",
-  copy: "M11 9h9a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-9a2 2 0 012-2zM5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1",
-  tick: "M20 6L9 17l-5-5",
-  // Three dots; draw with a heavy stroke so the round caps read as dots.
-  dotsVertical: "M12 5h.01M12 12h.01M12 19h.01",
-  trash: "M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6",
-};
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -219,13 +188,6 @@ function greeting(now = new Date()) {
   return "Good evening";
 }
 
-function initials(name) {
-  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-  return `${parts[0][0]}${last}`.toUpperCase();
-}
-
 /** "class" → "classes", "match" → "matches", "account" → "accounts". */
 function pluralWord(word) {
   return /(s|x|ch|sh)$/.test(word) ? `${word}es` : `${word}s`;
@@ -233,26 +195,6 @@ function pluralWord(word) {
 
 function plural(count, word) {
   return `${count} ${count === 1 ? word : pluralWord(word)}`;
-}
-
-function Icon({ name, className = "h-4 w-4", strokeWidth = 1.8 }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d={ICONS[name]} />
-    </svg>
-  );
-}
-
-function Avatar({ name, size = "md" }) {
-  const sizes = { sm: "h-8 w-8 text-[11px]", md: "h-9 w-9 text-xs" };
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-psu-maroon/[0.08] font-semibold text-text-brand ring-1 ring-psu-maroon/15 ${sizes[size]}`}
-    >
-      {initials(name)}
-    </span>
-  );
 }
 
 const PILL_TONES = {
@@ -749,159 +691,6 @@ const isGuestAccount = isGuestUser;
 
 const ROW_ACTION =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors disabled:cursor-not-allowed disabled:opacity-60";
-
-const MENU_GAP = 6;
-const MENU_MARGIN = 8;
-const MENU_ITEM_TONES = {
-  default: "text-text-main hover:bg-bg-alt focus-visible:bg-bg-alt",
-  danger: "text-text-rose hover:bg-psu-red/[0.06] focus-visible:bg-psu-red/[0.06]",
-  success: "text-text-emerald hover:bg-emerald-600/[0.07] focus-visible:bg-emerald-600/[0.07]",
-};
-
-/**
- * The "⋮" button for one table row and its menu. The menu is rendered in a
- * portal with fixed positioning, so the table's scroll wrapper and the card's
- * rounded clipping never cut it off. It opens below the button (above when
- * there is no room) and closes on a choice, Escape, Tab, an outside click,
- * scrolling or resizing. Arrow keys, Home and End move between items.
- *
- * items: [{ id, label, hint?, icon, onSelect, disabled?, tone?, separatorBefore? }]
- */
-function RowActionsMenu({ label, items, busy = false }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [position, setPosition] = useState(null);
-  const triggerRef = useRef(null);
-  const menuRef = useRef(null);
-  const menuId = useId();
-
-  const close = useCallback((returnFocus) => {
-    setIsOpen(false);
-    setPosition(null);
-    if (returnFocus) triggerRef.current?.focus();
-  }, []);
-
-  // Measure and place the menu before it is painted.
-  useLayoutEffect(() => {
-    if (!isOpen || !triggerRef.current || !menuRef.current) return;
-    const anchor = triggerRef.current.getBoundingClientRect();
-    const { offsetWidth: width, offsetHeight: height } = menuRef.current;
-    const roomBelow = window.innerHeight - anchor.bottom - MENU_GAP - MENU_MARGIN;
-    const above = height > roomBelow && anchor.top - MENU_GAP - MENU_MARGIN >= height;
-    setPosition({
-      top: above ? anchor.top - MENU_GAP - height : anchor.bottom + MENU_GAP,
-      left: Math.max(MENU_MARGIN, Math.min(anchor.right - width, window.innerWidth - width - MENU_MARGIN)),
-      above,
-    });
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || !position) return;
-    menuRef.current?.querySelector('[role="menuitem"]:not(:disabled)')?.focus({ preventScroll: true });
-  }, [isOpen, position]);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const onPointerDown = (event) => {
-      if (menuRef.current?.contains(event.target) || triggerRef.current?.contains(event.target)) return;
-      close(false);
-    };
-    // A fixed menu would drift away from its row, so moving the page closes it.
-    const onViewportChange = () => close(false);
-    document.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("resize", onViewportChange);
-    window.addEventListener("scroll", onViewportChange, true);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("scroll", onViewportChange, true);
-    };
-  }, [isOpen, close]);
-
-  const onMenuKeyDown = (event) => {
-    const options = [...menuRef.current.querySelectorAll('[role="menuitem"]:not(:disabled)')];
-    const index = options.indexOf(document.activeElement);
-    const focusAt = (i) => options[(i + options.length) % options.length]?.focus();
-    if (event.key === "ArrowDown") focusAt(index + 1);
-    else if (event.key === "ArrowUp") focusAt(index - 1);
-    else if (event.key === "Home") focusAt(0);
-    else if (event.key === "End") focusAt(options.length - 1);
-    else if (event.key === "Escape" || event.key === "Tab") close(true);
-    else return;
-    event.preventDefault();
-  };
-
-  const choose = (item) => {
-    // Focus goes back to the ⋮ button first, so a dialog the action opens
-    // returns focus there when it closes.
-    close(true);
-    item.onSelect();
-  };
-
-  return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-controls={isOpen ? menuId : undefined}
-        aria-busy={busy || undefined}
-        title="More actions"
-        onClick={() => (isOpen ? close(false) : setIsOpen(true))}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown" && !isOpen) {
-            event.preventDefault();
-            setIsOpen(true);
-          }
-        }}
-        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors ${
-          isOpen
-            ? "border-psu-maroon/40 bg-psu-cream text-text-brand"
-            : "border-border-subtle bg-bg-panel text-text-muted hover:border-border-strong hover:bg-bg-alt hover:text-text-main"
-        }`}
-      >
-        {busy ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="dotsVertical" className="h-4 w-4" strokeWidth={3} />}
-      </button>
-      {isOpen &&
-        createPortal(
-          <div
-            ref={menuRef}
-            id={menuId}
-            role="menu"
-            aria-label={label}
-            onKeyDown={onMenuKeyDown}
-            style={{ top: position?.top ?? 0, left: position?.left ?? 0, visibility: position ? "visible" : "hidden" }}
-            className={`fixed z-50 w-64 rounded-xl border border-border-subtle bg-bg-panel p-1.5 shadow-[0_16px_40px_-12px_var(--shadow-popover)] animate-scale-in ${
-              position?.above ? "origin-bottom-right" : "origin-top-right"
-            }`}
-          >
-            {items.map((item) => (
-              <div key={item.id}>
-                {item.separatorBefore && <div role="separator" className="mx-1 my-1.5 h-px bg-border-subtle" />}
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={item.disabled}
-                  onClick={() => choose(item)}
-                  className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${
-                    MENU_ITEM_TONES[item.tone || "default"]
-                  }`}
-                >
-                  <Icon name={item.icon} className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">{item.label}</span>
-                    {item.hint && <span className="mt-0.5 block text-xs font-normal leading-snug text-text-muted">{item.hint}</span>}
-                  </span>
-                </button>
-              </div>
-            ))}
-          </div>,
-          document.body,
-        )}
-    </>
-  );
-}
 
 /** The menu items for one account row; guests expire on their own, so they can only be suspended or reactivated. */
 function accountMenuItems(user, onAction, busy) {
@@ -1597,34 +1386,28 @@ function AuditFilters({ audit, actionTypes }) {
           </div>
         </FilterField>
         <FilterField id="audit-filter-event" label="Event" className="lg:col-span-3">
-          <select id="audit-filter-event" value={filters.action_type} onChange={(e) => setFilter("action_type", e.target.value)} className="input-field">
-            <option value="">All events</option>
-            {actionTypes.map((type) => (
-              <option key={type} value={type}>
-                {humanize(type)}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            id="audit-filter-event"
+            value={filters.action_type}
+            onChange={(value) => setFilter("action_type", value)}
+            options={[{ value: "", label: "All events" }, ...actionTypes.map((value) => ({ value, label: humanize(value) }))]}
+          />
         </FilterField>
         <FilterField id="audit-filter-outcome" label="Outcome" className="lg:col-span-2">
-          <select id="audit-filter-outcome" value={filters.outcome} onChange={(e) => setFilter("outcome", e.target.value)} className="input-field">
-            <option value="">All outcomes</option>
-            {AUDIT_OUTCOMES.map((value) => (
-              <option key={value} value={value}>
-                {humanize(value)}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            id="audit-filter-outcome"
+            value={filters.outcome}
+            onChange={(value) => setFilter("outcome", value)}
+            options={[{ value: "", label: "All outcomes" }, ...AUDIT_OUTCOMES.map((value) => ({ value, label: humanize(value) }))]}
+          />
         </FilterField>
         <FilterField id="audit-filter-role" label="Role" className="lg:col-span-3">
-          <select id="audit-filter-role" value={filters.actor_role} onChange={(e) => setFilter("actor_role", e.target.value)} className="input-field">
-            <option value="">All roles</option>
-            {AUDIT_ROLES.map((value) => (
-              <option key={value} value={value}>
-                {humanize(value)}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            id="audit-filter-role"
+            value={filters.actor_role}
+            onChange={(value) => setFilter("actor_role", value)}
+            options={[{ value: "", label: "All roles" }, ...AUDIT_ROLES.map((value) => ({ value, label: humanize(value) }))]}
+          />
         </FilterField>
         <FilterField id="audit-filter-from" label="From" className="lg:col-span-3">
           <input
@@ -1674,13 +1457,15 @@ function Pagination({ page, pageSize, total, onPage, onPageSize, isLoading }) {
         <label htmlFor="audit-page-size" className="text-sm text-text-muted">
           Rows per page
         </label>
-        <select id="audit-page-size" value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))} className="input-field w-auto py-1.5">
-          {AUDIT_PAGE_SIZES.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
+        <div className="w-20">
+          <CustomSelect
+            id="audit-page-size"
+            value={pageSize}
+            onChange={(value) => onPageSize(Number(value))}
+            options={AUDIT_PAGE_SIZES.map((size) => ({ value: size, label: String(size) }))}
+            className="px-3 py-1.5 text-sm"
+          />
+        </div>
         <div className="flex items-center gap-1">
           <button type="button" className="btn-secondary btn-sm" onClick={() => onPage(page - 1)} disabled={isLoading || page <= 1} aria-label="Previous page">
             <Icon name="chevronLeft" className="h-4 w-4" />

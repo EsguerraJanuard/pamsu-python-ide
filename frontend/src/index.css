@@ -148,10 +148,17 @@ body {
   background: var(--selection);
 }
 
-/* Visible keyboard focus everywhere, without changing mouse interaction */
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
+/*
+ * Visible keyboard focus everywhere, without changing mouse interaction.
+ * In the base layer so a control that draws its own focus ring
+ * (`focus:outline-none focus:ring-…`, e.g. .input-field) replaces this
+ * outline instead of showing both.
+ */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -195,14 +202,18 @@ body {
 
 /* ── Shared component classes ───────────────────────────────────────────── */
 @layer components {
+  /*
+   * Buttons share one motion: a soft lift on hover and a slight press on
+   * click. Disabled buttons keep their resting look.
+   */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-psu-maroon-dark disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-psu-maroon px-4 py-2 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 ease-out hover:bg-psu-maroon-dark hover:shadow active:scale-[0.98] active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-psu-maroon disabled:hover:shadow-sm disabled:active:scale-100;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border-strong bg-bg-panel px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:bg-bg-alt disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border-strong bg-bg-panel px-4 py-2 text-sm font-semibold text-text-main shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out hover:border-text-muted/50 hover:bg-bg-alt hover:shadow active:scale-[0.98] active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-border-strong disabled:hover:bg-bg-panel disabled:hover:shadow-sm disabled:active:scale-100;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-psu-red px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#912018] disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-psu-red px-4 py-2 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 ease-out hover:bg-[#912018] hover:shadow active:scale-[0.98] active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-psu-red disabled:hover:shadow-sm disabled:active:scale-100;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-bg-alt hover:text-text-main disabled:cursor-not-allowed disabled:opacity-60;
@@ -227,6 +238,31 @@ body {
   .input-password::-ms-reveal,
   .input-password::-ms-clear {
     display: none;
+  }
+  /*
+   * Data tables (class roster, audit logs, gradebook). Put the table straight
+   * in a `.card overflow-clip` (not an overflow-x-auto wrapper) so the header
+   * row stays visible while the page scrolls; hide minor columns on narrow
+   * screens instead of scrolling sideways.
+   */
+  .data-table {
+    @apply w-full text-left text-sm;
+  }
+  .data-table thead th {
+    @apply sticky top-0 z-10 border-b border-border-subtle bg-bg-alt px-4 py-3 text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap text-text-muted;
+  }
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-bg-alt/50;
+  }
+  .data-table tbody tr + tr {
+    @apply border-t border-border-subtle;
+  }
+  .data-table td {
+    @apply px-4 py-3 align-middle;
+  }
+  /* Small bordered button for a table row's main action (icon + label). */
+  .btn-row {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border-subtle bg-bg-panel px-2.5 py-1.5 text-xs font-semibold text-text-main transition-colors hover:border-psu-maroon/40 hover:bg-selected hover:text-text-brand disabled:cursor-not-allowed disabled:opacity-60;
   }
   .badge {
     @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold;
