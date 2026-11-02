@@ -88,7 +88,8 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
               ["Pending (no account)", "clock", result.queued ?? 0, "attention"],
               ["Invalid", "x", result.invalid ?? 0, "danger"],
               ...(result.already_enrolled > 0 ? [["Already in class", "students", result.already_enrolled, "neutral"]] : []),
-              ...(result.ineligible > 0 ? [["Not a student account", "ban", result.ineligible, "attention"]] : []),
+              // Short label so it fits two lines in the narrow dialog; the alert below explains it.
+              ...(result.ineligible > 0 ? [["Not a student", "ban", result.ineligible, "attention"]] : []),
               ...(result.suspended > 0 ? [["Suspended account", "ban", result.suspended, "attention"]] : []),
             ].map(([label, icon, value, tone]) => (
               // A zero count stays neutral, so only the outcomes that happened are tinted.

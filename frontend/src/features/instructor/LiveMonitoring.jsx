@@ -224,6 +224,9 @@ export default function LiveMonitoring() {
                   })}
                 </dl>
                 <p className="mt-3 text-xs text-text-muted">Last activity {timeAgo(session.last_activity_at)}</p>
+                {taskTypes[session.task_id] === "homework" && (
+                  <p className="mt-1 text-xs text-text-muted">Homework: tab switches are not colored.</p>
+                )}
               </li>
             );
           })}

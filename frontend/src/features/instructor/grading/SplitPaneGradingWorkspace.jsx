@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { DiffEditor } from "@monaco-editor/react";
 
@@ -192,6 +192,24 @@ function SubmissionReview({ submission, task, onGraded }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // The code diff's two text models. @monaco-editor/react disposes them before
+  // the diff editor, which Monaco 0.55 reports as "TextModel got disposed
+  // before DiffEditorWidget model got reset". So the DiffEditor keeps them
+  // (keepCurrent*Model) and they are disposed here, once the editor is gone.
+  const diffModelsRef = useRef(null);
+  useEffect(
+    () => () => {
+      const models = diffModelsRef.current;
+      diffModelsRef.current = null;
+      if (!models) return;
+      setTimeout(() => {
+        models.original?.dispose();
+        models.modified?.dispose();
+      }, 0);
+    },
+    [],
+  );
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -526,6 +544,11 @@ function SubmissionReview({ submission, task, onGraded }) {
                 modified={sourceCode}
                 loading={<LoadingState label="Loading code…" />}
                 options={{ readOnly: true, minimap: { enabled: false }, scrollBeyondLastLine: false, renderSideBySide: true, wordWrap: "on" }}
+                keepCurrentOriginalModel
+                keepCurrentModifiedModel
+                onMount={(editor) => {
+                  diffModelsRef.current = editor.getModel();
+                }}
               />
             </div>
             {execution && (

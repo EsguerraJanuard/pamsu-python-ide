@@ -3114,3 +3114,48 @@ Student and instructor sessions on the scratch backend. The server logged every 
 ### What a push does
 - **Vercel (at once):** the paste, copy-out and drop fixes in the student workspace, and the new thresholds and wording on the Grading Bench and Live Monitoring.
 - **Render:** nothing; no backend change and **no migration**. Nothing waits on Errol.
+
+## Follow-up: indicator checks, Monaco diff error, last UI checks (2026-11-02)
+
+### Overall progress
+Continues the section above. Closes pending items 1, 4 and 6 from the list there.
+1. **Threshold browser checks: done** (scratch SQLite backend).
+   - **Grading Bench, light theme:** Ana's 4 tab switches show gold "Above typical", 25 pointer exits red "Well above typical", 0 blocked pastes no color.
+   - **Live Monitoring, laboratory:** Juan's 12 tab switches red and 2 blocked pastes gold; Pedro's 5 blocked pastes red; Ana's 4 tab switches gold; runs never colored.
+   - **Homework (the activity switched to `homework` in the scratch DB):**
+     - Live Monitoring: Juan's 12 and Ana's 4 tab switches have no color; blocked pastes keep theirs.
+     - Grading Bench: Juan's 12 tab switches and 9 pointer exits have no color, blocked pastes stay gold, and the homework note shows.
+   - **New:** Live Monitoring cards for homework sessions now say "Homework: tab switches are not colored.", so the missing color is explained there as on the bench.
+2. **Monaco console error on the Grading Bench: fixed.**
+   - Cause: `@monaco-editor/react` disposes the diff's two text models before the diff editor. Monaco 0.55 then throws "TextModel got disposed before DiffEditorWidget model got reset" on every student switch and when leaving the page.
+   - Fix: the `DiffEditor` keeps its models (`keepCurrentOriginalModel`, `keepCurrentModifiedModel`). The review component disposes them one tick after unmount, once the editor is gone.
+   - **Browser:**
+     - Before: 2 uncaught errors for 2 switches.
+     - After: 0 errors over 4 switches and when leaving the page. Live models stayed at 2 while switching and 0 after leaving, so nothing leaks.
+   - It is the only `DiffEditor` in the app.
+3. **Earlier-commit screens:**
+   - **Bulk-enroll result tiles:** checked with four local test emails: Pending and Not a student gold, Already in class and zeros neutral. The label "Not a student account" became "Not a student": it wrapped to three lines in the dialog and pushed its number below the others. The alert under the tiles still explains it.
+   - **Register code boxes:** not reachable. `/register` redirects to `/login` (`App.jsx`; accounts are created by MIS), so `Register.jsx` is unused.
+   - **Student pages under the moved `PageShell` padding:** the dashboard keeps 24 px at the top and bottom; layout unchanged.
+
+### Files modified (tracked)
+- `frontend/src/features/instructor/grading/SplitPaneGradingWorkspace.jsx`: `DiffEditor` keeps its models; the review component disposes them after unmount.
+- `frontend/src/features/instructor/LiveMonitoring.jsx`: homework hint on session cards.
+- `frontend/src/components/modals/BulkEnrollModal.jsx`: shorter "Not a student" label.
+- `audit-status.md`: this section.
+
+### Files created
+- None.
+
+### Pending tasks / next steps (still open)
+1. **Real keyboard clipboard check in a real Chrome or Edge window** (the preview pane cannot send native Ctrl+C / Ctrl+V; unchanged from item 2 above):
+   - Ctrl+C then Ctrl+V in the editor: pasted, not counted.
+   - Copy text in another app, then Ctrl+V: blocked, counted.
+   - After Ctrl+C in the editor, paste into Notepad: nothing pastes.
+2. **Calibrate the thresholds with pilot data** (item 3 above). Errol exports per-session counts from a backup copy; use only sessions recorded after `fc5aecb` for blocked pastes.
+3. **Coding sessions never end** (item 5 above): counts add up across visits. Future work.
+4. **`Register.jsx`** is unrouted. Delete it or keep it on purpose (owner decision).
+
+### What a push does
+- **Vercel (at once):** the Monaco fix on the Grading Bench, the homework hint on Live Monitoring, and the bulk-enroll label.
+- **Render:** nothing; no backend change and **no migration**. Nothing waits on Errol.
