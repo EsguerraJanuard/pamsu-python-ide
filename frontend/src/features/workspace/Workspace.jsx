@@ -21,6 +21,17 @@ import { defineEditorThemes, editorThemeFor } from "./editorThemes";
 
 const BLANK_TEMPLATE = "# Write your solution below.\n";
 
+/*
+ * Copy and cut inside the editor keep the code in the workspace clipboard
+ * (React state) and put only this marker on the system clipboard: a random
+ * token under a private type, never readable text. A later Ctrl+V that carries
+ * the current token is the student's own copy, pasted from the workspace
+ * clipboard and not counted. Any paste that carries outside text is blocked
+ * and counted as a blocked paste.
+ */
+const WORKSPACE_CLIPBOARD_TYPE = "application/x-pamsu-workspace-clipboard";
+const newClipboardToken = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
 const WORKSPACE_VIEWS = [
   { id: "problem", label: "Problem", icon: "M2 3h4a2 2 0 012 2v9a2 2 0 00-2-2H2V3zM14 3h-4a2 2 0 00-2 2v9a2 2 0 012-2h4V3z" },
   { id: "session", label: "Session", icon: "M5 5L2 8l3 3M11 5l3 3-3 3M9 3l-2 10" },
@@ -127,7 +138,11 @@ function ActivityWorkspace({ activityId, userId }) {
   const [executionStatus, setExecutionStatus] = useState("idle");
   const [notice, setNotice] = useState(null);
 
-  const [internalClipboard, setInternalClipboard] = useState("");
+  // Workspace clipboard. A ref, not state: Ctrl+V right after Ctrl+C must see
+  // the new text even before React re-renders.
+  const internalClipboardRef = useRef("");
+  // Marker of the latest copy/cut made in the editor (see WORKSPACE_CLIPBOARD_TYPE).
+  const clipboardTokenRef = useRef(null);
   // Opens (or resumes) this activity's coding session and keeps its counts in
   // sync, so Live Monitoring and the grading bench can show them.
   const tracking = useBehaviorTracking({ taskId: activityId });
@@ -225,17 +240,47 @@ function ActivityWorkspace({ activityId, userId }) {
     return { editor, selection, text: editor.getModel().getValueInRange(selection) };
   };
 
-  const copySelection = () => {
+  /**
+   * Replaces the system clipboard with a fresh workspace marker (no text), so
+   * nothing readable leaves the workspace and the next Ctrl+V is recognised.
+   * Ctrl+C / Ctrl+X pass their event's clipboardData; the toolbar buttons have
+   * none, so a copy command is started to get one.
+   */
+  const markSystemClipboard = (clipboardData) => {
+    const token = newClipboardToken();
+    clipboardTokenRef.current = token;
+    if (clipboardData) {
+      clipboardData.setData(WORKSPACE_CLIPBOARD_TYPE, token);
+      return;
+    }
+    const writeMarker = (event) => {
+      event.clipboardData?.setData(WORKSPACE_CLIPBOARD_TYPE, token);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    document.addEventListener("copy", writeMarker, true);
+    try {
+      document.execCommand("copy");
+    } catch {
+      // Best effort: without it, a later Ctrl+V of older outside text is still blocked and counted.
+    } finally {
+      document.removeEventListener("copy", writeMarker, true);
+    }
+  };
+
+  const copySelection = (clipboardData = null) => {
     const { text } = getSelectionText();
     if (!text) return showNotice("Select code before copying.");
-    setInternalClipboard(text);
+    internalClipboardRef.current = text;
+    markSystemClipboard(clipboardData);
     showNotice("Copied to the workspace clipboard.");
   };
 
-  const cutSelection = () => {
+  const cutSelection = (clipboardData = null) => {
     const { editor, selection, text } = getSelectionText();
     if (!text) return showNotice("Select code before cutting.");
-    setInternalClipboard(text);
+    internalClipboardRef.current = text;
+    markSystemClipboard(clipboardData);
     editor.executeEdits("internal-cut", [{ range: selection, text: "", forceMoveMarkers: true }]);
     editor.focus();
     showNotice("Moved to the workspace clipboard.");
@@ -245,15 +290,50 @@ function ActivityWorkspace({ activityId, userId }) {
     if (activity?.pasteDisabled) return showNotice("Pasting is turned off for this activity.");
     const editor = editorRef.current;
     if (!editor) return;
-    if (!internalClipboard) return showNotice("The workspace clipboard is empty.");
-    editor.executeEdits("internal-paste", [{ range: editor.getSelection(), text: internalClipboard, forceMoveMarkers: true }]);
+    const text = internalClipboardRef.current;
+    if (!text) return showNotice("The workspace clipboard is empty.");
+    editor.executeEdits("internal-paste", [{ range: editor.getSelection(), text, forceMoveMarkers: true }]);
     editor.focus();
   };
 
-  const recordBlockedPaste = () => {
+  const recordBlockedPaste = (message = "Pasting from outside the workspace is blocked. Copying and pasting inside the editor still works.") => {
     tracking.recordBlockedPaste();
     setLastBlockedPasteIso(new Date().toISOString());
-    showNotice("Pasting from outside the workspace is blocked. Use the workspace Copy / Paste buttons.");
+    showNotice(message);
+  };
+
+  /**
+   * Dropping text into the editor would bypass the paste block, so drops are
+   * cancelled, and a drop that carries text counts as a blocked paste. Moving a
+   * selection by dragging inside the editor is Monaco's own mouse handling and
+   * is not affected.
+   */
+  const handleEditorDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer?.getData("text/plain")) {
+      recordBlockedPaste("Dropping text from outside the workspace is blocked.");
+    }
+  };
+
+  /**
+   * Every browser paste into the editor lands here. The student's own copy
+   * (current marker), or a paste with no text at all, goes through the
+   * workspace clipboard and is not counted. Outside text is blocked and counted.
+   */
+  const handleEditorPaste = (event) => {
+    // Monaco's find box: a search term never enters the code, so let it paste.
+    if (event.target?.closest?.(".find-widget")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const data = event.clipboardData;
+    const isOwnCopy = Boolean(clipboardTokenRef.current) && data?.getData(WORKSPACE_CLIPBOARD_TYPE) === clipboardTokenRef.current;
+    const outsideText = data?.getData("text/plain") || "";
+    if (isOwnCopy || !outsideText) {
+      pasteInternal();
+      return;
+    }
+    recordBlockedPaste();
   };
 
   // ── Execution ────────────────────────────────────────────────────────
@@ -723,10 +803,10 @@ function ActivityWorkspace({ activityId, userId }) {
                   <span className="sr-only sm:not-sr-only">Indicators</span>
                 </button>
                 <span className="mx-1 h-4 w-px bg-border-subtle xl:hidden" aria-hidden="true" />
-                <button type="button" onClick={copySelection} className="btn-ghost btn-sm" title="Copy selection to workspace clipboard">
+                <button type="button" onClick={() => copySelection()} className="btn-ghost btn-sm" title="Copy selection to workspace clipboard">
                   Copy
                 </button>
-                <button type="button" onClick={cutSelection} className="btn-ghost btn-sm" title="Cut selection to workspace clipboard">
+                <button type="button" onClick={() => cutSelection()} className="btn-ghost btn-sm" title="Cut selection to workspace clipboard">
                   Cut
                 </button>
                 <button
@@ -748,18 +828,20 @@ function ActivityWorkspace({ activityId, userId }) {
             <div className="relative min-h-0 flex-1">
               <div
                 className="h-full w-full"
-                onPasteCapture={(e) => {
+                onPasteCapture={handleEditorPaste}
+                onDropCapture={handleEditorDrop}
+                onCopyCapture={(e) => {
+                  // stopPropagation keeps Monaco's own copy handler from writing the
+                  // code as text to the system clipboard (no copy-out). Also inside
+                  // the find box: Ctrl+F fills it with selected code.
                   e.preventDefault();
                   e.stopPropagation();
-                  recordBlockedPaste();
-                }}
-                onCopyCapture={(e) => {
-                  e.preventDefault();
-                  copySelection();
+                  copySelection(e.clipboardData);
                 }}
                 onCutCapture={(e) => {
                   e.preventDefault();
-                  cutSelection();
+                  e.stopPropagation();
+                  cutSelection(e.clipboardData);
                 }}
               >
                 <MonacoEditor
@@ -792,6 +874,8 @@ function ActivityWorkspace({ activityId, userId }) {
                     hover: { enabled: false },
                     parameterHints: { enabled: false },
                     contextmenu: false,
+                    // Outside text must not be dropped in (see handleEditorDrop).
+                    dropIntoEditor: { enabled: false },
                     renderWhitespace: "selection",
                   }}
                 />

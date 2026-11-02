@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import Icon from "./Icon";
 
 const TONES = {
-  neutral: { tile: "border-border-subtle bg-bg-alt/60", chip: "bg-bg-panel text-text-muted ring-1 ring-inset ring-border-subtle" },
-  attention: { tile: "border-psu-gold/40 bg-psu-gold/[0.07]", chip: "bg-psu-gold/20 text-text-amber" },
-  success: { tile: "border-emerald-600/25 bg-emerald-600/[0.06]", chip: "bg-emerald-600/15 text-text-emerald" },
-  danger: { tile: "border-psu-red/25 bg-psu-red/[0.05]", chip: "bg-psu-red/15 text-text-rose" },
+  neutral: { tile: "border-border-subtle bg-bg-alt/60", chip: "bg-bg-panel text-text-muted ring-1 ring-inset ring-border-subtle", status: "text-text-muted", dot: "bg-text-muted" },
+  attention: { tile: "border-psu-gold/40 bg-psu-gold/[0.07]", chip: "bg-psu-gold/20 text-text-amber", status: "text-text-amber", dot: "bg-psu-gold" },
+  success: { tile: "border-emerald-600/25 bg-emerald-600/[0.06]", chip: "bg-emerald-600/15 text-text-emerald", status: "text-text-emerald", dot: "bg-emerald-600" },
+  danger: { tile: "border-psu-red/30 bg-psu-red/[0.06]", chip: "bg-psu-red/15 text-text-rose", status: "text-text-rose", dot: "bg-psu-red" },
 };
 
 const SIZES = {
@@ -20,6 +20,8 @@ const SIZES = {
  *
  * - tone: neutral | attention (gold) | success | danger. A soft tint only; the
  *   number and label always carry the meaning.
+ * - status: short words for the tone ("Above typical"), shown under the number
+ *   with a dot in the tone's color, so the state never depends on color alone.
  * - meter: 0–100, draws a thin bar under the number.
  * - to: makes the whole tile a link (the label is the link text).
  * - value null/undefined shows "—".
@@ -27,7 +29,7 @@ const SIZES = {
  * Narrow tiles (phones, packed grids) let the label wrap to two lines and hide
  * the icon; from 8.25rem of content the label fits on one line beside it.
  */
-export default function StatTile({ label, icon, value, unit, caption, meter, tone = "neutral", size = "md", to, className = "" }) {
+export default function StatTile({ label, icon, value, unit, caption, status, meter, tone = "neutral", size = "md", to, className = "" }) {
   const isEmpty = value === null || value === undefined;
   const palette = TONES[tone] || TONES.neutral;
   const scale = SIZES[size] || SIZES.md;
@@ -58,6 +60,12 @@ export default function StatTile({ label, icon, value, unit, caption, meter, ton
         {isEmpty ? "—" : value}
         {!isEmpty && unit && <span className={`ml-0.5 font-medium text-text-muted ${scale.unit}`}>{unit}</span>}
       </dd>
+      {status && (
+        <dd className={`mt-2 flex items-center gap-1.5 text-[11px] font-semibold leading-snug ${palette.status}`}>
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${palette.dot}`} aria-hidden="true" />
+          {status}
+        </dd>
+      )}
       {typeof meter === "number" && (
         <dd className="mt-3 h-1.5 overflow-hidden rounded-full bg-border-subtle" aria-hidden="true">
           <span className="block h-full rounded-full bg-psu-maroon" style={{ width: `${Math.min(100, Math.max(0, meter))}%` }} />

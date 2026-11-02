@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PageShell from "../../components/layout/PageShell";
 import CustomSelect from "../../components/ui/CustomSelect";
 import StatTile from "../../components/ui/StatTile";
+import { indicatorLevel } from "../../utils/reviewIndicators";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../components/ui/StateViews";
 import useApiQuery from "../../hooks/useApiQuery";
 import useUrlFilters from "../../hooks/useUrlFilters";
@@ -101,6 +102,8 @@ export default function LiveMonitoring() {
   }, [fetchSessions]);
 
   const selectedTask = scope === "all" ? null : tasks.find((t) => String(t.task_id) === scope);
+  // Activity type per task_id, so homework sessions skip the tab-switch colors.
+  const taskTypes = useMemo(() => Object.fromEntries(tasks.map((t) => [t.task_id, t.activity_type])), [tasks]);
   const selectedClassId = selectedTask?.class_id ?? null;
 
   useEffect(() => {
@@ -208,19 +211,17 @@ export default function LiveMonitoring() {
                 </div>
                 <dl className="grid grid-cols-3 gap-2">
                   {[
-                    ["Tab switches", "window", session.tab_switch_count, true],
-                    ["Blocked pastes", "clipboardX", session.blocked_paste_count, true],
-                    ["Runs", "play", session.run_attempt_count, false],
-                  ].map(([label, icon, value, flagWhenAboveZero]) => (
-                    <StatTile
-                      key={label}
-                      size="sm"
-                      label={label}
-                      icon={icon}
-                      value={value ?? 0}
-                      tone={flagWhenAboveZero && value > 0 ? "attention" : "neutral"}
-                    />
-                  ))}
+                    ["Tab switches", "window", "tab_switch_count"],
+                    ["Blocked pastes", "clipboardX", "blocked_paste_count"],
+                    ["Runs", "play", "run_attempt_count"],
+                  ].map(([label, icon, field]) => {
+                    const count = session[field] ?? 0;
+                    // Same thresholds as the Grading Bench; runs are never colored.
+                    const level = indicatorLevel(field, count, taskTypes[session.task_id]);
+                    return (
+                      <StatTile key={label} size="sm" label={label} icon={icon} value={count} tone={level.tone} status={level.label} />
+                    );
+                  })}
                 </dl>
                 <p className="mt-3 text-xs text-text-muted">Last activity {timeAgo(session.last_activity_at)}</p>
               </li>

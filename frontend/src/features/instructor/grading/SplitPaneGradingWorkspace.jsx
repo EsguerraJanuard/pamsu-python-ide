@@ -11,6 +11,7 @@ import StatTile from "../../../components/ui/StatTile";
 import Switch from "../../../components/ui/Switch";
 import api, { API_BASE_URL, getErrorMessage } from "../../../services/api";
 import { ruleLabel } from "../../../utils/astRules";
+import { INDICATOR_THRESHOLDS, indicatorLevel } from "../../../utils/reviewIndicators";
 import { classLabel, formatDateTime, humanize } from "../../../utils/format";
 import { useTheme } from "../../theme/ThemeContext";
 import { defineEditorThemes, editorThemeFor } from "../../workspace/editorThemes";
@@ -30,12 +31,6 @@ const GRADE_FIELD =
 
 const FEEDBACK_MAX_LENGTH = 5000;
 
-/*
- * Review indicators use the shared StatTile. Counts above zero get the gold
- * "attention" tint so they stand out. Similarity stays neutral: the score has
- * no cut-off, and honest work on a short task can match 100%
- * (backend/algorithm_qa_results.md).
- */
 /** Student-list filters on the bench: [value, label]. */
 const STUDENT_FILTERS = [
   ["all", "All"],
@@ -44,6 +39,13 @@ const STUDENT_FILTERS = [
   ["none", "Not submitted"],
 ];
 
+/*
+ * Review indicators use the shared StatTile. Session counts are colored by the
+ * shared thresholds in utils/reviewIndicators.js (also used by Live
+ * Monitoring). Similarity stays neutral: the score has no cut-off, and honest
+ * work on a short task can match 100% (backend/algorithm_qa_results.md).
+ * [label, icon, coding-session field, caption]
+ */
 const SESSION_INDICATORS = [
   ["Tab switches", "window", "tab_switch_count", "Times the student left the tab"],
   ["Blocked pastes", "clipboardX", "blocked_paste_count", "Paste attempts that were blocked"],
@@ -246,6 +248,7 @@ function SubmissionReview({ submission, task, onGraded }) {
   const checkedFindings = analysis && !analysis.syntax_error ? findings.filter((finding) => typeof finding.passed === "boolean") : [];
   const foundCount = checkedFindings.filter((finding) => finding.passed).length;
   const hasSimilarity = typeof evaluation?.jaccard_score === "number";
+  const isHomework = task?.activity_type === "homework";
   const savedGrade = evaluation?.instructor_grade;
   const maxScore = savedGrade?.max_score || MAX_SCORE;
   const gradeState = !savedGrade
@@ -295,20 +298,52 @@ function SubmissionReview({ submission, task, onGraded }) {
             caption={hasSimilarity ? "Highest match with a classmate" : "Not computed yet"}
           />
           {SESSION_INDICATORS.map(([label, icon, field, caption]) => {
-            const count = session?.[field];
+            const count = session ? (session[field] ?? 0) : null;
+            const level = indicatorLevel(field, count, task?.activity_type);
             return (
               <StatTile
                 key={label}
                 label={label}
                 icon={icon}
-                value={session ? (count ?? 0) : null}
+                value={count}
                 caption={session ? caption : "No session record"}
-                tone={session && count > 0 ? "attention" : "neutral"}
+                tone={level.tone}
+                status={level.label}
               />
             );
           })}
         </dl>
         {!session && <p className="mt-3 text-xs text-text-muted">No coding-session record is linked to this submission.</p>}
+        {session && isHomework && (
+          <p className="mt-3 text-xs text-text-muted">
+            This is a homework activity, done outside class, so tab switches and pointer exits are shown without color.
+          </p>
+        )}
+        <details className="group mt-3 text-xs text-text-muted">
+          <summary className="inline-flex cursor-pointer items-center gap-1 rounded font-medium hover:text-text-main">
+            <Icon name="chevronRight" className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
+            How the colors are set
+          </summary>
+          <div className="mt-2 rounded-lg border border-border-subtle bg-bg-alt/50 px-3 py-2.5 leading-relaxed">
+            <p className="mb-1.5">
+              <span className="font-semibold text-text-amber">Above typical</span> (gold) and{" "}
+              <span className="font-semibold text-text-rose">Well above typical</span> (red) start at these counts:
+            </p>
+            <ul className="space-y-0.5">
+              {SESSION_INDICATORS.map(([label, , field]) => {
+                const rule = INDICATOR_THRESHOLDS[field];
+                return (
+                  <li key={field}>
+                    {label}: <span className="tabular-nums text-text-main">{rule.above}</span> and{" "}
+                    <span className="tabular-nums text-text-main">{rule.wellAbove}</span>
+                    {!rule.coloredForHomework && " (not colored for homework)"}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-1.5">Similarity is never colored: honest work on a short task can match closely.</p>
+          </div>
+        </details>
 
         <div className="mt-6 border-t border-border-subtle pt-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

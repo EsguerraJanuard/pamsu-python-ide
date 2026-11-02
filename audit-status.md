@@ -3006,3 +3006,111 @@ Student and instructor sessions on the scratch backend. The server logged every 
 ### What a push does
 - **Vercel (at once):** the per-tab directory and search, the faster polling, and tabs following each other's sign-in. They work with the backend now on Render: the old server ignores `role`, `q` and `order`, and the page then filters the pages it loaded, as before.
 - **Render (Errol's deploy):** the server-side search, `order=newest`, and the shared SSL context for Judge0 calls. **No migration.**
+
+## Grading Bench UI, instructor-page polish, telemetry paste fix and indicator thresholds (2026-11-02)
+
+### Overall progress
+- **Committed and pushed earlier in this session:**
+  - `de6a600` **Grading Bench components.**
+    - Review indicators became stat tiles (large number, muted uppercase label, icon, caption).
+    - AST Found / Missing became icon pills in a grouped list with a "3 of 4 found" count.
+    - The grade card got a status chip, a left-border suggested-score note, a larger score field with "/ 100", a feedback character count and a footer holding the release switch and Save.
+    - Export grades (CSV) got a download icon, a spinner and hover/press states.
+  - `5d7f903` **Eight-item UI audit.**
+    1. The global focus outline moved to `@layer base`, so fields show one ring.
+    2. Shared hover/press motion on `.btn-primary`, `.btn-secondary` and `.btn-danger`.
+    3. Activity Editor on `PageShell` / `PageHeader` with shared inputs, keyboard focus on its toggles and a sticky save bar (labels unchanged for the demo script).
+    4. Shared `.data-table` styles with sticky headers, avatars and folded columns on phones; a roster row menu (copy email, remove); a shared "Showing 1–10 of 14" `Pagination`.
+    5. Shared `StatTile` on the bench, dashboard, Live Monitoring and bulk enroll.
+    6. Grading Bench class and activity counts ("N to review", progress bars) and student search and filter chips.
+    7. `CustomSelect` list rendered in a portal; used for the admin audit filters and the editor tab size (no native `<select>` left).
+    8. Activity Details code panels with Copy, and structure pills.
+    - `Icon`, `Avatar` and `RowActionsMenu` moved from `AdminDashboard.jsx` to `components/ui`.
+    - Page and modal vertical padding moved to an inner wrapper, so sticky headers sit flush.
+- **This commit: telemetry accuracy and indicator thresholds.**
+  1. **Paste fix (student workspace).**
+     - Before: the editor cancelled every browser paste and counted it as a blocked paste, including Ctrl+V of code the student had just copied with Ctrl+C inside the editor. Only the toolbar Paste button pasted internally.
+     - Now: Ctrl+C / Ctrl+X (and the toolbar Copy / Cut) keep the code in the workspace clipboard and put only a random marker (`application/x-pamsu-workspace-clipboard`) on the system clipboard.
+     - A Ctrl+V that carries the current marker, or no text at all, pastes from the workspace clipboard and is **not counted**.
+     - A paste that carries outside text is blocked and counted, as before. An outside paste with a fake marker is still counted.
+  2. **Copy-out leak fixed.** Monaco's own copy handler still ran after ours and wrote the selected code as `text/plain` and `text/html` to the system clipboard. Code could be copied out of the editor despite the policy. The copy/cut handlers now stop the event, so only the marker is written.
+  3. **Drop hole fixed.** Dragging outside text into the editor inserted it without counting anything (Monaco `dropIntoEditor` was on).
+     - Drop-into-editor is off, and drops are cancelled.
+     - A drop that carries text counts as a blocked paste, with its own notice.
+     - Moving a selection by dragging inside the editor still works (Monaco's own mouse handling).
+  4. **Indicator thresholds** in one place, `frontend/src/utils/reviewIndicators.js` (`INDICATOR_THRESHOLDS`, `indicatorLevel()`). The rationale is in the file's header comment.
+  5. **Three tiers with words:** no color (typical), gold "Above typical", red "Well above typical". `StatTile` gained a `status` line (dot plus text), so the state never depends on color alone.
+  6. **Homework:** tab switches and pointer exits are never colored (outside class, over several days, counts add up across visits). Blocked pastes keep their numbers. The bench shows a note on homework submissions.
+  7. **Same rules on the Grading Bench and Live Monitoring.** Live Monitoring reads each session's activity type from the instructor's activity list (no backend change). Runs are never colored.
+  8. **Transparency:** the bench indicator card has a "How the colors are set" panel listing the numbers. It is generated from `INDICATOR_THRESHOLDS`, so it cannot drift.
+
+### Thresholds (laboratory; a count at or above the number)
+| Indicator | Gold "Above typical" | Red "Well above typical" | Homework |
+|---|---|---|---|
+| Blocked pastes | 1 | 3 | Same numbers |
+| Tab switches | 4 | 10 | Never colored |
+| Pointer exits | 10 | 25 | Never colored |
+| Similarity | never colored | never colored | never colored |
+
+- **Rationale for the thesis panel** (full text in `reviewIndicators.js`):
+  - The numbers follow how each signal is measured. Pointer exits fire on ordinary mouse movement and with most mouse-driven tab switches, so they get the loosest bar. Tab switches need the page hidden. A blocked paste now means outside text only.
+  - About one tab switch per 30 minutes is ordinary in a 1–3 hour lab.
+  - Colors guide attention, not verdicts. If almost every student is colored, instructors stop reading the colors (alert fatigue).
+  - The numbers are starting values, to be checked against pilot data (see Pending tasks).
+- **Data recorded before this fix:** blocked-paste counts include habitual Ctrl+V of the student's own code. Treat them as inflated in any analysis or thesis figure.
+
+### Verified
+- Frontend lint and production build pass.
+- **Browser, scratch SQLite backend** (student Pedro, activity 1). The preview browser does not turn synthetic key presses into clipboard actions, so real `ClipboardEvent` / `DragEvent` objects were dispatched into the editor, and the toolbar Copy was a real click.
+
+| Case | Result |
+|---|---|
+| Outside text pasted | Blocked, counted (+1), not inserted, notice shown |
+| Ctrl+C in the editor, then Ctrl+V (same instant) | System clipboard holds only the marker (no `text/plain`); line inserted; not counted |
+| Toolbar Copy (real click), then Ctrl+V | Copy command wrote only the marker; inserted; not counted |
+| Cut | Marker only; selection removed |
+| Empty clipboard | Not counted |
+| Outside text plus a fake marker | Blocked, counted |
+| Outside text dropped in | Before: inserted, not counted. After: not inserted, counted |
+| Server sync | The session on the server showed the 5 blocked pastes from these tests |
+
+- **Grading Bench (dark):** Juan with 12 tab switches showed red "Well above typical"; 2 blocked pastes showed gold "Above typical"; 9 pointer exits showed no color. The "How the colors are set" panel lists 4/10, 1/3 and 10/25.
+
+### Files modified (tracked)
+- `frontend/src/features/workspace/Workspace.jsx`: marker-based copy/cut/paste, `handleEditorPaste`, `handleEditorDrop`, `dropIntoEditor: { enabled: false }`, workspace clipboard as a ref, copy/cut stop Monaco's handler, new notices.
+- `frontend/src/components/ui/StatTile.jsx`: `status` prop (dot plus words); stronger `danger` tint.
+- `frontend/src/features/instructor/grading/SplitPaneGradingWorkspace.jsx`: indicators use `indicatorLevel()` and the activity type; homework note; "How the colors are set" panel.
+- `frontend/src/features/instructor/LiveMonitoring.jsx`: same `indicatorLevel()` per session activity type.
+- `audit-status.md`: this section.
+
+### Files created
+- `frontend/src/utils/reviewIndicators.js`: thresholds, levels, `indicatorLevel()`, rationale.
+
+### Pending tasks / next steps
+1. **Browser checks not done yet for the thresholds:**
+   - Live Monitoring tiles (needs a live session; set `last_activity_at` within 3 minutes in the scratch DB).
+   - The homework rule (set the activity to `homework`: tab switches and pointer exits uncolored, blocked pastes still colored, note shown).
+   - Ana's tiles (4 tab switches should be gold, 25 pointer exits red).
+   - The red tier in light theme.
+2. **Real keyboard clipboard check in a real Chrome or Edge window** (the preview pane cannot send native Ctrl+C / Ctrl+V):
+   - Ctrl+C then Ctrl+V in the editor: pasted, not counted.
+   - Copy text in another app, then Ctrl+V in the editor: blocked, counted.
+   - After Ctrl+C in the editor, paste into Notepad: nothing pastes (no code leaks).
+   - Repeat in Firefox if any lab uses it. The fallback is safe: a clipboard with no text is treated as the student's own copy.
+3. **Calibrate the thresholds with pilot data.**
+   - Errol exports per-session counts for laboratory activities from a backup copy, read-only. Never point scripts at production.
+   - Use only sessions recorded after this fix for blocked pastes.
+   - Set gold near the 90th percentile and red near the 98th, and update `INDICATOR_THRESHOLDS`.
+4. **Monaco console error on the Grading Bench:** "TextModel got disposed before DiffEditorWidget model got reset" when the code diff unmounts (switching students or leaving). This is pre-existing. The likely fix is the `keepCurrentOriginalModel` / `keepCurrentModifiedModel` props on `DiffEditor` (not verified).
+5. **Coding sessions never end:** the workspace never calls `POST /activities/coding-sessions/{id}/end`, so counts add up across every visit to an activity. Consider per-visit or per-hour rates later (the homework rule covers the worst case for now).
+6. **Still not seen in the browser from `5d7f903`:** the bulk-enroll result tiles, the Register code-box focus ring, and the student pages under the new `PageShell` padding.
+
+### Local test setup (scratch only)
+- SQLite database and server scripts are in this session's scratchpad folder `gb/`.
+- Two entries were added to the untracked `.claude/launch.json`: `gb-backend` on 8141 and `gb-frontend` on 5251.
+- Accounts: `gb.faculty`, `gb.juan`, `gb.ana`, `gb.pedro` and `gb.mis` `@pampangastateu.edu.ph`. The generated password is in `gb/accounts.json`.
+- Nothing points at production.
+
+### What a push does
+- **Vercel (at once):** the paste, copy-out and drop fixes in the student workspace, and the new thresholds and wording on the Grading Bench and Live Monitoring.
+- **Render:** nothing; no backend change and **no migration**. Nothing waits on Errol.
