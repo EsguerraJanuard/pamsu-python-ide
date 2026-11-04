@@ -3159,3 +3159,34 @@ Continues the section above. Closes pending items 1, 4 and 6 from the list there
 ### What a push does
 - **Vercel (at once):** the Monaco fix on the Grading Bench, the homework hint on Live Monitoring, and the bulk-enroll label.
 - **Render:** nothing; no backend change and **no migration**. Nothing waits on Errol.
+
+## Queued class enrollments: Approve all ready and sorting (2026-11-04)
+
+### Overall progress
+1. **Audit:** the queue already existed end to end, so it was upgraded, not rebuilt.
+   - Instructor bulk enroll stores addresses with no account as `pending_enrollments` rows (counted as "Pending (no account)").
+   - MIS sees them in **Students → Queued class enrollments** ("Ready to apply" / "Waiting", per-row Apply and Remove).
+   - Creating the student account (form, masterlist or email correction) **joins the queued classes automatically**. So "Ready" rows are the leftovers: accounts made before that rule, classes archived when the account was made and reactivated since, or an apply that failed and stays queued.
+2. **New: Approve all ready** (`POST /admin/pending-enrollments/apply-ready`, admin only).
+   - Applies every ready row, exactly as the per-row Apply does: each student joins every active class that queued their email; each enrollment gets its own `student_enrolled` audit record with MIS as the actor; archived classes stay queued.
+   - **3-second rule:** one batch per request (up to 50 students, stops starting new students after 2 s). The dashboard repeats batches until nothing ready is left or a batch makes no progress. Each student is committed on their own; repeating never enrolls anyone twice.
+   - Dashboard: a confirmation ("Approve all ready enrollments?"), progress on the button, and a one-line summary (approved, already in class, still queued, no longer eligible).
+3. **New: sorting** of the queue: newest or oldest queued, class (A–Z), instructor (A–Z), student email (A–Z). `GET /admin/pending-enrollments` takes `sort=` and echoes it. Rows now carry `instructor_name`, and `q` also matches the instructor's name.
+4. **Older backend:** the list response carries `sort` and `can_apply_ready`. A backend without this change leaves them out, so the dashboard hides the sort control and the button until Errol deploys.
+
+### Verified
+- `backend/tests/test_pending_enrollment_bulk_approve.py` (13 tests): instructor names and sort echo, each sort order, sort with the state filter, unknown sort refused (422), search by instructor, approve all (enrolls ready rows, keeps waiting ones, audit actor), repeat is a no-op, stale row for an existing enrollment consumed, batching (50-student cap and the time budget still handle one student), a student refused mid-run reported while others join, admin-only (403/401).
+- Related suites: `test_mis_enrollment_followups.py`, `test_pending_enrollment_workflow.py`, `test_openapi_contracts.py` pass with the new tests (85 passed).
+- Browser (scratch SQLite backend, no outside services): sort by instructor reorders the list; Approve all ready (5) → confirmation → "Approved 5 queued enrollments for 4 students. 1 enrollment stays queued (class archived or busy; try again later)."; Ready empties and the button disables; Waiting keeps no-account / archived / suspended rows; the toolbar stacks at phone width; production build passes.
+
+### Files modified (tracked)
+- `backend/app/routers/admin.py`: `sort` and `instructor_name` on the queue list, `POST /admin/pending-enrollments/apply-ready`.
+- `frontend/src/features/admin/AdminDashboard.jsx`: sort control, instructor on each row, Approve all ready with confirmation and batching.
+- `audit-status.md`: this section.
+
+### Files created
+- `backend/tests/test_pending_enrollment_bulk_approve.py`.
+
+### What a push does
+- **Vercel (at once):** queue rows show the student's email on its own line. The instructor name, the sort control and Approve all ready appear only once the backend has them.
+- **Render (Errol's Manual Deploy):** the new endpoint and sorting turn on. **No migration.**

@@ -1,5 +1,6 @@
 import logging
 import secrets
+import time
 from datetime import datetime, timezone
 from typing import List, Literal, get_args
 from uuid import uuid4
@@ -26,7 +27,7 @@ from pydantic import (BaseModel, ConfigDict, Field, computed_field, field_valida
                       model_validator)
 from sqlalchemy import and_, func, not_, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from app.services.admin_audit_service import (AUDIT_UNAVAILABLE_DETAIL,
                                              AdminAuditError,
                                              record_admin_action,
@@ -404,9 +405,14 @@ class PendingEnrollmentRow(BaseModel):
     user_id: int | None = None
     student_name: str | None = None
     student_active: bool | None = None
+    # The class's instructor (who queued the address).
+    instructor_name: str | None = None
     # "Apply" would enroll the student now: an active student account (not a
     # guest) and an active class. Otherwise the row waits.
     ready: bool
+
+
+PendingEnrollmentSort = Literal["newest", "oldest", "class", "instructor", "student"]
 
 
 class PendingEnrollmentList(BaseModel):
@@ -416,6 +422,11 @@ class PendingEnrollmentList(BaseModel):
     # Tells the dashboard this server has DELETE /admin/pending-enrollments/{id};
     # an older server leaves it out, so the Remove button stays hidden there.
     can_remove: bool = True
+    # The order used. An older server leaves it out, so the dashboard hides
+    # its sort control there instead of offering one that does nothing.
+    sort: PendingEnrollmentSort = "newest"
+    # Tells the dashboard this server has POST /admin/pending-enrollments/apply-ready.
+    can_apply_ready: bool = True
 
 
 class PendingEnrollmentRemoved(BaseModel):
@@ -424,13 +435,65 @@ class PendingEnrollmentRemoved(BaseModel):
     email: str
 
 
+class PendingApplyReadyResult(BaseModel):
+    """One batch of "Approve all ready"."""
+
+    # Students whose queued classes were applied in this batch.
+    students: int = 0
+    # Queued rows that became enrollments.
+    enrolled: int = 0
+    # Queued rows consumed because the student was already in the class.
+    already_enrolled: int = 0
+    # Queued rows left in the queue (class archived meanwhile, a concurrent
+    # change, or the audit record could not be saved).
+    skipped: int = 0
+    # Students who stopped being eligible after the list was loaded (for
+    # example suspended); their rows stay queued.
+    ineligible_students: int = 0
+    # Ready rows still in the queue after this batch. The dashboard repeats
+    # the request while this is above zero and the batch made progress.
+    remaining_ready: int = 0
+
+
+# Instructor of the queued class; the plain User in these queries is the
+# student account that uses the queued email.
+_QueueInstructor = aliased(User, name="queue_instructor")
+
+
 def _pending_enrollment_query(db: Session):
     return (
-        db.query(PendingEnrollment, Classroom, User)
+        db.query(PendingEnrollment, Classroom, User, _QueueInstructor.name)
         .join(Classroom, Classroom.class_id == PendingEnrollment.class_id)
         # Pending rows store the lowercased email; accounts are matched as at login.
         .outerjoin(User, func.lower(User.email) == PendingEnrollment.email)
+        .outerjoin(_QueueInstructor, _QueueInstructor.user_id == Classroom.instructor_id)
     )
+
+
+def _pending_enrollment_order(sort: str):
+    # Every order ends on pending_id, so paging is stable.
+    if sort == "oldest":
+        return (PendingEnrollment.created_at.asc(), PendingEnrollment.pending_id.asc())
+    if sort == "class":
+        return (
+            func.lower(Classroom.name),
+            func.lower(func.coalesce(Classroom.subject_code, "")),
+            func.lower(func.coalesce(Classroom.section, "")),
+            Classroom.class_id,
+            PendingEnrollment.email,
+            PendingEnrollment.pending_id,
+        )
+    if sort == "instructor":
+        return (
+            func.lower(func.coalesce(_QueueInstructor.name, "")),
+            func.lower(Classroom.name),
+            Classroom.class_id,
+            PendingEnrollment.email,
+            PendingEnrollment.pending_id,
+        )
+    if sort == "student":
+        return (PendingEnrollment.email, PendingEnrollment.pending_id)
+    return (PendingEnrollment.created_at.desc(), PendingEnrollment.pending_id.desc())
 
 
 def _pending_ready_condition():
@@ -446,7 +509,13 @@ def _pending_ready_condition():
 @router.get("/pending-enrollments", response_model=PendingEnrollmentList)
 def list_pending_enrollments(
     state: Literal["all", "ready", "waiting"] = Query(default="all"),
-    q: str | None = Query(default=None, max_length=255, description="Part of the email, class name or code."),
+    q: str | None = Query(
+        default=None, max_length=255, description="Part of the email, class name or code, or instructor name."
+    ),
+    sort: PendingEnrollmentSort = Query(
+        default="newest",
+        description="newest or oldest queued first, or A-Z by class, instructor or student email.",
+    ),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -468,6 +537,7 @@ def list_pending_enrollments(
             func.lower(Classroom.name).like(pattern),
             func.lower(func.coalesce(Classroom.subject_code, "")).like(pattern),
             func.lower(func.coalesce(Classroom.section, "")).like(pattern),
+            func.lower(func.coalesce(_QueueInstructor.name, "")).like(pattern),
         ))
 
     ready = _pending_ready_condition()
@@ -479,13 +549,13 @@ def list_pending_enrollments(
     total = query.count()
 
     rows = (
-        query.order_by(PendingEnrollment.created_at.desc(), PendingEnrollment.pending_id.desc())
+        query.order_by(*_pending_enrollment_order(sort))
         .offset(skip)
         .limit(limit)
         .all()
     )
     items = []
-    for pending, classroom, account in rows:
+    for pending, classroom, account, instructor_name in rows:
         is_ready = bool(
             account is not None
             and account.role == "student"
@@ -505,9 +575,90 @@ def list_pending_enrollments(
             user_id=account.user_id if account else None,
             student_name=account.name if account else None,
             student_active=bool(account.is_active) if account else None,
+            instructor_name=instructor_name,
             ready=is_ready,
         ))
-    return PendingEnrollmentList(total=total, ready=ready_count, items=items)
+    return PendingEnrollmentList(total=total, ready=ready_count, items=items, sort=sort)
+
+
+# "Approve all ready" works in batches so no request runs long (the 3-second
+# rule): each batch stops starting new students after this many seconds, and
+# the dashboard repeats it until no ready row is left.
+APPLY_READY_TIME_BUDGET_SECONDS = 2.0
+APPLY_READY_MAX_STUDENTS = 50
+
+
+def _ready_pending_count(db: Session) -> int:
+    return (
+        db.query(PendingEnrollment.pending_id)
+        .join(Classroom, Classroom.class_id == PendingEnrollment.class_id)
+        .join(User, func.lower(User.email) == PendingEnrollment.email)
+        .filter(_pending_ready_condition())
+        .count()
+    )
+
+
+@router.post("/pending-enrollments/apply-ready", response_model=PendingApplyReadyResult)
+def apply_ready_pending_enrollments(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    """Apply every "ready" queued enrollment, one batch per request ("Approve all ready").
+
+    Each student is handled exactly as POST
+    /admin/students/{user_id}/pending-enrollments/apply handles them: every
+    class that queued their email is joined, each enrollment is audited with
+    MIS as the actor, and a class that can't be joined stays queued. Each
+    student is committed on their own, so one failure never undoes the others,
+    and repeating the request never enrolls anyone twice. Students are taken
+    oldest queued row first.
+    """
+    student_ids = [
+        user_id
+        for (user_id,) in (
+            db.query(User.user_id)
+            .select_from(PendingEnrollment)
+            .join(Classroom, Classroom.class_id == PendingEnrollment.class_id)
+            .join(User, func.lower(User.email) == PendingEnrollment.email)
+            .filter(_pending_ready_condition())
+            .group_by(User.user_id)
+            .order_by(func.min(PendingEnrollment.created_at), func.min(PendingEnrollment.pending_id))
+            .limit(APPLY_READY_MAX_STUDENTS)
+            .all()
+        )
+    ]
+
+    result = PendingApplyReadyResult()
+    deadline = time.monotonic() + APPLY_READY_TIME_BUDGET_SECONDS
+    for index, user_id in enumerate(student_ids):
+        # Always handle at least one student, so every batch can progress.
+        if index > 0 and time.monotonic() >= deadline:
+            break
+        student = db.get(User, user_id)
+        if student is None:
+            continue
+        try:
+            outcome = apply_pending_enrollments(
+                db=db,
+                student=student,
+                actor_user_id=current_admin.user_id,
+            )
+            db.commit()
+        except StudentNotEligibleForEnrollmentError:
+            # Suspended (or otherwise changed) since the ready list was read.
+            db.rollback()
+            result.ineligible_students += 1
+            continue
+        except Exception:
+            db.rollback()
+            raise
+        result.students += 1
+        result.enrolled += len(outcome.enrolled_class_ids)
+        result.already_enrolled += len(outcome.already_enrolled_class_ids)
+        result.skipped += len(outcome.skipped)
+
+    result.remaining_ready = _ready_pending_count(db)
+    return result
 
 
 @router.delete("/pending-enrollments/{pending_id}", response_model=PendingEnrollmentRemoved)

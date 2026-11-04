@@ -1059,6 +1059,18 @@ const PENDING_VIEWS = [
   ["waiting", "Waiting"],
 ];
 
+const PENDING_SORTS = [
+  { value: "newest", label: "Newest queued" },
+  { value: "oldest", label: "Oldest queued" },
+  { value: "class", label: "Class (A–Z)" },
+  { value: "instructor", label: "Instructor (A–Z)" },
+  { value: "student", label: "Student email (A–Z)" },
+];
+
+// "Approve all ready" runs in short server batches; this caps the repeats
+// (each batch handles up to 50 students).
+const APPROVE_ALL_MAX_BATCHES = 40;
+
 /** Why a queued enrollment can't be applied yet. */
 function pendingStatus(item) {
   if (item.ready) return { tone: "success", text: "Ready" };
@@ -1068,14 +1080,34 @@ function pendingStatus(item) {
   return { tone: "neutral", text: "Not a student account" };
 }
 
+/** One sentence summing up an "Approve all ready" run. */
+function approveAllSummary(totals, remaining) {
+  const approved = totals.enrolled + totals.already;
+  const parts = [
+    approved > 0
+      ? `Approved ${plural(approved, "queued enrollment")} for ${plural(totals.students, "student")}.`
+      : "No queued enrollment was approved.",
+    totals.already > 0 && `${plural(totals.already, "student")} ${totals.already === 1 ? "was" : "were"} already in the class.`,
+    totals.skipped > 0 &&
+      `${plural(totals.skipped, "enrollment")} ${totals.skipped === 1 ? "stays" : "stay"} queued (class archived or busy; try again later).`,
+    totals.ineligible > 0 &&
+      `${plural(totals.ineligible, "student")} can no longer be enrolled (account suspended or changed).`,
+    remaining > 0 && `${plural(remaining, "ready enrollment")} still ${remaining === 1 ? "waits" : "wait"}; select Approve all ready again.`,
+  ];
+  return parts.filter(Boolean).join(" ");
+}
+
 /**
  * Class enrollments that instructors queued for university emails (GET
  * /admin/pending-enrollments). "Ready" rows have an active student account
- * and an active class, so applying enrolls them now. Until the server has the
- * endpoint, the panel says so and the directory's row action still works.
+ * and an active class, so applying enrolls them now, one student at a time
+ * or all at once. Until the server has the endpoint, the panel says so and
+ * the directory's row action still works; controls the server doesn't
+ * support yet (sorting, Approve all ready) stay hidden.
  */
 function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
   const [view, setView] = useState("ready");
+  const [sort, setSort] = useState("newest");
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [unsupported, setUnsupported] = useState(false);
@@ -1083,21 +1115,25 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
   // The row waiting for "Remove" to be confirmed, and the result shown after.
   const [removing, setRemoving] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [removeResult, setRemoveResult] = useState(null);
+  // "Approve all ready": the confirmation, and progress while batches run.
+  const [confirmingApproveAll, setConfirmingApproveAll] = useState(false);
+  const [approveAllProgress, setApproveAllProgress] = useState(null);
+  const [notice, setNotice] = useState(null);
   const resultCount = useRef(0);
+  const isApprovingAll = approveAllProgress !== null;
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      setData(await api.get(`/admin/pending-enrollments?state=${view}&limit=50`));
+      setData(await api.get(`/admin/pending-enrollments?state=${view}&sort=${sort}&limit=50`));
     } catch (err) {
       if (isMissingRoute(err)) setUnsupported(true);
       else setError(err);
     } finally {
       setIsLoading(false);
     }
-  }, [view]);
+  }, [view, sort]);
 
   useEffect(() => {
     load();
@@ -1105,9 +1141,9 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
 
   const classLabelOf = (item) => [item.class_name, item.subject_code, item.section].filter(Boolean).join(" · ");
 
-  const showRemoveResult = (tone, text) => {
+  const showNotice = (tone, text) => {
     resultCount.current += 1;
-    setRemoveResult({ id: resultCount.current, tone, text });
+    setNotice({ id: resultCount.current, tone, text });
   };
 
   const confirmRemove = async () => {
@@ -1116,16 +1152,59 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
     setIsRemoving(true);
     try {
       await api.delete(`/admin/pending-enrollments/${item.pending_id}`);
-      showRemoveResult("success", `Removed ${item.email} from the queue for ${classLabelOf(item)}.`);
+      showNotice("success", `Removed ${item.email} from the queue for ${classLabelOf(item)}.`);
     } catch (err) {
-      if (err?.status === 404) showRemoveResult("info", `${item.email} was already applied or removed.`);
-      else showRemoveResult("error", getErrorMessage(err, "The queued enrollment could not be removed."));
+      if (err?.status === 404) showNotice("info", `${item.email} was already applied or removed.`);
+      else showNotice("error", getErrorMessage(err, "The queued enrollment could not be removed."));
     } finally {
       setIsRemoving(false);
       setRemoving(null);
       load();
     }
   };
+
+  /**
+   * Apply every ready row. The server handles one short batch per request
+   * and reports what is left; batches repeat until nothing ready is left or
+   * a batch makes no progress (for example the audit service is down).
+   */
+  const approveAllReady = async () => {
+    setConfirmingApproveAll(false);
+    if (isApprovingAll) return;
+    const totals = { students: 0, enrolled: 0, already: 0, skipped: 0, ineligible: 0 };
+    let remaining = 0;
+    setApproveAllProgress(0);
+    try {
+      for (let batch = 0; batch < APPROVE_ALL_MAX_BATCHES; batch += 1) {
+        const result = await api.post("/admin/pending-enrollments/apply-ready");
+        totals.students += result?.students ?? 0;
+        totals.enrolled += result?.enrolled ?? 0;
+        totals.already += result?.already_enrolled ?? 0;
+        totals.skipped += result?.skipped ?? 0;
+        totals.ineligible += result?.ineligible_students ?? 0;
+        remaining = result?.remaining_ready ?? 0;
+        setApproveAllProgress(totals.enrolled + totals.already);
+        const progressed = (result?.enrolled ?? 0) + (result?.already_enrolled ?? 0) + (result?.ineligible_students ?? 0) > 0;
+        if (remaining === 0 || !progressed) break;
+      }
+      const clean = remaining === 0 && totals.skipped === 0 && totals.ineligible === 0;
+      showNotice(clean ? "success" : "warning", approveAllSummary(totals, remaining));
+    } catch (err) {
+      const done = totals.enrolled + totals.already;
+      showNotice(
+        "error",
+        (done > 0 ? `${plural(done, "queued enrollment")} ${done === 1 ? "was" : "were"} approved before this stopped. ` : "") +
+          getErrorMessage(err, "The ready enrollments could not be approved."),
+      );
+    } finally {
+      setApproveAllProgress(null);
+      load();
+    }
+  };
+
+  const readyCount = data?.ready ?? 0;
+  const canSort = Boolean(data?.sort);
+  const showApproveAll = Boolean(data?.can_apply_ready) && view === "ready";
 
   return (
     <>
@@ -1176,15 +1255,52 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
           <ListSkeleton rows={3} />
         ) : (
           <>
-            {removeResult && (
+            {(canSort || showApproveAll) && (
+              <div className="flex flex-col gap-3 border-b border-border-subtle bg-bg-alt/40 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                {canSort ? (
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="pending-sort" className="shrink-0 text-xs font-semibold text-text-muted">
+                      Sort by
+                    </label>
+                    <div className="w-full sm:w-52">
+                      <CustomSelect
+                        id="pending-sort"
+                        value={sort}
+                        onChange={setSort}
+                        options={PENDING_SORTS}
+                        disabled={isApprovingAll}
+                        className="px-3 py-1.5 text-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <span />
+                )}
+                {showApproveAll && (
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm justify-center"
+                    disabled={readyCount === 0 || isApprovingAll || isRemoving || busyUserId !== null}
+                    onClick={() => setConfirmingApproveAll(true)}
+                    title={readyCount === 0 ? "No queued enrollment is ready to apply" : undefined}
+                  >
+                    <Icon name={isApprovingAll ? "refresh" : "check"} className={`h-3.5 w-3.5 ${isApprovingAll ? "animate-spin" : ""}`} />
+                    {isApprovingAll
+                      ? `Approving… ${approveAllProgress > 0 ? `${approveAllProgress} done` : ""}`.trim()
+                      : `Approve all ready${readyCount > 0 ? ` (${readyCount})` : ""}`}
+                  </button>
+                )}
+              </div>
+            )}
+            {notice && (
               <div className="px-5 pt-4 sm:px-6">
                 <InlineAlert
-                  key={removeResult.id}
-                  tone={removeResult.tone}
-                  onDismiss={() => setRemoveResult(null)}
-                  autoDismissMs={removeResult.tone === "error" ? 0 : NOTICE_DISMISS_MS}
+                  key={notice.id}
+                  tone={notice.tone}
+                  onDismiss={() => setNotice(null)}
+                  autoDismissMs={notice.tone === "error" ? 0 : NOTICE_DISMISS_MS}
                 >
-                  {removeResult.text}
+                  {notice.text}
                 </InlineAlert>
               </div>
             )}
@@ -1201,21 +1317,23 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
                 />
               </div>
             ) : (
-              <div aria-busy={isLoading} className={`transition-opacity ${isLoading ? "opacity-60" : ""}`}>
+              <div aria-busy={isLoading || isApprovingAll} className={`transition-opacity ${isLoading || isApprovingAll ? "opacity-60" : ""}`}>
                 <ul className="divide-y divide-border-subtle">
                   {data.items.map((item) => {
                     const status = pendingStatus(item);
                     // Rows with no account have user_id null, as busyUserId is when idle.
                     const busy = item.user_id != null && busyUserId === item.user_id;
+                    // Class, its instructor and the queue date: what the sort options order by.
+                    const where = [classLabelOf(item), item.instructor_name, `queued ${formatDate(item.queued_at)}`]
+                      .filter(Boolean)
+                      .join(" · ");
                     return (
                       <li key={item.pending_id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center sm:px-6">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-text-main">{item.student_name || item.email}</p>
-                          <p className="truncate text-xs text-text-muted">
-                            {item.student_name ? `${item.email} · ` : ""}
-                            {classLabelOf(item)}
-                            {" · queued "}
-                            {formatDate(item.queued_at)}
+                          {item.student_name && <p className="truncate text-xs text-text-muted">{item.email}</p>}
+                          <p className="truncate text-xs text-text-muted" title={where}>
+                            {where}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
@@ -1224,7 +1342,7 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
                             <button
                               type="button"
                               className="btn-secondary btn-sm"
-                              disabled={busyUserId !== null}
+                              disabled={busyUserId !== null || isApprovingAll}
                               onClick={() => onApply({ user_id: item.user_id, name: item.student_name || item.email, is_active: true })}
                               aria-label={`Apply queued enrollments for ${item.student_name || item.email}`}
                             >
@@ -1237,7 +1355,7 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
                             <button
                               type="button"
                               className="btn-ghost btn-sm text-text-rose hover:bg-psu-red/[0.06] hover:text-text-rose"
-                              disabled={isRemoving || busy}
+                              disabled={isRemoving || busy || isApprovingAll}
                               onClick={() => setRemoving(item)}
                               aria-label={`Remove queued enrollment for ${item.email} in ${classLabelOf(item)}`}
                               title="Remove this address from the queue (for example a typo)"
@@ -1253,7 +1371,10 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
                 </ul>
                 {data.total > data.items.length && (
                   <p className="border-t border-border-subtle px-5 py-3 text-xs text-text-muted sm:px-6">
-                    Showing the newest {data.items.length} of {data.total}.
+                    {sort === "newest"
+                      ? `Showing the newest ${data.items.length} of ${data.total}.`
+                      : `Showing the first ${data.items.length} of ${data.total} in this order.`}
+                    {view === "ready" && showApproveAll && " Approve all ready covers every ready row, not only these."}
                   </p>
                 )}
               </div>
@@ -1275,6 +1396,16 @@ function PendingEnrollmentsPanel({ onApply, busyUserId, refreshKey }) {
         isLoading={isRemoving}
         onConfirm={confirmRemove}
         onCancel={() => setRemoving(null)}
+      />
+      <ConfirmationModal
+        isOpen={confirmingApproveAll}
+        title="Approve all ready enrollments?"
+        message={`${plural(readyCount, "queued enrollment")} ${readyCount === 1 ? "has" : "have"} an active student account and an active class. Each of these students joins every active class that queued their email, and instructors see them in their class lists right away. Queued addresses with no account yet are not affected.`}
+        confirmText="Approve all"
+        loadingText="Approving…"
+        isLoading={isApprovingAll}
+        onConfirm={approveAllReady}
+        onCancel={() => setConfirmingApproveAll(false)}
       />
     </>
   );
