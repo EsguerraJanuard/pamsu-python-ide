@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import PageShell from "../../../components/layout/PageShell";
@@ -13,7 +13,6 @@ const reviewed = (counts) => (counts ? (counts.graded || 0) + (counts.rejected |
 
 export default function GradingBenchRoot() {
   const [classes, setClasses] = useState([]);
-  const [counts, setCounts] = useState(null);
   // Per-class queue counts, keyed by class_id. Loaded after the cards show;
   // a class whose request fails simply shows no counts.
   const [classCounts, setClassCounts] = useState({});
@@ -24,12 +23,8 @@ export default function GradingBenchRoot() {
     setIsLoading(true);
     setError(null);
     try {
-      const [classRes, queueRes] = await Promise.all([
-        cachedGet("/classrooms/"),
-        api.get("/instructors/review-queue?page_size=1"),
-      ]);
+      const classRes = await cachedGet("/classrooms/");
       setClasses(Array.isArray(classRes) ? classRes : []);
-      setCounts(queueRes?.counts || null);
     } catch (err) {
       setError(err);
     } finally {
@@ -41,11 +36,16 @@ export default function GradingBenchRoot() {
     fetchClasses();
   }, [fetchClasses]);
 
+  // Archived classes (term over) are not part of the grading queue: no card
+  // and no share of the header count. Unarchiving a class brings it back.
+  const activeClasses = useMemo(() => classes.filter((cls) => cls.is_active !== false), [classes]);
+  const archivedCount = classes.length - activeClasses.length;
+
   useEffect(() => {
-    if (classes.length === 0) return undefined;
+    if (activeClasses.length === 0) return undefined;
     let cancelled = false;
     Promise.all(
-      classes.map((cls) =>
+      activeClasses.map((cls) =>
         api
           .get(`/instructors/review-queue?class_id=${cls.class_id}&page_size=1`)
           .then((res) => [cls.class_id, res?.counts || null])
@@ -57,9 +57,12 @@ export default function GradingBenchRoot() {
     return () => {
       cancelled = true;
     };
-  }, [classes]);
+  }, [activeClasses]);
 
-  const pending = counts ? toReview(counts) : null;
+  // The header total is the sum of the active classes' own counts, shown
+  // only once every one of them has loaded (a partial sum would undercount).
+  const allCounted = activeClasses.length > 0 && activeClasses.every((cls) => classCounts[cls.class_id]);
+  const pending = allCounted ? activeClasses.reduce((sum, cls) => sum + toReview(classCounts[cls.class_id]), 0) : null;
 
   return (
     <PageShell role="instructor">
@@ -67,7 +70,11 @@ export default function GradingBenchRoot() {
         eyebrow="Monitoring & grading"
         title="Grading Bench"
         description={
-          pending === null ? "Choose a class to review submissions." : `${pending} submission${pending === 1 ? "" : "s"} awaiting review across your classes.`
+          !isLoading && !error && activeClasses.length === 0
+            ? "No active classes to review."
+            : pending === null
+            ? "Choose a class to review submissions."
+            : `${pending} submission${pending === 1 ? "" : "s"} awaiting review across your active classes.`
         }
       />
 
@@ -79,10 +86,14 @@ export default function GradingBenchRoot() {
             <div key={i} className="card h-44 animate-pulse" />
           ))}
         </div>
-      ) : classes.length === 0 ? (
+      ) : activeClasses.length === 0 ? (
         <EmptyState
-          title="No classes yet"
-          message="Create a class and publish an activity to start receiving submissions."
+          title={archivedCount > 0 ? "No active classes" : "No classes yet"}
+          message={
+            archivedCount > 0
+              ? "All your classes are archived, so nothing is waiting on the Grading Bench. Unarchive a class from Classes to grade it here again."
+              : "Create a class and publish an activity to start receiving submissions."
+          }
           action={
             <Link to="/instructor/classes" className="btn-primary">
               Go to classes
@@ -91,7 +102,7 @@ export default function GradingBenchRoot() {
         />
       ) : (
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {classes.map((cls) => {
+          {activeClasses.map((cls) => {
             const classCount = classCounts[cls.class_id];
             const loaded = cls.class_id in classCounts;
             const waiting = toReview(classCount);
@@ -106,7 +117,6 @@ export default function GradingBenchRoot() {
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
                       {cls.subject_code && <span className="badge badge-brand whitespace-nowrap">{cls.subject_code}</span>}
                       {cls.section && <span className="badge badge-neutral whitespace-nowrap">Section {cls.section}</span>}
-                      {!cls.is_active && <span className="badge badge-neutral whitespace-nowrap">Archived</span>}
                     </div>
                     {waiting > 0 && (
                       <span className="badge badge-gold shrink-0 whitespace-nowrap">

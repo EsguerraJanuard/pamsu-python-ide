@@ -10,6 +10,11 @@ import { cachedGet } from "../../services/queryClient";
 import { classLabel, formatDateTime } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
 
+const LATEST_SUBMISSIONS = 5;
+const toReview = (counts) => (counts ? (counts.submitted || 0) + (counts.awaiting_review || 0) : 0);
+// The review queue's own order: newest submitted_at first, then highest sub_id.
+const byNewest = (a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0) || b.sub_id - a.sub_id;
+
 function activityState(task) {
   if (!task.is_published) {
     return task.scheduled_publish_at
@@ -24,7 +29,7 @@ export default function InstructorDashboard() {
   const { user } = useAuth();
   const [classes, setClasses] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [queue, setQueue] = useState({ items: [], counts: null });
+  const [queue, setQueue] = useState({ items: [], pending: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -33,15 +38,22 @@ export default function InstructorDashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const [classRes, tasksRes, reviewRes] = await Promise.all([
-        cachedGet("/classrooms/"),
-        cachedGet("/instructors/tasks/"),
-        // The review queue changes as students submit: always fetched fresh.
-        api.get("/instructors/review-queue?page_size=5"),
-      ]);
-      setClasses(Array.isArray(classRes) ? classRes : []);
+      const [classRes, tasksRes] = await Promise.all([cachedGet("/classrooms/"), cachedGet("/instructors/tasks/")]);
+      const classList = Array.isArray(classRes) ? classRes : [];
+      // As on the Grading Bench, archived classes (term over) are not part of
+      // the review numbers: one queue request per active class, then combined.
+      // The review queue changes as students submit: always fetched fresh.
+      const queues = await Promise.all(
+        classList
+          .filter((c) => c.is_active !== false)
+          .map((c) => api.get(`/instructors/review-queue?class_id=${c.class_id}&page_size=${LATEST_SUBMISSIONS}`)),
+      );
+      setClasses(classList);
       setTasks(Array.isArray(tasksRes) ? tasksRes : []);
-      setQueue({ items: reviewRes?.items || [], counts: reviewRes?.counts || null });
+      setQueue({
+        pending: queues.reduce((sum, res) => sum + toReview(res?.counts), 0),
+        items: queues.flatMap((res) => res?.items || []).sort(byNewest).slice(0, LATEST_SUBMISSIONS),
+      });
     } catch (err) {
       setError(err);
     } finally {
@@ -56,7 +68,7 @@ export default function InstructorDashboard() {
   const classMap = useMemo(() => Object.fromEntries(classes.map((c) => [c.class_id, c])), [classes]);
   const activeClasses = classes.filter((c) => c.is_active).length;
   const publishedCount = tasks.filter((t) => t.is_published).length;
-  const pendingReviews = queue.counts ? (queue.counts.submitted || 0) + (queue.counts.awaiting_review || 0) : 0;
+  const pendingReviews = queue.pending;
   const recentTasks = [...tasks].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)).slice(0, 6);
 
   return (
@@ -97,7 +109,7 @@ export default function InstructorDashboard() {
                     icon="inbox"
                     value={pendingReviews}
                     label="Awaiting review"
-                    caption="Submitted, not yet graded"
+                    caption="In active classes, not yet graded"
                     tone={pendingReviews > 0 ? "attention" : "neutral"}
                   />
                   <StatTile

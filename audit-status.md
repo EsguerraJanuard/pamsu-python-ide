@@ -3231,3 +3231,13 @@ Continues the section above. Closes pending items 1, 4 and 6 from the list there
 - **Live Monitoring filters:** quieter labels (`text-sm font-medium tracking-wide text-text-muted`) and taller selects (`h-11`); side by side from `sm`, stacked below.
 - **Browser** (scratch SQLite, instructor with an archived class and pending reviews): card badges at desktop and 375 px; the dropdown open and focused in dark and light; filters stacked at 375 px. No console errors; build passes.
 - **Push:** frontend only, so Vercel deploys it at once. Nothing waits on Render.
+
+## Grading Bench and Overview leave out archived classes (2026-11-04)
+
+- **Rule (owner):** an archived class means its term is over, so it is not part of the grading queue.
+- `GradingBenchRoot.jsx` shows only classes with `is_active` true. The header total is now the sum of those classes' own review-queue counts, shown once all have loaded. It replaces the single all-classes `GET /instructors/review-queue`, which also counted archived classes. Archived classes get no count request at all.
+- If every class is archived: "No active classes" with a link to Classes. To grade work left in an archived class, unarchive it. The class view (`/instructor/bench/:id`) itself is unchanged.
+- **Browser** (scratch SQLite: one active class with 2 to review, one archived with 2): before, 2 cards and "4 awaiting review"; now 1 card and "2 … across your active classes", and only the active class's queue is requested. With both archived: the empty state, and the header says "No active classes to review." No console errors; build passes.
+- **Instructor Overview, same rule** (`InstructorDashboard.jsx`): it used the same all-classes call for the "Awaiting review" tile and the "Latest submissions" list. Now it makes one `review-queue?class_id=…&page_size=5` request per active class. The tile is the sum of their counts (caption "In active classes, not yet graded"). The list merges their items in the queue's own order (newest `submitted_at`, then highest `sub_id`) and keeps 5. Browser: tile 4 → 2, and the list shows only the active class's submissions; only the active class's queue is requested.
+- **Still including archived classes (not grading counts, left as is):** the Overview's "Recent activities" list and "Published activities" tile.
+- **Push:** frontend only; Vercel deploys it at once.
