@@ -6,6 +6,7 @@ import { ErrorState, InlineAlert, PageHeader, SkeletonList } from "../../compone
 import api from "../../services/api";
 import { formatDateTime } from "../student/studentData";
 import { SUBMISSION_STATUS, formatScore, loadReleasedGrades } from "./submissionData";
+import Icon from "../../components/ui/Icon";
 
 export default function SubmissionDetails() {
   const { id } = useParams();
@@ -77,6 +78,7 @@ export default function SubmissionDetails() {
           onRetry={fetchDetails}
           action={
             <Link to="/student/submissions" className="btn-secondary">
+              <Icon name="arrowLeft" className="h-4 w-4" />
               All submissions
             </Link>
           }

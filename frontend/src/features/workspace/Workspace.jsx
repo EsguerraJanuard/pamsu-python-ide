@@ -18,6 +18,7 @@ import { useTheme } from "../theme/ThemeContext";
 import ThemeToggle from "../theme/ThemeToggle";
 import { draftKeyFor, readDraft, saveDraft } from "./draftStorage";
 import { defineEditorThemes, editorThemeFor } from "./editorThemes";
+import Icon from "../../components/ui/Icon";
 
 const BLANK_TEMPLATE = "# Write your solution below.\n";
 
@@ -503,6 +504,7 @@ function ActivityWorkspace({ activityId, userId }) {
           onRetry={loadActivity}
           action={
             <Link to="/student/assignments" className="btn-secondary">
+              <Icon name="arrowLeft" className="h-4 w-4" />
               Back to assignments
             </Link>
           }
@@ -558,9 +560,7 @@ function ActivityWorkspace({ activityId, userId }) {
               className="btn-ghost btn-sm lg:hidden"
               aria-label="Back to assignments"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Icon name="arrowLeft" className="h-3.5 w-3.5" />
             </Link>
             <div
               role="tablist"
@@ -615,6 +615,7 @@ function ActivityWorkspace({ activityId, userId }) {
               title={!isCoding ? notCodingHint : undefined}
               className="btn-secondary btn-sm"
             >
+              <Icon name="check" className="h-3.5 w-3.5" />
               Check structure
             </button>
             <button
@@ -636,6 +637,7 @@ function ActivityWorkspace({ activityId, userId }) {
               title={!isCoding ? notCodingHint : !hasOwnCode ? "Write your solution before submitting." : undefined}
               className="btn-primary btn-sm"
             >
+              <Icon name="send" className="h-3.5 w-3.5" />
               Submit
             </button>
           </div>

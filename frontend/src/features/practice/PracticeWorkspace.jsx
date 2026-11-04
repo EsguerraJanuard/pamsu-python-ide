@@ -13,6 +13,7 @@ import { pollDelay } from "../../utils/polling";
 import { useTheme } from "../theme/ThemeContext";
 import ThemeToggle from "../theme/ThemeToggle";
 import { defineEditorThemes, editorThemeFor } from "../workspace/editorThemes";
+import Icon from "../../components/ui/Icon";
 
 // The server saves the attempt and answers at once with status "pending";
 // Judge0 runs the code in the background and the page polls the attempt
@@ -37,9 +38,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function BackToModules() {
   return (
     <Link to="/student/practice" className="btn-ghost btn-sm">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <Icon name="arrowLeft" className="h-3.5 w-3.5" />
       Modules
     </Link>
   );
@@ -270,6 +269,7 @@ function PracticeTask({ taskId }) {
           message="Complete the earlier tasks in Solo Practice to unlock it."
           action={
             <Link to="/student/practice" className="btn-primary">
+              <Icon name="arrowLeft" className="h-4 w-4" />
               Back to modules
             </Link>
           }

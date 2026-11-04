@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { describeApiError } from "../../services/api";
+import Icon from "./Icon";
 
 /*
  * Shared loading / empty / error presentation.
@@ -126,6 +127,7 @@ export function ErrorState({ error, resource, onRetry, title, message, action, c
         <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
           {canRetry && (
             <button type="button" onClick={onRetry} className="btn-secondary">
+              <Icon name="refresh" className="h-4 w-4" />
               Try again
             </button>
           )}

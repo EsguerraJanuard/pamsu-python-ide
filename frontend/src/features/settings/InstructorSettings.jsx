@@ -7,6 +7,7 @@ import { AST_STRICTNESS_LEVELS } from "../../utils/astRules";
 import { useAuth } from "../auth/AuthContext";
 import { ChangePasswordSection, ProfileSection, SettingsSection } from "./AccountSections";
 import StrictnessPicker from "./StrictnessPicker";
+import Icon from "../../components/ui/Icon";
 
 function EvaluationPreferences() {
   const { user, updateUser } = useAuth();
@@ -70,6 +71,7 @@ function EvaluationPreferences() {
                 : `Saved level: ${AST_STRICTNESS_LEVELS.find((level) => level.value === savedStrictness)?.label ?? savedStrictness}.`}
           </p>
           <button type="submit" disabled={isSaving || !strictness || !isDirty} className="btn-primary w-full sm:w-auto">
+            <Icon name="save" className="h-4 w-4" />
             {isSaving ? "Saving…" : "Save preference"}
           </button>
         </div>

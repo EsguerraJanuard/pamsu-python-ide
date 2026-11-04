@@ -16,6 +16,7 @@ import {
 } from '../../utils/astRules';
 import { ErrorState, InlineAlert, LoadingState, PageHeader } from '../../components/ui/StateViews';
 import PageShell from "../../components/layout/PageShell";
+import Icon from "../../components/ui/Icon";
 
 // Suggested starting rules when a difficulty is picked by hand.
 const DIFFICULTY_SUGGESTIONS = {
@@ -1193,7 +1194,7 @@ const ActivityEditor = () => {
                       aria-describedby={missingFields.length > 0 ? "submit-hint" : undefined}
                       className="btn-primary min-w-[9rem]"
                     >
-                      {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />}
+                      {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" /> : <Icon name={isEdit ? "save" : "plus"} className="h-4 w-4" />}
                       {isEdit ? (loading ? "Saving..." : "Save Changes") : (loading ? "Creating..." : "Create Activity")}
                     </button>
                   </div>

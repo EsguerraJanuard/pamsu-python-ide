@@ -3,6 +3,7 @@ import api, { getErrorMessage } from "../../services/api";
 import Modal from "../ui/Modal";
 import { FieldError } from "../ui/StateViews";
 import { classCodeError } from "../../utils/validation";
+import Icon from "../ui/Icon";
 
 export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
   const [code, setCode] = useState("");
@@ -92,6 +93,7 @@ export default function JoinClassModal({ isOpen, onClose, onSuccess }) {
             Cancel
           </button>
           <button type="submit" disabled={isLoading || !code.trim()} className="btn-primary">
+            <Icon name="plus" className="h-4 w-4" />
             {isLoading ? "Joining…" : "Join class"}
           </button>
         </div>

@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from ".
 import useUrlFilters from "../../hooks/useUrlFilters";
 import ActivityCard from "../student/ActivityCard";
 import { isActiveActivity, loadStudentActivities } from "../student/studentData";
+import Icon from "../../components/ui/Icon";
 
 const FILTERS = [
   { label: "All", value: "all" },
@@ -149,6 +150,7 @@ export default function Assignments() {
                       setUrlFilters({ filter: "all", q: "" });
                     }}
                   >
+                    <Icon name="x" className="h-4 w-4" />
                     Clear filters
                   </button>
                 }

@@ -4,6 +4,7 @@ import { useAuth } from "../../features/auth/AuthContext";
 import { isGuestUser } from "../../features/auth/guest";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import Modal from "../ui/Modal";
+import Icon from "../ui/Icon";
 
 // Pampanga State University's online admission page.
 const ADMISSION_URL = "https://sms.pampangastateu.edu.ph/padmission";
@@ -26,6 +27,7 @@ function GuestSignOutModal({ isOpen, onClose, onConfirm }) {
             Close
           </button>
           <button type="button" onClick={onConfirm} className="btn-secondary">
+            <Icon name="signOut" className="h-4 w-4" />
             Sign Out
           </button>
         </>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import api, { getErrorMessage } from "../../services/api";
 import Modal from "../ui/Modal";
 import { FieldError, InlineAlert } from "../ui/StateViews";
+import Icon from "../ui/Icon";
 
 const EMPTY_FORM = { name: "", subject_code: "", section: "" };
 
@@ -80,6 +81,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
           </p>
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
             <button type="button" className="btn-secondary" onClick={copyCode}>
+              <Icon name={copied ? "tick" : "copy"} className="h-4 w-4" />
               {copied ? "Copied" : "Copy code"}
             </button>
             <button type="button" className="btn-primary" onClick={handleClose}>
@@ -117,6 +119,7 @@ export default function CreateClassModal({ isOpen, onClose, onSuccess }) {
               Cancel
             </button>
             <button type="submit" disabled={isLoading} className="btn-primary">
+              <Icon name="plus" className="h-4 w-4" />
               {isLoading ? "Creating…" : "Create class"}
             </button>
           </div>

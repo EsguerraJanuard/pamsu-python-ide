@@ -1,4 +1,5 @@
 import { Component } from "react";
+import Icon from "./ui/Icon";
 
 /**
  * Last-resort boundary so a rendering bug shows a branded recovery screen
@@ -33,6 +34,7 @@ export default class ErrorBoundary extends Component {
           </p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
+              <Icon name="refresh" className="h-4 w-4" />
               Reload page
             </button>
             <button type="button" className="btn-secondary" onClick={() => window.location.assign("/")}>

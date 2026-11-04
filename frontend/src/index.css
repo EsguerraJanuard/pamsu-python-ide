@@ -219,7 +219,14 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-bg-alt hover:text-text-main disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+    @apply gap-1.5 px-3 py-1.5 text-xs;
+  }
+  /* Icons (the Icon component) inside buttons: never squeezed by a long
+     label, and a 2px stroke so they carry the same weight as the semibold
+     text. Sizes: h-4 w-4, or h-3.5 w-3.5 in .btn-sm and .btn-row. */
+  :where(.btn-primary, .btn-secondary, .btn-danger, .btn-ghost, .btn-row) > svg[data-icon] {
+    flex-shrink: 0;
+    stroke-width: 2;
   }
   .card {
     @apply rounded-xl border border-border-subtle bg-bg-panel shadow-[var(--shadow-card)];

@@ -5,6 +5,7 @@ import PasswordInput from "../../components/ui/PasswordInput";
 import { FieldError, InlineAlert } from "../../components/ui/StateViews";
 import api, { getErrorMessage } from "../../services/api";
 import { useAuth } from "../auth/AuthContext";
+import Icon from "../../components/ui/Icon";
 
 /** Settings card with a title, an optional description and its content. */
 export function SettingsSection({ title, description, children, id }) {
@@ -272,7 +273,7 @@ export function ChangePasswordSection() {
         <div className="flex flex-col gap-3 border-t border-border-subtle bg-bg-alt/60 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-xs text-text-muted">You&apos;ll be signed out on all devices after the change.</p>
           <button type="submit" disabled={locked} className="btn-primary w-full sm:w-auto">
-            {isSaving && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />}
+            {isSaving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" /> : <Icon name="key" className="h-4 w-4" />}
             {isSaving ? "Updating…" : "Update password"}
           </button>
         </div>

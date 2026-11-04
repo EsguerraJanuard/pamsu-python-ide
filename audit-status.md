@@ -3241,3 +3241,38 @@ Continues the section above. Closes pending items 1, 4 and 6 from the list there
 - **Instructor Overview, same rule** (`InstructorDashboard.jsx`): it used the same all-classes call for the "Awaiting review" tile and the "Latest submissions" list. Now it makes one `review-queue?class_id=…&page_size=5` request per active class. The tile is the sum of their counts (caption "In active classes, not yet graded"). The list merges their items in the queue's own order (newest `submitted_at`, then highest `sub_id`) and keeps 5. Browser: tile 4 → 2, and the list shows only the active class's submissions; only the active class's queue is requested.
 - **Still including archived classes (not grading counts, left as is):** the Overview's "Recent activities" list and "Published activities" tile.
 - **Push:** frontend only; Vercel deploys it at once.
+
+## Button icons: one vocabulary across the app (2026-11-04)
+
+- **Foundation:**
+  - `Icon.jsx` gains `plus`, `save`, `arrowLeft` and `send`, and marks each svg with `data-icon`.
+  - `index.css`: icons inside `.btn-primary/-secondary/-danger/-ghost/-row` never shrink and get a 2px stroke, matching the semibold labels.
+  - `.btn-sm` gets `gap-1.5` (normal buttons keep `gap-2`).
+  - Sizes: `h-4 w-4`, or `h-3.5 w-3.5` in small buttons. Focus rings and hover states are unchanged (the base-layer `:focus-visible` outline).
+- **Vocabulary** (about 45 buttons in 27 files; hand-drawn inline SVGs in buttons replaced by `Icon`):
+
+  | Action | Icon | Examples |
+  |---|---|---|
+  | Create / new / add / join | `plus` | Create class, New activity, Add test case, Create Activity, Join a class |
+  | Save / update | `save` | Save grade, Save changes, Save settings, Save details, Save preference, Save module/task |
+  | Update password | `key` | Change password |
+  | Enroll | `students` / `userPlus` | Bulk enroll / Enroll students (Create account keeps `userPlus`) |
+  | Settings | `settings` | Class settings |
+  | Export | `download` | Export grades (CSV), Export CSV |
+  | Refresh / retry | `refresh` | Refresh now, Refresh, Try again, Reload page, Generate new code |
+  | Back | `arrowLeft` | Back to assignments/modules, All submissions, All students |
+  | Edit | `pencil` | Edit activity |
+  | Clear | `x` | Clear filters, Clear search |
+  | Other | `copy`/`tick`, `check`, `send`, `signOut`, `tick` | Copy code, Check structure, Submit, Sign Out, Mark all as read |
+
+  A spinner replaces the icon while a save is in progress.
+- **Left text-only on purpose:**
+  - dialog dismissals (Cancel, Close, OK, Done);
+  - plain navigation links (Open…, View…, Go to…, Manage, Grade, Details, Review submissions).
+
+  An icon on every Cancel or link would add noise without meaning.
+- **Checked:**
+  - `npx eslint src` clean; build passes.
+  - Browser (scratch SQLite): class view header, Overview header, Live Monitoring, Save grade and Export on the bench, student IDE toolbar.
+  - Computed styles: 16px icon, 2px stroke, 8px gap; small buttons 14px and 6px. No console errors.
+- **Push:** frontend only; Vercel deploys it at once.

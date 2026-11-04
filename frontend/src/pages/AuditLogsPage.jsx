@@ -6,6 +6,7 @@ import Pagination from "../components/ui/Pagination";
 import { EmptyState, ErrorState, PageHeader, SkeletonList } from "../components/ui/StateViews";
 import api from "../services/api";
 import { formatDateTime, humanize } from "../utils/format";
+import Icon from "../components/ui/Icon";
 
 const PAGE_SIZE = 15;
 
@@ -63,6 +64,7 @@ export default function AuditLogsPage({ role = "student" }) {
         description="A record of security and academic events on your account."
         actions={
           <button type="button" onClick={fetchAuditLogs} disabled={isLoading} className="btn-secondary btn-sm">
+            <Icon name="refresh" className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             {isLoading ? "Refreshing…" : "Refresh"}
           </button>
         }

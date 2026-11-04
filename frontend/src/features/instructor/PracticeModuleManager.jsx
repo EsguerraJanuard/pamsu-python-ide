@@ -7,6 +7,7 @@ import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import Modal from '../../components/ui/Modal';
 import { ErrorState, InlineAlert } from '../../components/ui/StateViews';
 import { AST_GROUPS } from '../../utils/astRules';
+import Icon from "../../components/ui/Icon";
 
 
 
@@ -515,7 +516,7 @@ export default function PracticeModuleManager() {
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle mt-6">
                 <button type="button" onClick={() => setIsModuleModalOpen(false)} className="rounded-lg border border-border-subtle bg-transparent px-4 py-2 text-sm font-semibold text-text-main hover:bg-bg-glass transition">Cancel</button>
-                <button type="submit" disabled={isSaving} className="btn-primary">{isSaving ? 'Saving…' : 'Save module'}</button>
+                <button type="submit" disabled={isSaving} className="btn-primary"><Icon name="save" className="h-4 w-4" />{isSaving ? 'Saving…' : 'Save module'}</button>
               </div>
             </form>
       </Modal>
@@ -530,7 +531,7 @@ export default function PracticeModuleManager() {
         footer={
           <>
             <button type="button" onClick={() => setIsTaskModalOpen(false)} disabled={isSaving} className="btn-secondary">Cancel</button>
-            <button type="submit" form="task-form" disabled={isSaving} className="btn-primary">{isSaving ? 'Saving…' : 'Save task'}</button>
+            <button type="submit" form="task-form" disabled={isSaving} className="btn-primary"><Icon name="save" className="h-4 w-4" />{isSaving ? 'Saving…' : 'Save task'}</button>
           </>
         }
       >

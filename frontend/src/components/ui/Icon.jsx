@@ -40,12 +40,20 @@ const ICONS = {
   clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
   eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12zM12 15a3 3 0 100-6 3 3 0 000 6z",
   eyeOff: "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22M14.12 14.12a3 3 0 11-4.24-4.24",
+  plus: "M12 5v14M5 12h14",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+  save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8",
+  send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
 };
 
-/** One stroke icon by name (see ICONS). Decorative: hidden from assistive tech. */
+/**
+ * One stroke icon by name (see ICONS). Decorative: hidden from assistive tech.
+ * Inside a .btn-* button, index.css gives it a 2px stroke to match the label
+ * weight; size it h-4 w-4 (h-3.5 w-3.5 in .btn-sm).
+ */
 export default function Icon({ name, className = "h-4 w-4", strokeWidth = 1.8 }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <svg data-icon={name} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       <path d={ICONS[name]} />
     </svg>
   );

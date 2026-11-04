@@ -9,6 +9,7 @@ import useApiQuery from "../../hooks/useApiQuery";
 import useUrlFilters from "../../hooks/useUrlFilters";
 import api, { getErrorMessage } from "../../services/api";
 import { updateCachedApi } from "../../services/queryClient";
+import Icon from "../../components/ui/Icon";
 
 const CLASSES_ENDPOINT = "/classrooms/";
 
@@ -107,6 +108,7 @@ export default function ClassManagement() {
         description="Create classes, share enrollment codes and manage rosters. Archived classes can be unarchived at any time."
         actions={
           <button type="button" onClick={() => setIsCreateOpen(true)} className="btn-primary">
+            <Icon name="plus" className="h-4 w-4" />
             Create class
           </button>
         }
@@ -142,6 +144,7 @@ export default function ClassManagement() {
           message="Create a class to generate an enrollment code for your students."
           action={
             <button type="button" className="btn-primary" onClick={() => setIsCreateOpen(true)}>
+              <Icon name="plus" className="h-4 w-4" />
               Create class
             </button>
           }
@@ -189,6 +192,7 @@ export default function ClassManagement() {
                 message={`No ${showingArchived ? "archived" : "active"} class matches “${filters.q.trim()}”.`}
                 action={
                   <button type="button" className="btn-secondary" onClick={() => setFilters({ q: "" })}>
+                    <Icon name="x" className="h-4 w-4" />
                     Clear search
                   </button>
                 }

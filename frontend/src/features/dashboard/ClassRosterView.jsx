@@ -134,9 +134,11 @@ export default function ClassRosterView() {
             actions={
               <>
                 <button type="button" onClick={() => setIsBulkOpen(true)} className="btn-secondary">
+                  <Icon name="students" className="h-4 w-4" />
                   Bulk enroll
                 </button>
                 <button type="button" onClick={() => setIsEditOpen(true)} className="btn-secondary">
+                  <Icon name="settings" className="h-4 w-4" />
                   Class settings
                 </button>
               </>
@@ -165,6 +167,7 @@ export default function ClassRosterView() {
                 message={`Share the enrollment code ${classroom.class_code} with your students, or enroll them in bulk.`}
                 action={
                   <button type="button" className="btn-primary" onClick={() => setIsBulkOpen(true)}>
+                    <Icon name="students" className="h-4 w-4" />
                     Bulk enroll
                   </button>
                 }
@@ -307,6 +310,7 @@ export default function ClassRosterView() {
             <>
               <div className="mb-4 flex justify-end">
                 <Link to={`/instructor/activities/create?class=${classId}`} className="btn-primary">
+                  <Icon name="plus" className="h-4 w-4" />
                   New activity for this class
                 </Link>
               </div>

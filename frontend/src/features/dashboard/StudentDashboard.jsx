@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from ".
 import { useAuth } from "../auth/AuthContext";
 import ActivityCard from "../student/ActivityCard";
 import { classLabel, isActiveActivity, loadStudentActivities } from "../student/studentData";
+import Icon from "../../components/ui/Icon";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -89,9 +90,7 @@ export default function StudentDashboard() {
         }
         actions={
           <button type="button" onClick={() => setIsJoinModalOpen(true)} className="btn-primary">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
+            <Icon name="plus" className="h-4 w-4" />
             Join a class
           </button>
         }
@@ -154,6 +153,7 @@ export default function StudentDashboard() {
                   message="Ask your instructor for a class code, then join to see your activities here."
                   action={
                     <button type="button" className="btn-primary" onClick={() => setIsJoinModalOpen(true)}>
+                      <Icon name="plus" className="h-4 w-4" />
                       Enter class code
                     </button>
                   }

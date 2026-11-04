@@ -979,6 +979,7 @@ function EditAccountModal({ user, onClose, onSaved }) {
             Cancel
           </button>
           <button type="submit" form={formId} className="btn-primary" disabled={isSaving || !anyChange}>
+            <Icon name="save" className="h-4 w-4" />
             {isSaving ? "Saving…" : "Save changes"}
           </button>
         </div>
@@ -2434,6 +2435,7 @@ export default function AdminDashboard() {
                           action={
                             audit.hasFilters && (
                               <button type="button" className="btn-secondary" onClick={audit.clearFilters}>
+                                <Icon name="x" className="h-4 w-4" />
                                 Clear filters
                               </button>
                             )
@@ -2475,6 +2477,7 @@ export default function AdminDashboard() {
                             </span>
                           )}
                           <button type="submit" className="btn-primary" disabled={isSavingSettings || !settingsDirty}>
+                            <Icon name="save" className="h-4 w-4" />
                             {isSavingSettings ? "Saving…" : "Save settings"}
                           </button>
                         </div>

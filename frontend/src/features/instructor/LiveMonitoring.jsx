@@ -9,6 +9,7 @@ import useApiQuery from "../../hooks/useApiQuery";
 import useUrlFilters from "../../hooks/useUrlFilters";
 import api from "../../services/api";
 import { classLabel } from "../../utils/format";
+import Icon from "../../components/ui/Icon";
 
 const POLL_MS = 10000;
 // Same window as LIVE_SESSION_WINDOW in backend/app/services/coding_session_service.py:
@@ -147,6 +148,7 @@ export default function LiveMonitoring() {
         description="Students working right now. Ended sessions, and sessions with no activity for 3 minutes, drop off. Refreshes every 10 seconds while this tab is visible."
         actions={
           <button type="button" onClick={fetchSessions} className="btn-secondary btn-sm">
+            <Icon name="refresh" className="h-3.5 w-3.5" />
             Refresh now
           </button>
         }

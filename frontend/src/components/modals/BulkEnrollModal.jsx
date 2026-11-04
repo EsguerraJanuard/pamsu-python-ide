@@ -3,6 +3,7 @@ import api, { getErrorMessage } from "../../services/api";
 import Modal from "../ui/Modal";
 import StatTile from "../ui/StatTile";
 import { FieldError, InlineAlert } from "../ui/StateViews";
+import Icon from "../ui/Icon";
 
 const EMAIL_PATTERN = /[a-zA-Z0-9_.+-]+@pampangastateu\.edu\.ph/gi;
 
@@ -187,6 +188,7 @@ export default function BulkEnrollModal({ isOpen, onClose, classId, onSuccess })
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary" disabled={isSubmitting || !emailsText.trim()}>
+                  <Icon name="userPlus" className="h-4 w-4" />
                   {isSubmitting ? "Enrolling…" : "Enroll students"}
                 </button>
               </div>

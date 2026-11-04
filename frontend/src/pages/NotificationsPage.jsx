@@ -6,6 +6,7 @@ import Pagination from "../components/ui/Pagination";
 import { EmptyState, ErrorState, InlineAlert, PageHeader, SkeletonList } from "../components/ui/StateViews";
 import api, { getErrorMessage } from "../services/api";
 import { formatDateTime } from "../utils/format";
+import Icon from "../components/ui/Icon";
 
 const PAGE_SIZE = 10;
 
@@ -110,6 +111,7 @@ export default function NotificationsPage({ role = "student" }) {
             disabled={isMarkingAll || unreadCount === 0 || Boolean(error)}
             className="btn-secondary btn-sm"
           >
+            <Icon name="tick" className="h-3.5 w-3.5" />
             {isMarkingAll ? "Updating…" : "Mark all as read"}
           </button>
         }

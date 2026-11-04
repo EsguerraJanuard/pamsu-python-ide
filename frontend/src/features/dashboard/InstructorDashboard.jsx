@@ -9,6 +9,7 @@ import api from "../../services/api";
 import { cachedGet } from "../../services/queryClient";
 import { classLabel, formatDateTime } from "../../utils/format";
 import { useAuth } from "../auth/AuthContext";
+import Icon from "../../components/ui/Icon";
 
 const LATEST_SUBMISSIONS = 5;
 const toReview = (counts) => (counts ? (counts.submitted || 0) + (counts.awaiting_review || 0) : 0);
@@ -80,9 +81,11 @@ export default function InstructorDashboard() {
         actions={
           <>
             <Link to="/instructor/activities/create" className="btn-secondary">
+              <Icon name="plus" className="h-4 w-4" />
               New activity
             </Link>
             <button type="button" onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
+              <Icon name="plus" className="h-4 w-4" />
               Create class
             </button>
           </>
@@ -140,6 +143,7 @@ export default function InstructorDashboard() {
                   message="Classes generate an enrollment code for students. Activities are assigned to classes."
                   action={
                     <button type="button" className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>
+                      <Icon name="plus" className="h-4 w-4" />
                       Create class
                     </button>
                   }
@@ -150,6 +154,7 @@ export default function InstructorDashboard() {
                   message="Author a laboratory or homework activity and assign it to your classes."
                   action={
                     <Link to="/instructor/activities/create" className="btn-primary">
+                      <Icon name="plus" className="h-4 w-4" />
                       New activity
                     </Link>
                   }

@@ -168,6 +168,7 @@ export default function ActivityDetails() {
         actions={
           <>
             <Link to={`/instructor/activities/${activity.task_id}/edit`} className="btn-secondary">
+              <Icon name="pencil" className="h-4 w-4" />
               Edit activity
             </Link>
             {isPublished && (
@@ -355,6 +356,7 @@ export default function ActivityDetails() {
                     Hidden from students
                   </label>
                   <button type="submit" disabled={isAddingCase} className="btn-primary">
+                    <Icon name="plus" className="h-4 w-4" />
                     {isAddingCase ? "Adding…" : "Add test case"}
                   </button>
                 </div>

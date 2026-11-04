@@ -6,6 +6,7 @@ import JoinClassModal from "../../components/modals/JoinClassModal";
 import { EmptyState, ErrorState, InlineAlert, PageHeader } from "../../components/ui/StateViews";
 import { cachedGet } from "../../services/queryClient";
 import { formatDate } from "../student/studentData";
+import Icon from "../../components/ui/Icon";
 
 const ENROLLMENT_STATUS = {
   active: { label: "Enrolled", badge: "badge-success" },
@@ -39,9 +40,7 @@ export default function MyClasses() {
 
   const joinButton = (
     <button type="button" onClick={() => setIsJoinModalOpen(true)} className="btn-primary">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
+      <Icon name="plus" className="h-4 w-4" />
       Join a class
     </button>
   );

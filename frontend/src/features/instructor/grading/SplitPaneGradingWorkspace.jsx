@@ -519,7 +519,7 @@ function SubmissionReview({ submission, task, onGraded }) {
             </div>
           </div>
           <button type="submit" disabled={isSaving} className="btn-primary w-full px-5 sm:w-auto sm:min-w-[8.5rem]">
-            {isSaving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />}
+            {isSaving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" /> : <Icon name="save" className="h-4 w-4" />}
             {isSaving ? "Saving…" : "Save grade"}
           </button>
         </div>
@@ -833,6 +833,7 @@ export default function SplitPaneGradingWorkspace() {
                       <p className="text-xs text-text-muted">{[selectedStudent.school_id, selectedStudent.email].filter(Boolean).join(" · ")}</p>
                     </div>
                     <button type="button" onClick={() => setSelectedStudentId(null)} className="btn-ghost btn-sm lg:hidden">
+                      <Icon name="arrowLeft" className="h-3.5 w-3.5" />
                       All students
                     </button>
                   </div>

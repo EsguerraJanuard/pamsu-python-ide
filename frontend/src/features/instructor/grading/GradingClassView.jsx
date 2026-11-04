@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, PageHeader, SkeletonList } from "../../../compo
 import api from "../../../services/api";
 import { classLabel, formatDateTime } from "../../../utils/format";
 import ProgressMeter from "./ProgressMeter";
+import Icon from "../../../components/ui/Icon";
 
 export default function GradingClassView() {
   const { classId } = useParams();
@@ -85,6 +86,7 @@ export default function GradingClassView() {
               message="Create and publish an activity to start receiving submissions."
               action={
                 <Link to={`/instructor/activities/create?class=${classId}`} className="btn-primary">
+                  <Icon name="plus" className="h-4 w-4" />
                   New activity
                 </Link>
               }

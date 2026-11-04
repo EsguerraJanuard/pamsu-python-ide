@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api, { getErrorMessage } from "../../services/api";
 import Modal from "../ui/Modal";
 import { FieldError, InlineAlert } from "../ui/StateViews";
+import Icon from "../ui/Icon";
 
 const FIELDS = [
   // Same example values as the create-class form.
@@ -111,6 +112,7 @@ export default function EditClassModal({ isOpen, onClose, classroom, onSuccess }
         ))}
         <div className="flex justify-end">
           <button type="submit" disabled={busy} className="btn-primary">
+            <Icon name="save" className="h-4 w-4" />
             {isSaving ? "Saving…" : "Save details"}
           </button>
         </div>
@@ -124,6 +126,7 @@ export default function EditClassModal({ isOpen, onClose, classroom, onSuccess }
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-text-main">Replace the current code?</span>
             <button type="button" onClick={handleRegenerate} disabled={busy} className="btn-danger btn-sm">
+              <Icon name="refresh" className={`h-3.5 w-3.5 ${isRegenerating ? "animate-spin" : ""}`} />
               {isRegenerating ? "Generating…" : "Yes, generate new code"}
             </button>
             <button type="button" onClick={() => setConfirmRegenerate(false)} disabled={busy} className="btn-ghost btn-sm">
@@ -132,6 +135,7 @@ export default function EditClassModal({ isOpen, onClose, classroom, onSuccess }
           </div>
         ) : (
           <button type="button" onClick={() => setConfirmRegenerate(true)} disabled={busy} className="btn-secondary btn-sm mt-3">
+            <Icon name="refresh" className="h-3.5 w-3.5" />
             Generate new code
           </button>
         )}
