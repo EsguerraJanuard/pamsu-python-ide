@@ -74,9 +74,9 @@ function getPasswordStrength(password) {
 const EMPTY_PASSWORDS = { currentPassword: "", newPassword: "", confirmPassword: "" };
 
 const PASSWORD_FIELDS = [
-  { key: "currentPassword", id: "current-password", label: "Current password", autoComplete: "current-password" },
-  { key: "newPassword", id: "new-password", label: "New password", autoComplete: "new-password" },
-  { key: "confirmPassword", id: "confirm-new-password", label: "Confirm new password", autoComplete: "new-password" },
+  { key: "currentPassword", id: "current-password", label: "Current password", autoComplete: "current-password", placeholder: "Enter your current password" },
+  { key: "newPassword", id: "new-password", label: "New password", autoComplete: "new-password", placeholder: "At least 8 characters" },
+  { key: "confirmPassword", id: "confirm-new-password", label: "Confirm new password", autoComplete: "new-password", placeholder: "Type the new password again" },
 ];
 
 function LockIcon() {
@@ -255,6 +255,7 @@ export function ChangePasswordSection() {
                     value={passwords[field.key]}
                     onChange={(event) => update(field.key, event.target.value)}
                     autoComplete={field.autoComplete}
+                    placeholder={field.placeholder}
                     aria-invalid={Boolean(fieldErrors[field.key])}
                     aria-describedby={fieldErrors[field.key] ? `${field.id}-error` : undefined}
                     disabled={locked}

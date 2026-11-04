@@ -89,7 +89,7 @@ def test_creates_accounts_with_identity_exactly_as_given(client, db_session, adm
         admin,
         csv_bytes(
             f"2023304120{DOMAIN},2023304120,Juan Dela Cruz",
-            f"maria.santos{DOMAIN},2023-00042,Maria   Santos",
+            f"maria.santos{DOMAIN},2023000042,Maria   Santos",
         ),
     )
 
@@ -101,7 +101,7 @@ def test_creates_accounts_with_identity_exactly_as_given(client, db_session, adm
     created = {user.email: user for user in students(db_session)}
     assert created[f"2023304120{DOMAIN}"].school_id == "2023304120"
     assert created[f"2023304120{DOMAIN}"].name == "Juan Dela Cruz"
-    assert created[f"maria.santos{DOMAIN}"].school_id == "2023-00042"
+    assert created[f"maria.santos{DOMAIN}"].school_id == "2023000042"
     assert created[f"maria.santos{DOMAIN}"].name == "Maria Santos"
     assert all(user.email_verified and user.is_active for user in created.values())
 
@@ -147,6 +147,8 @@ def test_first_and_last_name_columns_are_combined(client, db_session, admin, sen
     [
         ("someone@gmail.com,2023000001,Outside Domain", "pampangastateu.edu.ph"),
         (f"short{DOMAIN},12345,Short Id", "10 digits"),
+        # PSU student numbers never contain a hyphen (2026-11-04).
+        (f"hyphen{DOMAIN},2023-00042,Hyphen Id", "no hyphen"),
         (f"noname{DOMAIN},2023000001,", "Missing name."),
         (f"long{DOMAIN},2023000001," + "x" * 151, "150 characters"),
     ],

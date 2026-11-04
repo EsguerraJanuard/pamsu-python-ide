@@ -26,7 +26,11 @@ const RECENT_ACTIVITY_COUNT = 6;
 // after the 15 s default (QA ADM-27).
 const SETTINGS_SAVE_TIMEOUT_MS = 90000;
 const SCHOOL_EMAIL = /^[^\s@]+@pampangastateu\.edu\.ph$/i;
-const SCHOOL_ID = /^(\d{10}|\d{4}-\d{5})$/;
+// PSU student numbers: 10 digits, no hyphen (same rule as the backend).
+const SCHOOL_ID = /^\d{10}$/;
+const SCHOOL_ID_HINT = "Enter the 10-digit School ID with no hyphen, e.g. 2026000001.";
+// Example values shown in the empty name fields.
+const NAME_PLACEHOLDERS = { first_name: "e.g. Juan", middle_name: "e.g. Dela Cruz", last_name: "e.g. Santos" };
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -592,7 +596,7 @@ function ProvisionForm({ role, onCreated, onTemporaryPassword }) {
     if (!form.last_name.trim()) next.last_name = "Last name is required.";
     const fullName = [form.first_name, form.middle_name, form.last_name].map((part) => part.trim()).filter(Boolean).join(" ");
     if (fullName.length > 150) next.last_name = "The full name must be at most 150 characters.";
-    if (isStudent && !SCHOOL_ID.test(form.school_id.trim())) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
+    if (isStudent && !SCHOOL_ID.test(form.school_id.trim())) next.school_id = SCHOOL_ID_HINT;
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -670,15 +674,15 @@ function ProvisionForm({ role, onCreated, onTemporaryPassword }) {
         <div className="grid grid-cols-1 gap-5 @xl:grid-cols-2">
           <TextField id={`${prefix}-email`} label="University email" type="email" autoComplete="off" placeholder="name@pampangastateu.edu.ph" value={form.email} onChange={set("email")} error={errors.email} disabled={isSaving} />
           {isStudent ? (
-            <TextField id={`${prefix}-school-id`} label="School ID" placeholder="2026000001 or 2026-00001" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />
+            <TextField id={`${prefix}-school-id`} label="School ID" placeholder="e.g. 2026000001" inputMode="numeric" maxLength={10} autoComplete="off" value={form.school_id} onChange={set("school_id")} error={errors.school_id} disabled={isSaving} />
           ) : (
             <NoPasswordNote who={who} />
           )}
         </div>
         <div className="grid grid-cols-1 gap-5 rounded-lg border border-border-subtle bg-bg-alt/40 p-4 @xl:grid-cols-3">
-          <TextField id={`${prefix}-first`} label="First name" value={form.first_name} onChange={set("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} />
-          <TextField id={`${prefix}-middle`} label="Middle name (optional)" value={form.middle_name} onChange={set("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} />
-          <TextField id={`${prefix}-last`} label="Last name" value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} />
+          <TextField id={`${prefix}-first`} label="First name" placeholder={NAME_PLACEHOLDERS.first_name} value={form.first_name} onChange={set("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} />
+          <TextField id={`${prefix}-middle`} label="Middle name (optional)" placeholder={NAME_PLACEHOLDERS.middle_name} value={form.middle_name} onChange={set("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} />
+          <TextField id={`${prefix}-last`} label="Last name" placeholder={NAME_PLACEHOLDERS.last_name} value={form.last_name} onChange={set("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} />
         </div>
         {isStudent && <NoPasswordNote who={who} />}
       </div>
@@ -927,7 +931,7 @@ function EditAccountModal({ user, onClose, onSaved }) {
     if (trimmedName.length > 150) next.last_name = "The full name must be at most 150 characters.";
     if (!SCHOOL_EMAIL.test(trimmedEmail)) next.email = "Use an @pampangastateu.edu.ph email address.";
     else if (trimmedEmail.startsWith("guest_")) next.email = "Addresses starting with guest_ are reserved for guest accounts.";
-    if (schoolIdChanged && !SCHOOL_ID.test(trimmedSchoolId)) next.school_id = "Use a 10-digit ID or the format 2026-00001.";
+    if (schoolIdChanged && !SCHOOL_ID.test(trimmedSchoolId)) next.school_id = SCHOOL_ID_HINT;
     setErrors(next);
     if (Object.keys(next).length || !anyChange) return;
 
@@ -1018,7 +1022,8 @@ function EditAccountModal({ user, onClose, onSaved }) {
                 id="admin-edit-school-id"
                 label="School ID"
                 className="input-field py-2.5 font-mono"
-                placeholder="2026000001 or 2026-00001"
+                placeholder="e.g. 2026000001"
+                inputMode="numeric"
                 maxLength={10}
                 value={schoolId}
                 onChange={(e) => {
@@ -1033,9 +1038,9 @@ function EditAccountModal({ user, onClose, onSaved }) {
             )}
           </div>
           <div className="grid grid-cols-1 gap-5 rounded-lg border border-border-subtle bg-bg-alt/40 p-4 sm:grid-cols-3">
-            <TextField id="admin-edit-first" label="First name" value={nameParts.first_name} onChange={setNamePart("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} autoComplete="off" />
-            <TextField id="admin-edit-middle" label="Middle name (optional)" value={nameParts.middle_name} onChange={setNamePart("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} autoComplete="off" />
-            <TextField id="admin-edit-last" label="Last name" value={nameParts.last_name} onChange={setNamePart("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} autoComplete="off" />
+            <TextField id="admin-edit-first" label="First name" placeholder={NAME_PLACEHOLDERS.first_name} value={nameParts.first_name} onChange={setNamePart("first_name")} error={errors.first_name} disabled={isSaving} maxLength={70} autoComplete="off" />
+            <TextField id="admin-edit-middle" label="Middle name (optional)" placeholder={NAME_PLACEHOLDERS.middle_name} value={nameParts.middle_name} onChange={setNamePart("middle_name")} error={errors.middle_name} disabled={isSaving} maxLength={70} autoComplete="off" />
+            <TextField id="admin-edit-last" label="Last name" placeholder={NAME_PLACEHOLDERS.last_name} value={nameParts.last_name} onChange={setNamePart("last_name")} error={errors.last_name} disabled={isSaving} maxLength={70} autoComplete="off" />
           </div>
           {nameChanged && !errors.first_name && !errors.last_name && (
             <p className="-mt-2 text-xs text-text-muted">

@@ -67,8 +67,8 @@ def audits(db: Session, action: str) -> list[AuditRecord]:
 # ------------------------------------------------------------ school ID
 
 
-@pytest.mark.parametrize("new_id", ["2026009999", "2026-09999"])
-def test_mis_can_correct_a_student_school_id(client, db_session, people, new_id):
+def test_mis_can_correct_a_student_school_id(client, db_session, people):
+    new_id = "2026009999"
     student = people["student"]
 
     response = client.patch(f"/admin/users/{student.user_id}", headers=auth(people["admin"]),
@@ -104,12 +104,24 @@ def test_faculty_school_ids_stay_placeholders(client, db_session, people):
     assert db_session.get(User, people["instructor"].user_id).school_id == "FAC0000001"
 
 
-@pytest.mark.parametrize("bad", ["12345", "GST1234567", "2026_00001", "20260000011"])
+# "2026-09999": PSU student numbers never contain a hyphen (2026-11-04).
+@pytest.mark.parametrize("bad", ["12345", "GST1234567", "2026_00001", "20260000011", "2026-09999"])
 def test_school_ids_must_be_student_numbers(client, people, bad):
     response = client.patch(f"/admin/users/{people['student'].user_id}", headers=auth(people["admin"]),
                             json={"school_id": bad})
 
     assert response.status_code == 422
+
+
+def test_new_students_need_a_ten_digit_school_id_without_hyphen(client, db_session, people):
+    payload = {"email": f"new.student{DOMAIN}", "first_name": "New", "last_name": "Student"}
+
+    hyphen = client.post("/admin/students", headers=auth(people["admin"]), json={**payload, "school_id": "2026-00001"})
+    plain = client.post("/admin/students", headers=auth(people["admin"]), json={**payload, "school_id": "2026000101"})
+
+    assert hyphen.status_code == 422
+    assert plain.status_code == 200, plain.text
+    assert db_session.query(User).filter(User.email == f"new.student{DOMAIN}").one().school_id == "2026000101"
 
 
 def test_guest_school_ids_cannot_be_edited(client, people):

@@ -19,7 +19,7 @@ from app.schemas.audit_schema import AuditActionType
 from app.schemas.enrollment_schema import PendingEnrollmentResult
 from app.services.classroom_service import (StudentNotEligibleForEnrollmentError,
                                             apply_pending_enrollments)
-from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
+from app.schemas.user_schema import STUDENT_SCHOOL_ID_PATTERN, UNIVERSITY_EMAIL_DOMAIN
 from app.core.system_settings import get_default_ast_strictness
 from fastapi import APIRouter, Depends, BackgroundTasks, File, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -138,9 +138,6 @@ class _AccountCreateBase(BaseModel):
     def full_name(self) -> str:
         parts = (self.first_name, self.middle_name or "", self.last_name)
         return " ".join(" ".join(parts).split())
-
-
-STUDENT_SCHOOL_ID_PATTERN = r"^(\d{10}|\d{4}-\d{5})$"
 
 
 class InstructorCreate(_AccountCreateBase):

@@ -318,6 +318,7 @@ export default function ActivityDetails() {
                       id="tc-input"
                       value={newCase.standard_input}
                       onChange={(e) => setNewCase((p) => ({ ...p, standard_input: e.target.value }))}
+                      placeholder="Values the program reads, one per line"
                       className="input-field h-28 resize-y font-mono text-xs"
                       disabled={isAddingCase}
                     />
@@ -335,6 +336,7 @@ export default function ActivityDetails() {
                       }}
                       aria-invalid={Boolean(caseErrors.expected_output)}
                       aria-describedby={caseErrors.expected_output ? "tc-output-error" : undefined}
+                      placeholder="Exactly what the program should print"
                       className="input-field h-28 resize-y font-mono text-xs"
                       disabled={isAddingCase}
                     />

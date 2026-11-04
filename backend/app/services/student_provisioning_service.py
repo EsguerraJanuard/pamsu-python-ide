@@ -283,7 +283,7 @@ def _describe_validation_error(error: ValidationError, row: _ParsedRow) -> str:
         if not row.values.get("school_id", "").strip():
             return "Missing school ID."
 
-        reason = "School ID must be 10 digits or the ####-##### format."
+        reason = "School ID must be exactly 10 digits with no hyphen, for example 2026000001."
 
         if row.numeric_school_id:
             reason += (

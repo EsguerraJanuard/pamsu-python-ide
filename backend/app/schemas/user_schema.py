@@ -6,13 +6,19 @@ from pydantic import (BaseModel, ConfigDict, Field, field_validator,
 
 UNIVERSITY_EMAIL_DOMAIN = "@pampangastateu.edu.ph"
 
+# PSU student numbers are 10 digits with no hyphen (2026000001). Every place
+# that accepts a new or changed School ID uses this. Response schemas still
+# accept the older "2026-00001" form, so a record saved before 2026-11-04
+# keeps displaying instead of failing the response.
+STUDENT_SCHOOL_ID_PATTERN = r"^\d{10}$"
+
 # Values understood by ast_evaluator.evaluate_ast_details().
 AstStrictnessLevel = Literal["lax", "moderate", "strict"]
 
 
 class UserBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
-    school_id: str = Field(..., pattern=r"^(\d{10}|\d{4}-\d{5})$")
+    school_id: str = Field(..., pattern=STUDENT_SCHOOL_ID_PATTERN)
     academic_integrity_score: float = Field(default=100.0)
     email: str = Field(..., min_length=1, max_length=255)
 

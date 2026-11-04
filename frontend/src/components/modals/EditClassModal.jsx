@@ -4,9 +4,10 @@ import Modal from "../ui/Modal";
 import { FieldError, InlineAlert } from "../ui/StateViews";
 
 const FIELDS = [
-  { name: "name", label: "Class name", required: true },
-  { name: "subject_code", label: "Subject code", required: false },
-  { name: "section", label: "Section", required: false },
+  // Same example values as the create-class form.
+  { name: "name", label: "Class name", required: true, placeholder: "e.g. Computer Programming 1" },
+  { name: "subject_code", label: "Subject code", required: false, placeholder: "e.g. CCS101" },
+  { name: "section", label: "Section", required: false, placeholder: "e.g. BSCS 1A" },
 ];
 
 export default function EditClassModal({ isOpen, onClose, classroom, onSuccess }) {
@@ -94,6 +95,7 @@ export default function EditClassModal({ isOpen, onClose, classroom, onSuccess }
             <input
               id={`edit-class-${field.name}`}
               type="text"
+              placeholder={field.placeholder}
               value={form[field.name]}
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, [field.name]: e.target.value }));
