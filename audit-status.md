@@ -3190,3 +3190,44 @@ Continues the section above. Closes pending items 1, 4 and 6 from the list there
 ### What a push does
 - **Vercel (at once):** queue rows show the student's email on its own line. The instructor name, the sort control and Approve all ready appear only once the backend has them.
 - **Render (Errol's Manual Deploy):** the new endpoint and sorting turn on. **No migration.**
+
+## School ID format and form placeholders (2026-11-04)
+
+### Overall progress
+1. **School IDs are 10 digits with no hyphen** (owner: PSU student numbers never contain one).
+   - Before: the admin forms (`/^(\d{10}|\d{4}-\d{5})$/`) and the backend (`StudentCreate`, `AccountUpdate`, `UserBase` for masterlist rows and the old registration schema) also accepted `2026-00001`. The form placeholder suggested it.
+   - Now: one shared rule, `STUDENT_SCHOOL_ID_PATTERN = r"^\d{10}$"` in `app/schemas/user_schema.py`, used by every input path. The admin forms use the same rule and say "Enter the 10-digit School ID with no hyphen, e.g. 2026000001." Masterlist rows fail with "School ID must be exactly 10 digits with no hyphen, for example 2026000001."
+   - **Output schemas unchanged** (`ClassMemberResponse`, gradebook, reporting, review queue still accept the old form), so a record saved earlier keeps displaying instead of failing the response.
+   - School ID fields: placeholder `e.g. 2026000001`, `inputMode="numeric"`, at most 10 characters.
+2. **Placeholders** (the app's existing `e.g. X` style, no comma):
+   - Create faculty / create student / Edit account name fields: `e.g. Juan`, `e.g. Dela Cruz`, `e.g. Santos`.
+   - Class settings dialog: the create-class examples (`e.g. Computer Programming 1`, `e.g. CCS101`, `e.g. BSCS 1A`).
+   - Activity page, new test case: standard input "Values the program reads, one per line"; expected output "Exactly what the program should print".
+   - Change password: "Enter your current password", "At least 8 characters", "Type the new password again".
+3. **Scan of every text field in `frontend/src`.** Left without a placeholder on purpose:
+   - the grading Score box (a grey example number could be misread as an entered grade);
+   - read-only profile fields (they always show a value);
+   - `Register.jsx` (not routed: `/register` redirects to `/login`).
+   - Editor Settings has only a slider.
+
+### Verified
+- Backend: hyphenated ID refused by `POST /admin/students` (422), by `PATCH /admin/users/{id}` (422) and in a masterlist row ("no hyphen"); a 10-digit ID is accepted. 170 related tests pass; full suite below.
+- Browser (scratch SQLite): `2026-00001` is blocked under the School ID field and nothing is created; `2026000201` creates the account. Placeholders appear on the student form, faculty form, Edit dialog, Change password and Class settings. No console errors; production build passes.
+
+### Files modified (tracked)
+- `backend/app/schemas/user_schema.py`, `backend/app/routers/admin.py`, `backend/app/services/student_provisioning_service.py`: the 10-digit rule and its message.
+- `backend/tests/test_masterlist_import.py`, `backend/tests/test_mis_enrollment_followups.py`: hyphenated IDs now refused; new create-form test.
+- `frontend/src/features/admin/AdminDashboard.jsx`, `frontend/src/components/modals/EditClassModal.jsx`, `frontend/src/features/instructor/ActivityDetails.jsx`, `frontend/src/features/settings/AccountSections.jsx`: placeholders and the School ID rule.
+- `audit-status.md`: this section.
+
+### What a push does
+- **Vercel (at once):** the placeholders, and the admin forms refuse hyphenated IDs.
+- **Render (Errol's Manual Deploy, same deploy as `e18299c`):** the backend refuses hyphenated IDs too, including masterlist rows. **No migration.**
+
+## Grading Bench card badges and dropdown focus ring (2026-11-04)
+
+- **Grading Bench class cards** (`GradingBenchRoot.jsx`): the subject, section and Archived badges sit in their own wrapping group (`gap-x-2 gap-y-1.5`); "N to review" stays top-right (`justify-between`, `shrink-0`, no wrapping). Before, a third badge pushed "to review" alone onto a second line.
+- **Dropdowns** (`CustomSelect.jsx`, used across the app): Live Monitoring already used it, but it hard-coded maroon for hover and focus, which barely shows on the dark theme. It now uses the same theme tokens as `.input-field` (maroon in light mode, gold in dark mode) for border, hover and `focus:ring-2`. It also gets `shadow-sm`, keeps the ring while the list is open, and the chevron turns brand-colored when open.
+- **Live Monitoring filters:** quieter labels (`text-sm font-medium tracking-wide text-text-muted`) and taller selects (`h-11`); side by side from `sm`, stacked below.
+- **Browser** (scratch SQLite, instructor with an archived class and pending reviews): card badges at desktop and 375 px; the dropdown open and focused in dark and light; filters stacked at 375 px. No console errors; build passes.
+- **Push:** frontend only, so Vercel deploys it at once. Nothing waits on Render.

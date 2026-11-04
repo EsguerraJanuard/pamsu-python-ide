@@ -101,12 +101,15 @@ export default function GradingBenchRoot() {
                   to={`/instructor/bench/${cls.class_id}`}
                   className="card group flex h-full flex-col p-5 transition-[border-color,box-shadow] hover:border-psu-maroon/30 hover:shadow-md"
                 >
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    {cls.subject_code && <span className="badge badge-brand">{cls.subject_code}</span>}
-                    {cls.section && <span className="badge badge-neutral">Section {cls.section}</span>}
-                    {!cls.is_active && <span className="badge badge-neutral">Archived</span>}
+                  {/* Meta badges wrap among themselves on the left; the review count stays top-right. */}
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+                      {cls.subject_code && <span className="badge badge-brand whitespace-nowrap">{cls.subject_code}</span>}
+                      {cls.section && <span className="badge badge-neutral whitespace-nowrap">Section {cls.section}</span>}
+                      {!cls.is_active && <span className="badge badge-neutral whitespace-nowrap">Archived</span>}
+                    </div>
                     {waiting > 0 && (
-                      <span className="badge badge-gold ml-auto">
+                      <span className="badge badge-gold shrink-0 whitespace-nowrap">
                         <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
                         {waiting} to review
                       </span>

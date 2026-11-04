@@ -139,15 +139,19 @@ export default function CustomSelect({
         aria-activedescendant={isOpen && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
         onClick={() => (isOpen ? setIsOpen(false) : open())}
         onKeyDown={handleKeyDown}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-border-strong bg-bg-panel text-left text-text-main transition-colors hover:border-psu-maroon/40 focus:border-psu-maroon focus:outline-none focus:ring-2 focus:ring-psu-maroon/15 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted ${
-          className || "px-3 py-2 text-sm"
-        }`}
+        // Same border, hover and focus ring as .input-field, from the theme tokens
+        // (maroon in light mode, gold in dark mode); the ring also shows while open.
+        className={`group flex w-full items-center justify-between gap-2 rounded-lg border border-border-strong bg-bg-panel text-left text-text-main shadow-sm transition-[border-color,box-shadow] hover:border-text-muted/60 focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-border-focus/20 disabled:cursor-not-allowed disabled:bg-bg-alt disabled:text-text-muted disabled:shadow-none ${
+          isOpen ? "border-border-focus ring-2 ring-border-focus/20" : ""
+        } ${className || "px-3 py-2 text-sm"}`}
       >
         <span className={`truncate ${selectedOption ? "text-text-main" : "text-text-muted"}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <svg
-          className={`h-4 w-4 shrink-0 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 transition-[transform,color] duration-150 ${
+            isOpen ? "rotate-180 text-text-brand" : "text-text-muted group-hover:text-text-main"
+          }`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

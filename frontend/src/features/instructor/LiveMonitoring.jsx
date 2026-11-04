@@ -17,6 +17,9 @@ const LIVE_WINDOW_MS = 3 * 60 * 1000;
 
 // ?activity=12&class=BSIT%201A — kept in the URL so a reload keeps the view.
 const FILTER_DEFAULTS = { activity: "all", class: "all" };
+// Filter bar: quieter labels than form fields, and taller selects.
+const FILTER_LABEL = "mb-1.5 block text-sm font-medium tracking-wide text-text-muted";
+const FILTER_SELECT = "h-11 px-3.5 text-sm";
 
 function isQuiet(session, now) {
   const quietFor = now - new Date(session.last_activity_at).getTime();
@@ -149,19 +152,20 @@ export default function LiveMonitoring() {
         }
       />
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-3xl">
-        <div>
-          <label htmlFor="monitor-scope" className="field-label">
+      {/* Side by side from the sm breakpoint, stacked below it. */}
+      <div className="mb-5 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:max-w-3xl">
+        <div className="min-w-0">
+          <label htmlFor="monitor-scope" className={FILTER_LABEL}>
             Activity
           </label>
-          <CustomSelect id="monitor-scope" value={scope} onChange={setScope} options={taskOptions} />
+          <CustomSelect id="monitor-scope" value={scope} onChange={setScope} options={taskOptions} className={FILTER_SELECT} />
         </div>
         {scope === "all" && (
-          <div>
-            <label htmlFor="monitor-class" className="field-label">
+          <div className="min-w-0">
+            <label htmlFor="monitor-class" className={FILTER_LABEL}>
               Class
             </label>
-            <CustomSelect id="monitor-class" value={classFilter} onChange={setClassFilter} options={classOptions} />
+            <CustomSelect id="monitor-class" value={classFilter} onChange={setClassFilter} options={classOptions} className={FILTER_SELECT} />
           </div>
         )}
       </div>
