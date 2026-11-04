@@ -167,6 +167,19 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
   return data;
 };
 
+export const MAINTENANCE_MESSAGE = 'The platform is currently undergoing maintenance. Student access is temporarily paused.';
+
+/**
+ * True when MIS has maintenance mode on: the backend refuses students with
+ * 503 and a detail that names maintenance (auth.py, security.py). A bare 503
+ * (the host is down or restarting) stays a server error.
+ */
+export const isMaintenanceError = (error) =>
+  error instanceof ApiError &&
+  error.status === 503 &&
+  typeof error.data?.detail === 'string' &&
+  /maintenance/i.test(error.data.detail);
+
 /**
  * Classifies any thrown error into a user-facing category so pages can render
  * an honest state instead of a generic "failed" message. Raw backend internals
@@ -175,6 +188,13 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
 export const describeApiError = (error, { resource = 'this information' } = {}) => {
   const status = error instanceof ApiError ? error.status : -1;
 
+  if (isMaintenanceError(error)) {
+    return {
+      kind: 'maintenance',
+      title: 'Maintenance in progress',
+      message: `${MAINTENANCE_MESSAGE} Please check back later.`,
+    };
+  }
   if (status === NETWORK_ERROR_STATUS) {
     return {
       kind: 'unavailable',
@@ -243,6 +263,7 @@ export const describeApiError = (error, { resource = 'this information' } = {}) 
 /** Short, single-line message for inline action failures (save, delete, etc.). */
 export const getErrorMessage = (error, fallback = 'Something went wrong. Please try again.') => {
   if (!(error instanceof ApiError)) return fallback;
+  if (isMaintenanceError(error)) return MAINTENANCE_MESSAGE;
   if (error.status >= 500) return 'The server ran into a problem. Please try again later.';
   return error.message || fallback;
 };

@@ -3276,3 +3276,18 @@ Continues the section above. Closes pending items 1, 4 and 6 from the list there
   - Browser (scratch SQLite): class view header, Overview header, Live Monitoring, Save grade and Export on the bench, student IDE toolbar.
   - Computed styles: 16px icon, 2px stroke, 8px gap; small buttons 14px and 6px. No console errors.
 - **Push:** frontend only; Vercel deploys it at once.
+
+## Maintenance mode: a notice, not a server error (2026-11-04)
+
+- **Backend (unchanged):** during maintenance, `POST /login` (students), `POST /guest`, and student requests made with an older token already return **503** with the detail "The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time." (`auth.py`, `security.py`). New test `test_maintenance_mode_sign_in_refusal_is_recognizable` pins that contract (503 and a detail naming maintenance, for student, guest and older-token requests; instructors still sign in).
+- **Frontend:**
+  - Before: every 5xx was shown as "The server ran into a problem…". That applied to sign-in, guest ("Guest access is temporarily unavailable") and signed-in pages ("Server error"), so a planned maintenance looked like a crash.
+  - `api.js` gains `isMaintenanceError()`: a 503 **and** a detail that names maintenance. A bare 503 from the host (down or restarting) stays a server error. It also gains `MAINTENANCE_MESSAGE` ("The platform is currently undergoing maintenance. Student access is temporarily paused.").
+  - `describeApiError` (kind `maintenance`, "Maintenance in progress") and `getErrorMessage` use them, so every page says so.
+  - `Login.jsx`: an amber notice with a wrench icon for password and guest sign-in, plus "Please check back later. Instructors and MIS staff can still sign in." It replaces the red error banner.
+  - `ErrorState`: amber panel with a wrench for this kind (`role="status"`), still with Try again.
+- **Works with the backend already in production:** no Render deploy needed.
+- **Checked:**
+  - Backend: 62 tests (maintenance, guest, settings suites).
+  - Browser, scratch SQLite with maintenance on: a signed-in student's Assignments shows the amber "Maintenance in progress"; student sign-in and Continue as Guest show the amber notice; the instructor signs in normally (all requests 200). Lint and build pass.
+- **QA:** `frontend_ui_qa_checklist.md` Section 2E covers it (with a warning: maintenance blocks real students).

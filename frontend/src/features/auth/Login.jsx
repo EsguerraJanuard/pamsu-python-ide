@@ -14,7 +14,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth, homePathForRole, consumeSessionExpiredNotice } from "./AuthContext";
-import { api, ApiError, TIMEOUT_ERROR_STATUS } from "../../services/api";
+import { api, ApiError, isMaintenanceError, MAINTENANCE_MESSAGE, TIMEOUT_ERROR_STATUS } from "../../services/api";
+import Icon from "../../components/ui/Icon";
 
 const SCHOOL_EMAIL_DOMAIN = "@pampangastateu.edu.ph";
 
@@ -86,6 +87,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  // MIS maintenance mode refused a student sign-in: shown as a notice, not an error.
+  const [maintenance, setMaintenance] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [serverStarting, setServerStarting] = useState(false);
   const [slowSignIn, setSlowSignIn] = useState(false);
@@ -152,13 +155,16 @@ export default function Login() {
   const handleGuestLogin = async () => {
     setIsLoading(true);
     setError("");
+    setMaintenance(false);
     startSlowSignInHint();
     try {
       const data = await api.post("/guest", undefined, {}, SIGN_IN_TIMEOUT_MS);
       // The role is read from the access token, not from the response body.
       redirectAfterLogin(login(data.access_token, data.user));
     } catch (err) {
-      if (err instanceof ApiError && err.status === 0) {
+      if (isMaintenanceError(err)) {
+        setMaintenance(true);
+      } else if (err instanceof ApiError && err.status === 0) {
         setError("Cannot reach the server. Check your connection and try again.");
       } else if (err instanceof ApiError && err.status === TIMEOUT_ERROR_STATUS) {
         setError(SERVER_STARTING_ERROR);
@@ -191,6 +197,7 @@ export default function Login() {
 
     setIsLoading(true);
     setError("");
+    setMaintenance(false);
     startSlowSignInHint();
 
     try {
@@ -206,7 +213,9 @@ export default function Login() {
       // (pamsu_user_data); it returns the role read from the token.
       redirectAfterLogin(login(data.access_token, data.user));
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isMaintenanceError(err)) {
+        setMaintenance(true);
+      } else if (err instanceof ApiError) {
         if (err.status === 0) {
           setError("Cannot reach the server. Check your connection and try again.");
         } else if (err.status === TIMEOUT_ERROR_STATUS) {
@@ -328,19 +337,35 @@ export default function Login() {
             </p>
           </div>
 
-          {notice && !error && (
+          {notice && !error && !maintenance && (
             <div role="status" className="mb-[clamp(0.75rem,2.5vh,1.5rem)] rounded-xl border border-psu-maroon/20 bg-psu-cream p-[clamp(0.625rem,1.6vh,1rem)] text-sm font-medium text-psu-maroon">
               {notice}
             </div>
           )}
 
-          {(serverStarting || slowSignIn) && !error && (
+          {(serverStarting || slowSignIn) && !error && !maintenance && (
             <div role="status" className="mb-[clamp(0.75rem,2.5vh,1.5rem)] flex items-start gap-3 rounded-xl border border-border-subtle bg-bg-alt p-[clamp(0.625rem,1.6vh,1rem)] text-sm text-text-muted">
               <svg className="mt-0.5 h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
               <p>Starting the server. The first sign-in after a quiet period can take up to a minute.</p>
+            </div>
+          )}
+
+          {/* Planned maintenance: an amber notice, not the red error banner. */}
+          {maintenance && !error && (
+            <div
+              role="status"
+              aria-live="polite"
+              id="login-maintenance"
+              className="mb-[clamp(0.75rem,2.5vh,1.5rem)] flex items-start gap-3 rounded-xl border border-psu-gold/60 bg-psu-gold/[0.14] p-[clamp(0.625rem,1.6vh,1rem)] text-sm text-text-amber"
+            >
+              <Icon name="wrench" className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+              <div>
+                <p className="font-semibold">{MAINTENANCE_MESSAGE}</p>
+                <p className="mt-0.5 text-text-muted">Please check back later. Instructors and MIS staff can still sign in.</p>
+              </div>
             </div>
           )}
 

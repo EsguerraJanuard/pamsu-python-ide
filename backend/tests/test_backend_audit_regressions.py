@@ -335,6 +335,23 @@ def test_maintenance_mode_blocks_existing_student_tokens_only(client, db_session
     assert client.get("/classrooms/", headers=auth(people["instructor"])).status_code == 200
 
 
+def test_maintenance_mode_sign_in_refusal_is_recognizable(client, db_session, people):
+    # The login page shows its maintenance notice, not a server error, only for
+    # this pair: status 503 and a detail that names maintenance
+    # (frontend isMaintenanceError). A bare 503 from the host stays an error.
+    set_system_setting(db_session, "maintenance_mode", True)
+
+    student = client.post("/login", data={"username": people["student"].email, "password": "Original#2026"})
+    guest = client.post("/guest")
+    expired_token = client.get("/activities/", headers=auth(people["student"]))
+    instructor = client.post("/login", data={"username": people["instructor"].email, "password": "Original#2026"})
+
+    for response in (student, guest, expired_token):
+        assert response.status_code == 503
+        assert "maintenance" in response.json()["detail"].lower()
+    assert instructor.status_code == 200, instructor.text
+
+
 # ---------------------------------------------------------------- admin endpoints
 
 

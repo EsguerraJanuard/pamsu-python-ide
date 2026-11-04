@@ -17,9 +17,11 @@ const ICON_PATHS = {
   search: "M21 21l-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z",
   alert: "M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z",
   clock: "M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
+  wrench: "M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z",
 };
 
 const KIND_ICON = {
+  maintenance: "wrench",
   unavailable: "offline",
   timeout: "clock",
   unauthorized: "lock",
@@ -112,13 +114,21 @@ export function EmptyState({ icon = "inbox", title, message, action, className =
 export function ErrorState({ error, resource, onRetry, title, message, action, className = "" }) {
   const info = describeApiError(error, { resource });
   const canRetry = onRetry && !["forbidden", "not_found", "unauthorized"].includes(info.kind);
+  // Planned maintenance is a notice (amber), not a failure (red).
+  const isMaintenance = info.kind === "maintenance";
 
   return (
     <div
-      role="alert"
-      className={`flex flex-col items-center justify-center rounded-xl border border-psu-red/20 bg-psu-red/[0.04] px-6 py-12 text-center ${className}`}
+      role={isMaintenance ? "status" : "alert"}
+      className={`flex flex-col items-center justify-center rounded-xl border px-6 py-12 text-center ${
+        isMaintenance ? "border-psu-gold/50 bg-psu-gold/[0.08]" : "border-psu-red/20 bg-psu-red/[0.04]"
+      } ${className}`}
     >
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-psu-red/10 text-text-rose">
+      <div
+        className={`mb-3 flex h-12 w-12 items-center justify-center rounded-full ${
+          isMaintenance ? "bg-psu-gold/15 text-text-amber" : "bg-psu-red/10 text-text-rose"
+        }`}
+      >
         <StateIcon name={KIND_ICON[info.kind] || "alert"} />
       </div>
       <h3 className="text-base font-semibold text-text-main">{title || info.title}</h3>
