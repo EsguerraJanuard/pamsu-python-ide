@@ -17,6 +17,7 @@ import {
 import { ErrorState, InlineAlert, LoadingState, PageHeader } from '../../components/ui/StateViews';
 import PageShell from "../../components/layout/PageShell";
 import Icon from "../../components/ui/Icon";
+import CodeEditorField, { CodeEditorHint } from "../../components/ui/CodeEditorField";
 
 // Suggested starting rules when a difficulty is picked by hand.
 const DIFFICULTY_SUGGESTIONS = {
@@ -902,19 +903,17 @@ const ActivityEditor = () => {
                   <p className="mt-0.5 text-xs text-text-muted">
                     Reads the problem text above and an optional reference solution, then suggests the difficulty and the required constructs (loops, functions, file handling, …). The solution is parsed, never run, and is not saved.
                   </p>
-                  <label htmlFor="reference_code" className="mt-3 block text-xs font-semibold text-text-main">
+                  <p className="mt-3 text-xs font-semibold text-text-main">
                     Reference solution <span className="font-normal text-text-muted">(optional)</span>
-                  </label>
-                  <textarea
-                    id="reference_code"
+                  </p>
+                  <CodeEditorField
+                    ariaLabel="Reference solution"
                     value={referenceCode}
-                    onChange={(e) => setReferenceCode(e.target.value)}
-                    rows={6}
-                    maxLength={100000}
-                    spellCheck={false}
-                    placeholder="# Paste a working solution here..."
-                    className={`${CODE_INPUT_CLASS} mt-1 resize-y`}
+                    onChange={setReferenceCode}
+                    placeholder="# Paste or write a working solution here..."
+                    className="mt-1 h-48 min-h-[8rem] resize-y"
                   />
+                  <CodeEditorHint className="mt-1" />
                   {analyzeError && <p className="mt-2 text-xs text-text-rose">{analyzeError}</p>}
                   <div className="mt-3 flex justify-end">
                     <button type="button" onClick={handleAnalyze} disabled={isAnalyzing} className="btn-secondary btn-sm">
@@ -1039,18 +1038,14 @@ const ActivityEditor = () => {
                     Starter Code Template
                   </h2>
 
-                  <div className="flex-1 min-h-[220px]">
-                    <textarea
-                      id="starter_code"
-                      name="starter_code"
-                      aria-label="Starter code template"
-                      value={formData.starter_code}
-                      onChange={handleChange}
-                      rows={12}
-                      placeholder="# Write initial starter code template for students..."
-                      className={`${CODE_INPUT_CLASS} h-full resize-none p-4`}
-                    />
-                  </div>
+                  <CodeEditorField
+                    ariaLabel="Starter code template"
+                    value={formData.starter_code}
+                    onChange={(code) => setFormData((prev) => ({ ...prev, starter_code: code }))}
+                    placeholder="# Write initial starter code template for students..."
+                    className="flex-1 min-h-[280px]"
+                  />
+                  <CodeEditorHint className="mt-2" />
                 </div>
 
                 <div className="card space-y-4 p-5 sm:p-6">
