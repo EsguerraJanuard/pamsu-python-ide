@@ -24,8 +24,7 @@ def gradebook_instructor(
     db_session: Session,
 ) -> User:
     instructor = User(
-        first_name=("Gradebook Instructor").split()[0] if isinstance("Gradebook Instructor", str) else "Test",
-        last_name=" ".join(("Gradebook Instructor").split()[1:]) if isinstance("Gradebook Instructor", str) and " " in "Gradebook Instructor" else "User",
+        name="Gradebook Instructor",
         school_id="6100000001",
         email=("gradebook.instructor@pampangastateu.edu.ph"),
         role="instructor",
@@ -46,8 +45,7 @@ def other_gradebook_instructor(
     db_session: Session,
 ) -> User:
     instructor = User(
-        first_name=("Other Gradebook Instructor").split()[0] if isinstance("Other Gradebook Instructor", str) else "Test",
-        last_name=" ".join(("Other Gradebook Instructor").split()[1:]) if isinstance("Other Gradebook Instructor", str) and " " in "Other Gradebook Instructor" else "User",
+        name="Other Gradebook Instructor",
         school_id="6100000002",
         email=("other.gradebook.instructor@pampangastateu.edu.ph"),
         role="instructor",
@@ -68,8 +66,7 @@ def gradebook_student_one(
     db_session: Session,
 ) -> User:
     student = User(
-        first_name=("Alice Gradebook Student").split()[0] if isinstance("Alice Gradebook Student", str) else "Test",
-        last_name=" ".join(("Alice Gradebook Student").split()[1:]) if isinstance("Alice Gradebook Student", str) and " " in "Alice Gradebook Student" else "User",
+        name="Alice Gradebook Student",
         school_id="6200000001",
         email=("alice.gradebook.student@pampangastateu.edu.ph"),
         role="student",
@@ -90,8 +87,7 @@ def gradebook_student_two(
     db_session: Session,
 ) -> User:
     student = User(
-        first_name=("Bob Gradebook Student").split()[0] if isinstance("Bob Gradebook Student", str) else "Test",
-        last_name=" ".join(("Bob Gradebook Student").split()[1:]) if isinstance("Bob Gradebook Student", str) and " " in "Bob Gradebook Student" else "User",
+        name="Bob Gradebook Student",
         school_id="6200000002",
         email=("bob.gradebook.student@pampangastateu.edu.ph"),
         role="student",

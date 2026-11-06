@@ -115,6 +115,7 @@ def test_coding_session_database_has_only_approved_fields():
         "ended_at",
         "last_activity_at",
         "tab_switch_count",
+        "mouseleave_count",
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",
@@ -167,6 +168,7 @@ def test_session_start_request_accepts_only_task_identity():
 def test_activity_update_accepts_only_aggregate_increments():
     assert set(CodingSessionActivityUpdate.model_fields) == {
         "tab_switch_increment",
+        "mouseleave_increment",
         "blocked_paste_increment",
         "idle_duration_increment_seconds",
     }
@@ -179,6 +181,7 @@ def test_activity_update_accepts_only_aggregate_increments():
 
     assert valid_update.model_dump() == {
         "tab_switch_increment": 2,
+        "mouseleave_increment": 0,
         "blocked_paste_increment": 1,
         "idle_duration_increment_seconds": 30,
     }
@@ -209,6 +212,7 @@ def test_activity_increment_limits_are_enforced():
 
     assert heartbeat.model_dump() == {
         "tab_switch_increment": 0,
+        "mouseleave_increment": 0,
         "blocked_paste_increment": 0,
         "idle_duration_increment_seconds": 0,
     }
@@ -257,6 +261,7 @@ def test_session_response_models_are_review_only():
         "ended_at",
         "last_activity_at",
         "tab_switch_count",
+        "mouseleave_count",
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",
@@ -298,6 +303,7 @@ def test_openapi_session_requests_exclude_private_fields():
 
     assert set(activity_properties) == {
         "tab_switch_increment",
+        "mouseleave_increment",
         "blocked_paste_increment",
         "idle_duration_increment_seconds",
     }
@@ -310,6 +316,7 @@ def test_openapi_session_requests_exclude_private_fields():
         "ended_at",
         "last_activity_at",
         "tab_switch_count",
+        "mouseleave_count",
         "blocked_paste_count",
         "run_attempt_count",
         "idle_duration_seconds",

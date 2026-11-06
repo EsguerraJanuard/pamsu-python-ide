@@ -1,27 +1,27 @@
 from datetime import datetime, timezone
 from typing import Literal
 
-import redis.asyncio as redis
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.database_errors import handle_unhandled_database_error
 from app.core.request_context import (RequestContextMiddleware,
+                                      configure_app_logging,
                                       configure_request_logging)
 from app.integrations.partner_auth import PARTNER_EXECUTION_TOKEN_HEADER
-from app.routers import (activities, admin, audit_records, auth, classrooms,
+from app.routers import (activities, admin, registration, audit_records, auth, classrooms,
                          evaluation, execution, instructor, logs,
                          notifications, practice, reporting, submissions,
-                         users, ws_execution)
+                         users)
 from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi_limiter import FastAPILimiter
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-APP_TITLE = "PAMSU Python IDE Backend"
+APP_TITLE = "PSU Python IDE Backend"
 APP_VERSION = "1.0.0"
 
 HealthState = Literal["healthy"]
@@ -205,6 +205,7 @@ OPENAPI_TAGS = [
 settings = get_settings()
 
 request_logger = configure_request_logging(log_level=settings.log_level)
+configure_app_logging(log_level=settings.log_level)
 
 documentation_url = "/docs" if settings.enable_api_docs else None
 
@@ -216,7 +217,7 @@ openapi_url = "/openapi.json" if settings.enable_api_docs else None
 app = FastAPI(
     title=APP_TITLE,
     description=(
-        "Backend API for the PAMSU Web-Based Python IDE with "
+        "Backend API for the Pampanga State University (PSU) Web-Based Python IDE with "
         "university-email authentication, OTP registration through an "
         "email-adapter contract, classroom and enrollment management, "
         "activity and test-case management, student-owned coding sessions, "
@@ -259,7 +260,9 @@ if settings.cors_allowed_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
-        allow_origin_regex=r"https://.*\.vercel\.app",
+        # Production and preview deployments of this project only; a bare
+        # *.vercel.app pattern would trust every site hosted on Vercel.
+        allow_origin_regex=r"https://pamsu-python-ide(-[a-z0-9-]+)?\.vercel\.app",
         allow_credentials=(settings.cors_allow_credentials),
         allow_methods=[
             "GET",
@@ -292,6 +295,10 @@ app.add_middleware(
 )
 
 
+# Unhandled database errors are logged without their message (row values).
+app.add_exception_handler(SQLAlchemyError, handle_unhandled_database_error)
+
+
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(registration.router)
@@ -306,22 +313,17 @@ app.include_router(notifications.router)
 app.include_router(audit_records.router)
 app.include_router(reporting.router)
 app.include_router(practice.router)
+app.include_router(admin.router)
 
 
 @app.on_event("startup")
 async def startup_event():
     import anyio.to_thread
-    try:
-        limiter = anyio.to_thread.current_default_thread_limiter()
-        limiter.total_tokens = 200
-    except Exception:
-        pass
-        
-    try:
-        redis_client = redis.from_url("redis://redis:6379/0", encoding="utf8", decode_responses=True)
-        await FastAPILimiter.init(redis_client)
-    except Exception as e:
-        print("Could not initialize FastAPILimiter:", e)
+    # Sync endpoints run in this threadpool; the default of 40 threads is
+    # too small for a classroom of concurrent requests.
+    limiter = anyio.to_thread.current_default_thread_limiter()
+    limiter.total_tokens = 200
+
 
 
 def utc_now() -> datetime:

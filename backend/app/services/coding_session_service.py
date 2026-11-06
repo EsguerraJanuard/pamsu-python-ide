@@ -8,6 +8,13 @@ from sqlalchemy.orm import Session
 
 MAX_DATABASE_COUNTER_VALUE = 2_147_483_647
 
+# Nothing ends a session when a student closes the tab, so Live Monitoring
+# only lists sessions with a recent heartbeat. The workspace sends one every
+# 30 seconds; browsers can slow a background tab to about one a minute, so
+# three minutes allows for a missed beat. Keep in step with
+# LIVE_SESSION_WINDOW_MS in frontend/src/hooks/useBehaviorTracking.js.
+LIVE_SESSION_WINDOW = timedelta(minutes=3)
+
 
 class CodingSessionServiceError(Exception):
     """Base exception for coding-session workflow errors."""
@@ -237,19 +244,13 @@ def start_or_resume_student_coding_session(
         .all()
     )
 
-    if len(active_sessions) > 1:
-        db.rollback()
-
-        raise CodingSessionStateConflictError(
-            "Multiple active coding sessions were detected "
-            "for the same student and activity."
-        )
-
     now = _utc_now()
 
     if active_sessions:
         coding_session = active_sessions[0]
         coding_session.last_activity_at = now
+        for stale in active_sessions[1:]:
+            stale.ended_at = now
 
         _commit_session_transaction(db)
         db.refresh(coding_session)
@@ -436,7 +437,16 @@ def list_instructor_task_coding_sessions(
     task_id: int,
     student_id: int | None = None,
     active_only: bool = False,
+    live_only: bool = False,
 ) -> list[CodingSession]:
+    """
+    Coding sessions for one of the instructor's activities.
+
+    active_only keeps sessions that have not ended. live_only also drops
+    sessions whose workspace has been quiet for longer than
+    LIVE_SESSION_WINDOW (a closed tab that never sent "end"), the same rule
+    as get_all_active_instructor_sessions.
+    """
     task = _get_instructor_owned_task(
         db,
         instructor_id=instructor_id,
@@ -452,9 +462,14 @@ def list_instructor_task_coding_sessions(
             CodingSession.student_id == student_id,
         )
 
-    if active_only:
+    if active_only or live_only:
         query = query.filter(
             CodingSession.ended_at.is_(None),
+        )
+
+    if live_only:
+        query = query.filter(
+            CodingSession.last_activity_at >= _utc_now() - LIVE_SESSION_WINDOW,
         )
 
     return query.order_by(
@@ -469,13 +484,16 @@ def get_all_active_instructor_sessions(
     instructor_id: int,
 ) -> list[dict]:
     """
-    Get all active sessions across all classrooms owned by the instructor.
+    Get the live sessions across all classrooms owned by the instructor:
+    not ended, with activity or a heartbeat within LIVE_SESSION_WINDOW.
     Returns a list of dictionaries that can be validated by GlobalCodingSessionResponse.
     """
+    live_since = _utc_now() - LIVE_SESSION_WINDOW
+
     rows = (
         db.query(
             CodingSession,
-            (User.first_name + " " + User.last_name).label("student_name"),
+            User.name.label("student_name"),
             Task.title.label("task_title"),
             Classroom.name.label("classroom_name"),
         )
@@ -484,7 +502,8 @@ def get_all_active_instructor_sessions(
         .join(Classroom, Task.class_id == Classroom.class_id)
         .filter(
             Classroom.instructor_id == instructor_id,
-            CodingSession.ended_at.is_(None)
+            CodingSession.ended_at.is_(None),
+            CodingSession.last_activity_at >= live_since,
         )
         .order_by(
             CodingSession.started_at.desc(),

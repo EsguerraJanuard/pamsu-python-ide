@@ -429,6 +429,12 @@ class StudentSubmissionEvaluationResponse(BaseModel):
 
     instructor_grade: ReleasedInstructorGradeResponse | None = None
 
+    solution_explanation: str | None = Field(
+        default=None,
+        max_length=10000,
+        description="The activity's solution explanation, present only after the grade is released.",
+    )
+
     @field_validator(
         "submitted_at",
         "accepted_at",

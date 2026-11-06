@@ -203,11 +203,16 @@ def test_task_update_schema_excludes_publication_and_ownership_fields():
         "title",
         "description",
         "instructions",
+        "scenario",
+        "solution_explanation",
         "activity_type",
+        "difficulty",
         "required_ast_rules",
         "starter_code",
         "paste_policy",
         "is_graded",
+        "is_timed",
+        "time_limit_minutes",
         "due_at",
         "scheduled_publish_at",
     }
@@ -366,6 +371,13 @@ def test_student_activity_endpoints_use_student_safe_schemas():
 
     assert sample_response["type"] == "array"
     assert sample_response["items"]["$ref"].endswith("/StudentSampleTestCaseResponse")
+
+    for path, method in (
+        ("/activities/{task_id}/timer", "get"),
+        ("/activities/{task_id}/timer/start", "post"),
+    ):
+        timer_response = get_json_response_schema(path, method, "200")
+        assert timer_response["$ref"].endswith("/StudentActivityTimerResponse")
 
 
 def test_delete_test_case_documents_empty_success_response():

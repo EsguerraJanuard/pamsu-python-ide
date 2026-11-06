@@ -32,6 +32,9 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - JUDGE0_API_URL=http://judge0-server:2358
       - WEBHOOK_BASE_URL=http://backend:8000
+      # Local stack only: entrypoint.sh runs seed.py, which resets the database.
+      - PAMSU_ENVIRONMENT=development
+      - PAMSU_ALLOW_DATABASE_RESET=true
     ports:
       - "8000:8000"
     volumes:

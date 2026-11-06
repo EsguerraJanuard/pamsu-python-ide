@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.services.ast_evaluator import (SUPPORTED_AST_RULES,
+                                        normalize_rule_configuration)
 
 ActivityType = Literal[
     "laboratory",
@@ -70,13 +73,36 @@ def normalize_response_datetime(
     return value.astimezone(timezone.utc)
 
 
+# Same limit as the "Required at least" field in the activity editor.
+MAX_RULE_MIN_COUNT = 20
+
+# Time limit of a timed activity, in minutes (the activity editor's range).
+MIN_TIME_LIMIT_MINUTES = 1
+MAX_TIME_LIMIT_MINUTES = 480
+
+
+def resolve_time_limit(
+    is_timed: bool,
+    time_limit_minutes: int | None,
+) -> int | None:
+    """The limit to store: required when timed, always None when untimed."""
+
+    if not is_timed:
+        return None
+
+    if time_limit_minutes is None:
+        raise ValueError("Enter a time limit in minutes for a timed activity.")
+
+    return time_limit_minutes
+
+
 def validate_ast_rules(
     value: dict[str, Any],
 ) -> dict[str, Any]:
     if len(value) > 50:
         raise ValueError("A task may contain at most 50 AST rules.")
 
-    for rule_name in value:
+    for rule_name, configuration in value.items():
         if not isinstance(rule_name, str):
             raise ValueError("Each AST rule must use a string key.")
 
@@ -85,6 +111,21 @@ def validate_ast_rules(
 
         if rule_name != rule_name.strip():
             raise ValueError("AST rule keys cannot begin or end with whitespace.")
+
+        # The evaluator fails every submission on an unknown rule or a
+        # malformed configuration, so neither may be saved.
+        if rule_name not in SUPPORTED_AST_RULES:
+            raise ValueError(f"'{rule_name}' is not a supported AST rule.")
+
+        try:
+            _, minimum_count, _ = normalize_rule_configuration(configuration)
+        except ValueError as error:
+            raise ValueError(f"{rule_name}: {error}") from error
+
+        if minimum_count > MAX_RULE_MIN_COUNT:
+            raise ValueError(
+                f"{rule_name}: a rule can require at most {MAX_RULE_MIN_COUNT} uses."
+            )
 
     return value
 
@@ -107,13 +148,29 @@ class TaskBase(BaseModel):
         max_length=10000,
         description="Detailed student instructions.",
     )
+    scenario: str | None = Field(
+        default=None,
+        max_length=5000,
+        description="Optional real-world scenario or context for the problem.",
+    )
+    solution_explanation: str | None = Field(
+        default=None,
+        max_length=10000,
+        description=(
+            "Optional explanation of why the expected solution works. "
+            "A student sees it only after their grade is released."
+        ),
+    )
     activity_type: ActivityType = Field(
         default="laboratory",
         description="Laboratory or homework activity.",
     )
-    difficulty: ActivityDifficulty = Field(
-        default="beginner",
-        description="Difficulty level of the activity.",
+    difficulty: ActivityDifficulty | None = Field(
+        default=None,
+        description=(
+            "Difficulty level of the activity. When omitted, it is set from "
+            "the required AST rules. It cannot be lower than those rules need."
+        ),
     )
     required_ast_rules: dict[str, Any] = Field(
         default_factory=dict,
@@ -140,10 +197,28 @@ class TaskBase(BaseModel):
         default=True,
         description=("Whether the activity accepts official graded submissions."),
     )
+    is_timed: bool = Field(
+        default=False,
+        description=(
+            "Timed activity: each student has time_limit_minutes from the "
+            "moment they start. The timer cannot be paused."
+        ),
+    )
+    time_limit_minutes: int | None = Field(
+        default=None,
+        ge=MIN_TIME_LIMIT_MINUTES,
+        le=MAX_TIME_LIMIT_MINUTES,
+        description="Required when is_timed is true; ignored otherwise.",
+    )
 
     model_config = ConfigDict(
         extra="forbid",
     )
+
+    @model_validator(mode="after")
+    def validate_time_limit(self):
+        self.time_limit_minutes = resolve_time_limit(self.is_timed, self.time_limit_minutes)
+        return self
 
     @field_validator("title")
     @classmethod
@@ -156,6 +231,8 @@ class TaskBase(BaseModel):
     @field_validator(
         "description",
         "instructions",
+        "scenario",
+        "solution_explanation",
     )
     @classmethod
     def validate_optional_text_fields(
@@ -227,6 +304,14 @@ class TaskUpdate(BaseModel):
         default=None,
         max_length=10000,
     )
+    scenario: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
+    solution_explanation: str | None = Field(
+        default=None,
+        max_length=10000,
+    )
     activity_type: ActivityType | None = None
     difficulty: ActivityDifficulty | None = None
     required_ast_rules: dict[str, Any] | None = None
@@ -236,6 +321,14 @@ class TaskUpdate(BaseModel):
     )
     paste_policy: PastePolicy | None = None
     is_graded: bool | None = None
+    is_timed: bool | None = None
+    # Checked with is_timed in the service: required while the activity is
+    # timed (after this update), cleared when it is not.
+    time_limit_minutes: int | None = Field(
+        default=None,
+        ge=MIN_TIME_LIMIT_MINUTES,
+        le=MAX_TIME_LIMIT_MINUTES,
+    )
     due_at: datetime | None = Field(
         default=None,
         description=("Optional timezone-aware deadline normalized to UTC."),
@@ -248,6 +341,29 @@ class TaskUpdate(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
+
+    # These columns cannot be empty. Leave a field out to keep its value;
+    # an explicit null used to reach the database and fail with a 500.
+    @field_validator(
+        "title",
+        "activity_type",
+        "difficulty",
+        "required_ast_rules",
+        "starter_code",
+        "paste_policy",
+        "is_graded",
+        "is_timed",
+        mode="before",
+    )
+    @classmethod
+    def reject_null(
+        cls,
+        value: Any,
+    ) -> Any:
+        if value is None:
+            raise ValueError("This field cannot be empty. Leave it out to keep the current value.")
+
+        return value
 
     @field_validator("title")
     @classmethod
@@ -263,6 +379,8 @@ class TaskUpdate(BaseModel):
     @field_validator(
         "description",
         "instructions",
+        "scenario",
+        "solution_explanation",
     )
     @classmethod
     def validate_optional_text_fields(
@@ -324,6 +442,10 @@ class TaskResponseBase(BaseModel):
         default=None,
         max_length=10000,
     )
+    scenario: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
     activity_type: ActivityType
     difficulty: ActivityDifficulty = "beginner"
     required_ast_rules: dict[str, Any] = Field(
@@ -335,6 +457,8 @@ class TaskResponseBase(BaseModel):
     )
     paste_policy: PastePolicy
     is_graded: bool
+    is_timed: bool = False
+    time_limit_minutes: int | None = None
     due_at: datetime | None = None
     is_published: bool
     published_at: datetime | None = None
@@ -372,6 +496,11 @@ class TaskResponse(TaskResponseBase):
         ...,
         gt=0,
     )
+    # Instructor view only; students get it with their released grade.
+    solution_explanation: str | None = Field(
+        default=None,
+        max_length=10000,
+    )
 
 
 class StudentTaskResponse(TaskResponseBase):
@@ -380,6 +509,14 @@ class StudentTaskResponse(TaskResponseBase):
         gt=0,
     )
     published_at: datetime
+    content_withheld: bool = Field(
+        default=False,
+        description=(
+            "Timed activity the student has not started: the description, "
+            "instructions, scenario, starter code and required structures are "
+            "left out (and the sample cases refused) until the timer starts."
+        ),
+    )
 
     # Student-safe boundary:
     # instructor_id and task-test-case records are excluded.

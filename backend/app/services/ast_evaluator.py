@@ -2,6 +2,8 @@ import ast
 from collections.abc import Callable
 from typing import Any, TypedDict
 
+from app.services.ast_safety import parse_python_source
+
 
 class ASTRuleDefinition(TypedDict):
     label: str
@@ -268,8 +270,12 @@ if hasattr(ast, "Match"):
         ),
     }
 
+# Backward compatibility aliases for legacy rule names
+SUPPORTED_AST_RULES["require_function"] = SUPPORTED_AST_RULES["require_function_def"]
+SUPPORTED_AST_RULES["require_class"] = SUPPORTED_AST_RULES["require_class_def"]
 
-def _is_rule_enabled(configuration: Any) -> bool:
+
+def is_rule_enabled(configuration: Any) -> bool:
     if isinstance(configuration, bool):
         return configuration
 
@@ -282,7 +288,7 @@ def _is_rule_enabled(configuration: Any) -> bool:
     return True
 
 
-def _normalize_rule_configuration(
+def normalize_rule_configuration(
     configuration: Any,
 ) -> tuple[bool, int, str | None]:
     if isinstance(configuration, bool):
@@ -355,7 +361,7 @@ def evaluate_ast_details(
         return result
 
     try:
-        syntax_tree = ast.parse(raw_code)
+        syntax_tree = parse_python_source(raw_code)
     except SyntaxError as error:
         result["syntax_error"] = {
             "message": error.msg,
@@ -379,12 +385,12 @@ def evaluate_ast_details(
 
     for rule_name, configuration in rules.items():
         if rule_name not in SUPPORTED_AST_RULES:
-            if _is_rule_enabled(configuration):
+            if is_rule_enabled(configuration):
                 result["unsupported_rules"].append(rule_name)
             continue
 
         try:
-            required, minimum_count, custom_label = _normalize_rule_configuration(
+            required, minimum_count, custom_label = normalize_rule_configuration(
                 configuration
             )
         except ValueError as error:

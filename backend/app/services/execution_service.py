@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -20,6 +21,8 @@ from app.services.coding_session_service import (
     increment_coding_session_run_attempt)
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 
 class ExecutionServiceError(Exception):
@@ -148,6 +151,49 @@ def _commit_execution_transaction(
         raise ExecutionPersistenceError(
             "The execution request could not be saved."
         ) from error
+
+
+EXECUTION_QUEUE_UNAVAILABLE_MESSAGE = (
+    "System Error: The execution queue is unavailable, so this request "
+    "was not run. Please try again later."
+)
+
+
+def _dispatch_execution_request(
+    db: Session,
+    execution_request: ExecutionRequest,
+) -> None:
+    """
+    Enqueue an already-committed execution request for the partner worker.
+
+    If the queue cannot accept the job, the request is marked "failed" with
+    a system-error message, the same terminal state the worker records when
+    it cannot reach the execution partner, instead of staying "queued"
+    with nothing to process it.
+    """
+
+    from app.tasks.celery_worker import dispatch_to_partner
+
+    try:
+        dispatch_to_partner.delay(str(execution_request.execution_id))
+        return
+    except Exception:
+        logger.exception(
+            "Failed to enqueue execution request %s.",
+            execution_request.execution_id,
+        )
+
+    try:
+        execution_request.status = "failed"
+        execution_request.stderr = EXECUTION_QUEUE_UNAVAILABLE_MESSAGE
+        db.commit()
+        db.refresh(execution_request)
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception(
+            "Failed to record enqueue failure for execution request %s.",
+            execution_request.execution_id,
+        )
 
 
 def _normalize_request_idempotency_key(
@@ -589,8 +635,7 @@ def create_student_execution_request(
         db.refresh(execution_request)
 
         # Dispatch task to partner via celery
-        from app.tasks.celery_worker import dispatch_to_partner
-        dispatch_to_partner.delay(str(execution_request.execution_id))
+        _dispatch_execution_request(db, execution_request)
 
         return execution_request
 
@@ -625,8 +670,7 @@ def create_student_execution_request(
     db.refresh(execution_request)
 
     # Dispatch task to partner via celery
-    from app.tasks.celery_worker import dispatch_to_partner
-    dispatch_to_partner.delay(str(execution_request.execution_id))
+    _dispatch_execution_request(db, execution_request)
 
     return execution_request
 

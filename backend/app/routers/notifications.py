@@ -1,3 +1,4 @@
+import logging
 from typing import NoReturn
 from uuid import UUID
 
@@ -10,6 +11,8 @@ from app.schemas.notification_schema import (MarkAllNotificationsReadResponse,
                                              NotificationResponse,
                                              NotificationSortDirection,
                                              NotificationUnreadCountResponse)
+from app.services.academic_event_service import (AcademicEventWorkflowError,
+                                                 ensure_deadline_reminders)
 from app.services.notification_service import (
     NotificationNotFoundError, NotificationPaginationError,
     NotificationPersistenceError, NotificationServiceError,
@@ -17,12 +20,31 @@ from app.services.notification_service import (
     list_user_notifications, mark_all_user_notifications_read,
     mark_user_notification_read)
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/notifications",
     tags=["Notifications"],
 )
+
+
+def refresh_deadline_reminders(db: Session, user: User) -> None:
+    """Create due-soon reminders before a student's notifications are read.
+
+    Reminders are a convenience: a failure is logged and the read goes on.
+    """
+    if user.role != "student":
+        return
+
+    try:
+        ensure_deadline_reminders(db, student_id=user.user_id)
+    except (AcademicEventWorkflowError, NotificationServiceError, SQLAlchemyError, ValidationError) as exc:
+        db.rollback()
+        logger.warning("Deadline reminders were not refreshed (%s).", type(exc).__name__)
 
 
 def raise_notification_http_exception(
@@ -98,6 +120,8 @@ def list_notifications_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> NotificationListResponse:
+    refresh_deadline_reminders(db, current_user)
+
     try:
         result = list_user_notifications(
             db,
@@ -128,6 +152,8 @@ def count_unread_notifications_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> NotificationUnreadCountResponse:
+    refresh_deadline_reminders(db, current_user)
+
     unread_count = count_user_unread_notifications(
         db,
         recipient_id=current_user.user_id,

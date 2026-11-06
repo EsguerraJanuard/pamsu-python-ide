@@ -1,4 +1,8 @@
+import re
+from io import BytesIO
 from typing import NoReturn
+
+import openpyxl
 
 from app.core.database import get_db
 from app.core.security import get_current_instructor, get_current_student
@@ -13,6 +17,8 @@ from app.schemas.enrollment_schema import (BulkEnrollmentRequest,
                                            EnrollmentResponse,
                                            EnrollmentStatusUpdate,
                                            StudentClassroomResponse)
+from app.services.guest_service import (GUEST_CANNOT_JOIN_DETAIL,
+                                        is_self_service_guest)
 from app.services.classroom_service import (ClassroomAccessDeniedError,
                                             ClassroomAuditWorkflowError,
                                             ClassroomCodeGenerationError,
@@ -28,8 +34,9 @@ from app.services.classroom_service import (ClassroomAccessDeniedError,
                                             list_instructor_classrooms,
                                             list_student_classrooms,
                                             regenerate_class_code,
-                                            unenroll_student, update_classroom,
+                                            update_classroom,
                                             update_enrollment_status)
+from fastapi.concurrency import run_in_threadpool
 from fastapi import (APIRouter, Depends, File, HTTPException, Path, UploadFile,
                      status)
 from sqlalchemy.orm import Session
@@ -185,6 +192,12 @@ def join_classroom_endpoint(
     db: Session = Depends(get_db),
     current_student: User = Depends(get_current_student),
 ) -> Enrollment:
+    if is_self_service_guest(current_student):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=GUEST_CANNOT_JOIN_DETAIL,
+        )
+
     try:
         return join_classroom(
             db=db,
@@ -274,6 +287,15 @@ def update_enrollment_status_endpoint(
 
 
 
+BULK_ENROLL_SERVICE_ERRORS = (
+    ClassroomNotFoundError,
+    ClassroomAccessDeniedError,
+    ClassroomInactiveError,
+    EnrollmentConflictError,
+    ClassroomAuditWorkflowError,
+)
+
+
 @router.post(
     "/{class_id}/bulk-enroll",
     response_model=BulkEnrollmentResponse,
@@ -288,12 +310,48 @@ def bulk_enroll_json_endpoint(
     current_instructor: User = Depends(get_current_instructor),
 ) -> BulkEnrollmentResponse:
     from app.services.classroom_service import bulk_enroll_students
-    return bulk_enroll_students(
-        db=db,
-        instructor_id=current_instructor.user_id,
-        class_id=class_id,
-        emails=request.emails,
-    )
+    try:
+        return bulk_enroll_students(
+            db=db,
+            instructor_id=current_instructor.user_id,
+            class_id=class_id,
+            emails=request.emails,
+        )
+    except BULK_ENROLL_SERVICE_ERRORS as exc:
+        raise_classroom_service_http_exception(exc)
+
+MAX_BULK_ENROLL_FILE_BYTES = 2 * 1024 * 1024
+
+UNIVERSITY_EMAIL_PATTERN = re.compile(r"[a-zA-Z0-9_.+-]+@pampangastateu\.edu\.ph")
+
+
+def extract_university_emails(content: bytes) -> list[str]:
+    """Collect university emails from an .xlsx workbook or a text/CSV file."""
+
+    text = ""
+
+    try:
+        workbook = openpyxl.load_workbook(BytesIO(content), read_only=True, data_only=True)
+    except Exception:
+        # Not a workbook (openpyxl raises several types); read it as text.
+        try:
+            text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            text = content.decode("latin-1")
+    else:
+        try:
+            cells = []
+            for sheet in workbook.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    for cell in row:
+                        if isinstance(cell, str) and "@pampangastateu.edu.ph" in cell.lower():
+                            cells.append(cell)
+            text = " ".join(cells)
+        finally:
+            workbook.close()
+
+    return UNIVERSITY_EMAIL_PATTERN.findall(text.lower())
+
 
 @router.post(
     "/{class_id}/bulk-enroll/file",
@@ -308,42 +366,31 @@ async def bulk_enroll_file_endpoint(
     db: Session = Depends(get_db),
     current_instructor: User = Depends(get_current_instructor),
 ) -> BulkEnrollmentResponse:
-    import re
-
     from app.services.classroom_service import bulk_enroll_students
-    
-    content = await file.read()
-    text = ""
-    try:
-        # Try to parse as excel first
-        from io import BytesIO
 
-        import openpyxl
-        wb = openpyxl.load_workbook(BytesIO(content), read_only=True, data_only=True)
-        for sheet in wb.worksheets:
-            for row in sheet.iter_rows(values_only=True):
-                for cell in row:
-                    if isinstance(cell, str) and "@pampangastateu.edu.ph" in cell.lower():
-                        text += cell + " "
-    except Exception:
-        # Fallback to string decoding (CSV or plain text)
-        try:
-            text = content.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                text = content.decode("latin-1")
-            except:
-                pass
-    
-    # Extract all emails using regex
-    emails = re.findall(r'[a-zA-Z0-9_.+-]+@pampangastateu\\.edu\\.ph', text.lower())
-    
-    return bulk_enroll_students(
-        db=db,
-        instructor_id=current_instructor.user_id,
-        class_id=class_id,
-        emails=emails,
-    )
+    content = await file.read(MAX_BULK_ENROLL_FILE_BYTES + 1)
+
+    if len(content) > MAX_BULK_ENROLL_FILE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="The uploaded file is larger than 2 MB.",
+        )
+
+    def parse_and_enroll() -> BulkEnrollmentResponse:
+        emails = extract_university_emails(content)
+
+        return bulk_enroll_students(
+            db=db,
+            instructor_id=current_instructor.user_id,
+            class_id=class_id,
+            emails=emails,
+        )
+
+    try:
+        # Spreadsheet parsing and database work run off the event loop.
+        return await run_in_threadpool(parse_and_enroll)
+    except BULK_ENROLL_SERVICE_ERRORS as exc:
+        raise_classroom_service_http_exception(exc)
 
 @router.get(
     "/{class_id}/members",

@@ -1,4 +1,5 @@
 from app.core.database import get_db
+from app.core.system_settings import get_system_setting
 from app.integrations.otp_delivery import get_otp_delivery_adapter
 from app.schemas.otp_schema import (OTPChallengeResponse, OTPResendRequest,
                                     OTPVerificationRequest,
@@ -15,7 +16,7 @@ from app.services.otp_service import (OTPAttemptLimitError,
                                       resend_registration_otp,
                                       start_registration,
                                       verify_registration_otp)
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -36,7 +37,7 @@ DELIVERY_UNAVAILABLE_MESSAGE = "Verification email delivery is temporarily unava
     description=(
         "Validates registration details, stores a pending registration, "
         "creates an OTP challenge, and requests delivery of the OTP to the "
-        "provided PAMSU university email. The response never contains the "
+        "provided Pampanga State University email. The response never contains the "
         "plaintext OTP."
     ),
     responses={
@@ -59,13 +60,12 @@ def start_registration_endpoint(
     db: Session = Depends(get_db),
     delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
 ) -> OTPChallengeResponse:
-    raise HTTPException(status_code=403, detail="Open registration is disabled per panel recommendations. Please contact the MIS/SuperAdmin to provision your account.")
+    if not get_system_setting(db, "registration_enabled", default=False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Open registration is disabled per panel recommendations. Please contact the MIS/SuperAdmin to provision your account.",
+        )
 
-def old_start_registration_endpoint(
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    delivery_adapter: OTPDeliveryAdapter = Depends(get_otp_delivery_adapter),
-) -> OTPChallengeResponse:
     try:
         return start_registration(
             db=db,
