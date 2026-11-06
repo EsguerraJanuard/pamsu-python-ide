@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from app.models.domain_models import (Classroom, Enrollment, InstructorGrade,
                                       Submission, Task, TaskTestCase)
-from app.schemas.task_schema import TaskCreate, TaskUpdate
+from app.schemas.task_schema import TaskCreate, TaskUpdate, resolve_time_limit
 from app.schemas.task_test_case_schema import (TaskTestCaseCreate,
                                                TaskTestCaseUpdate)
 from app.services.academic_event_service import (AcademicEventWorkflowError,
@@ -62,6 +62,10 @@ class TaskPublicationError(TaskServiceError):
 
 class TaskDifficultyError(TaskServiceError):
     """The difficulty is lower than the required AST rules need."""
+
+
+class TaskTimeLimitError(TaskServiceError):
+    """A timed activity was left without a time limit."""
 
 
 class TaskNotificationWorkflowError(
@@ -319,6 +323,8 @@ def create_task(
         starter_code=task_data.starter_code,
         paste_policy=task_data.paste_policy,
         is_graded=task_data.is_graded,
+        is_timed=task_data.is_timed,
+        time_limit_minutes=task_data.time_limit_minutes,
         is_published=False,
         due_at=task_data.due_at,
         published_at=None,
@@ -487,6 +493,20 @@ def update_task(
             difficulty=update_data.get("difficulty", task.difficulty),
             rules=update_data.get("required_ast_rules", task.required_ast_rules),
         )
+
+    # Also checked on the result: turning the timer on needs a limit (sent
+    # now or already saved), and turning it off clears the limit. Windows
+    # students already started keep the limit they started with.
+    if "is_timed" in update_data or "time_limit_minutes" in update_data:
+        is_timed = update_data.get("is_timed", task.is_timed)
+        try:
+            update_data["time_limit_minutes"] = resolve_time_limit(
+                is_timed,
+                update_data.get("time_limit_minutes", task.time_limit_minutes),
+            )
+        except ValueError as error:
+            raise TaskTimeLimitError(str(error)) from error
+        update_data["is_timed"] = is_timed
 
     changed_fields = sorted(
         field_name

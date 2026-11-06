@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.services.ast_evaluator import (SUPPORTED_AST_RULES,
                                         normalize_rule_configuration)
@@ -75,6 +75,25 @@ def normalize_response_datetime(
 
 # Same limit as the "Required at least" field in the activity editor.
 MAX_RULE_MIN_COUNT = 20
+
+# Time limit of a timed activity, in minutes (the activity editor's range).
+MIN_TIME_LIMIT_MINUTES = 1
+MAX_TIME_LIMIT_MINUTES = 480
+
+
+def resolve_time_limit(
+    is_timed: bool,
+    time_limit_minutes: int | None,
+) -> int | None:
+    """The limit to store: required when timed, always None when untimed."""
+
+    if not is_timed:
+        return None
+
+    if time_limit_minutes is None:
+        raise ValueError("Enter a time limit in minutes for a timed activity.")
+
+    return time_limit_minutes
 
 
 def validate_ast_rules(
@@ -178,10 +197,28 @@ class TaskBase(BaseModel):
         default=True,
         description=("Whether the activity accepts official graded submissions."),
     )
+    is_timed: bool = Field(
+        default=False,
+        description=(
+            "Timed activity: each student has time_limit_minutes from the "
+            "moment they start. The timer cannot be paused."
+        ),
+    )
+    time_limit_minutes: int | None = Field(
+        default=None,
+        ge=MIN_TIME_LIMIT_MINUTES,
+        le=MAX_TIME_LIMIT_MINUTES,
+        description="Required when is_timed is true; ignored otherwise.",
+    )
 
     model_config = ConfigDict(
         extra="forbid",
     )
+
+    @model_validator(mode="after")
+    def validate_time_limit(self):
+        self.time_limit_minutes = resolve_time_limit(self.is_timed, self.time_limit_minutes)
+        return self
 
     @field_validator("title")
     @classmethod
@@ -284,6 +321,14 @@ class TaskUpdate(BaseModel):
     )
     paste_policy: PastePolicy | None = None
     is_graded: bool | None = None
+    is_timed: bool | None = None
+    # Checked with is_timed in the service: required while the activity is
+    # timed (after this update), cleared when it is not.
+    time_limit_minutes: int | None = Field(
+        default=None,
+        ge=MIN_TIME_LIMIT_MINUTES,
+        le=MAX_TIME_LIMIT_MINUTES,
+    )
     due_at: datetime | None = Field(
         default=None,
         description=("Optional timezone-aware deadline normalized to UTC."),
@@ -307,6 +352,7 @@ class TaskUpdate(BaseModel):
         "starter_code",
         "paste_policy",
         "is_graded",
+        "is_timed",
         mode="before",
     )
     @classmethod
@@ -411,6 +457,8 @@ class TaskResponseBase(BaseModel):
     )
     paste_policy: PastePolicy
     is_graded: bool
+    is_timed: bool = False
+    time_limit_minutes: int | None = None
     due_at: datetime | None = None
     is_published: bool
     published_at: datetime | None = None
@@ -461,6 +509,14 @@ class StudentTaskResponse(TaskResponseBase):
         gt=0,
     )
     published_at: datetime
+    content_withheld: bool = Field(
+        default=False,
+        description=(
+            "Timed activity the student has not started: the description, "
+            "instructions, scenario, starter code and required structures are "
+            "left out (and the sample cases refused) until the timer starts."
+        ),
+    )
 
     # Student-safe boundary:
     # instructor_id and task-test-case records are excluded.

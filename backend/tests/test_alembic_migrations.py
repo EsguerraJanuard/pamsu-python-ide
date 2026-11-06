@@ -48,6 +48,7 @@ EXPECTED_APPLICATION_TABLES = {
     "submissions",
     "task_test_cases",
     "tasks",
+    "timed_attempts",
     "users",
 }
 

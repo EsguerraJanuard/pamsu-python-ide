@@ -58,6 +58,7 @@ export function mapActivity(task, classMap, attemptsByTask, now = Date.now()) {
     submissionId: submission?.sub_id ?? null,
     attemptCount: attempts.length,
     retakeAllowed: attempts.some((attempt) => attempt.retake_allowed),
+    timeLimitMinutes: task.is_timed ? task.time_limit_minutes : null,
   };
 }
 

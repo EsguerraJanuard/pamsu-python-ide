@@ -12,7 +12,8 @@ from app.services.submission_service import (
     SubmissionConflictError, SubmissionNotFoundError,
     SubmissionNotificationWorkflowError, SubmissionPersistenceError,
     SubmissionServiceError, SubmissionTaskNotGradableError,
-    SubmissionTaskUnavailableError, create_student_submission,
+    SubmissionTaskUnavailableError, SubmissionTimeLimitError,
+    create_student_submission,
     get_student_official_submission, get_student_submission,
     list_student_submissions)
 from fastapi import (APIRouter, Depends, HTTPException, Query,
@@ -41,6 +42,16 @@ def raise_submission_service_http_exception(
     ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+
+    # Not 404: the workspace retries a 404 without its coding session.
+    if isinstance(
+        error,
+        SubmissionTimeLimitError,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=str(error),
         ) from error
 
@@ -90,6 +101,12 @@ def raise_submission_service_http_exception(
     summary="Create a submission attempt",
     operation_id="create_student_submission_attempt",
     responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": (
+                "Timed activity: the student's timer was not started "
+                "or has ended."
+            ),
+        },
         status.HTTP_404_NOT_FOUND: {
             "description": ("The activity or coding session is unavailable."),
         },

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import api, { getErrorMessage } from '../../services/api';
-import { classLabel } from '../../utils/format';
+import { classLabel, formatDateTime } from '../../utils/format';
 import {
   AST_GROUPS,
   DIFFICULTY_LEVELS,
@@ -18,6 +18,7 @@ import { ErrorState, InlineAlert, LoadingState, PageHeader } from '../../compone
 import PageShell from "../../components/layout/PageShell";
 import Icon from "../../components/ui/Icon";
 import CodeEditorField, { CodeEditorHint } from "../../components/ui/CodeEditorField";
+import ConfirmationModal from "../../components/modals/ConfirmationModal";
 
 // Suggested starting rules when a difficulty is picked by hand.
 const DIFFICULTY_SUGGESTIONS = {
@@ -28,6 +29,18 @@ const DIFFICULTY_SUGGESTIONS = {
 
 const LEVEL_ORDER = DIFFICULTY_LEVELS.map((level) => level.id);
 const MAX_MIN_COUNT = 20;
+// Same range as the backend (task_schema.py).
+const MAX_TIME_LIMIT_MINUTES = 480;
+
+/** The time limit as a whole number of minutes, or null when it is not valid. */
+const parseTimeLimit = (value) => {
+  const text = String(value ?? '').trim();
+  if (!/^\d+$/.test(text)) return null;
+  const minutes = Number(text);
+  return minutes >= 1 && minutes <= MAX_TIME_LIMIT_MINUTES ? minutes : null;
+};
+
+const minutesLabel = (minutes) => `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
 const LEGACY_RULE_IDS = { require_function: "require_function_def", require_class: "require_class_def" };
 const KNOWN_RULE_IDS = new Set(AST_GROUPS.flatMap((group) => group.rules.map((rule) => rule.id)));
 
@@ -336,6 +349,9 @@ const EMPTY_FORM = {
   difficulty: '',
   is_published: false,
   allow_paste: false,
+  is_timed: false,
+  // Kept as typed (a string) so the field can be emptied while editing.
+  time_limit_minutes: '',
 };
 
 const ActivityEditor = () => {
@@ -364,6 +380,16 @@ const ActivityEditor = () => {
   const [analysis, setAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState('');
+  // "Create Activity" first shows a summary; the activity is created on "Confirm & Create".
+  const [showCreateSummary, setShowCreateSummary] = useState(false);
+  const timeLimitInputRef = useRef(null);
+  const timeLimitWasOn = useRef(formData.is_timed);
+
+  // Turning the time limit on moves focus to the minutes field it reveals.
+  useEffect(() => {
+    if (formData.is_timed && !timeLimitWasOn.current) timeLimitInputRef.current?.focus();
+    timeLimitWasOn.current = formData.is_timed;
+  }, [formData.is_timed]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -551,7 +577,10 @@ const ActivityEditor = () => {
           activity_type: task.activity_type || 'laboratory',
           difficulty: task.difficulty || '',
           allow_paste: task.paste_policy !== 'disabled',
+          is_timed: Boolean(task.is_timed),
+          time_limit_minutes: task.time_limit_minutes ? String(task.time_limit_minutes) : '',
         });
+        timeLimitWasOn.current = Boolean(task.is_timed);
         setDifficultySource('saved');
       } catch (err) {
         if (!cancelled) setLoadError(err);
@@ -565,10 +594,14 @@ const ActivityEditor = () => {
     };
   }, [editId, isEdit]);
 
+  const timeLimit = parseTimeLimit(formData.time_limit_minutes);
+  const timeLimitInvalid = formData.is_timed && timeLimit === null;
+
   const missingFields = [];
   if (!formData.title.trim()) missingFields.push('a title');
   if (!isEdit && formData.class_ids.length === 0) missingFields.push('a classroom');
   if (!formData.difficulty) missingFields.push('a difficulty level');
+  if (timeLimitInvalid) missingFields.push(`a time limit (1–${MAX_TIME_LIMIT_MINUTES} minutes)`);
 
   /** Only the fields that differ from the saved activity. */
   const buildUpdatePayload = () => {
@@ -581,6 +614,13 @@ const ActivityEditor = () => {
     if (formData.difficulty !== original.difficulty) payload.difficulty = formData.difficulty;
     const pastePolicy = formData.allow_paste ? 'internal_only' : 'disabled';
     if (pastePolicy !== original.paste_policy) payload.paste_policy = pastePolicy;
+    // Sent only when changed, so other edits keep working against a backend
+    // that has no timer fields yet.
+    const wasTimed = Boolean(original.is_timed);
+    if (formData.is_timed !== wasTimed) payload.is_timed = formData.is_timed;
+    if (formData.is_timed && (!wasTimed || timeLimit !== original.time_limit_minutes)) {
+      payload.time_limit_minutes = timeLimit;
+    }
     if (sortedJson(formData.requirements) !== sortedJson(original.editorRequirements)) {
       payload.required_ast_rules = formData.requirements;
     }
@@ -628,12 +668,23 @@ const ActivityEditor = () => {
       setError('Please select a difficulty level.');
       return;
     }
+    if (timeLimitInvalid) {
+      setError(`Enter a time limit from 1 to ${MAX_TIME_LIMIT_MINUTES} minutes, or turn the time limit off.`);
+      timeLimitInputRef.current?.focus();
+      return;
+    }
 
     if (isEdit) {
       await handleUpdate();
       return;
     }
 
+    setShowCreateSummary(true);
+  };
+
+  // Runs from the summary dialog's "Confirm & Create".
+  const createActivity = async () => {
+    setError('');
     setLoading(true);
 
     try {
@@ -646,12 +697,19 @@ const ActivityEditor = () => {
           ? new Date(formData.scheduled_publish_at).toISOString()
           : null,
         required_ast_rules: formData.requirements,
+        time_limit_minutes: timeLimit,
       };
 
       delete payload.requirements;
       delete payload.expected_output;
       delete payload.is_published;
       delete payload.allow_paste;
+      // Untimed is the default: leaving both fields out keeps creating
+      // activities working against a backend without timer support.
+      if (!formData.is_timed) {
+        delete payload.is_timed;
+        delete payload.time_limit_minutes;
+      }
 
       const response = await api.post('/instructors/tasks/', payload);
       const tasks = Array.isArray(response) ? response : [response];
@@ -685,6 +743,7 @@ const ActivityEditor = () => {
       }
 
       if (problems.length > 0) {
+        setShowCreateSummary(false);
         setError(`The activity was created, but these steps failed: ${problems.join("; ")}. You can finish them from the activity page.`);
         scrollFormToTop();
         if (tasks.length === 1) {
@@ -699,6 +758,7 @@ const ActivityEditor = () => {
         navigate('/instructor/dashboard');
       }
     } catch (err) {
+      setShowCreateSummary(false);
       setError(getErrorMessage(err, 'The activity could not be created. Please try again.'));
       scrollFormToTop();
     } finally {
@@ -717,6 +777,24 @@ const ActivityEditor = () => {
     : [];
   const isPublishedTask = Boolean(original?.is_published);
   const editedClass = isEdit ? classrooms.find((cls) => cls.class_id === original?.class_id) : null;
+
+  const selectedClasses = classrooms.filter((cls) => formData.class_ids.includes(cls.class_id));
+  const createSummaryRows = [
+    ['Title', formData.title.trim() || '—'],
+    [selectedClasses.length > 1 ? 'Target classrooms' : 'Target classroom', selectedClasses.map(classLabel).join(', ') || '—'],
+    ['Difficulty level', selectedLevel ? selectedLevel.label : '—'],
+    ['Timed', formData.is_timed && timeLimit ? `Yes · ${minutesLabel(timeLimit)}` : 'No'],
+    ['Deadline', formData.due_at ? formatDateTime(formData.due_at) : 'No deadline'],
+    [
+      'Publishing',
+      formData.is_published
+        ? 'Published immediately'
+        : formData.scheduled_publish_at && formData.class_ids.length <= 1
+          ? `Scheduled for ${formatDateTime(formData.scheduled_publish_at)}`
+          : 'Saved as a draft',
+    ],
+    ['Required structures', checkedRuleIds.length ? `${checkedRuleIds.length} AST ${checkedRuleIds.length === 1 ? 'rule' : 'rules'}` : 'None'],
+  ];
 
   const shell = (content) => (
     <PageShell role="instructor" maxWidth="max-w-7xl" statusContext={editedClass?.name}>
@@ -1084,6 +1162,70 @@ const ActivityEditor = () => {
                       </label>
                     </div>
 
+                    <div className="rounded-lg border border-border-subtle bg-bg-alt/40 p-3">
+                      <label className="relative inline-flex items-center gap-3 cursor-pointer group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            name="is_timed"
+                            checked={formData.is_timed}
+                            onChange={handleChange}
+                            aria-describedby="time-limit-help"
+                            className="sr-only peer"
+                          />
+                          <div className={TOGGLE_TRACK}></div>
+                        </div>
+                        <span className="flex items-center gap-1.5 text-sm font-semibold text-text-main select-none">
+                          <Icon name="clock" className="h-4 w-4 text-text-muted" />
+                          Enable Time Limit
+                        </span>
+                      </label>
+                      <p id="time-limit-help" className="mt-1.5 text-xs leading-relaxed text-text-muted">
+                        Each student gets a fixed time from the moment they start coding. The timer cannot be paused, and their code is submitted automatically when it reaches 00:00.
+                      </p>
+                      {formData.is_timed && (
+                        <div className="mt-3 animate-fade-in">
+                          <label htmlFor="time_limit_minutes" className={LABEL_CLASS}>
+                            Time Limit (in minutes) <span className="text-text-brand">*</span>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              ref={timeLimitInputRef}
+                              id="time_limit_minutes"
+                              name="time_limit_minutes"
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={MAX_TIME_LIMIT_MINUTES}
+                              step={1}
+                              value={formData.time_limit_minutes}
+                              onChange={handleChange}
+                              placeholder="e.g. 60"
+                              aria-invalid={timeLimitInvalid && formData.time_limit_minutes !== '' ? true : undefined}
+                              aria-describedby="time-limit-range"
+                              className="input-field w-28 font-mono"
+                            />
+                            <span className="text-sm text-text-muted">minutes</span>
+                          </div>
+                          <p
+                            id="time-limit-range"
+                            className={`mt-1.5 text-xs ${timeLimitInvalid && formData.time_limit_minutes !== '' ? 'text-text-rose' : 'text-text-muted'}`}
+                          >
+                            {timeLimitInvalid && formData.time_limit_minutes !== ''
+                              ? `Enter a whole number from 1 to ${MAX_TIME_LIMIT_MINUTES}.`
+                              : formData.due_at
+                                ? 'A student who starts close to the deadline gets only the time left until the deadline.'
+                                : `From 1 to ${MAX_TIME_LIMIT_MINUTES} minutes.`}
+                          </p>
+                          {isPublishedTask && (
+                            <p className="mt-1 text-xs text-text-muted">
+                              Students who already started keep the time limit they started with.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex flex-col gap-4">
                       {!isPublishedTask && (
                         <div className={`animate-fade-in transition-opacity ${formData.is_published ? 'opacity-30 pointer-events-none' : ''} ${formData.class_ids.length > 1 ? 'opacity-50' : ''}`}>
@@ -1196,6 +1338,33 @@ const ActivityEditor = () => {
                 </div>
               </div>
             </form>
+
+            {!isEdit && (
+              <ConfirmationModal
+                isOpen={showCreateSummary}
+                title="Create this activity?"
+                message="Check the summary below. You can change everything except the classroom later."
+                confirmText="Confirm & Create"
+                loadingText="Creating…"
+                isLoading={loading}
+                onConfirm={createActivity}
+                onCancel={() => setShowCreateSummary(false)}
+              >
+                <dl className="mt-4 divide-y divide-border-subtle rounded-lg border border-border-subtle text-sm">
+                  {createSummaryRows.map(([term, value]) => (
+                    <div key={term} className="flex justify-between gap-4 px-3 py-2">
+                      <dt className="shrink-0 text-text-muted">{term}</dt>
+                      <dd className="min-w-0 text-right font-medium text-text-main [overflow-wrap:anywhere]">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {formData.class_ids.length > 1 && (
+                  <p className="mt-3 text-xs text-text-muted">
+                    One copy of this activity is created in each of the {formData.class_ids.length} classrooms.
+                  </p>
+                )}
+              </ConfirmationModal>
+            )}
     </>
   );
 };

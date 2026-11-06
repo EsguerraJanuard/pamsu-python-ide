@@ -375,6 +375,7 @@ export default function ActivityDetails() {
                 ["Scheduled", activity.scheduled_publish_at ? formatDateTime(activity.scheduled_publish_at) : "—"],
                 ["Due", activity.due_at ? formatDateTime(activity.due_at) : "No due date"],
                 ["Difficulty", activity.difficulty ? activity.difficulty.charAt(0).toUpperCase() + activity.difficulty.slice(1) : "—"],
+                ["Time limit", activity.is_timed ? `${activity.time_limit_minutes} min per student` : "None"],
                 ["Graded", activity.is_graded ? "Yes" : "No"],
               ].map(([term, value]) => (
                 <div key={term} className="flex justify-between gap-3">

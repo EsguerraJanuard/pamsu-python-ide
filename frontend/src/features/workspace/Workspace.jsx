@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import MonacoEditor from "@monaco-editor/react";
 
 import PageShell from "../../components/layout/PageShell";
 import Sidebar from "../../components/layout/Sidebar";
 import Statusbar from "../../components/layout/Statusbar";
+import AlertModal from "../../components/modals/AlertModal";
 import ConfirmationModal from "../../components/modals/ConfirmationModal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/ui/StateViews";
 import { useEditorSettings } from "../../hooks/useEditorSettings";
@@ -18,6 +19,7 @@ import { useTheme } from "../theme/ThemeContext";
 import ThemeToggle from "../theme/ThemeToggle";
 import { draftKeyFor, readDraft, saveDraft } from "./draftStorage";
 import { defineEditorThemes, editorThemeFor } from "./editorThemes";
+import ActivityTimer, { toClientTimer } from "./ActivityTimer";
 import Icon from "../../components/ui/Icon";
 
 const BLANK_TEMPLATE = "# Write your solution below.\n";
@@ -161,6 +163,17 @@ function ActivityWorkspace({ activityId, userId }) {
   const [confirmAction, setConfirmAction] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Timed activities. The server owns the timer (GET/POST /activities/:id/timer);
+  // this copy adds endsAtMs, the end on this device's clock.
+  const [timer, setTimer] = useState(null);
+  const [timeUp, setTimeUp] = useState(false);
+  const [isStartingTimer, setIsStartingTimer] = useState(false);
+  // Extra lines for the start warning, worked out when it opens.
+  const [startTimerNotes, setStartTimerNotes] = useState([]);
+  // Result of the automatic submit at 00:00: { kind: "submitted", subId } or { kind: "failed", message }.
+  const [timeUpOutcome, setTimeUpOutcome] = useState(null);
+  const autoSubmitStarted = useRef(false);
+
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -180,6 +193,9 @@ function ActivityWorkspace({ activityId, userId }) {
       if (activityRes.status === "rejected") throw activityRes.reason;
 
       const task = activityRes.value;
+      // A timed activity cannot open without its timer: the editor must know
+      // whether the student's time is running, over, or not started.
+      const timerBody = task.is_timed ? await api.get(`/activities/${activityId}/timer`) : null;
       const cases = casesRes.status === "fulfilled" && Array.isArray(casesRes.value) ? casesRes.value : [];
       const enrollment =
         classesRes.status === "fulfilled"
@@ -191,8 +207,13 @@ function ActivityWorkspace({ activityId, userId }) {
         classLabel: enrollment ? classLabel(enrollment.classroom) : `Class ${task.class_id}`,
         requirements: requiredRuleIds(task.required_ast_rules),
         pasteDisabled: task.paste_policy === "disabled",
+        // Timed and not started: the server sent no problem text, starter code,
+        // required structures or sample cases (see revealProblem).
+        contentWithheld: Boolean(task.content_withheld),
       });
       setSampleCases(cases);
+      setTimer(timerBody ? toClientTimer(timerBody) : null);
+      setTimeUp(Boolean(timerBody) && (timerBody.state === "expired" || timerBody.state === "closed"));
 
       const savedDraft = draftStorageKey ? readDraft(draftStorageKey) : null;
       setCode(savedDraft ?? (task.starter_code || BLANK_TEMPLATE));
@@ -208,9 +229,10 @@ function ActivityWorkspace({ activityId, userId }) {
     loadActivity();
   }, [loadActivity]);
 
-  // Autosave the draft locally (debounced).
+  // Autosave the draft locally (debounced). Not while the problem is withheld:
+  // the blank template saved then would later hide the starter code.
   useEffect(() => {
-    if (!activity || !draftStorageKey) return undefined;
+    if (!activity || !draftStorageKey || activity.contentWithheld) return undefined;
     const timer = window.setTimeout(() => saveDraft(draftStorageKey, code), 500);
     return () => window.clearTimeout(timer);
   }, [code, draftStorageKey, activity]);
@@ -232,6 +254,12 @@ function ActivityWorkspace({ activityId, userId }) {
   }, [notice]);
 
   const showNotice = (text, tone = "info") => setNotice({ text, tone });
+
+  const isTimed = Boolean(activity?.is_timed);
+  const timerRunning = isTimed && timer?.state === "running" && !timeUp;
+  // A timed activity can be edited, run and submitted only while its timer runs.
+  const isLocked = isTimed && !timerRunning;
+  const lockedMessage = "Your time for this activity is up, so the code can no longer be changed.";
 
   // ── Internal clipboard ───────────────────────────────────────────────
   const getSelectionText = () => {
@@ -278,6 +306,8 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const cutSelection = (clipboardData = null) => {
+    // executeEdits ignores Monaco's readOnly, so the lock is checked here.
+    if (isLocked) return showNotice(lockedMessage);
     const { editor, selection, text } = getSelectionText();
     if (!text) return showNotice("Select code before cutting.");
     internalClipboardRef.current = text;
@@ -288,6 +318,7 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const pasteInternal = () => {
+    if (isLocked) return showNotice(lockedMessage);
     if (activity?.pasteDisabled) return showNotice("Pasting is turned off for this activity.");
     const editor = editorRef.current;
     if (!editor) return;
@@ -352,7 +383,7 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const handleRun = async () => {
-    if (!isCoding) return;
+    if (!isCoding || isLocked) return;
     setActivePanel("output");
     setExecutionStatus("running");
     setOutput("Sending your code to the sandbox…");
@@ -400,7 +431,7 @@ function ActivityWorkspace({ activityId, userId }) {
   };
 
   const handleCheck = async () => {
-    if (!isCoding) return;
+    if (!isCoding || isLocked) return;
     setActivePanel("analysis");
     setExecutionStatus("running");
     setAstError("");
@@ -417,8 +448,14 @@ function ActivityWorkspace({ activityId, userId }) {
     }
   };
 
-  const submitSolution = async () => {
-    if (isSubmitting || !isCoding) return;
+  /**
+   * Submits the current code. `auto` is the timed activity's submit at 00:00:
+   * it runs whichever tab is open and whatever the code holds, and reports
+   * through the time-up dialog instead of leaving the page.
+   */
+  const submitSolution = async ({ auto = false } = {}) => {
+    if (isSubmitting) return;
+    if (!auto && (!isCoding || isLocked)) return;
     setIsSubmitting(true);
     try {
       // Send the last counts first so the linked session is complete; never
@@ -459,9 +496,25 @@ function ActivityWorkspace({ activityId, userId }) {
         console.warn("Activity indicator sync failed", logErr);
       }
       setConfirmAction(null);
+      if (auto) {
+        if (isMounted.current) setTimeUpOutcome({ kind: "submitted", subId: submission.sub_id });
+        return;
+      }
       navigate(`/student/submissions/${submission.sub_id}`, { state: { justSubmitted: true } });
     } catch (err) {
       setConfirmAction(null);
+      if (auto) {
+        if (isMounted.current) {
+          setTimeUpOutcome({
+            kind: "failed",
+            message:
+              err?.status === TIMEOUT_ERROR_STATUS
+                ? "The server didn't confirm the submission in time. It may still have been recorded: check Submissions before trying again."
+                : connectionMessage(err, "submit your code"),
+          });
+        }
+        return;
+      }
       if (err?.status === TIMEOUT_ERROR_STATUS) {
         // The request may have completed on the server even though no reply arrived.
         showNotice(
@@ -476,7 +529,101 @@ function ActivityWorkspace({ activityId, userId }) {
     }
   };
 
+  // ── Timed activity ───────────────────────────────────────────────────
+  const refreshTimer = async () => {
+    try {
+      const body = await api.get(`/activities/${activityId}/timer`);
+      if (!isMounted.current) return;
+      setTimer(toClientTimer(body));
+      setTimeUp(body.state === "expired" || body.state === "closed");
+    } catch {
+      // The state shown stays as it was; the server still enforces the time.
+    }
+  };
+
+  /**
+   * Loads the problem the server withheld until the timer started: text,
+   * required structures, sample cases and starter code. Returns false when it
+   * could not be loaded (the Problem tab then offers to try again).
+   */
+  const revealProblem = async () => {
+    const [taskRes, casesRes] = await Promise.allSettled([
+      api.get(`/activities/${activityId}`),
+      api.get(`/activities/${activityId}/sample-test-cases`),
+    ]);
+    if (!isMounted.current) return false;
+    if (taskRes.status === "rejected" || taskRes.value.content_withheld) {
+      showNotice("Your timer is running, but the problem could not be loaded. Select “Load the problem” to try again.", "error");
+      return false;
+    }
+    const task = taskRes.value;
+    const cases = casesRes.status === "fulfilled" && Array.isArray(casesRes.value) ? casesRes.value : [];
+    setActivity((prev) => ({
+      ...prev,
+      ...task,
+      requirements: requiredRuleIds(task.required_ast_rules),
+      pasteDisabled: task.paste_policy === "disabled",
+      contentWithheld: false,
+    }));
+    setSampleCases(cases);
+    if (cases[0]?.standard_input) setStandardInput(cases[0].standard_input);
+    const savedDraft = draftStorageKey ? readDraft(draftStorageKey) : null;
+    setCode(savedDraft ?? (task.starter_code || BLANK_TEMPLATE));
+    return true;
+  };
+
+  const startTimer = async () => {
+    if (isStartingTimer) return;
+    setIsStartingTimer(true);
+    try {
+      const body = await api.post(`/activities/${activityId}/timer/start`);
+      if (!isMounted.current) return;
+      // Converted now: the problem requests below must not shift the clock correction.
+      const clientTimer = toClientTimer(body);
+      const revealed = body.state === "running" && activity?.contentWithheld ? await revealProblem() : true;
+      if (!isMounted.current) return;
+      setTimer(clientTimer);
+      setTimeUp(body.state !== "running");
+      setConfirmAction(null);
+      if (body.state === "running" && revealed) {
+        switchView("session");
+        window.setTimeout(() => editorRef.current?.focus(), 0);
+      }
+    } catch (err) {
+      if (!isMounted.current) return;
+      setConfirmAction(null);
+      showNotice(`The timer was not started. ${connectionMessage(err, "start the timer")}`, "error");
+      // Refused (the deadline passed, the time was used): show the server's state.
+      if (err?.status === 403) refreshTimer();
+    } finally {
+      if (isMounted.current) setIsStartingTimer(false);
+    }
+  };
+
+  const handleTimerWarning = (secondsLeft) =>
+    showNotice(
+      secondsLeft >= 5 * 60
+        ? "5 minutes left. Your code is submitted automatically when the timer reaches 00:00."
+        : "1 minute left. Your code is submitted automatically when the timer reaches 00:00.",
+    );
+
+  // 00:00 on a timer that ran in this page: lock the editor (isLocked) and
+  // submit. A timer that was already over when the page opened submits nothing.
+  const submitAtTimeUp = useEffectEvent(() => {
+    // A Submit already on its way counts as the student's final attempt.
+    if (isSubmitting) return;
+    setConfirmAction(null);
+    submitSolution({ auto: true });
+  });
+
+  useEffect(() => {
+    if (!timeUp || timer?.state !== "running" || autoSubmitStarted.current) return;
+    autoSubmitStarted.current = true;
+    submitAtTimeUp();
+  }, [timeUp, timer]);
+
   const resetDraft = () => {
+    if (isLocked) return showNotice(lockedMessage);
     const starter = activity?.starter_code || BLANK_TEMPLATE;
     setCode(starter);
     setOutput("");
@@ -527,17 +674,50 @@ function ActivityWorkspace({ activityId, userId }) {
     setView(next);
     if (next !== "session") setShowIndicators(false);
   };
+
+  const timerNotStarted = isTimed && timer?.state === "not_started";
+  const timeLimitMinutes = timer?.time_limit_minutes ?? activity.time_limit_minutes;
+  const minutesText = (minutes) => `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+
+  // Entering the Session tab of a timed activity starts its timer, so the
+  // student confirms first ("Start Now"). Reading the problem never does.
+  const openSession = () => {
+    if (!timerNotStarted) {
+      switchView("session");
+      return;
+    }
+    const notes = [];
+    if (timer.retake_available) notes.push("Your instructor allowed you another attempt. This starts a new timer.");
+    if (activity.contentWithheld) notes.push("The problem, starter code and sample cases appear as soon as the timer starts.");
+    if (activity.due_at) {
+      const minutesToDeadline = Math.floor((new Date(activity.due_at).getTime() - Date.now()) / 60000);
+      if (minutesToDeadline < timeLimitMinutes && !timer.retake_available) {
+        notes.push(
+          `The activity is due ${formatDateTime(activity.due_at)}, so your timer will end then: about ${minutesText(Math.max(minutesToDeadline, 0))} from now.`,
+        );
+      }
+    }
+    notes.push("When the timer reaches 00:00, the editor locks and your code is submitted automatically.");
+    setStartTimerNotes(notes);
+    setConfirmAction("start-timer");
+  };
+
   // Tabs pattern: arrow keys (and Home/End) move between the two views.
   const handleViewKeyDown = (event) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const next = event.key === "Home" ? "problem" : event.key === "End" ? "session" : isCoding ? "problem" : "session";
+    if (next === "session" && timerNotStarted) {
+      openSession();
+      return;
+    }
     switchView(next);
     document.getElementById(`workspace-tab-${next}`)?.focus();
   };
   const notCodingHint = "Open the Session tab to run and submit your code.";
+  const lockedHint = timeUp ? "Your time for this activity is up." : undefined;
   const startCodingButton = (
-    <button type="button" onClick={() => switchView("session")} className="btn-primary shrink-0">
+    <button type="button" onClick={openSession} className="btn-primary shrink-0">
       Start coding
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M3 8h10M9 4l4 4-4 4" />
@@ -579,7 +759,7 @@ function ActivityWorkspace({ activityId, userId }) {
                     aria-selected={selected}
                     aria-controls={`workspace-view-${tab.id}`}
                     tabIndex={selected ? 0 : -1}
-                    onClick={() => switchView(tab.id)}
+                    onClick={() => (tab.id === "session" ? openSession() : switchView(tab.id))}
                     className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
                       selected ? "bg-psu-maroon text-white shadow-sm" : "text-text-muted hover:bg-bg-panel hover:text-text-main"
                     }`}
@@ -599,6 +779,16 @@ function ActivityWorkspace({ activityId, userId }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {isTimed && (
+              <ActivityTimer
+                limitMinutes={timeLimitMinutes}
+                endsAtMs={timer?.endsAtMs ?? undefined}
+                running={timerRunning}
+                timeUp={timeUp}
+                onExpire={() => setTimeUp(true)}
+                onWarning={handleTimerWarning}
+              />
+            )}
             <div className="hidden items-center gap-2 rounded-lg border border-border-subtle px-2.5 py-1 text-xs md:flex" role="status" aria-live="polite">
               <span className={`h-2 w-2 rounded-full ${status.dot}`} aria-hidden="true" />
               <span className="text-text-muted">{status.label}</span>
@@ -611,8 +801,8 @@ function ActivityWorkspace({ activityId, userId }) {
             <button
               type="button"
               onClick={handleCheck}
-              disabled={!isCoding || isBusy}
-              title={!isCoding ? notCodingHint : undefined}
+              disabled={!isCoding || isBusy || isLocked}
+              title={!isCoding ? notCodingHint : lockedHint}
               className="btn-secondary btn-sm"
             >
               <Icon name="check" className="h-3.5 w-3.5" />
@@ -621,8 +811,8 @@ function ActivityWorkspace({ activityId, userId }) {
             <button
               type="button"
               onClick={handleRun}
-              disabled={!isCoding || isBusy}
-              title={!isCoding ? notCodingHint : undefined}
+              disabled={!isCoding || isBusy || isLocked}
+              title={!isCoding ? notCodingHint : lockedHint}
               className="btn-secondary btn-sm"
             >
               <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -633,8 +823,8 @@ function ActivityWorkspace({ activityId, userId }) {
             <button
               type="button"
               onClick={() => setConfirmAction("submit")}
-              disabled={!isCoding || isBusy || isSubmitting || !hasOwnCode}
-              title={!isCoding ? notCodingHint : !hasOwnCode ? "Write your solution before submitting." : undefined}
+              disabled={!isCoding || isBusy || isSubmitting || !hasOwnCode || isLocked}
+              title={!isCoding ? notCodingHint : isLocked ? lockedHint : !hasOwnCode ? "Write your solution before submitting." : undefined}
               className="btn-primary btn-sm"
             >
               <Icon name="send" className="h-3.5 w-3.5" />
@@ -654,6 +844,32 @@ function ActivityWorkspace({ activityId, userId }) {
             }`}
           >
             {notice.text}
+          </div>
+        )}
+
+        {isTimed && timeUp && (
+          <div
+            role="status"
+            className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-psu-red/20 bg-psu-red/[0.06] px-4 py-2 text-xs text-text-main"
+          >
+            <span className="flex items-center gap-1.5 font-semibold text-text-rose">
+              <Icon name="clock" className="h-3.5 w-3.5" />
+              {timer?.state === "closed" ? "Deadline passed" : "Time is up"}
+            </span>
+            <span className="text-text-muted">
+              {timer?.state === "closed"
+                ? "The deadline passed before you started this timed activity."
+                : isSubmitting
+                  ? "The editor is locked. Submitting your code…"
+                  : timeUpOutcome?.kind === "submitted" || timer?.submitted_in_window
+                    ? "The editor is locked. Your submission was recorded."
+                    : timeUpOutcome?.kind === "failed"
+                      ? "The editor is locked. Your code was not submitted."
+                      : "The editor is locked. Nothing was submitted during your time."}
+            </span>
+            <Link to="/student/submissions" className="font-semibold text-text-brand underline">
+              My submissions
+            </Link>
           </div>
         )}
 
@@ -682,12 +898,55 @@ function ActivityWorkspace({ activityId, userId }) {
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className={`badge ${pastDue ? "badge-danger" : "badge-gold"}`}>{pastDue ? `Past due · ${dueLabel.replace("Due ", "")}` : dueLabel}</span>
                       <span className="badge badge-neutral">{activity.activity_type === "homework" ? "Homework" : "Laboratory"}</span>
+                      {isTimed && (
+                        <span className="badge badge-brand inline-flex items-center gap-1">
+                          <Icon name="clock" className="h-3 w-3" />
+                          Timed · {timeLimitMinutes} min
+                        </span>
+                      )}
                     </div>
                   </div>
                   {startCodingButton}
                 </div>
 
                 <div className="mt-6 space-y-7">
+                  {activity.contentWithheld ? (
+                    <section
+                      aria-labelledby="problem-withheld-heading"
+                      className="rounded-xl border border-dashed border-border-strong bg-bg-panel px-5 py-8 text-center"
+                    >
+                      <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-psu-maroon/10 text-text-brand">
+                        <Icon name="clock" className="h-5 w-5" />
+                      </span>
+                      {timerRunning ? (
+                        <>
+                          <h2 id="problem-withheld-heading" className="mt-3 text-base font-semibold text-text-main">
+                            The problem did not load
+                          </h2>
+                          <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-text-muted">
+                            Your timer is running. Load the problem again; if it keeps failing, reload the page.
+                          </p>
+                          <button type="button" onClick={revealProblem} className="btn-primary mt-4">
+                            <Icon name="refresh" className="h-4 w-4" />
+                            Load the problem
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <h2 id="problem-withheld-heading" className="mt-3 text-base font-semibold text-text-main">
+                            {timer?.state === "closed" ? "This timed activity was not started" : "The problem appears when you start"}
+                          </h2>
+                          <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-text-muted">
+                            {timer?.state === "closed"
+                              ? "The deadline passed before you started, so the problem is not shown."
+                              : `This is a timed activity. The problem, starter code and sample cases are shown once you start the timer. You will then have ${minutesText(timeLimitMinutes)}, and the timer cannot be paused.`}
+                          </p>
+                          {timer?.state !== "closed" && <div className="mt-4 flex justify-center">{startCodingButton}</div>}
+                        </>
+                      )}
+                    </section>
+                  ) : (
+                  <>
                   {activity.description && (
                     <section>
                       <h2 className="mb-2 text-sm font-semibold text-text-main">Problem description</h2>
@@ -755,6 +1014,8 @@ function ActivityWorkspace({ activityId, userId }) {
                       </div>
                     )}
                   </section>
+                  </>
+                  )}
 
                   <section className="rounded-lg border border-psu-maroon/15 bg-selected p-4">
                     <h2 className="text-xs font-bold text-text-brand">Clipboard policy</h2>
@@ -766,15 +1027,25 @@ function ActivityWorkspace({ activityId, userId }) {
                   </section>
                 </div>
 
+                {!activity.contentWithheld && (
                 <div className="mt-8 flex flex-col gap-4 rounded-xl border border-border-subtle bg-bg-panel p-4 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   <div>
-                    <p className="text-sm font-semibold text-text-main">Ready to write your solution?</p>
+                    <p className="text-sm font-semibold text-text-main">
+                      {timeUp ? "Your time is up" : timerRunning ? "Your timer is running" : "Ready to write your solution?"}
+                    </p>
                     <p className="mt-0.5 text-sm text-text-muted">
-                      Switch to the Session tab to start coding. Your draft is kept when you come back to re-read the problem.
+                      {!isTimed
+                        ? "Switch to the Session tab to start coding. Your draft is kept when you come back to re-read the problem."
+                        : timeUp
+                          ? "The editor is locked. You can still open the Session tab to see your code."
+                          : timerRunning
+                            ? "The timer keeps running while you read. Switch to the Session tab to keep coding."
+                            : `This is a timed activity: you have ${minutesText(timeLimitMinutes)} once you start coding, and the timer cannot be paused.`}
                     </p>
                   </div>
                   {startCodingButton}
                 </div>
+                )}
               </div>
             </section>
           )}
@@ -808,20 +1079,25 @@ function ActivityWorkspace({ activityId, userId }) {
                 <button type="button" onClick={() => copySelection()} className="btn-ghost btn-sm" title="Copy selection to workspace clipboard">
                   Copy
                 </button>
-                <button type="button" onClick={() => cutSelection()} className="btn-ghost btn-sm" title="Cut selection to workspace clipboard">
+                <button type="button" onClick={() => cutSelection()} disabled={isLocked} className="btn-ghost btn-sm" title="Cut selection to workspace clipboard">
                   Cut
                 </button>
                 <button
                   type="button"
                   onClick={pasteInternal}
-                  disabled={activity.pasteDisabled}
+                  disabled={activity.pasteDisabled || isLocked}
                   className="btn-ghost btn-sm"
                   title={activity.pasteDisabled ? "Pasting is turned off for this activity" : "Paste from workspace clipboard"}
                 >
                   Paste
                 </button>
                 <span className="mx-1 h-4 w-px bg-border-subtle" aria-hidden="true" />
-                <button type="button" onClick={() => setConfirmAction("reset")} className="btn-ghost btn-sm text-text-rose hover:text-text-rose">
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("reset")}
+                  disabled={isLocked}
+                  className="btn-ghost btn-sm text-text-rose hover:text-text-rose"
+                >
                   Reset
                 </button>
               </div>
@@ -858,8 +1134,10 @@ function ActivityWorkspace({ activityId, userId }) {
                   }}
                   loading={<LoadingState label="Starting editor…" />}
                   options={{
-                    // Guard in case focus lingers after switching to the Problem tab.
-                    readOnly: !isCoding,
+                    // Guard in case focus lingers after switching to the Problem tab;
+                    // a timed activity also locks when its time is up.
+                    readOnly: !isCoding || isLocked,
+                    readOnlyMessage: { value: isLocked ? lockedMessage : "Open the Session tab to edit your code." },
                     minimap: { enabled: Boolean(settings.minimap) },
                     fontSize: settings.fontSize,
                     tabSize: settings.tabSize,
@@ -1022,16 +1300,61 @@ function ActivityWorkspace({ activityId, userId }) {
         isOpen={confirmAction === "submit"}
         title="Submit this solution?"
         message={
-          pastDue
-            ? "This activity is past its due date. A late submission is accepted only if your instructor allowed you another attempt."
-            : "Your current code becomes your latest attempt. You can submit again while the activity is open; the latest accepted attempt is the official one."
+          isTimed
+            ? "Your current code becomes your latest attempt. You can submit again until your timer ends; the latest accepted attempt is the official one."
+            : pastDue
+              ? "This activity is past its due date. A late submission is accepted only if your instructor allowed you another attempt."
+              : "Your current code becomes your latest attempt. You can submit again while the activity is open; the latest accepted attempt is the official one."
         }
         confirmText="Submit"
         loadingText="Submitting…"
         isLoading={isSubmitting}
-        onConfirm={submitSolution}
+        onConfirm={() => submitSolution()}
         onCancel={() => setConfirmAction(null)}
       />
+      {isTimed && (
+        <>
+          <ConfirmationModal
+            isOpen={confirmAction === "start-timer"}
+            title="Start the timer?"
+            message={`This is a timed activity. Once you proceed, a timer of ${minutesText(timeLimitMinutes)} will begin and cannot be paused. Are you ready?`}
+            confirmText="Start Now"
+            loadingText="Starting…"
+            isLoading={isStartingTimer}
+            onConfirm={startTimer}
+            onCancel={() => setConfirmAction(null)}
+          >
+            <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-text-muted">
+              {startTimerNotes.map((note) => (
+                <li key={note} className="flex gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-psu-gold" aria-hidden="true" />
+                  {note}
+                </li>
+              ))}
+            </ul>
+          </ConfirmationModal>
+          <AlertModal
+            isOpen={timeUpOutcome?.kind === "submitted"}
+            title="Time is up"
+            message="Time is up! Your code has been automatically submitted."
+            onClose={() => navigate(`/student/submissions/${timeUpOutcome.subId}`, { state: { justSubmitted: true } })}
+          />
+          <ConfirmationModal
+            isOpen={timeUpOutcome?.kind === "failed"}
+            title="Time is up"
+            message={`Your code could not be submitted automatically. ${timeUpOutcome?.message ?? ""}`}
+            confirmText="Try again"
+            cancelText="Close"
+            loadingText="Submitting…"
+            isLoading={isSubmitting}
+            onConfirm={() => {
+              setTimeUpOutcome(null);
+              submitSolution({ auto: true });
+            }}
+            onCancel={() => setTimeUpOutcome(null)}
+          />
+        </>
+      )}
       <ConfirmationModal
         isOpen={confirmAction === "reset"}
         title="Reset your draft?"

@@ -34,6 +34,12 @@ class SubmissionTaskNotGradableError(
     """Raised when a task does not accept official submissions."""
 
 
+class SubmissionTimeLimitError(
+    SubmissionServiceError,
+):
+    """Raised when a timed activity's timer was not started or has ended."""
+
+
 class SubmissionNotFoundError(
     SubmissionServiceError,
 ):
@@ -172,7 +178,9 @@ def _get_student_submission_task(
             "The activity is unavailable for submission."
         )
 
-    if is_task_past_due(task) and not has_retake_allowance(
+    # A timed activity is checked against the student's timer window below,
+    # which already ends at the deadline (see timed_activity_service).
+    if not task.is_timed and is_task_past_due(task) and not has_retake_allowance(
         db,
         student_id=student_id,
         task_id=task.task_id,
@@ -206,6 +214,18 @@ def _get_student_submission_task(
         raise SubmissionTaskNotGradableError(
             "This activity does not accept official submissions."
         )
+
+    if task.is_timed:
+        # Imported here: timed_activity_service imports this module.
+        from app.services.timed_activity_service import timed_submission_error
+
+        reason = timed_submission_error(
+            db,
+            task=task,
+            student_id=student_id,
+        )
+        if reason:
+            raise SubmissionTimeLimitError(reason)
 
     return task
 

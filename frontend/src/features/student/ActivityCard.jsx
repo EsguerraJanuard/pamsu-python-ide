@@ -31,6 +31,12 @@ export default function ActivityCard({ activity, showClass = true }) {
             <h3 className="min-w-0 break-words text-sm font-semibold text-text-main">{activity.title}</h3>
             <span className={`badge ${status.badge}`}>{status.label}</span>
             <span className="badge badge-neutral">{activity.activityType}</span>
+            {activity.timeLimitMinutes && (
+              <span className="badge badge-brand inline-flex items-center gap-1" title="The timer starts when you start coding and cannot be paused.">
+                <ClockIcon />
+                Timed · {activity.timeLimitMinutes} min
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
             {showClass && <span className="font-medium">{activity.classLabel}</span>}

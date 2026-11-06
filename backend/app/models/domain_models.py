@@ -562,6 +562,16 @@ class Task(Base):
             "difficulty IN ('beginner', 'intermediate', 'expert')",
             name="ck_tasks_difficulty",
         ),
+        # A timed activity needs its limit; an untimed one stores none.
+        CheckConstraint(
+            "(is_timed AND time_limit_minutes IS NOT NULL) "
+            "OR (NOT is_timed AND time_limit_minutes IS NULL)",
+            name="ck_tasks_time_limit_matches_timed",
+        ),
+        CheckConstraint(
+            "time_limit_minutes IS NULL OR time_limit_minutes BETWEEN 1 AND 480",
+            name="ck_tasks_time_limit_range",
+        ),
     )
 
     task_id = Column(
@@ -656,6 +666,18 @@ class Task(Base):
     )
     scheduled_publish_at = Column(
         DateTime(timezone=True),
+        nullable=True,
+    )
+    # Timed activity: each student gets time_limit_minutes from the moment
+    # they start (see TimedAttempt). The timer cannot be paused.
+    is_timed = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+    time_limit_minutes = Column(
+        Integer,
         nullable=True,
     )
     created_at = Column(
@@ -1120,6 +1142,85 @@ class CodingSession(Base):
     execution_requests = relationship(
         "ExecutionRequest",
         back_populates="coding_session",
+    )
+
+
+class TimedAttempt(Base):
+    """
+    One student's timer window on a timed activity.
+
+    Created when the student chooses "Start Now" and never changed, so the
+    timer survives reloads, closed tabs and new coding sessions: it cannot be
+    paused. expires_at is fixed at the start, so a later edit of the time
+    limit only affects windows started after it. A student gets one window;
+    "Allow another attempt" lets them open one more (opened_with_retake).
+    """
+
+    __tablename__ = "timed_attempts"
+    __table_args__ = (
+        UniqueConstraint(
+            "student_id",
+            "task_id",
+            "window_number",
+            name="uq_timed_attempts_window",
+        ),
+        CheckConstraint(
+            "window_number > 0",
+            name="ck_timed_attempts_window_number",
+        ),
+        CheckConstraint(
+            "time_limit_minutes BETWEEN 1 AND 480",
+            name="ck_timed_attempts_time_limit",
+        ),
+        Index(
+            "ix_timed_attempts_student_task",
+            "student_id",
+            "task_id",
+        ),
+    )
+
+    timed_attempt_id = Column(
+        Integer,
+        primary_key=True,
+    )
+    task_id = Column(
+        Integer,
+        ForeignKey(
+            "tasks.task_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+    student_id = Column(
+        Integer,
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    window_number = Column(
+        Integer,
+        nullable=False,
+    )
+    time_limit_minutes = Column(
+        Integer,
+        nullable=False,
+    )
+    started_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    opened_with_retake = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
     )
 
 

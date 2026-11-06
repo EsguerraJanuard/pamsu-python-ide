@@ -81,6 +81,7 @@ from app.services.task_service import (TaskAccessDeniedError,
                                        TaskNotificationWorkflowError,
                                        TaskPublicationError,
                                        TaskTestCaseNotFoundError,
+                                       TaskTimeLimitError,
                                        TaskUpdateEmptyError)
 from app.services.task_service import create_task as create_task_service
 from app.services.task_service import (create_task_test_case,
@@ -146,7 +147,10 @@ def raise_task_service_http_exception(
 
     if isinstance(
         exc,
-        TaskDifficultyError,
+        (
+            TaskDifficultyError,
+            TaskTimeLimitError,
+        ),
     ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -817,6 +821,7 @@ def update_task_endpoint(
         TaskUpdateEmptyError,
         TaskPublicationError,
         TaskDifficultyError,
+        TaskTimeLimitError,
         TaskAuditWorkflowError,
     ) as exc:
         raise_task_service_http_exception(exc)

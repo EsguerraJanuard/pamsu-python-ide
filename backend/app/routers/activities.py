@@ -11,6 +11,15 @@ from app.schemas.coding_session_schema import (CodingSessionActivityUpdate,
 from app.schemas.gradebook_schema import StudentReleasedGradeListResponse
 from app.schemas.task_schema import ActivityType, StudentTaskResponse
 from app.schemas.task_test_case_schema import StudentSampleTestCaseResponse
+from app.schemas.timed_activity_schema import StudentActivityTimerResponse
+from app.services.timed_activity_service import (TimedActivityClosedError,
+                                                 TimedActivityError,
+                                                 TimedActivityNotTimedError,
+                                                 get_student_timer,
+                                                 is_content_withheld,
+                                                 start_student_timer,
+                                                 started_timed_task_ids,
+                                                 withheld_content)
 from app.services.coding_session_service import (
     CodingSessionAccessDeniedError, CodingSessionEndedError,
     CodingSessionNotFoundError, CodingSessionPersistenceConflictError,
@@ -155,12 +164,40 @@ def list_student_activities_endpoint(
     ),
     db: Session = Depends(get_db),
     current_student: User = Depends(get_current_student),
-) -> list[Task]:
-    return list_student_tasks(
+) -> list[StudentTaskResponse]:
+    tasks = list_student_tasks(
         db=db,
         student_id=current_student.user_id,
         class_id=class_id,
         activity_type=activity_type,
+    )
+    started = started_timed_task_ids(
+        db,
+        student_id=current_student.user_id,
+        task_ids=[task.task_id for task in tasks if task.is_timed],
+    )
+    return [
+        student_task_response(task, withheld=bool(task.is_timed) and task.task_id not in started)
+        for task in tasks
+    ]
+
+
+def student_task_response(task: Task, *, withheld: bool) -> StudentTaskResponse:
+    """
+    The student's view of an activity. A copy is changed, never the Task
+    row, so withholding a timed problem can never reach the database.
+    """
+
+    response = StudentTaskResponse.model_validate(task)
+    if not withheld:
+        return response
+    return response.model_copy(update=withheld_content())
+
+
+def raise_content_withheld() -> NoReturn:
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Start the timer to see this timed activity.",
     )
 
 
@@ -451,6 +488,9 @@ def end_coding_session_endpoint(
         "metadata are never included in student-facing responses."
     ),
     responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Timed activity whose timer the student has not started.",
+        },
         status.HTTP_404_NOT_FOUND: {
             "description": (
                 "The activity does not exist or is unavailable to "
@@ -469,6 +509,13 @@ def list_student_sample_test_cases_endpoint(
     current_student: User = Depends(get_current_student),
 ) -> list[TaskTestCase]:
     try:
+        task = get_student_task(
+            db=db,
+            task_id=task_id,
+            student_id=current_student.user_id,
+        )
+        if is_content_withheld(db, task=task, student_id=current_student.user_id):
+            raise_content_withheld()
         return list_student_sample_test_cases(
             db=db,
             task_id=task_id,
@@ -507,15 +554,98 @@ def get_student_activity_endpoint(
     ),
     db: Session = Depends(get_db),
     current_student: User = Depends(get_current_student),
-) -> Task:
+) -> StudentTaskResponse:
     try:
-        return get_student_task(
+        task = get_student_task(
             db=db,
             task_id=task_id,
             student_id=current_student.user_id,
         )
     except StudentTaskUnavailableError as exc:
         raise_student_activity_http_exception(exc)
+
+    return student_task_response(
+        task,
+        withheld=is_content_withheld(db, task=task, student_id=current_student.user_id),
+    )
+
+
+def raise_timer_http_exception(
+    exc: TimedActivityError,
+) -> NoReturn:
+    if isinstance(exc, TimedActivityClosedError):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+    if isinstance(exc, TimedActivityNotTimedError):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=str(exc) or "The timer could not be loaded.",
+    ) from exc
+
+
+@router.get(
+    "/{task_id}/timer",
+    response_model=StudentActivityTimerResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="get_student_activity_timer",
+    summary="Get my timer on a timed activity",
+    description=(
+        "Returns the authenticated student's timer window on a timed "
+        "activity: not started, running (with its end), expired or closed."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "The activity is unavailable to the student."},
+        status.HTTP_409_CONFLICT: {"description": "The activity has no time limit."},
+    },
+)
+def get_student_activity_timer_endpoint(
+    task_id: int = Path(..., gt=0, description="Activity identifier."),
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+) -> StudentActivityTimerResponse:
+    try:
+        timer = get_student_timer(db, student_id=current_student.user_id, task_id=task_id)
+    except StudentTaskUnavailableError as exc:
+        raise_student_activity_http_exception(exc)
+    except TimedActivityError as exc:
+        raise_timer_http_exception(exc)
+
+    return StudentActivityTimerResponse.model_validate(timer)
+
+
+@router.post(
+    "/{task_id}/timer/start",
+    response_model=StudentActivityTimerResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="start_student_activity_timer",
+    summary="Start my timer on a timed activity",
+    description=(
+        "Starts the authenticated student's timer, which cannot be paused. "
+        "Returns the running window unchanged when it was already started. "
+        "Starting again after the time ended needs another attempt allowed "
+        "by the instructor, and uses it up."
+    ),
+    responses={
+        status.HTTP_403_FORBIDDEN: {"description": "The time or the deadline has passed."},
+        status.HTTP_404_NOT_FOUND: {"description": "The activity is unavailable to the student."},
+        status.HTTP_409_CONFLICT: {"description": "The activity has no time limit."},
+    },
+)
+def start_student_activity_timer_endpoint(
+    task_id: int = Path(..., gt=0, description="Activity identifier."),
+    db: Session = Depends(get_db),
+    current_student: User = Depends(get_current_student),
+) -> StudentActivityTimerResponse:
+    try:
+        timer = start_student_timer(db, student_id=current_student.user_id, task_id=task_id)
+    except StudentTaskUnavailableError as exc:
+        raise_student_activity_http_exception(exc)
+    except TimedActivityError as exc:
+        raise_timer_http_exception(exc)
+
+    return StudentActivityTimerResponse.model_validate(timer)
 
 
 
@@ -548,7 +678,11 @@ def analyze_student_ast_endpoint(
         )
     except StudentTaskUnavailableError as exc:
         raise_student_activity_http_exception(exc)
-        
+
+    # The findings name the required structures, which are part of the problem.
+    if is_content_withheld(db, task=task, student_id=current_student.user_id):
+        raise_content_withheld()
+
     from app.models.domain_models import User
     from app.services.ast_evaluator import evaluate_ast_details
     instructor = db.query(User).filter(User.user_id == task.instructor_id).first()
