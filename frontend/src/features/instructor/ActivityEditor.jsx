@@ -330,9 +330,6 @@ DifficultyStatus.propTypes = {
   onRemoveRulesAbove: PropTypes.func.isRequired,
 };
 
-// The page scrolls inside <main>, not the window.
-const scrollFormToTop = () => document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
-
 const EMPTY_FORM = {
   title: '',
   class_ids: [],
@@ -371,7 +368,30 @@ const ActivityEditor = () => {
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Counts reported failures, so a repeat of the same message still scrolls.
+  const [errorCount, setErrorCount] = useState(0);
+  const errorBannerRef = useRef(null);
   const [createdTaskId, setCreatedTaskId] = useState(null);
+
+  // The banner is at the top of a long form and the save bar at the bottom,
+  // so a failed save shows the banner and brings it into view (below).
+  const reportError = (message) => {
+    setError(message);
+    setErrorCount((count) => count + 1);
+  };
+
+  // In an effect, not in reportError: it must run after the summary dialog has
+  // closed and handed focus back to "Create Activity". That focus change
+  // cancels a smooth scroll started before it, which left the page at the
+  // bottom. Focus moves to the banner, so the keyboard continues from there.
+  useEffect(() => {
+    const banner = errorBannerRef.current;
+    if (!errorCount || !banner) return;
+    banner.focus({ preventScroll: true });
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // "center" ends at the very top of the page, keeping the page title in view.
+    banner.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  }, [errorCount]);
 
   // Who set the difficulty: 'manual' (a level button), 'analyzer',
   // 'checklist' (Use/Raise to the detected level) or 'saved' (edit mode).
@@ -644,8 +664,7 @@ const ActivityEditor = () => {
       await api.patch(`/instructors/tasks/${editId}`, payload);
       navigate(`/instructor/activities/${editId}`, { state: { saved: true } });
     } catch (err) {
-      setError(getErrorMessage(err, 'The activity could not be saved. Please try again.'));
-      scrollFormToTop();
+      reportError(getErrorMessage(err, 'The activity could not be saved. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -656,16 +675,15 @@ const ActivityEditor = () => {
     setError('');
 
     if (!formData.title || !formData.title.trim()) {
-      setError('Activity title is required.');
-      scrollFormToTop();
+      reportError('Activity title is required.');
       return;
     }
     if (!isEdit && (!formData.class_ids || formData.class_ids.length === 0)) {
-      setError('Please select at least one classroom.');
+      reportError('Please select at least one classroom.');
       return;
     }
     if (!formData.difficulty) {
-      setError('Please select a difficulty level.');
+      reportError('Please select a difficulty level.');
       return;
     }
     if (timeLimitInvalid) {
@@ -744,8 +762,7 @@ const ActivityEditor = () => {
 
       if (problems.length > 0) {
         setShowCreateSummary(false);
-        setError(`The activity was created, but these steps failed: ${problems.join("; ")}. You can finish them from the activity page.`);
-        scrollFormToTop();
+        reportError(`The activity was created, but these steps failed: ${problems.join("; ")}. You can finish them from the activity page.`);
         if (tasks.length === 1) {
           setCreatedTaskId(tasks[0].task_id);
         }
@@ -759,8 +776,7 @@ const ActivityEditor = () => {
       }
     } catch (err) {
       setShowCreateSummary(false);
-      setError(getErrorMessage(err, 'The activity could not be created. Please try again.'));
-      scrollFormToTop();
+      reportError(getErrorMessage(err, 'The activity could not be created. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -820,14 +836,17 @@ const ActivityEditor = () => {
             />
 
             {error && (
-              <InlineAlert tone="error" className="mb-6">
-                {error}
-                {createdTaskId && (
-                  <button type="button" onClick={() => navigate(`/instructor/activities/${createdTaskId}`)} className="ml-2 font-semibold underline">
-                    Open the activity
-                  </button>
-                )}
-              </InlineAlert>
+              // Focusable so a failed save can move focus here (see reportError).
+              <div ref={errorBannerRef} tabIndex={-1} className="mb-6 rounded-lg">
+                <InlineAlert tone="error">
+                  {error}
+                  {createdTaskId && (
+                    <button type="button" onClick={() => navigate(`/instructor/activities/${createdTaskId}`)} className="ml-2 font-semibold underline">
+                      Open the activity
+                    </button>
+                  )}
+                </InlineAlert>
+              </div>
             )}
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6" noValidate>
