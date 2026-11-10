@@ -1,143 +1,136 @@
+import { lazy, Suspense } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider, useAuth } from './features/auth/AuthContext';
+import { queryClient } from './services/queryClient';
+import { AuthProvider, useAuth, homePathForRole } from './features/auth/AuthContext';
+import ProtectedRoute from './features/auth/ProtectedRoute';
+import RoleRoute from './features/auth/RoleRoute';
+import ErrorBoundary from './components/ErrorBoundary';
+import { LoadingState } from './components/ui/StateViews';
+import { StudentThemeProvider } from './features/theme/ThemeContext';
+import Unauthorized from './pages/Unauthorized';
+import NotFound from './pages/NotFound';
+import Login from './features/auth/Login';
+import ForgotPassword from './features/auth/ForgotPassword';
 
-// --- AUTHENTICATION CONTROLS ---
-const DEV_BYPASS = false;          // Production authentication enabled
+// Route pages are code-split so each area loads only when visited.
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'));
 
-const ProtectedRoute = () => {
-  const { isAuthenticated } = useAuth();
-  if (DEV_BYPASS) return <Outlet />;
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
-};
+const StudentDashboard = lazy(() => import('./features/dashboard/StudentDashboard'));
+const InstructorDashboard = lazy(() => import('./features/dashboard/InstructorDashboard'));
+const InstructorSettings = lazy(() => import('./features/settings/InstructorSettings'));
+const Assignments = lazy(() => import('./features/assignments/Assignments'));
+const Submissions = lazy(() => import('./features/submissions/Submissions'));
+const SubmissionDetails = lazy(() => import('./features/submissions/SubmissionDetails'));
+const Analytics = lazy(() => import('./features/dashboard/Analytics'));
+const Workspace = lazy(() => import('./features/workspace/Workspace'));
+const SoloPractice = lazy(() => import('./features/practice/SoloPractice'));
+const PracticeWorkspace = lazy(() => import('./features/practice/PracticeWorkspace'));
+const Settings = lazy(() => import('./features/settings/Settings'));
+const AdminDashboard = lazy(() => import('./features/admin/AdminDashboard'));
+const ClassRosterView = lazy(() => import('./features/dashboard/ClassRosterView'));
+const ClassManagement = lazy(() => import('./features/instructor/ClassManagement'));
+const ActivityEditor = lazy(() => import('./features/instructor/ActivityEditor'));
+const ActivityDetails = lazy(() => import('./features/instructor/ActivityDetails'));
+const GradingBenchRoot = lazy(() => import('./features/instructor/grading/GradingBenchRoot'));
+const GradingClassView = lazy(() => import('./features/instructor/grading/GradingClassView'));
+const SplitPaneGradingWorkspace = lazy(() => import('./features/instructor/grading/SplitPaneGradingWorkspace'));
+const LiveMonitoring = lazy(() => import('./features/instructor/LiveMonitoring'));
+const PracticeModuleManager = lazy(() => import('./features/instructor/PracticeModuleManager'));
+const MyClasses = lazy(() => import('./features/classes/MyClasses'));
+const ClassDetails = lazy(() => import('./features/classes/ClassDetails'));
 
-const RoleRoute = ({ allowedRole }) => {
-  const { role } = useAuth();
-  if (DEV_BYPASS) return <Outlet />;
-  return role === allowedRole ? <Outlet /> : <Navigate to="/unauthorized" replace />;
-};
 
-// Intelligently route the root URL based on role
+// Route the root URL based on role
 const RootRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-  return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
+  return <Navigate to={homePathForRole(role)} replace />;
 };
 
-// Redirects already-authenticated users away from login/register
+// Redirects already-authenticated users away from the public auth pages
 const GuestRoute = () => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Outlet />;
-  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-  return <Navigate to={role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'} replace />;
+  return <Navigate to={homePathForRole(role)} replace />;
 };
-
-// Shared Layouts & Error Pages
-import InstructorLayout from './components/layout/InstructorLayout';
-import Unauthorized from './pages/Unauthorized';
-import NotFound from './pages/NotFound';
-import NotificationsPage from './pages/NotificationsPage';
-import AuditLogsPage from './pages/AuditLogsPage';
-
-// Feature Components
-import Login from './features/auth/Login';
-import Register from './features/auth/Register';
-import ForgotPassword from './features/auth/ForgotPassword';
-import StudentDashboard from './features/dashboard/StudentDashboard';
-import InstructorDashboard from './features/dashboard/InstructorDashboard';
-import InstructorSettings from "./features/settings/InstructorSettings";
-import Assignments from './features/assignments/Assignments';
-import Submissions from './features/submissions/Submissions';
-import SubmissionDetails from './features/submissions/SubmissionDetails';
-import Analytics from './features/dashboard/Analytics';
-import Workspace from './features/workspace/Workspace';
-import SoloPractice from './features/practice/SoloPractice';
-import PracticeWorkspace from './features/practice/PracticeWorkspace';
-import Settings from './features/settings/Settings';
-import ClassRosterView from './features/dashboard/ClassRosterView';
-import ClassManagement from './features/instructor/ClassManagement';
-import ActivityEditor from './features/instructor/ActivityEditor';
-import ActivityDetails from './features/instructor/ActivityDetails';
-import GradingBenchRoot from './features/instructor/grading/GradingBenchRoot';
-import GradingClassView from './features/instructor/grading/GradingClassView';
-import SplitPaneGradingWorkspace from './features/instructor/grading/SplitPaneGradingWorkspace';
-import LiveMonitoring from './features/instructor/LiveMonitoring';
-import PracticeModuleManager from './features/instructor/PracticeModuleManager';
-
-import MyClasses from './features/classes/MyClasses';
-import ClassDetails from './features/classes/ClassDetails';
-
-import { ThemeProvider } from './features/theme/ThemeContext';
 
 export const App = () => {
   return (
-    <ThemeProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <Routes>
-            {/* Root redirect */}
-            <Route path="/" element={<RootRoute />} />
+          <StudentThemeProvider>
+            <Suspense
+              fallback={
+                <div className="flex min-h-screen items-center justify-center bg-bg-base">
+                  <LoadingState label="Loading…" />
+                </div>
+              }
+            >
+            <Routes>
+              <Route path="/" element={<RootRoute />} />
 
-            {/* Public Authentication Routes — redirect to dashboard if already logged in */}
+              {/* Public authentication routes */}
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
               </Route>
-            <Route path="/unauthorized" element={<Unauthorized />} />
+              {/* Public self-registration is retired (MIS provisions student
+                  accounts); keep old links and bookmarks working. */}
+              <Route path="/register" element={<Navigate to="/login" replace />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
 
-             {/* Protected Route Tree - Requires Valid JWT/Session */}
-            <Route element={<ProtectedRoute />}>
+              {/* Protected routes — require a valid session */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<RoleRoute allowedRole="student" />}>
+                  <Route path="/student/dashboard" element={<StudentDashboard />} />
+                  <Route path="/student/classes" element={<MyClasses />} />
+                  <Route path="/student/classes/:id" element={<ClassDetails />} />
+                  <Route path="/student/assignments" element={<Assignments />} />
+                  <Route path="/student/workspace" element={<Workspace />} />
+                  <Route path="/student/practice" element={<SoloPractice />} />
+                  <Route path="/student/practice/workspace" element={<PracticeWorkspace />} />
+                  <Route path="/student/submissions" element={<Submissions />} />
+                  <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
+                  <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
+                  <Route path="/student/audit-logs" element={<AuditLogsPage role="student" />} />
+                  <Route path="/student/analytics" element={<Analytics />} />
+                  <Route path="/student/settings" element={<Settings />} />
+                </Route>
 
-              {/* Student Role Tree */}
-              <Route element={<RoleRoute allowedRole="student" />}>
-                <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/classes" element={<MyClasses />} />
-                <Route path="/student/classes/:id" element={<ClassDetails />} />
-                <Route path="/student/assignments" element={<Assignments />} />
-                <Route path="/student/workspace" element={<Workspace />} />
-                <Route path="/student/practice" element={<SoloPractice />} />
-                <Route path="/student/practice/workspace" element={<PracticeWorkspace />} />
-                <Route path="/student/submissions" element={<Submissions />} />
-                <Route path="/student/submissions/:id" element={<SubmissionDetails />} />
-                <Route path="/student/notifications" element={<NotificationsPage role="student" />} />
-                <Route path="/student/audit-logs" element={<AuditLogsPage role="student" />} />
-                <Route path="/student/analytics" element={<Analytics />} />
-                <Route path="/student/settings" element={<Settings />} />
+                <Route element={<RoleRoute allowedRole="admin" />}>
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                </Route>
+
+                <Route element={<RoleRoute allowedRole="instructor" />}>
+                  <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+                  <Route path="/instructor/classes" element={<ClassManagement />} />
+                  <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
+                  <Route path="/instructor/practice" element={<PracticeModuleManager />} />
+                  <Route path="/instructor/activities/create" element={<ActivityEditor />} />
+                  <Route path="/instructor/activities/:id/edit" element={<ActivityEditor />} />
+                  <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
+                  <Route path="/instructor/bench" element={<GradingBenchRoot />} />
+                  <Route path="/instructor/bench/:classId" element={<GradingClassView />} />
+                  <Route path="/instructor/bench/:classId/:taskId" element={<SplitPaneGradingWorkspace />} />
+                  <Route path="/instructor/notifications" element={<NotificationsPage role="instructor" />} />
+                  <Route path="/instructor/audit-logs" element={<AuditLogsPage role="instructor" />} />
+                  <Route path="/instructor/monitoring" element={<LiveMonitoring />} />
+                  <Route path="/instructor/settings" element={<InstructorSettings />} />
+                </Route>
               </Route>
 
-              {/* Instructor Role Tree */}
-
-              {/* Admin Role Tree */}
-              <Route element={<RoleRoute allowedRole="admin" />}>
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              </Route>
-
-              <Route element={<RoleRoute allowedRole="instructor" />}>
-                <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
-                <Route path="/instructor/classes" element={<ClassManagement />} />
-                <Route path="/instructor/practice" element={<PracticeModuleManager />} />
-
-                <Route path="/instructor/classes/:id" element={<ClassRosterView />} />
-                <Route path="/instructor/activities/create" element={<ActivityEditor />} />
-                <Route path="/instructor/activities/:id" element={<ActivityDetails />} />
-                <Route path="/instructor/bench" element={<GradingBenchRoot />} />
-                <Route path="/instructor/bench/:classId" element={<GradingClassView />} />
-                <Route path="/instructor/bench/:classId/:taskId" element={<SplitPaneGradingWorkspace />} />
-                <Route path="/instructor/notifications" element={<NotificationsPage role="instructor" />} />
-                <Route path="/instructor/audit-logs" element={<AuditLogsPage role="instructor" />} />
-                <Route path="/instructor/monitoring" element={<LiveMonitoring />} />
-                <Route path="/instructor/settings" element={<InstructorSettings />} />
-              </Route>
-
-            </Route>
-
-            {/* Fallback 404 Route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            </Suspense>
+          </StudentThemeProvider>
         </Router>
       </AuthProvider>
-    </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

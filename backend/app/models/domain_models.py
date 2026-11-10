@@ -11,7 +11,7 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('student', 'instructor')",
+            "role IN ('student', 'instructor', 'admin')",
             name="ck_users_role",
         ),
         CheckConstraint(
@@ -39,7 +39,7 @@ class User(Base):
         nullable=False,
         default="student",
     )
-    academic_integrity_score = Column(Float, default=100.0, nullable=False)
+    academic_integrity_score = Column(Float, default=100.0, nullable=False, server_default="100.0")
     password_hash = Column(
         String(255),
         nullable=False,
@@ -116,10 +116,14 @@ class User(Base):
         back_populates="instructor",
         foreign_keys="InstructorGrade.instructor_id",
     )
+    # Immutable history: passive_deletes="all" stops the ORM from setting the
+    # nullable actor_user_id to NULL when a user is deleted, so the database's
+    # ON DELETE RESTRICT applies and the delete is refused instead.
     academic_events_created = relationship(
         "AcademicEvent",
         back_populates="actor",
         foreign_keys="AcademicEvent.actor_user_id",
+        passive_deletes="all",
     )
     notifications_received = relationship(
         "Notification",
@@ -130,7 +134,49 @@ class User(Base):
         "AuditRecord",
         back_populates="actor",
         foreign_keys="AuditRecord.actor_user_id",
+        passive_deletes="all",
     )
+
+    def __init__(self, **kwargs):
+        if "name" not in kwargs:
+            first = kwargs.pop("first_name", "") or ""
+            last = kwargs.pop("last_name", "") or ""
+            middle = kwargs.pop("middle_name", "") or ""
+            parts = [p for p in (first, middle, last) if p]
+            if parts:
+                kwargs["name"] = " ".join(parts).strip()
+        kwargs.pop("first_name", None)
+        kwargs.pop("middle_name", None)
+        kwargs.pop("last_name", None)
+        super().__init__(**kwargs)
+
+    @property
+    def first_name(self) -> str:
+        parts = (self.name or "").split()
+        return parts[0] if parts else ""
+
+    @first_name.setter
+    def first_name(self, val: str) -> None:
+        last = self.last_name
+        self.name = f"{val} {last}".strip()
+
+    @property
+    def last_name(self) -> str:
+        parts = (self.name or "").split()
+        return " ".join(parts[1:]) if len(parts) > 1 else ""
+
+    @last_name.setter
+    def last_name(self, val: str) -> None:
+        first = self.first_name
+        self.name = f"{first} {val}".strip()
+
+    @property
+    def middle_name(self) -> str:
+        return ""
+
+    @middle_name.setter
+    def middle_name(self, val: str) -> None:
+        pass
 
 
 class InstructorAllowlist(Base):
@@ -175,7 +221,7 @@ class OTPChallenge(Base):
             name="ck_otp_resend_count",
         ),
         CheckConstraint(
-            "purpose IN ('registration', 'email_change')",
+            "purpose IN ('registration', 'email_change', 'password_reset')",
             name="ck_otp_purpose",
         ),
     )
@@ -398,7 +444,7 @@ class Classroom(Base):
 
     @property
     def instructor_name(self) -> str | None:
-        return f"{self.instructor.first_name} {self.instructor.last_name}" if self.instructor else None
+        return self.instructor.name if self.instructor else None
 
 
 class Enrollment(Base):
@@ -516,6 +562,16 @@ class Task(Base):
             "difficulty IN ('beginner', 'intermediate', 'expert')",
             name="ck_tasks_difficulty",
         ),
+        # A timed activity needs its limit; an untimed one stores none.
+        CheckConstraint(
+            "(is_timed AND time_limit_minutes IS NOT NULL) "
+            "OR (NOT is_timed AND time_limit_minutes IS NULL)",
+            name="ck_tasks_time_limit_matches_timed",
+        ),
+        CheckConstraint(
+            "time_limit_minutes IS NULL OR time_limit_minutes BETWEEN 1 AND 480",
+            name="ck_tasks_time_limit_range",
+        ),
     )
 
     task_id = Column(
@@ -550,6 +606,17 @@ class Task(Base):
         nullable=True,
     )
     instructions = Column(
+        Text,
+        nullable=True,
+    )
+    # Real-world context shown to students with the problem.
+    scenario = Column(
+        Text,
+        nullable=True,
+    )
+    # Why the expected solution works; students see it only after their
+    # grade for the activity is released.
+    solution_explanation = Column(
         Text,
         nullable=True,
     )
@@ -599,6 +666,18 @@ class Task(Base):
     )
     scheduled_publish_at = Column(
         DateTime(timezone=True),
+        nullable=True,
+    )
+    # Timed activity: each student gets time_limit_minutes from the moment
+    # they start (see TimedAttempt). The timer cannot be paused.
+    is_timed = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+    time_limit_minutes = Column(
+        Integer,
         nullable=True,
     )
     created_at = Column(
@@ -787,6 +866,21 @@ class Submission(Base):
     accepted_at = Column(
         DateTime(timezone=True),
         nullable=True,
+    )
+    # Created by migration 9ff2d118b666 and present in applied databases.
+    # Mapped only so the model matches the schema; no workflow reads or
+    # writes them until the retake policy is decided.
+    retake_requested = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+    retake_allowed = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
     )
 
     # Compatibility fields for the current evaluation endpoints.
@@ -1048,6 +1142,85 @@ class CodingSession(Base):
     execution_requests = relationship(
         "ExecutionRequest",
         back_populates="coding_session",
+    )
+
+
+class TimedAttempt(Base):
+    """
+    One student's timer window on a timed activity.
+
+    Created when the student chooses "Start Now" and never changed, so the
+    timer survives reloads, closed tabs and new coding sessions: it cannot be
+    paused. expires_at is fixed at the start, so a later edit of the time
+    limit only affects windows started after it. A student gets one window;
+    "Allow another attempt" lets them open one more (opened_with_retake).
+    """
+
+    __tablename__ = "timed_attempts"
+    __table_args__ = (
+        UniqueConstraint(
+            "student_id",
+            "task_id",
+            "window_number",
+            name="uq_timed_attempts_window",
+        ),
+        CheckConstraint(
+            "window_number > 0",
+            name="ck_timed_attempts_window_number",
+        ),
+        CheckConstraint(
+            "time_limit_minutes BETWEEN 1 AND 480",
+            name="ck_timed_attempts_time_limit",
+        ),
+        Index(
+            "ix_timed_attempts_student_task",
+            "student_id",
+            "task_id",
+        ),
+    )
+
+    timed_attempt_id = Column(
+        Integer,
+        primary_key=True,
+    )
+    task_id = Column(
+        Integer,
+        ForeignKey(
+            "tasks.task_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+    student_id = Column(
+        Integer,
+        ForeignKey(
+            "users.user_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    window_number = Column(
+        Integer,
+        nullable=False,
+    )
+    time_limit_minutes = Column(
+        Integer,
+        nullable=False,
+    )
+    started_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    opened_with_retake = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
     )
 
 
@@ -1672,7 +1845,8 @@ class AcademicEvent(Base):
             "'submission_created', "
             "'submission_status_changed', "
             "'grade_released', "
-            "'classroom_archived'"
+            "'classroom_archived', "
+            "'deadline_reminder'"
             ")",
             name="ck_academic_events_type",
         ),
@@ -1799,7 +1973,15 @@ class AuditRecord(Base):
             "'grade_updated', "
             "'grade_released', "
             "'notification_marked_read', "
-            "'notifications_marked_read'"
+            "'notifications_marked_read', "
+            # Admin actions (migration 61330560eec5).
+            "'user_created', "
+            "'user_updated', "
+            "'user_status_changed', "
+            "'user_password_reset', "
+            "'user_deleted', "
+            "'system_settings_updated', "
+            "'masterlist_imported'"
             ")",
             name="ck_audit_records_action_type",
         ),
@@ -1811,7 +1993,9 @@ class AuditRecord(Base):
             "'task', "
             "'submission', "
             "'grade', "
-            "'notification'"
+            "'notification', "
+            "'system_setting', "
+            "'masterlist_import'"
             ")",
             name="ck_audit_records_resource_type",
         ),
@@ -2081,17 +2265,54 @@ class PracticeProgress(Base):
     task = relationship("PracticeTask", back_populates="progress_records")
 
 
+PRACTICE_ATTEMPT_STATUSES = ("pending", "completed", "failed")
+
+
 class PracticeAttempt(Base):
     __tablename__ = "practice_attempts"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'completed', 'failed')",
+            name="ck_practice_attempts_status",
+        ),
+        UniqueConstraint(
+            "correlation_id",
+            name="uq_practice_attempts_correlation_id",
+        ),
+    )
 
     attempt_id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     task_id = Column(Integer, ForeignKey("practice_tasks.task_id", ondelete="CASCADE"), nullable=False)
     submitted_code = Column(Text, nullable=False)
+    # False until the attempt is judged; pending and failed attempts keep it
+    # false and are left out of the practice statistics.
     is_successful = Column(Boolean, default=False, nullable=False)
     execution_feedback = Column(Text, nullable=True)
     ast_feedback = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # Judge0 runs the attempt in the background (migration b7e4c2a91f03):
+    # 'pending' until its callback arrives, 'completed' once judged, 'failed'
+    # when the code could not be run. Rows written before then were judged
+    # synchronously, hence the 'completed' server default.
+    status = Column(String(20), nullable=False, default="completed", server_default="completed")
+    # Random UUID sent only to Judge0 (in the callback URL); the callback must
+    # present it. Never included in a student response.
+    correlation_id = Column(String(36), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
     student = relationship("User")
     task = relationship("PracticeTask", back_populates="attempts")
+
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(String(255), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

@@ -1,51 +1,63 @@
-import React from 'react';
+import { useRef } from "react";
+import Modal from "../ui/Modal";
 
-export default function ConfirmationModal({ 
-  isOpen, 
-  title, 
-  message, 
-  confirmText = "Confirm", 
-  cancelText = "Cancel", 
-  onConfirm, 
+/**
+ * Decision dialog for destructive or important actions.
+ * While `isLoading` is true both buttons are disabled and the dialog cannot be
+ * dismissed, which prevents double submission.
+ */
+export default function ConfirmationModal({
+  isOpen,
+  title,
+  message,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  onConfirm,
   onCancel,
-  isDanger = false 
+  isDanger = false,
+  isLoading = false,
+  loadingText,
+  children,
 }) {
-  if (!isOpen) return null;
+  const cancelRef = useRef(null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
-      <div 
-        className="w-full max-w-sm rounded-xl border border-border-subtle bg-bg-panel p-6 shadow-2xl transform transition-all scale-100 opacity-100"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="mb-2 text-lg font-bold text-text-main">
-          {title}
-        </h3>
-        <p className="mb-6 text-sm text-text-muted">
-          {message}
-        </p>
-        
-        <div className="flex justify-end gap-3">
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      title={title}
+      size="sm"
+      dismissible={!isLoading}
+      showCloseButton={false}
+      // Destructive dialogs focus Cancel first so Enter never confirms by accident.
+      initialFocusRef={isDanger ? cancelRef : undefined}
+      footer={
+        <>
           <button
+            ref={cancelRef}
             type="button"
             onClick={onCancel}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted transition-colors hover:bg-bg-panel hover:text-text-main"
+            disabled={isLoading}
+            className="btn-secondary"
           >
             {cancelText}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold text-text-main transition-colors ${
-              isDanger 
-                ? "bg-red-500/20 text-text-rose hover:bg-red-500 hover:text-text-main"
-                : "bg-emerald-500 hover:bg-emerald-400"
-            }`}
+            disabled={isLoading}
+            className={isDanger ? "btn-danger" : "btn-primary"}
           >
-            {confirmText}
+            {isLoading && (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />
+            )}
+            {isLoading ? loadingText || "Working…" : confirmText}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      {message && <p className="text-sm leading-relaxed text-text-muted">{message}</p>}
+      {children}
+    </Modal>
   );
 }

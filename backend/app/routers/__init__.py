@@ -4,6 +4,7 @@ from app.routers import (activities, admin, auth, classrooms, evaluation,
 
 __all__ = [
     "activities",
+    "admin",
     "auth",
     "classrooms",
     "evaluation",

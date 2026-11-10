@@ -1,0 +1,103 @@
+# Self-test of the backup tool on a GitHub runner, with no secrets and no
+# production data: the same PostgreSQL 17 client install and Python packages
+# as database-backup.yml, against a throwaway PostgreSQL 17 service container.
+# Runs when the tool or the backup workflow changes, or by hand.
+
+name: Backup tool self-test
+
+on:
+  push:
+    paths:
+      - ops/backup_database.py
+      - .github/workflows/database-backup.yml
+      - .github/workflows/backup-tool-selftest.yml
+  pull_request:
+    paths:
+      - ops/backup_database.py
+      - .github/workflows/database-backup.yml
+      - .github/workflows/backup-tool-selftest.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Throwaway container that lives only for this job.
+          POSTGRES_PASSWORD: selftest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: selftest
+      PG_BIN: /usr/lib/postgresql/17/bin
+      SOURCE_URL: postgresql://postgres:selftest@localhost:5432/source
+      TARGET_URL: postgresql://postgres:selftest@localhost:5432/target
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: ops
+
+      # Same steps as database-backup.yml.
+      - name: Install the PostgreSQL 17 client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the backup tool's dependencies
+        run: pip install --quiet psycopg2-binary==2.9.12 cryptography==50.0.2
+
+      - name: Create a small sample database
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE source" -c "CREATE DATABASE target"
+          psql -v ON_ERROR_STOP=1 -d source \
+            -c "CREATE TABLE alembic_version (version_num varchar(32) PRIMARY KEY)" \
+            -c "INSERT INTO alembic_version VALUES ('selftest')" \
+            -c "CREATE TABLE users (user_id serial PRIMARY KEY, email text NOT NULL)" \
+            -c "INSERT INTO users (email) SELECT 'user' || g || '@example.test' FROM generate_series(1, 50) g"
+
+      - name: Back up, verify and restore
+        run: |
+          set -euo pipefail
+          BACKUP_ENCRYPTION_KEY="$(python ops/backup_database.py generate-key)"
+          echo "::add-mask::$BACKUP_ENCRYPTION_KEY"
+          export BACKUP_ENCRYPTION_KEY
+
+          BACKUP_DATABASE_URL="$SOURCE_URL" python ops/backup_database.py backup --output-dir out --keep 2 --require-encryption
+          file="$(ls out/*.dump.fernet)"
+          python ops/backup_database.py verify "$file"
+          RESTORE_DATABASE_URL="$TARGET_URL" python ops/backup_database.py restore "$file"
+          test "$(psql -At -d target -c 'SELECT count(*) FROM users')" = 50
+          test "$(psql -At -d target -c 'SELECT version_num FROM alembic_version')" = selftest
+
+      - name: The safety guards refuse
+        run: |
+          set -uo pipefail
+          file="$(ls out/*.dump.fernet)"
+          export BACKUP_ENCRYPTION_KEY=unused
+          if RESTORE_DATABASE_URL="$SOURCE_URL" python ops/backup_database.py restore "$file"; then
+            echo "Restoring over a database with tables was not refused." >&2; exit 1
+          fi
+          if BACKUP_ENCRYPTION_KEY= BACKUP_DATABASE_URL="$SOURCE_URL" python ops/backup_database.py backup --output-dir refused --require-encryption; then
+            echo "A backup without the key was not refused." >&2; exit 1
+          fi
+          test ! -e refused
+          echo "Both guards refused, as they should."

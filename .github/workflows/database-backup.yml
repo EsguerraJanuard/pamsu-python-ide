@@ -1,0 +1,62 @@
+# Nightly encrypted backup of the production database (Supabase free tier
+# keeps none). Zero cost: scheduled GitHub Actions are free for this public
+# repository. Setup and restore: docs/operations/database-backups.md.
+#
+# Off until the repository variable DATABASE_BACKUP_ENABLED is "true" and the
+# secrets BACKUP_DATABASE_URL (Supabase Session pooler URI, port 5432) and
+# BACKUP_ENCRYPTION_KEY exist. The repository is public, so anyone signed in
+# to GitHub can download its artifacts: the tool refuses to run without the
+# encryption key, and only the encrypted dump and its manifest are uploaded.
+
+name: Database backup
+
+on:
+  schedule:
+    - cron: "30 18 * * *" # 02:30 Asia/Manila, every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: vars.DATABASE_BACKUP_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: ops
+
+      # pg_dump must be at least the server's major version (production: 17).
+      - name: Install the PostgreSQL 17 client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the backup tool's dependencies
+        run: pip install --quiet psycopg2-binary==2.9.12 cryptography==50.0.2
+
+      - name: Back up, verify and encrypt
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          PG_BIN: /usr/lib/postgresql/17/bin
+        run: python ops/backup_database.py backup --output-dir backups --require-encryption
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: database-backup-${{ github.run_number }}
+          path: backups/
+          retention-days: 14
+          if-no-files-found: error

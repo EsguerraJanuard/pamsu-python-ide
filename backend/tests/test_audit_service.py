@@ -27,8 +27,7 @@ def create_user(
     role: str = "instructor",
 ) -> User:
     user = User(
-        first_name=("Audit Service User").split()[0] if isinstance("Audit Service User", str) else "Test",
-        last_name=" ".join(("Audit Service User").split()[1:]) if isinstance("Audit Service User", str) and " " in "Audit Service User" else "User",
+        name="Audit Service User",
         school_id=school_id,
         email=email,
         role=role,

@@ -1,3 +1,26 @@
+import os
+
+# Tests must never reach a real database, mail relay, Redis or Celery broker.
+# app.core.config calls load_dotenv(), which would otherwise read the
+# developer's .env (real DATABASE_URL and SMTP credentials); load_dotenv does
+# not override variables that are already set, so these win.
+# PostgreSQL-only suites (migrations, concurrency) create and drop their own
+# temporary database on the server named by PAMSU_TEST_DATABASE_URL; without
+# it they are skipped.
+os.environ["DATABASE_URL"] = os.environ.get("PAMSU_TEST_DATABASE_URL") or "sqlite://"
+os.environ["PAMSU_ENVIRONMENT"] = "test"
+os.environ["JWT_SECRET_KEY"] = "test-only-jwt-secret-key-0123456789abcdef"
+os.environ["OTP_SECRET_KEY"] = "test-only-otp-secret-key-0123456789abcdef"
+# Port 1 refuses connections immediately: Redis-backed features take their
+# documented "Redis unavailable" paths without waiting on timeouts.
+os.environ["REDIS_URL"] = "redis://127.0.0.1:1/0"
+# Except on Windows, which takes ~2 s to refuse a closed port (the whole
+# suite then takes ~45 min). A short connect timeout gives the same
+# "Redis unavailable" path in milliseconds on every system.
+os.environ.setdefault("REDIS_SOCKET_CONNECT_TIMEOUT_SECONDS", "0.05")
+for variable in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS", "GEMINI_API_KEY", "JUDGE0_API_KEY"):
+    os.environ[variable] = ""
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -38,6 +61,66 @@ def override_get_db():
         yield db
     finally:
         db.close()
+
+
+@pytest.fixture(autouse=True)
+def block_real_smtp(monkeypatch):
+    # backend/.env may hold real SMTP credentials; tests must never send mail.
+    from app.services import email_service
+
+    monkeypatch.setattr(
+        email_service,
+        "get_smtp_config",
+        lambda: {
+            "host": "",
+            "port": 0,
+            "user": "",
+            "password": "",
+            "sender_name": "PSU Python IDE",
+            "sender_email": "noreply@pampangastateu.edu.ph",
+        },
+    )
+
+
+@pytest.fixture(autouse=True)
+def reset_redis_memory_fallback():
+    # Redis is unreachable in tests (REDIS_URL above), so rate limits, token
+    # revocation and AI Tutor hints use the in-memory fallback; start each
+    # test empty.
+    from app.core import rate_limit, token_revocation
+    from app.core.ttl_cache import clear_all_caches
+    from app.services import practice_hint_store
+
+    stores = (rate_limit.memory_counters, token_revocation.revoked_in_memory, practice_hint_store.memory_store)
+
+    # In-process caches (system settings) must not carry values from one
+    # test's database into the next.
+    for store in stores:
+        store.clear()
+    clear_all_caches()
+    yield
+    for store in stores:
+        store.clear()
+    clear_all_caches()
+
+
+@pytest.fixture(autouse=True)
+def celery_calls(monkeypatch):
+    """Record Celery enqueues instead of contacting a broker."""
+
+    from app.tasks import celery_worker
+
+    calls: list[tuple[str, tuple]] = []
+
+    for task_name in ("dispatch_to_partner", "evaluate_submission_background_task", "dispatch_practice_attempt"):
+        task = getattr(celery_worker, task_name)
+        monkeypatch.setattr(
+            task,
+            "delay",
+            lambda *args, _name=task_name: calls.append((_name, args)),
+        )
+
+    return calls
 
 
 @pytest.fixture(autouse=True)

@@ -89,7 +89,7 @@ def _normalize_python_token_sequence(
         # Keep any valid tokens produced before the tokenization error.
         # Syntax validity is handled separately by the AST evaluator.
         if not normalized_tokens:
-            normalized_tokens.extend(sorted(fallback_tokenize(raw_code)))
+            normalized_tokens.extend(fallback_tokenize(raw_code))
 
     return normalized_tokens
 
@@ -173,18 +173,27 @@ def calculate_jaccard_details(
     normalize_literals: bool = True,
     shingle_size: int = 1,
 ) -> dict[str, Any]:
+    tokens_a_ast = None
+    tokens_b_ast = None
     try:
-        tokens_a_sequence = generate_ast_fingerprint(code_a)
+        tokens_a_ast = generate_ast_fingerprint(code_a)
     except Exception:
+        tokens_a_ast = None
+
+    try:
+        tokens_b_ast = generate_ast_fingerprint(code_b)
+    except Exception:
+        tokens_b_ast = None
+
+    if tokens_a_ast is not None and tokens_b_ast is not None:
+        tokens_a_sequence = tokens_a_ast
+        tokens_b_sequence = tokens_b_ast
+    else:
         tokens_a_sequence = _normalize_python_token_sequence(
             raw_code=code_a,
             normalize_identifiers=normalize_identifiers,
             normalize_literals=normalize_literals,
         )
-
-    try:
-        tokens_b_sequence = generate_ast_fingerprint(code_b)
-    except Exception:
         tokens_b_sequence = _normalize_python_token_sequence(
             raw_code=code_b,
             normalize_identifiers=normalize_identifiers,

@@ -1,8 +1,11 @@
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash
 from app.models.domain_models import (
     CodingSession,
+    ExecutionRequest,
     User,
 )
 
@@ -789,6 +792,15 @@ def test_execution_requests_increment_backend_session_counter(
 
     submission = submission_response.json()
 
+    # POST /submissions/ queues its own "submit" execution request (the
+    # Workspace relies on this), which counts as the third attempt.
+    after_submission_response = client.get(
+        (f"/activities/coding-sessions/{session_id}"),
+        headers=bearer_header(setup["student_token"]),
+    )
+
+    assert after_submission_response.json()["run_attempt_count"] == 3
+
     end_response = end_coding_session(
         client,
         student_token=setup["student_token"],
@@ -797,6 +809,20 @@ def test_execution_requests_increment_backend_session_counter(
 
     assert end_response.status_code == 200
 
+    # The automatic submit run is linked to the session and uses the
+    # submitted snapshot.
+    submit_run = (
+        db_session.query(ExecutionRequest)
+        .filter(ExecutionRequest.submission_id == submission["sub_id"])
+        .one()
+    )
+
+    assert submit_run.request_kind == "submit"
+    assert submit_run.coding_session_id == session_id
+    assert submit_run.source_code == submission["raw_code"]
+
+    # Clients cannot add a second submit run (refused before any counter
+    # changes, so the ended session's counter stays put).
     submit_response = create_execution_request(
         client,
         student_token=setup["student_token"],
@@ -805,9 +831,7 @@ def test_execution_requests_increment_backend_session_counter(
         submission_id=submission["sub_id"],
     )
 
-    assert submit_response.status_code == 201
-    assert submit_response.json()["coding_session_id"] == session_id
-    assert submit_response.json()["source_code"] == submission["raw_code"]
+    assert submit_response.status_code == 409
 
     after_submit_response = client.get(
         (f"/activities/coding-sessions/{session_id}"),
@@ -958,3 +982,255 @@ def test_instructor_can_review_only_owned_coding_sessions(
     )
 
     assert unauthorized_detail_response.status_code == 403
+
+
+def test_live_monitoring_lists_only_open_sessions_with_a_recent_heartbeat(
+    client,
+    db_session,
+):
+    setup = setup_coding_session_context(
+        client,
+        db_session,
+        instructor_school_id="8100000008",
+        instructor_email=("sessionfaculty8@pampangastateu.edu.ph"),
+        student_school_id="8200000008",
+        student_email=("sessionstudent8@pampangastateu.edu.ph"),
+        task_title="Live Monitoring Test",
+    )
+
+    other_instructor = create_test_user(
+        db_session,
+        name="Other Live Instructor",
+        role="instructor",
+        school_id="8100000009",
+        email=("sessionfaculty9@pampangastateu.edu.ph"),
+    )
+
+    other_instructor_token = login_and_get_token(
+        client,
+        email=other_instructor.email,
+    )
+
+    def live_sessions(token: str) -> list[dict]:
+        response = client.get(
+            "/instructors/coding-sessions/live",
+            headers=bearer_header(token),
+        )
+
+        assert response.status_code == 200
+
+        return response.json()
+
+    assert live_sessions(setup["instructor_token"]) == []
+
+    start_response = start_coding_session(
+        client,
+        student_token=setup["student_token"],
+        task_id=setup["task"]["task_id"],
+    )
+
+    assert start_response.status_code == 201
+
+    session_id = start_response.json()["session_id"]
+
+    activity_response = update_coding_session(
+        client,
+        student_token=setup["student_token"],
+        session_id=session_id,
+        tab_switch_increment=2,
+        blocked_paste_increment=1,
+    )
+
+    assert activity_response.status_code == 200
+
+    listed = live_sessions(setup["instructor_token"])
+
+    assert len(listed) == 1
+    assert listed[0]["session_id"] == session_id
+    assert listed[0]["student_id"] == setup["student"].user_id
+    assert listed[0]["student_name"]
+    assert listed[0]["task_title"] == "Live Monitoring Test"
+    assert listed[0]["classroom_name"] == setup["classroom"]["name"]
+    assert listed[0]["tab_switch_count"] == 2
+    assert listed[0]["blocked_paste_count"] == 1
+    assert listed[0]["ended_at"] is None
+
+    # Another instructor never sees this class's sessions.
+    assert live_sessions(other_instructor_token) == []
+
+    # A student who closed the tab stops sending heartbeats; the session
+    # is still open in the database but no longer live.
+    stored_session = db_session.get(
+        CodingSession,
+        session_id,
+    )
+    stored_session.last_activity_at = datetime.now(timezone.utc) - timedelta(
+        minutes=4,
+    )
+    db_session.commit()
+
+    assert live_sessions(setup["instructor_token"]) == []
+
+    # A zero-increment update is a heartbeat and brings it back.
+    heartbeat_response = update_coding_session(
+        client,
+        student_token=setup["student_token"],
+        session_id=session_id,
+    )
+
+    assert heartbeat_response.status_code == 200
+    assert [s["session_id"] for s in live_sessions(setup["instructor_token"])] == [
+        session_id
+    ]
+
+    end_response = end_coding_session(
+        client,
+        student_token=setup["student_token"],
+        session_id=session_id,
+    )
+
+    assert end_response.status_code == 200
+    assert live_sessions(setup["instructor_token"]) == []
+
+
+def test_activity_live_filter_drops_ended_and_quiet_sessions(
+    client,
+    db_session,
+):
+    setup = setup_coding_session_context(
+        client,
+        db_session,
+        instructor_school_id="8100000010",
+        instructor_email=("sessionfaculty10@pampangastateu.edu.ph"),
+        student_school_id="8200000010",
+        student_email=("sessionstudent10@pampangastateu.edu.ph"),
+        task_title="Per-activity Live Filter",
+    )
+    task_id = setup["task"]["task_id"]
+
+    def task_sessions(**params) -> list[str]:
+        response = client.get(
+            f"/instructors/tasks/{task_id}/coding-sessions",
+            headers=bearer_header(setup["instructor_token"]),
+            params=params,
+        )
+
+        assert response.status_code == 200
+
+        return [session["session_id"] for session in response.json()]
+
+    start_response = start_coding_session(
+        client,
+        student_token=setup["student_token"],
+        task_id=task_id,
+    )
+    assert start_response.status_code == 201
+    session_id = start_response.json()["session_id"]
+
+    assert task_sessions(live_only=True) == [session_id]
+
+    # Quiet for longer than the 3-minute heartbeat window: still open in
+    # the database, but no longer live.
+    stored_session = db_session.get(CodingSession, session_id)
+    stored_session.last_activity_at = datetime.now(timezone.utc) - timedelta(
+        minutes=3,
+        seconds=5,
+    )
+    db_session.commit()
+
+    assert task_sessions(live_only=True) == []
+    assert task_sessions(active_only=True) == [session_id]
+
+    heartbeat_response = update_coding_session(
+        client,
+        student_token=setup["student_token"],
+        session_id=session_id,
+    )
+    assert heartbeat_response.status_code == 200
+    assert task_sessions(live_only=True) == [session_id]
+
+    end_response = end_coding_session(
+        client,
+        student_token=setup["student_token"],
+        session_id=session_id,
+    )
+    assert end_response.status_code == 200
+
+    # Ended sessions never count as live, and the unfiltered list keeps
+    # them for review.
+    assert task_sessions(live_only=True) == []
+    assert task_sessions() == [session_id]
+
+
+def test_grading_bench_reads_indicators_from_the_linked_session(
+    client,
+    db_session,
+):
+    setup = setup_coding_session_context(
+        client,
+        db_session,
+        instructor_school_id="8100000010",
+        instructor_email=("sessionfaculty10@pampangastateu.edu.ph"),
+        student_school_id="8200000010",
+        student_email=("sessionstudent10@pampangastateu.edu.ph"),
+        task_title="Grading Bench Linkage Test",
+    )
+
+    start_response = start_coding_session(
+        client,
+        student_token=setup["student_token"],
+        task_id=setup["task"]["task_id"],
+    )
+
+    assert start_response.status_code == 201
+
+    session_id = start_response.json()["session_id"]
+
+    activity_response = client.patch(
+        (f"/activities/coding-sessions/{session_id}/activity"),
+        headers=bearer_header(setup["student_token"]),
+        json={
+            "tab_switch_increment": 3,
+            "blocked_paste_increment": 2,
+            "mouseleave_increment": 5,
+        },
+    )
+
+    assert activity_response.status_code == 200
+
+    submission_response = client.post(
+        "/submissions/",
+        headers=bearer_header(setup["student_token"]),
+        json={
+            "task_id": setup["task"]["task_id"],
+            "coding_session_id": session_id,
+            "raw_code": ("print('linked')\n"),
+        },
+    )
+
+    assert submission_response.status_code == 201
+
+    sub_id = submission_response.json()["sub_id"]
+
+    # The grading bench reads the submission record, then the session it
+    # names (SplitPaneGradingWorkspace.jsx).
+    record_response = client.get(
+        (f"/instructors/submissions/{sub_id}"),
+        headers=bearer_header(setup["instructor_token"]),
+    )
+
+    assert record_response.status_code == 200
+    assert record_response.json()["coding_session_id"] == session_id
+
+    session_response = client.get(
+        (f"/instructors/coding-sessions/{session_id}"),
+        headers=bearer_header(setup["instructor_token"]),
+    )
+
+    assert session_response.status_code == 200
+
+    indicators = session_response.json()
+
+    assert indicators["tab_switch_count"] == 3
+    assert indicators["blocked_paste_count"] == 2
+    assert indicators["mouseleave_count"] == 5

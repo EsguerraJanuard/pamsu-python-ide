@@ -24,7 +24,7 @@ from app.schemas.user_schema import UserCreate
 
 
 VALID_USER_DATA = {
-    "first_name": "Test", "last_name": "Student",
+    "name": "Test Student",
     "school_id": "0000000001",
     "email": "student@pampangastateu.edu.ph",
     "password": "SecurePass123!",
@@ -100,7 +100,7 @@ def _valid_result_update_data(
 def test_valid_user_registration_input():
     user = UserCreate(**VALID_USER_DATA)
 
-    assert user.first_name == "Test Student".split()[0] and user.last_name == " ".join("Test Student".split()[1:])
+    assert user.name == "Test Student"
     assert user.school_id == "0000000001"
     assert user.email == "student@pampangastateu.edu.ph"
     assert user.data_collection_acknowledged is True
@@ -548,17 +548,17 @@ def test_partner_result_rejects_terminal_fields_while_running():
         )
 
 
-def test_partner_result_completed_status_rejects_nonzero_exit_code():
-    with pytest.raises(
-        ValidationError,
-        match="cannot report a non-zero exit code",
-    ):
-        PartnerExecutionResultUpdate(
-            **{
-                **_valid_result_update_data(),
-                "exit_code": 1,
-            }
-        )
+def test_partner_result_completed_status_accepts_nonzero_exit_code():
+    # Intentional since b5f111f: "completed" means the program ran to the
+    # end; a script that calls sys.exit(1) still completed.
+    update = PartnerExecutionResultUpdate(
+        **{
+            **_valid_result_update_data(),
+            "exit_code": 1,
+        }
+    )
+
+    assert update.exit_code == 1
 
 
 @pytest.mark.parametrize(

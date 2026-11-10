@@ -68,7 +68,7 @@ ALLOWED_EXECUTION_STATUS_TRANSITIONS = {
             "failed",
         }
     ),
-    "running": TERMINAL_EXECUTION_STATUSES,
+    "running": frozenset({"running"}).union(TERMINAL_EXECUTION_STATUSES),
     "completed": frozenset(),
     "syntax_error": frozenset(),
     "runtime_error": frozenset(),
@@ -802,14 +802,6 @@ class PartnerExecutionResultUpdate(BaseModel):
 
         if self.completed_at is None:
             raise ValueError("Terminal worker updates require completed_at.")
-
-        if self.status == "completed" and self.exit_code not in (
-            None,
-            0,
-        ):
-            raise ValueError(
-                "Completed execution updates cannot report a non-zero exit code."
-            )
 
         if (
             self.status

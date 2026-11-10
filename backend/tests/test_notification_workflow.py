@@ -61,8 +61,7 @@ def notification_student(
     db_session: Session,
 ) -> User:
     student = User(
-        first_name=("Notification Workflow Student").split()[0] if isinstance("Notification Workflow Student", str) else "Test",
-        last_name=" ".join(("Notification Workflow Student").split()[1:]) if isinstance("Notification Workflow Student", str) and " " in "Notification Workflow Student" else "User",
+        name="Notification Workflow Student",
         school_id="8300000001",
         email=("notification.workflow.student@pampangastateu.edu.ph"),
         role="student",
@@ -83,8 +82,7 @@ def notification_instructor(
     db_session: Session,
 ) -> User:
     instructor = User(
-        first_name=("Notification Workflow Instructor").split()[0] if isinstance("Notification Workflow Instructor", str) else "Test",
-        last_name=" ".join(("Notification Workflow Instructor").split()[1:]) if isinstance("Notification Workflow Instructor", str) and " " in "Notification Workflow Instructor" else "User",
+        name="Notification Workflow Instructor",
         school_id="8300000002",
         email=("notification.workflow.instructor@pampangastateu.edu.ph"),
         role="instructor",
@@ -105,8 +103,7 @@ def other_notification_user(
     db_session: Session,
 ) -> User:
     user = User(
-        first_name=("Other Notification User").split()[0] if isinstance("Other Notification User", str) else "Test",
-        last_name=" ".join(("Other Notification User").split()[1:]) if isinstance("Other Notification User", str) and " " in "Other Notification User" else "User",
+        name="Other Notification User",
         school_id="8300000003",
         email=("other.notification.user@pampangastateu.edu.ph"),
         role="student",
@@ -127,8 +124,7 @@ def inactive_notification_user(
     db_session: Session,
 ) -> User:
     user = User(
-        first_name=("Inactive Notification User").split()[0] if isinstance("Inactive Notification User", str) else "Test",
-        last_name=" ".join(("Inactive Notification User").split()[1:]) if isinstance("Inactive Notification User", str) and " " in "Inactive Notification User" else "User",
+        name="Inactive Notification User",
         school_id="8300000004",
         email=("inactive.notification.user@pampangastateu.edu.ph"),
         role="student",

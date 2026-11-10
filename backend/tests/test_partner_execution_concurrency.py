@@ -159,7 +159,7 @@ def _drop_temporary_database(
             )
 
             cursor.execute(
-                sql.SQL("DROP DATABASE IF EXISTS {}").format(
+                sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
                     sql.Identifier(database_name)
                 )
             )
@@ -239,8 +239,7 @@ def _seed_execution_context(
 ) -> dict[str, str | int]:
     with session_factory() as db:
         instructor = User(
-            first_name=("Partner Replay Instructor").split()[0] if isinstance("Partner Replay Instructor", str) else "Test",
-        last_name=" ".join(("Partner Replay Instructor").split()[1:]) if isinstance("Partner Replay Instructor", str) and " " in "Partner Replay Instructor" else "User",
+            name="Partner Replay Instructor",
             school_id="9700000001",
             email=("p15.partner.replay.instructor@pampangastateu.edu.ph"),
             role="instructor",
@@ -250,8 +249,7 @@ def _seed_execution_context(
         )
 
         student = User(
-            first_name=("Partner Replay Student").split()[0] if isinstance("Partner Replay Student", str) else "Test",
-        last_name=" ".join(("Partner Replay Student").split()[1:]) if isinstance("Partner Replay Student", str) and " " in "Partner Replay Student" else "User",
+            name="Partner Replay Student",
             school_id="9700000002",
             email=("p15.partner.replay.student@pampangastateu.edu.ph"),
             role="student",

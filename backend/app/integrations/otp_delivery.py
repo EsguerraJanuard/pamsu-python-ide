@@ -2,10 +2,16 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr, formatdate, make_msgid
 from typing import NoReturn
 
 from app.integrations.otp_email import OTPEmailAdapter as OTPDeliveryAdapter
 from app.integrations.otp_email import OTPEmailAdapterRejectedError
+
+# Bounds every SMTP connect and command so a stalled relay cannot hold a
+# worker thread indefinitely.
+SMTP_TIMEOUT_SECONDS = 15
+DEFAULT_SMTP_HOST = "smtp-relay.brevo.com"
 
 
 class OTPDeliveryUnavailableError(RuntimeError):
@@ -19,12 +25,17 @@ class SMTPEmailAdapter:
     """
 
     def __init__(self):
-        self.host = os.getenv("SMTP_HOST", "")
-        self.port = int(os.getenv("SMTP_PORT", "587"))
+        # Same defaults as the account-setup email (email_service): without
+        # them, reset codes failed while welcome emails still went out.
+        self.host = os.getenv("SMTP_HOST") or DEFAULT_SMTP_HOST
+        self.port = int(os.getenv("SMTP_PORT") or "587")
         self.user = os.getenv("SMTP_USER", "")
         self.password = os.getenv("SMTP_PASS", "")
-        self.sender_name = os.getenv("SMTP_SENDER_NAME", "PAMSU IDE")
-        self.sender_email = os.getenv("SMTP_SENDER_EMAIL", self.user)
+        self.sender_name = os.getenv("SMTP_SENDER_NAME", "PSU Python IDE")
+        # Same sender as the account-setup email (email_service). The SMTP
+        # login is Brevo's relay account name, not a verified sender, so
+        # Brevo refuses or drops mail sent from it.
+        self.sender_email = os.getenv("SMTP_SENDER_EMAIL") or "noreply@pampangastateu.edu.ph"
 
     def send_otp(
         self,
@@ -34,13 +45,16 @@ class SMTPEmailAdapter:
         purpose: str,
         expires_in_seconds: int,
     ) -> None:
-        if not self.host or not self.user or not self.password:
-            raise OTPDeliveryUnavailableError("SMTP configuration is missing.")
+        if not self.user or not self.password:
+            raise OTPDeliveryUnavailableError("SMTP configuration is missing (SMTP_USER and SMTP_PASS).")
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = f"{self.sender_name} - Verification Code"
-        msg["From"] = f"{self.sender_name} <{self.sender_email}>"
+        msg["From"] = formataddr((self.sender_name, self.sender_email))
         msg["To"] = recipient_email
+        # Gmail rejects or spam-files mail without these.
+        msg["Date"] = formatdate(localtime=False)
+        msg["Message-ID"] = make_msgid(domain=self.sender_email.partition("@")[2] or None)
 
         purpose_str = "verify your email address"
         if purpose == "registration":
@@ -63,8 +77,8 @@ This code will expire in {minutes} minutes. If you did not request this code, yo
         <html>
           <body style="font-family: sans-serif; padding: 20px;">
             <div style="max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                <div style="background-color: #0f1117; padding: 20px; text-align: center;">
-                    <h2 style="color: #10b981; margin: 0; font-family: monospace;">PAMSU IDE</h2>
+                <div style="background-color: #77250b; padding: 20px; text-align: center;">
+                    <h2 style="color: #eaae19; margin: 0;">Pampanga State University Python IDE</h2>
                 </div>
                 <div style="padding: 30px; background-color: #ffffff;">
                     <p style="color: #374151; font-size: 16px; margin-top: 0;">Hello,</p>
@@ -88,12 +102,15 @@ This code will expire in {minutes} minutes. If you did not request this code, yo
         msg.attach(part2)
 
         try:
-            with smtplib.SMTP(self.host, self.port) as server:
+            with smtplib.SMTP(self.host, self.port, timeout=SMTP_TIMEOUT_SECONDS) as server:
                 server.starttls()
                 server.login(self.user, self.password)
-                server.sendmail(self.sender_email, recipient_email, msg.as_string())
+                server.sendmail(self.sender_email, [recipient_email], msg.as_string())
         except Exception as e:
-            raise OTPEmailAdapterRejectedError(f"SMTP delivery failed: {str(e)}")
+            # Class name and SMTP code only (535 = wrong key, SMTPSenderRefused =
+            # sender not verified in Brevo); the error text can echo the address.
+            summary = " ".join(str(part) for part in (type(e).__name__, getattr(e, "smtp_code", None)) if part)
+            raise OTPEmailAdapterRejectedError(f"SMTP delivery failed ({summary}).") from None
 
 
 class UnavailableOTPDeliveryAdapter:
@@ -122,7 +139,8 @@ def get_otp_delivery_adapter() -> OTPDeliveryAdapter:
     FastAPI dependency provider for OTP email delivery.
     """
     
-    if os.getenv("SMTP_HOST") and os.getenv("SMTP_USER") and os.getenv("SMTP_PASS"):
+    # SMTP_HOST is optional (Brevo's relay by default), as for welcome emails.
+    if os.getenv("SMTP_USER") and os.getenv("SMTP_PASS"):
         return SMTPEmailAdapter()
     
     return UnavailableOTPDeliveryAdapter()

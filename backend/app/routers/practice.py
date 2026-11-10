@@ -1,12 +1,12 @@
-import base64
-import os
+import logging
 from typing import List
 
-import httpx
 from app.core.database import get_db
+from app.core.rate_limit import enforce_rate_limit, limit_per_user
 from app.core.security import get_current_instructor, get_current_student
 from app.models.domain_models import (PracticeAttempt, PracticeModule,
                                       PracticeProgress, PracticeTask, User)
+from app.schemas.execution_schema import Judge0CallbackPayload
 from app.schemas.practice_schema import (GrowthAnalyticsResponse,
                                          ModuleBreakdown,
                                          PracticeAiHintResponse,
@@ -19,12 +19,14 @@ from app.schemas.practice_schema import (GrowthAnalyticsResponse,
                                          PracticeTaskBase, PracticeTaskCreate,
                                          PracticeTaskDetail,
                                          PracticeTaskUpdate)
-from app.services.ai_tutor_service import generate_pedagogical_hint
-from app.services.ast_evaluator import evaluate_ast_details
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from fastapi_limiter.depends import RateLimiter
-from sqlalchemy import func
+from app.services import practice_evaluation_service as practice_evaluation
+from app.services import practice_hint_store
+from app.services.ai_tutor_service import (TUTOR_UNAVAILABLE_MESSAGE,
+                                           generate_pedagogical_hint)
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/practice", tags=["Solo Practice"])
 
@@ -88,130 +90,88 @@ def get_practice_modules(
 
     return response_modules
 
-@router.post("/tasks/{task_id}/submit", response_model=PracticeSubmissionResponse, dependencies=[Depends(RateLimiter(times=3, seconds=10))])
+@router.post(
+    "/tasks/{task_id}/submit",
+    response_model=PracticeSubmissionResponse,
+    # Each submission is a paid Judge0 call.
+    dependencies=[Depends(limit_per_user("practice_submit", limit=3, window_seconds=10))],
+)
 def submit_practice_task(
     task_id: int,
     request: PracticeSubmissionRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_student)
 ):
+    """Save the attempt and queue it for Judge0; answers at once with status "pending".
+
+    Judge0 runs the code in the background and calls back with the result
+    (PUT /practice/internal/judge0-callback); poll GET
+    /practice/attempts/{attempt_id} until the status is "completed" or "failed".
+    """
     task = db.query(PracticeTask).filter(PracticeTask.task_id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Practice task not found.")
 
-    # 1. Gate 1: Judge0 Execution (Synchronous wait=true for fast practice feedback)
-    judge0_url = os.environ.get("JUDGE0_API_URL", "http://judge0-server:2358")
-    if judge0_url and not judge0_url.startswith("http"):
-        judge0_url = f"https://{judge0_url}"
-    judge0_key = os.environ.get("JUDGE0_API_KEY")
-    judge0_host = os.environ.get("JUDGE0_HOST")
-    
-    source_b64 = base64.b64encode(request.code.encode('utf-8')).decode('utf-8')
-    expected_out_b64 = base64.b64encode(task.expected_output.encode('utf-8')).decode('utf-8') if task.expected_output else None
+    attempt = practice_evaluation.new_pending_attempt(
+        db, student_id=current_user.user_id, task_id=task_id, code=request.code,
+    )
+    if not practice_evaluation.queue_practice_attempt(db, attempt):
+        raise HTTPException(status_code=503, detail="The code execution service is unavailable. Please try again shortly.")
 
-    payload = {
-        "source_code": source_b64,
-        "language_id": 71, # Python
-        "expected_output": expected_out_b64,
-        "cpu_time_limit": 5.0,
-        "memory_limit": 256000,
-        "enable_network": False
-    }
+    return practice_evaluation.to_response(attempt)
 
-    execution_feedback = None
-    is_successful = False
-    
+
+@router.get(
+    "/attempts/{attempt_id}",
+    response_model=PracticeSubmissionResponse,
+    # The practice page polls this every 1.5 s while Judge0 runs the code.
+    dependencies=[Depends(limit_per_user("practice_attempt_poll", limit=90, window_seconds=60))],
+)
+def get_practice_attempt(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_student)
+):
+    attempt = (
+        db.query(PracticeAttempt)
+        .filter(PracticeAttempt.attempt_id == attempt_id, PracticeAttempt.student_id == current_user.user_id)
+        .first()
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Practice attempt not found.")
+
+    # An attempt Judge0 never answered is closed here, so the page stops waiting.
+    attempt = practice_evaluation.expire_if_stale(db, attempt)
+    return practice_evaluation.to_response(attempt)
+
+
+@router.put(
+    "/internal/judge0-callback",
+    status_code=200,
+    include_in_schema=False,
+)
+def apply_practice_judge0_callback(
+    payload: Judge0CallbackPayload,
+    attempt_id: int = Query(..., gt=0),
+    correlation_id: str = Query(..., min_length=36, max_length=36),
+    db: Session = Depends(get_db),
+):
+    """Judge0's result for a practice attempt.
+
+    Judge0 sends no credentials. The correlation_id, a random UUID that only
+    the server and Judge0 see, binds the call to one pending attempt; an
+    unknown pair is 404 and a finished attempt is 409 (nothing changes).
+    """
     try:
-        
-        headers = {}
-        if judge0_key:
-            headers["X-RapidAPI-Key"] = judge0_key
-            headers["X-Auth-Token"] = judge0_key
-        if judge0_host:
-            headers["X-RapidAPI-Host"] = judge0_host
-
-        with httpx.Client(timeout=httpx.Timeout(15.0)) as client:
-            res = client.post(f"{judge0_url}/submissions?base64_encoded=true&wait=true", json=payload, headers=headers)
-            res.raise_for_status()
-            data = res.json()
-            
-            status_id = data.get("status", {}).get("id")
-            if status_id == 3: # Accepted
-                is_successful = True
-            else:
-                stderr = data.get("stderr")
-                compile_output = data.get("compile_output")
-                message = data.get("message")
-                
-                err_b64 = stderr or compile_output or message
-                if err_b64:
-                    # decode base64
-                    try:
-                        execution_feedback = base64.b64decode(err_b64).decode('utf-8')
-                    except:
-                        execution_feedback = str(err_b64)
-                else:
-                    execution_feedback = "Execution failed or output did not match expected output."
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Execution service unavailable: {str(e)}")
-
-    ast_feedback_msgs = []
-    # 2. Gate 2: AST Structural Analysis
-    if is_successful and task.expected_ast_patterns:
-        try:
-            ast_res = evaluate_ast_details(request.code, task.expected_ast_patterns)
-            
-            if ast_res.get("syntax_error"):
-                ast_feedback_msgs.append(f"Syntax Error: {ast_res['syntax_error'].get('message', 'Unknown syntax error')}")
-            
-            for finding in ast_res.get("findings", []):
-                if not finding.get("passed", False):
-                    ast_feedback_msgs.append(f"Missing {finding.get('label')}: {finding.get('message')}")
-            
-            if not ast_res.get("passed"):
-                is_successful = False
-                if not execution_feedback:
-                    execution_feedback = "Code runs successfully but does not meet the structural requirements of this lesson."
-        except Exception as e:
-            ast_feedback_msgs = [f"AST Parsing error: {str(e)}"]
-            is_successful = False
-
-    # 3. Update Progress and Record Attempt
-    progress = db.query(PracticeProgress).filter(
-        PracticeProgress.student_id == current_user.user_id,
-        PracticeProgress.task_id == task_id
-    ).first()
-
-    if not progress:
-        progress = PracticeProgress(
-            student_id=current_user.user_id,
-            task_id=task_id,
-            attempts_count=0
+        attempt = practice_evaluation.record_judge0_result(
+            db, attempt_id=attempt_id, correlation_id=correlation_id, payload=payload,
         )
-        db.add(progress)
-    
-    progress.attempts_count += 1
-    if is_successful and not progress.is_completed:
-        progress.is_completed = True
-        progress.completed_at = func.now()
+    except practice_evaluation.PracticeAttemptNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Practice attempt not found or correlation token mismatch.") from exc
+    except practice_evaluation.PracticeAttemptFinishedError as exc:
+        raise HTTPException(status_code=409, detail="Practice attempt is already finished.") from exc
+    return {"attempt_id": attempt.attempt_id, "status": attempt.status}
 
-    attempt = PracticeAttempt(
-        student_id=current_user.user_id,
-        task_id=task_id,
-        submitted_code=request.code,
-        is_successful=is_successful,
-        execution_feedback=execution_feedback,
-        ast_feedback=ast_feedback_msgs
-    )
-    db.add(attempt)
-    db.commit()
-
-    return PracticeSubmissionResponse(
-        is_successful=is_successful,
-        execution_feedback=execution_feedback,
-        ast_feedback=ast_feedback_msgs,
-        message="Practice task completed successfully!" if is_successful else "Keep trying!"
-    )
 
 def calculate_growth_for_student(db: Session, student_id: int) -> GrowthAnalyticsResponse:
     modules = db.query(PracticeModule).order_by(PracticeModule.order_index).all()
@@ -240,10 +200,12 @@ def calculate_growth_for_student(db: Session, student_id: int) -> GrowthAnalytic
             ).count()
             mod_completed = completed_count
             
-            # Count attempts
+            # Count judged attempts only: pending ones have no verdict yet and
+            # failed ones never ran (system errors, not the student's tries).
             attempts = db.query(PracticeAttempt).filter(
                 PracticeAttempt.student_id == student_id,
-                PracticeAttempt.task_id.in_(task_ids)
+                PracticeAttempt.task_id.in_(task_ids),
+                PracticeAttempt.status == "completed",
             ).all()
             mod_attempts = len(attempts)
             
@@ -364,6 +326,8 @@ def update_practice_module(
     
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot edit default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this module")
     
     if request.title is not None:
         mod.title = request.title
@@ -388,6 +352,8 @@ def delete_practice_module(
         
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot delete default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this module")
         
     db.delete(mod)
     db.commit()
@@ -406,6 +372,8 @@ def create_practice_task(
         
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this module")
         
     task = PracticeTask(
         module_id=module_id,
@@ -435,6 +403,8 @@ def update_practice_task(
     mod = task.module
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify tasks in this module")
         
     if request.title is not None:
         task.title = request.title
@@ -466,6 +436,8 @@ def delete_practice_task(
     mod = task.module
     if mod.instructor_id is None:
         raise HTTPException(status_code=403, detail="Cannot modify default seeded modules")
+    if mod.instructor_id != current_instructor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete tasks in this module")
         
     db.delete(task)
     db.commit()
@@ -473,41 +445,40 @@ def delete_practice_task(
 
 
 
-def _generate_hint_bg(attempt_id: int):
-    from app.core.database import SessionLocal
-    db = SessionLocal()
+def _generate_hint_bg(attempt_id: int, task_instructions: str, student_code: str, error_output: str):
+    # Runs after the response is sent; it needs no database session.
     try:
-        from app.models.domain_models import PracticeAttempt
-        attempt = db.query(PracticeAttempt).filter(PracticeAttempt.attempt_id == attempt_id).first()
-        if not attempt or attempt.ai_hint:
-            return
-            
-        task = attempt.task
-        error_output = attempt.execution_feedback or "Unknown Error"
-        
         hint = generate_pedagogical_hint(
-            task_instructions=task.instructions,
-            student_code=attempt.submitted_code,
-            error_output=error_output
+            task_instructions=task_instructions,
+            student_code=student_code,
+            error_output=error_output,
         )
-        
-        attempt.ai_hint = hint
-        db.commit()
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"AI Hint Background Task failed: {e}")
-        try:
-            attempt.ai_hint = f"AI Tutor encountered an error: {str(e)}"
-            db.commit()
-        except:
-            db.rollback()
-    finally:
-        db.close()
 
-@router.post("/attempts/{attempt_id}/ai-hint", response_model=PracticeAiHintResponse)
+        if hint:
+            practice_hint_store.save_hint(attempt_id, hint)
+        else:
+            practice_hint_store.save_failure(attempt_id)
+    except Exception:
+        logger.exception("AI hint generation failed for practice attempt %s.", attempt_id)
+        practice_hint_store.save_failure(attempt_id)
+    finally:
+        practice_hint_store.release_generation(attempt_id)
+
+
+@router.post(
+    "/attempts/{attempt_id}/ai-hint",
+    response_model=PracticeAiHintResponse,
+    # The client polls this route until the hint is ready; polls are a
+    # database read and a Redis GET. Only calls that start a Gemini request
+    # count against the "practice_ai_hint" limit below.
+    dependencies=[Depends(limit_per_user("practice_ai_hint_poll", limit=60, window_seconds=60))],
+)
 def get_ai_hint(
     attempt_id: int,
     background_tasks: BackgroundTasks,
+    # After a failed generation the client sends retry=true to try again;
+    # plain polls get the "unavailable" answer until it expires.
+    retry: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_student)
 ):
@@ -515,27 +486,54 @@ def get_ai_hint(
     if not attempt:
         raise HTTPException(status_code=404, detail="Practice attempt not found.")
     
+    if attempt.status == "pending":
+        raise HTTPException(status_code=409, detail="This attempt is still being checked.")
+    if attempt.status == "failed":
+        raise HTTPException(status_code=400, detail="This attempt could not be run, so there is no result to explain.")
     if attempt.is_successful:
         raise HTTPException(status_code=400, detail="Cannot generate AI hint for successful attempts.")
 
-    if attempt.ai_hint:
-        return PracticeAiHintResponse(ai_hint=attempt.ai_hint, status="completed")
-        
-    # Check if a task was recently kicked off? 
-    # To keep it simple, we kick off if it's missing, but if frontend polls, it will keep kicking off.
-    # Actually, we can use a Redis key or just kick it off if it's not present.
-    # A cleaner way is: if frontend calls GET, we return status. But this is a POST endpoint.
-    # If it's called multiple times, we might spawn multiple generation tasks.
-    # Let's use Redis to prevent duplicate generation.
-    from app.core.redis_client import redis_client
-    lock_key = f"ai_hint_generating:{attempt_id}"
-    
-    is_generating = redis_client.get(lock_key)
-    if is_generating:
+    hint = practice_hint_store.get_hint(attempt_id)
+    if hint:
+        return PracticeAiHintResponse(ai_hint=hint, status="completed")
+
+    failed = practice_hint_store.generation_failed(attempt_id)
+    if failed and not retry:
+        # "completed" keeps clients that predate `unavailable` from polling
+        # (and starting a new generation) in a loop.
+        return PracticeAiHintResponse(ai_hint=TUTOR_UNAVAILABLE_MESSAGE, status="completed", unavailable=True)
+
+    # Only the first caller starts a generation; later polls wait for it.
+    if not practice_hint_store.claim_generation(attempt_id):
         return PracticeAiHintResponse(ai_hint=None, status="processing")
-        
-    # Kick off generation
-    redis_client.setex(lock_key, 30, "1")
-    background_tasks.add_task(_generate_hint_bg, attempt_id)
-    
+
+    try:
+        enforce_rate_limit(scope="practice_ai_hint", identifier=str(current_user.user_id), limit=10, window_seconds=300)
+    except HTTPException:
+        practice_hint_store.release_generation(attempt_id)
+        raise
+
+    if failed:
+        practice_hint_store.clear_failure(attempt_id)
+
+    error_output = attempt.execution_feedback or "The output did not match the expected output."
+    if attempt.ast_feedback:
+        error_output += "\n" + "\n".join(str(message) for message in attempt.ast_feedback)
+    task_instructions = attempt.task.instructions
+    submitted_code = attempt.submitted_code
+
+    # FastAPI closes this request's session only after its background tasks.
+    # Close it now, so the hint never holds a pooled connection, or a lock on
+    # practice_attempts, for as long as Gemini takes (up to ~67 s). Such a lock
+    # made a migration time out on Render on 2026-10-24.
+    db.close()
+
+    background_tasks.add_task(
+        _generate_hint_bg,
+        attempt_id,
+        task_instructions,
+        submitted_code,
+        error_output,
+    )
+
     return PracticeAiHintResponse(ai_hint=None, status="processing")

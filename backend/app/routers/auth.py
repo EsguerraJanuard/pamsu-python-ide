@@ -1,40 +1,75 @@
+import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 from uuid import uuid4
 
 from app.core.database import get_db
-from app.core.redis_client import redis_client
+from app.core.rate_limit import enforce_rate_limit, limit_per_ip
+from app.core.token_revocation import revoke_token
 from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
-                               SECRET_KEY, create_access_token, oauth2_scheme,
-                               verify_password)
+                               MAINTENANCE_MODE_MESSAGE, SECRET_KEY,
+                               create_user_access_token, get_password_hash,
+                               oauth2_scheme, verify_password)
+from app.core.system_settings import get_system_setting
 from app.models.domain_models import User
-from app.routers.admin import global_system_settings
 from app.schemas.audit_schema import AuditRecordCreateInternal
 from app.schemas.user_schema import UNIVERSITY_EMAIL_DOMAIN
 from app.services.audit_service import create_audit_record
+from app.services.login_security_service import (faculty_lockout_remaining,
+                                                 lockout_message)
+from app.services.guest_service import (GUEST_LIMIT_REACHED_DETAIL,
+                                        create_self_service_guest,
+                                        ensure_sandbox_demo_activity,
+                                        get_or_create_sandbox_classroom,
+                                        guest_limit_reached,
+                                        is_guest_identity)
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_limiter.depends import RateLimiter
-from jose import jwt
-from pydantic import BaseModel, ConfigDict, Field
+from jose import JWTError, jwt
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Authentication"],
 )
 
+# A valid bcrypt hash of a random value, used only to equalize login timing.
+DUMMY_PASSWORD_HASH = get_password_hash(secrets.token_urlsafe(16))
+
 
 class AuthenticatedUserResponse(BaseModel):
     user_id: int
-    first_name: str
-    last_name: str
+    name: str
     school_id: str
     email: str
     role: str
     email_verified: bool
+    ast_strictness_level: str
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def first_name(self) -> str:
+        parts = self.name.split()
+        return parts[0] if parts else ""
+
+    @computed_field
+    @property
+    def last_name(self) -> str:
+        parts = self.name.split()
+        return " ".join(parts[1:]) if len(parts) > 1 else ""
+
+    @computed_field
+    @property
+    def is_guest(self) -> bool:
+        """A self-service guest ("Continue as Guest Student")."""
+        return is_guest_identity(role=self.role, email=self.email, school_id=self.school_id)
 
 
 class TokenResponse(BaseModel):
@@ -66,6 +101,33 @@ def get_user_by_email(
     return db.query(User).filter(func.lower(User.email) == email).first()
 
 
+# Matches the audit resource_id limit, so a recorded identifier always fits.
+MAX_RECORDED_LOGIN_IDENTIFIER_LENGTH = 100
+UNRECOGNIZED_LOGIN_IDENTIFIER = "unrecognized"
+
+
+def recordable_login_identifier(normalized_email: str) -> str | None:
+    """
+    The login identifier if it is safe to keep in the audit trail.
+
+    Only a well-formed university email is kept. Anything else may be a
+    password typed into the email field, so it is never stored or logged.
+    """
+
+    local_part = normalized_email.removesuffix(UNIVERSITY_EMAIL_DOMAIN)
+
+    if (
+        not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN)
+        or not local_part
+        or "@" in local_part
+        or any(character.isspace() for character in local_part)
+        or len(normalized_email) > MAX_RECORDED_LOGIN_IDENTIFIER_LENGTH
+    ):
+        return None
+
+    return normalized_email
+
+
 @router.post(
     "/login",
     response_model=TokenResponse,
@@ -73,7 +135,7 @@ def get_user_by_email(
     summary="Log in using a verified university email",
     description=(
         "The OAuth2 `username` form field must contain the user's "
-        "PAMSU university email address. Account roles are read only "
+        "Pampanga State University email address. Account roles are read only "
         "from the backend-controlled user record."
     ),
     responses={
@@ -93,25 +155,52 @@ def login(
 ) -> TokenResponse:
     normalized_email = form_data.username.strip().lower()
 
+    # Per account email, not per IP: every request reaches the app through
+    # the platform proxy, so an IP limit would lock out the whole school.
+    enforce_rate_limit(
+        scope="login",
+        identifier=normalized_email,
+        limit=10,
+        window_seconds=60,
+    )
+
     def raise_invalid(user_obj=None):
-        if user_obj:
+        try:
+            actor_id = user_obj.user_id if user_obj else None
+            identifier = recordable_login_identifier(normalized_email)
+
+            if user_obj:
+                res_id = str(user_obj.user_id)
+            else:
+                res_id = identifier or UNRECOGNIZED_LOGIN_IDENTIFIER
+
+            audit_data = (
+                {"email": identifier}
+                if identifier
+                else {"identifier": UNRECOGNIZED_LOGIN_IDENTIFIER}
+            )
             create_audit_record(
                 db=db,
                 payload=AuditRecordCreateInternal(
-                    audit_key=f"login_failed_{user_obj.user_id}_{uuid4().hex[:8]}",
-                    actor_user_id=user_obj.user_id,
+                    audit_key=f"login_failed_{actor_id or 'anon'}_{uuid4().hex[:8]}",
+                    actor_user_id=actor_id,
                     action_type="login_failed",
                     resource_type="user",
-                    resource_id=str(user_obj.user_id),
+                    resource_id=res_id,
                     outcome="failed",
-                    audit_data={"email": normalized_email}
+                    audit_data=audit_data,
                 )
+            )
+        except Exception as exc:
+            # Class name only: the exception text can echo the rejected input.
+            logger.error(
+                "Could not record a failed login attempt (%s).",
+                type(exc).__name__,
             )
         raise invalid_credentials_exception()
 
-
     if not normalized_email.endswith(UNIVERSITY_EMAIL_DOMAIN):
-        raise invalid_credentials_exception()
+        raise_invalid(None)
 
     user = get_user_by_email(
         db=db,
@@ -119,13 +208,44 @@ def login(
     )
 
     if user is None:
-        raise invalid_credentials_exception()
+        # Spend the same hashing work as a real check so response timing
+        # does not reveal which university emails have accounts.
+        verify_password(form_data.password, DUMMY_PASSWORD_HASH)
+        raise_invalid(None)
+
+    # Faculty accounts lock after repeated wrong passwords, checked before
+    # the password so a correct guess during the lock is refused too.
+    lock_remaining = faculty_lockout_remaining(db, user)
+    if lock_remaining is not None:
+        try:
+            create_audit_record(
+                db=db,
+                payload=AuditRecordCreateInternal(
+                    audit_key=f"login_locked_{user.user_id}_{uuid4().hex[:8]}",
+                    actor_user_id=user.user_id,
+                    action_type="login_failed",
+                    resource_type="user",
+                    resource_id=str(user.user_id),
+                    outcome="denied",
+                    audit_data={"email": user.email, "reason": "faculty_lockout"},
+                )
+            )
+        except Exception as exc:
+            logger.error(
+                "Could not record a locked sign-in attempt (%s).",
+                type(exc).__name__,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=lockout_message(lock_remaining),
+            headers={"Retry-After": str(max(1, int(lock_remaining.total_seconds())))},
+        )
 
     if not verify_password(
         form_data.password,
         user.password_hash,
     ):
-        raise invalid_credentials_exception()
+        raise_invalid(user)
 
     if not user.is_active:
         raise HTTPException(
@@ -138,10 +258,10 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=("University email verification is required."),
         )
-    if global_system_settings.get("maintenance_mode", False) and user.role == "student":
+    if get_system_setting(db, "maintenance_mode", default=False) and user.role == "student":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=("The system is currently undergoing maintenance. Only instructors and MIS personnel can log in at this time."),
+            detail=MAINTENANCE_MODE_MESSAGE,
         )
 
     if user.role not in {
@@ -158,14 +278,8 @@ def login(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
     )
 
-    access_token = create_access_token(
-        data={
-            "sub": str(user.user_id),
-            "role": user.role,
-            "name": f"{user.first_name} {user.last_name}",
-            "email": user.email,
-            "pwd_ver": user.password_version,
-        },
+    access_token = create_user_access_token(
+        user,
         expires_delta=access_token_expires,
     )
 
@@ -193,6 +307,8 @@ def login(
 # The OAuth2 username field contains the verified university email.
 # The client cannot select or modify its account role.
 # JWT identity and role claims come only from the persisted User record.
+# The token carries only sub, pamsu_user_role and pwd_ver (plus type, iat,
+# exp and jti); the profile shown in the browser comes from `user` above.
 
 @router.post(
     "/logout",
@@ -211,54 +327,67 @@ def logout(
             now = datetime.now(timezone.utc).timestamp()
             ttl = int(exp - now)
             if ttl > 0:
-                redis_client.setex(f"blacklist:{jti}", ttl, "revoked")
-    except Exception:
-        pass
+                # Kept in memory too, so a Redis outage cannot undo it.
+                revoke_token(jti, ttl)
+    except JWTError:
+        # An invalid or expired token is already unusable.
+        return
 
-@router.post("/guest", response_model=TokenResponse, dependencies=[Depends(RateLimiter(times=2, seconds=60))])
+@router.post(
+    "/guest",
+    response_model=TokenResponse,
+    dependencies=[Depends(limit_per_ip("guest", limit=2, window_seconds=60))],
+)
 def login_guest(db: Session = Depends(get_db)):
-    import random
-    import uuid
+    from app.models.domain_models import Enrollment
 
-    from app.core.utils import get_utc_now
-    from app.models.domain_models import Classroom, Enrollment
-    
-    short_id = str(uuid.uuid4())[:6]
-    guest_email = f"guest_{short_id}@pampangastateu.edu.ph"
-    
-    guest = User(
-        email=guest_email,
-        first_name="Aspiring Student",
-        last_name=f"Guest {short_id.upper()}",
-        middle_name="",
-        role="student",
-        password_hash=get_password_hash("guest"),
-        school_id=f"GST{random.randint(10000, 99999)}"
-    )
-    db.add(guest)
-    db.commit()
-    db.refresh(guest)
-    
-    # Auto-enroll guest in the first available class so they can see the system
-    first_class = db.query(Classroom).first()
-    if first_class:
+    # Guest accounts are student accounts, so the student maintenance-mode
+    # rule enforced by /login applies here as well.
+    if get_system_setting(db, "maintenance_mode", default=False):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=MAINTENANCE_MODE_MESSAGE,
+        )
+
+    # Counted in the database, so the cap holds even while Redis is down.
+    if guest_limit_reached(db):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=GUEST_LIMIT_REACHED_DETAIL,
+        )
+
+    guest = create_self_service_guest(db)
+
+    # Guests only use the admin-owned sandbox; they cannot join real classes.
+    sandbox_class = get_or_create_sandbox_classroom(db)
+
+    if sandbox_class:
         enroll = Enrollment(
-            class_id=first_class.class_id,
+            class_id=sandbox_class.class_id,
             student_id=guest.user_id,
             status="active",
-            joined_at=get_utc_now()
+            joined_at=datetime.now(timezone.utc),
         )
         db.add(enroll)
         db.commit()
 
+        # A sandbox with nothing in it is no demo. A failure here must not
+        # stop the guest signing in: they just see an empty class this time.
+        try:
+            ensure_sandbox_demo_activity(db, sandbox_class)
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception("Could not add the demo activity to the guest sandbox.")
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(guest.user_id), "role": guest.role},
+    access_token = create_user_access_token(
+        guest,
         expires_delta=access_token_expires,
     )
     
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse.model_validate(guest)
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=AuthenticatedUserResponse.model_validate(guest)
     )

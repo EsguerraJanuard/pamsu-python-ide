@@ -1,3 +1,4 @@
+import pytest
 from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash
@@ -6,6 +7,7 @@ from app.models.domain_models import (
     Enrollment,
     User,
 )
+from app.schemas.enrollment_schema import EnrollmentJoinRequest
 
 
 TEST_PASSWORD = "test12345"
@@ -592,3 +594,48 @@ def test_client_cannot_supply_classroom_owner_or_code(
 
     assert response.status_code == 422
     assert db_session.query(Classroom).count() == 0
+
+
+@pytest.mark.parametrize(
+    "bad_code",
+    [
+        "ABC 123",     # inner space
+        " ABC123",     # leading space
+        "ABC123 ",     # trailing space
+        "ABC\t123",    # tab
+        "ABC-123",     # punctuation
+        "ABC_1234",    # underscore
+        "ABC123!",     # symbol
+        "ÄBC1234",     # non-ASCII letter
+        "ABC１２３",   # full-width digits
+        "AB12",        # too short
+        "A" * 21,      # too long
+    ],
+)
+def test_join_class_code_rejects_whitespace_and_special_characters(bad_code):
+    with pytest.raises(ValueError):
+        EnrollmentJoinRequest(class_code=bad_code)
+
+
+def test_join_class_code_is_uppercased():
+    assert EnrollmentJoinRequest(class_code="ab12cd34").class_code == "AB12CD34"
+
+
+def test_join_endpoint_refuses_a_code_with_spaces(client, db_session):
+    student = create_test_user(
+        db_session,
+        name="Spaced Student",
+        role="student",
+        school_id="2026000301",
+        email="spaced.student@pampangastateu.edu.ph",
+    )
+    token = login_and_get_token(client, email=student.email)
+
+    response = client.post(
+        "/classrooms/join",
+        headers=bearer_header(token),
+        json={"class_code": "AB12 CD34"},
+    )
+
+    assert response.status_code == 422
+    assert "whitespace" in response.text

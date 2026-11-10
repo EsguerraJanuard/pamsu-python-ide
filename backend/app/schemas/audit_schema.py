@@ -1,9 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from app.core.request_context import get_current_client_ip
-from pydantic import (BaseModel, ConfigDict, Field, field_validator,
-                      model_validator)
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 AuditActionType = Literal[
     "user_registered",
@@ -26,6 +24,14 @@ AuditActionType = Literal[
     "grade_released",
     "notification_marked_read",
     "notifications_marked_read",
+    # Admin actions (migration 61330560eec5).
+    "user_created",
+    "user_updated",
+    "user_status_changed",
+    "user_password_reset",
+    "user_deleted",
+    "system_settings_updated",
+    "masterlist_imported",
 ]
 
 AuditResourceType = Literal[
@@ -36,6 +42,8 @@ AuditResourceType = Literal[
     "submission",
     "grade",
     "notification",
+    "system_setting",
+    "masterlist_import",
 ]
 
 AuditOutcome = Literal[
@@ -111,8 +119,60 @@ PROHIBITED_AUDIT_KEYS = frozenset(
 )
 
 
+import re
+
+# Credential-like key names are rejected by pattern, not only by the exact
+# spellings above, so variants such as newPassword, temp-password,
+# access_token or reset_code are caught too.
+_PASSWORD_WORDS = ("password", "passwd", "passphrase")
+_SECRET_TOKENS = frozenset({"otp", "otps", "token", "tokens", "jwt", "jwts", "secret", "secrets",
+                            "credential", "credentials", "cookie", "cookies", "pwd"})
+_KEY_QUALIFIERS = frozenset({"api", "private", "secret", "signing", "encryption", "access", "session"})
+_CODE_QUALIFIERS = frozenset({"reset", "verification", "verify", "otp", "auth", "authentication",
+                              "confirmation", "recovery", "security", "login", "mfa", "totp"})
+# Non-secret facts about a credential that are useful in an audit trail.
+SAFE_CREDENTIAL_METADATA_KEYS = frozenset({"password_version"})
+
+_BCRYPT_VALUE = re.compile(r"^\$2[abxy]?\$\d{2}\$")
+_JWT_VALUE = re.compile(r"^eyJ[\w-]+\.[\w-]+\.[\w-]*$")
+
+
 def _normalize_audit_key(value: str) -> str:
-    return value.strip().lower().replace("-", "_").replace(" ", "_")
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value.strip())
+    s = re.sub(r"[^0-9a-zA-Z]+", "_", s)
+    return s.strip("_").lower()
+
+
+def is_sensitive_audit_key(key: str) -> bool:
+    normalized = _normalize_audit_key(key)
+
+    if normalized in PROHIBITED_AUDIT_KEYS:
+        return True
+
+    if normalized in SAFE_CREDENTIAL_METADATA_KEYS:
+        return False
+
+    tokens = [token for token in normalized.split("_") if token]
+    compact = "".join(tokens)
+
+    if any(word in compact for word in _PASSWORD_WORDS):
+        return True
+
+    if any(token in _SECRET_TOKENS for token in tokens):
+        return True
+
+    for previous, current in zip(tokens, tokens[1:]):
+        if current == "key" and previous in _KEY_QUALIFIERS:
+            return True
+        if current in ("code", "codes") and previous in _CODE_QUALIFIERS:
+            return True
+
+    return compact in ("apikey", "otpcode", "resetcode")
+
+
+def _looks_like_credential_value(value: str) -> bool:
+    stripped = value.strip()
+    return bool(_BCRYPT_VALUE.match(stripped) or _JWT_VALUE.match(stripped))
 
 
 def _validate_json_value(
@@ -120,9 +180,16 @@ def _validate_json_value(
     *,
     path: str,
 ) -> None:
+    if isinstance(value, str):
+        if _looks_like_credential_value(value):
+            raise ValueError(
+                f"Audit metadata contains a credential-like value: {path}"
+            )
+        return
+
     if value is None or isinstance(
         value,
-        (bool, int, float, str),
+        (bool, int, float),
     ):
         return
 
@@ -139,9 +206,7 @@ def _validate_json_value(
             if not isinstance(key, str):
                 raise ValueError("Audit metadata keys must be strings.")
 
-            normalized_key = _normalize_audit_key(key)
-
-            if normalized_key in PROHIBITED_AUDIT_KEYS:
+            if is_sensitive_audit_key(key):
                 raise ValueError(
                     f"Audit metadata contains a prohibited field: {path}.{key}"
                 )

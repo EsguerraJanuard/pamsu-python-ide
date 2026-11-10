@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.models.domain_models import (Classroom, Enrollment, InstructorGrade,
@@ -561,3 +561,214 @@ def notify_classroom_archived(
 # DELIVERY BOUNDARY:
 # These workflows create in-app notifications only. Email, SMS, and
 # push delivery remain outside Pillar 11.
+
+
+def notify_activity_deadline_changed(
+    db: Session,
+    *,
+    actor_instructor_id: int,
+    task_id: int,
+) -> dict[str, Any]:
+    """
+    Notify active enrolled students that a published activity's
+    deadline was set, moved or removed.
+    """
+
+    task, classroom = _get_instructor_owned_task(
+        db,
+        actor_instructor_id=actor_instructor_id,
+        task_id=task_id,
+    )
+
+    if not task.is_published:
+        raise AcademicEventStateConflictError(
+            "Deadline-change notifications are only sent for published activities."
+        )
+
+    due_token = (
+        _datetime_event_token(task.due_at, field_name="due_at")
+        if task.due_at is not None
+        else "none"
+    )
+    event_key = f"activity_updated:task:{task.task_id}:due_at:{due_token}"
+
+    recipient_ids = _list_active_class_student_ids(
+        db,
+        class_id=classroom.class_id,
+    )
+
+    if not recipient_ids:
+        return _build_no_recipient_result(event_key=event_key)
+
+    event_payload = AcademicEventCreate(
+        event_key=event_key,
+        event_type="activity_updated",
+        actor_user_id=actor_instructor_id,
+        resource_type="task",
+        resource_id=str(task.task_id),
+        event_data={
+            "task_id": task.task_id,
+            "class_id": classroom.class_id,
+            "changed": "due_at",
+            "due_at": due_token,
+        },
+    )
+
+    message = (
+        f"The deadline for {task.title} in {classroom.name} was changed. "
+        "Check the activity for the new due date."
+        if task.due_at is not None
+        else f"{task.title} in {classroom.name} no longer has a deadline."
+    )
+
+    return create_academic_event_notifications(
+        db,
+        event_payload=event_payload,
+        recipient_ids=recipient_ids,
+        title="Deadline changed",
+        message=message,
+    )
+
+
+DEADLINE_REMINDER_WINDOW_HOURS = 24
+
+
+def ensure_deadline_reminders(
+    db: Session,
+    *,
+    student_id: int,
+    now: datetime | None = None,
+) -> int:
+    """
+    Create one in-app reminder per published activity that is due within
+    24 hours and that the student has not submitted yet.
+
+    There is no scheduler on the free hosting tier, so reminders are
+    created when the student's notifications are read. The event key
+    includes the deadline, so moving the deadline produces a new reminder
+    and repeating the call creates nothing. Returns the number created.
+    """
+    current_time = _normalize_datetime(now or datetime.now(timezone.utc))
+    window_end = current_time + timedelta(hours=DEADLINE_REMINDER_WINDOW_HOURS)
+
+    due_soon = (
+        db.query(Task, Classroom)
+        .join(Classroom, Task.class_id == Classroom.class_id)
+        .join(
+            Enrollment,
+            (Enrollment.class_id == Task.class_id)
+            & (Enrollment.student_id == student_id)
+            & (Enrollment.status == "active"),
+        )
+        .filter(
+            Task.is_published.is_(True),
+            Task.due_at.isnot(None),
+            Task.due_at > current_time,
+            Task.due_at <= window_end,
+            Classroom.is_active.is_(True),
+        )
+        .all()
+    )
+
+    if not due_soon:
+        return 0
+
+    submitted_task_ids = {
+        row.task_id
+        for row in db.query(Submission.task_id)
+        .filter(
+            Submission.student_id == student_id,
+            Submission.task_id.in_([task.task_id for task, _ in due_soon]),
+        )
+        .all()
+    }
+
+    created = 0
+
+    for task, classroom in due_soon:
+        if task.task_id in submitted_task_ids:
+            continue
+
+        due_token = _datetime_event_token(task.due_at, field_name="due_at")
+        event_key = f"deadline_reminder:task:{task.task_id}:student:{student_id}:{due_token}"
+
+        event_payload = AcademicEventCreate(
+            event_key=event_key,
+            event_type="deadline_reminder",
+            actor_user_id=task.instructor_id,
+            resource_type="task",
+            resource_id=str(task.task_id),
+            event_data={
+                "task_id": task.task_id,
+                "class_id": classroom.class_id,
+                "student_id": student_id,
+                "due_at": due_token,
+            },
+        )
+
+        result = create_academic_event_notifications(
+            db,
+            event_payload=event_payload,
+            recipient_ids=[student_id],
+            title="Deadline in less than 24 hours",
+            message=(
+                f"{task.title} in {classroom.name} is due in less than "
+                "24 hours and you have not submitted it yet."
+            ),
+        )
+        created += int(result.get("created_notification_count", 0) or 0)
+
+    return created
+
+
+def notify_retake_granted(
+    db: Session,
+    *,
+    actor_instructor_id: int,
+    submission_id: int,
+    granted_at: datetime,
+) -> dict[str, Any]:
+    """Tell a student that their instructor allowed another attempt."""
+
+    submission = (
+        db.query(Submission)
+        .filter(Submission.sub_id == submission_id)
+        .first()
+    )
+
+    if submission is None:
+        raise AcademicEventResourceUnavailableError("Submission not found.")
+
+    task, classroom = _get_instructor_owned_task(
+        db,
+        actor_instructor_id=actor_instructor_id,
+        task_id=submission.task_id,
+    )
+
+    grant_token = _datetime_event_token(granted_at, field_name="granted_at")
+
+    event_payload = AcademicEventCreate(
+        event_key=f"submission_status_changed:submission:{submission.sub_id}:retake:{grant_token}",
+        event_type="submission_status_changed",
+        actor_user_id=actor_instructor_id,
+        resource_type="submission",
+        resource_id=str(submission.sub_id),
+        event_data={
+            "submission_id": submission.sub_id,
+            "task_id": task.task_id,
+            "class_id": classroom.class_id,
+            "change": "retake_allowed",
+            "granted_at": grant_token,
+        },
+    )
+
+    return create_academic_event_notifications(
+        db,
+        event_payload=event_payload,
+        recipient_ids=[submission.student_id],
+        title="Another attempt allowed",
+        message=(
+            f"Your instructor allowed you to submit {task.title} again, "
+            "even if the deadline has passed. Your next submission uses it."
+        ),
+    )
